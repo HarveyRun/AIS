@@ -1,0 +1,19 @@
+
+/* V10 targeted refinements */
+#dimensions > .section-head:first-child{display:none!important}
+#forecast .forecast-main > .actions{display:none!important}
+.next-prob{display:flex!important;align-items:center!important;justify-content:center!important;gap:9px!important;min-height:54px!important}
+.next-prob .prob-copy{display:flex!important;align-items:center!important;margin:0!important}
+.next-prob .prob-value{font-size:17px!important;line-height:1!important}
+.next-prob .prob-label{display:none!important}
+.forecast-key-info{margin-top:20px;padding-top:17px;border-top:1px solid rgba(255,255,255,.09)}
+.forecast-key-info h3{margin:0 0 11px;font-size:15px}
+.key-info-grid{display:grid;grid-template-columns:1.7fr repeat(3,minmax(110px,1fr));gap:10px}
+.key-info-item{min-height:70px;border:1px solid rgba(255,255,255,.08);border-radius:13px;background:rgba(6,14,27,.48);padding:11px 12px;display:flex;flex-direction:column;justify-content:center}
+.key-info-item .key-label{color:#8fa3bd;font-size:11px;margin-bottom:5px}
+.key-info-item .key-value{font-size:17px;font-weight:950;color:#edf5ff;line-height:1.25}
+.key-info-balls{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.key-info-ball{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#d92d4e;color:#fff;font-size:10px;font-weight:900}
+.key-info-ball.blue{background:#2473dc}
+@media(max-width:980px){.key-info-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.key-info-grid{grid-template-columns:1fr}.key-info-item{min-height:62px}}

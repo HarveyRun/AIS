@@ -1,0 +1,47 @@
+
+/* V6 targeted refinements */
+.logo{width:42px;height:42px;border-radius:13px;background:conic-gradient(from 220deg,var(--red),var(--violet),var(--blue),var(--red));display:grid;place-items:center;font-weight:1000;box-shadow:0 8px 28px rgba(76,141,255,.35);color:#fff;font-size:14px;letter-spacing:-.5px}
+.forecast-hero{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(330px,.58fr);gap:18px;align-items:stretch}
+.forecast-hero>.forecast-main{height:100%}
+.result-side{display:grid;grid-template-rows:1fr 1fr;gap:18px;min-height:470px}
+.side-block{padding:16px;overflow:hidden;position:relative}
+.side-title{font-size:15px;font-weight:900;margin:0 0 11px;display:flex;align-items:center;justify-content:space-between}
+.side-title small{font-size:11px;color:var(--muted);font-weight:500}
+.recent-window{height:190px;overflow:hidden;border:1px solid rgba(255,255,255,.07);border-radius:13px;background:rgba(7,15,29,.52)}
+.recent-track{animation:recentRoll 26s linear infinite}
+.recent-window:hover .recent-track{animation-play-state:paused}
+.recent-row{height:48px;padding:7px 9px;display:grid;grid-template-columns:63px 1fr 30px;gap:7px;align-items:center;border-bottom:1px solid rgba(255,255,255,.06)}
+.recent-row .issue{font-size:11px;color:#9eb0c8;font-weight:800}
+.recent-balls{display:flex;gap:3px;align-items:center;white-space:nowrap}
+.tiny-result-ball{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;background:#d93350;color:#fff;font-size:9px;font-weight:900}
+.tiny-result-ball.blue{background:#2676de}
+@keyframes recentRoll{0%,8%{transform:translateY(0)}100%{transform:translateY(-50%)}}
+.alt-candidates{display:grid;gap:9px}
+.alt-candidate{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:9px 10px;background:rgba(7,15,29,.52)}
+.alt-candidate-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;color:#b6c6db;font-size:11px}
+.alt-candidate-balls{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.alt-candidate .mini{width:25px;height:25px}
+.scheme-price{display:inline-flex;align-items:baseline;gap:6px;padding:9px 13px;border-radius:12px;background:linear-gradient(135deg,rgba(255,79,98,.17),rgba(255,200,90,.12));border:1px solid rgba(255,112,128,.3);margin:14px 0 2px}
+.scheme-price span{font-size:12px;color:#b9c8dc}.scheme-price b{font-size:24px;color:#ffd47c}.scheme-price small{color:#92a5be}
+.scheme-card .scheme-price{margin-top:10px}
+/* Cleaner next-draw probability layout */
+.forecast-prob-grid{grid-template-columns:1fr;gap:16px}
+.probability-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:9px}
+.next-prob{display:grid;grid-template-columns:38px 1fr;gap:10px;align-items:center;padding:10px 11px;border-radius:12px;border:1px solid rgba(255,255,255,.075);background:linear-gradient(145deg,rgba(18,32,54,.92),rgba(10,20,37,.92));transition:.18s}
+.next-prob:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.18);box-shadow:0 9px 24px rgba(0,0,0,.2)}
+.next-prob .prob-num{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#ff6f7f,#c91f45);font-weight:1000;font-size:15px;box-shadow:inset 0 2px 5px rgba(255,255,255,.24)}
+.next-prob.blue .prob-num{background:linear-gradient(145deg,#6eb4ff,#1765d8)}
+.next-prob .prob-copy{min-width:0}.next-prob .prob-value{font-size:18px;font-weight:1000;line-height:1.1}.next-prob .prob-label{color:#8fa3bd;font-size:10px;margin-top:3px}
+/* Prediction reason modal */
+.reason-modal{position:fixed;inset:0;z-index:300;background:rgba(2,7,15,.78);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:22px}
+.reason-modal.open{display:flex}
+.reason-dialog{width:min(1040px,96vw);max-height:90vh;overflow:auto;background:linear-gradient(180deg,#12233b,#09182a);border:1px solid rgba(255,255,255,.13);border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.52);padding:20px}
+.reason-head{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:10px}.reason-head h2{margin:0}.reason-close{width:38px;height:38px;border:0;border-radius:10px;background:#213855;color:#fff;font-size:22px;cursor:pointer}
+.reason-summary{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0 18px}.reason-summary .cost{margin-left:auto;font-size:17px;font-weight:900;color:#ffd47c}
+.reason-columns{display:grid;grid-template-columns:1fr 1fr;gap:15px}.reason-list{display:grid;gap:8px}.reason-row-v6{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.075);border-radius:12px;padding:9px 10px;background:rgba(7,15,29,.48)}.reason-row-v6 .main{font-size:13px}.reason-row-v6 .subline{font-size:11px;color:#91a5be;margin-top:3px}.reason-row-v6 .prob{font-size:16px;font-weight:1000}
+/* Canvas tooltip */
+.chart-tooltip{position:fixed;z-index:500;pointer-events:none;display:none;min-width:130px;max-width:260px;padding:9px 11px;border-radius:10px;background:rgba(4,11,22,.96);border:1px solid rgba(255,255,255,.15);box-shadow:0 12px 35px rgba(0,0,0,.42);color:#eef5ff;font-size:12px;line-height:1.55}.chart-tooltip.show{display:block}.chart-tooltip b{display:block;margin-bottom:3px;color:#fff}.chart-tooltip span{display:flex;justify-content:space-between;gap:14px;color:#bac9db}.chart-tooltip em{font-style:normal;color:#fff;font-weight:800}
+/* Glossary page */
+.term-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.term-card{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;background:linear-gradient(145deg,rgba(18,34,56,.94),rgba(9,21,38,.94))}.term-card h3{margin:0 0 6px;font-size:15px}.term-card p{margin:0;color:#9fb0c7;font-size:12px;line-height:1.65}
+@media(max-width:1050px){.forecast-hero{grid-template-columns:1fr}.result-side{grid-template-columns:1fr 1fr;grid-template-rows:auto;min-height:0}.term-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:680px){.result-side{grid-template-columns:1fr}.reason-columns{grid-template-columns:1fr}.probability-board{grid-template-columns:repeat(2,minmax(0,1fr))}.term-grid{grid-template-columns:1fr}.reason-summary .cost{margin-left:0;width:100%}}

@@ -1,0 +1,85 @@
+html {
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+button {
+  color: inherit;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none !important;
+}
+#root {
+  min-height: 100svh;
+}
+.ui-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  vertical-align: -0.14em;
+}
+.bootstrap-error {
+  min-height: 100svh;
+  padding: 32px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  background: #f7f7fb;
+  color: #171724;
+  text-align: center;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.bootstrap-error > span {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #625bf6;
+  color: white;
+  display: grid;
+  place-items: center;
+}
+.bootstrap-error h1,
+.bootstrap-error p {
+  margin: 0;
+}
+.bootstrap-error button {
+  margin-top: 8px;
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: #171724;
+  color: white;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 1000;
+  max-width: min(90vw, 520px);
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: #171724;
+  color: #fff;
+  font:
+    700 12px/1.4 Inter,
+    "PingFang SC",
+    "Microsoft YaHei",
+    sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 12px);
+  transition: 0.2s ease;
+}
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}

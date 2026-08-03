@@ -1,0 +1,202 @@
+.login-page {
+  --ink: #171724;
+  --muted: #707080;
+  --line: #e7e8ee;
+  --violet: #625bf6;
+  --night: #13131f;
+  --font: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.login-page * {
+  box-sizing: border-box;
+}
+.login-page {
+  min-height: 100svh;
+  margin: 0;
+  background:
+    radial-gradient(
+      circle at 50% 0,
+      rgba(120, 111, 255, 0.23),
+      transparent 37%
+    ),
+    #f5f6fa;
+  color: var(--ink);
+  font-family: var(--font);
+  display: flex;
+  flex-direction: column;
+}
+.login-page .login-main {
+  flex: 1;
+  padding: 45px 18px 70px;
+  display: grid;
+  place-items: center;
+}
+.login-page .login-card {
+  width: min(100%, 470px);
+  padding: 36px;
+  border: 1px solid rgba(98, 91, 246, 0.13);
+  border-radius: 27px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 28px 90px rgba(40, 38, 96, 0.14);
+}
+.login-page .login-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: linear-gradient(145deg, var(--violet), #9c72ff);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 12px 28px rgba(98, 91, 246, 0.26);
+}
+.login-page .login-card-head {
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.login-page .login-back-home {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fafafd;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 750;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+.login-page .login-back-home:hover {
+  border-color: rgba(98, 91, 246, 0.3);
+  background: #f5f4ff;
+  color: var(--violet);
+}
+.login-page h1 {
+  margin: 0;
+  font-size: 32px;
+  letter-spacing: -0.05em;
+}
+.login-page .intro {
+  margin: 11px 0 28px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.login-page .field {
+  margin-bottom: 15px;
+}
+.login-page .field label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 11px;
+  font-weight: 750;
+}
+.login-page .field input {
+  width: 100%;
+  height: 49px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fafafd;
+  color: var(--ink);
+  outline: 0;
+}
+.login-page .field input:focus {
+  border-color: rgba(98, 91, 246, 0.55);
+  box-shadow: 0 0 0 4px rgba(98, 91, 246, 0.08);
+}
+.login-page .password-wrap {
+  position: relative;
+}
+.login-page .password-wrap input {
+  padding-right: 62px;
+}
+.login-page .password-toggle {
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  height: 35px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #efeff4;
+  color: var(--muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+.login-page .invite-wrap {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+.login-page .invite-prefix {
+  height: 49px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-right: 0;
+  border-radius: 12px 0 0 12px;
+  background: #efeff4;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 12px;
+}
+.login-page .invite-wrap input {
+  border-radius: 0 12px 12px 0;
+}
+.login-page .message {
+  min-height: 23px;
+  color: #b94754;
+  font-size: 10px;
+}
+.login-page .submit {
+  width: 100%;
+  height: 50px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(145deg, var(--violet), #746cff);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+.login-page .note {
+  margin: 15px 0 0;
+  color: #9999a4;
+  text-align: center;
+  font-size: 10px;
+}
+@media (max-width: 560px) {
+  .login-page .login-main {
+    padding-top: 28px;
+  }
+  .login-page .login-card {
+    padding: 27px;
+  }
+}
+.login-page .login-mark {
+  text-decoration: none;
+}
+
+.login-page .auth-switch,
+.login-page .auth-note {
+  margin: 16px 0 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+.login-page .auth-switch a,
+.login-page .auth-note a {
+  margin-left: 4px;
+  color: var(--violet);
+  font-weight: 750;
+  text-underline-offset: 3px;
+}

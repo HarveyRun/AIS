@@ -1,0 +1,20 @@
+
+/* V8 requested refinements */
+.scheme-code,.scheme-name{display:none!important}
+.scheme-v8{position:relative}
+.scheme-v8 .scheme-card-head{display:flex;justify-content:flex-end;align-items:center;min-height:36px;padding:0;margin:0 0 2px}
+.scheme-v8 .scheme-cost-flow{display:inline-flex;align-items:baseline;gap:7px;padding:7px 11px;border-radius:11px;background:linear-gradient(135deg,rgba(255,79,98,.18),rgba(255,200,90,.13));border:1px solid rgba(255,129,143,.32);white-space:nowrap}
+.scheme-v8 .scheme-cost-flow b{font-size:18px;color:#ffd47c}.scheme-v8 .scheme-cost-flow span{font-size:12px;color:#b8c8dc;font-weight:800}
+.scheme-v8 .ball-row{margin:12px 0 8px;padding:0}
+.scheme-v8 .ball{cursor:pointer;transition:.18s}
+.scheme-v8 .ball:hover{transform:translateY(-3px) scale(1.04);filter:brightness(1.08)}
+.scheme-reason-btn,#primaryDetailBtn,#generateAllBtn{display:none!important}
+.probability-board{grid-template-columns:repeat(10,minmax(0,1fr))!important;gap:9px}
+.next-prob{grid-template-columns:34px 1fr;gap:7px;padding:9px 8px;min-width:0}
+.next-prob .prob-num{width:34px;height:34px;font-size:14px}.next-prob .prob-value{font-size:15px}.next-prob .prob-label{font-size:9px}
+#drawTable th:nth-child(4),#drawTable td:nth-child(4){min-width:245px;width:245px}
+#drawTable td:nth-child(4){padding-left:14px;padding-right:14px}
+#drawTable td:nth-child(4) .mini{margin:0 2px}
+.reason-summary .scheme-code{display:none!important}
+@media(max-width:1200px){.probability-board{grid-template-columns:repeat(5,minmax(0,1fr))!important}}
+@media(max-width:680px){.probability-board{grid-template-columns:repeat(2,minmax(0,1fr))!important}.scheme-v8 .scheme-card-head{padding:0}.scheme-v8 .scheme-cost-flow{margin-left:auto}}

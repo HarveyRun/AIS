@@ -1,0 +1,181 @@
+<div class="shell"><header class="header"><div class="brand"><div class="six-logo" aria-label="6+1"><span class="six">6</span><span class="mark">+</span><span class="one">1</span></div><div class="brand-copy"><b>智选</b><small>双色球号码分析</small></div></div><nav class="nav"><button class="active" data-page="forecast">选号结果</button><button data-page="dimensions">趋势分析</button><button data-page="history">历史统计</button><button data-page="professional">专业说明</button></nav></header><main>
+
+<section class="page active" id="forecast">
+ <div class="panel forecast-main">
+  <h1 id="forecastTitle"></h1>
+  <div class="issue-row"><span class="chip">预测期号 <strong id="nextIssue"></strong></span><span class="chip">数据截止 <strong id="endIssue"></strong></span><span id="lastDraw" style="display:none"></span></div>
+  <div id="primaryScheme"></div>
+  <div class="actions"><button class="btn btn-ghost" id="openAddonsBtn">复式预测组</button></div>
+ </div>
+ <details class="addon-master" id="addonMaster"><summary>复式预测组</summary><div class="scheme-grid" id="schemeGrid"></div></details>
+
+ <div class="section-head"><div><h2>下期号码概率</h2></div></div>
+ <div class="forecast-prob-grid">
+  <div class="panel"><h3>红球进入下一期6个红球的概率</h3><div class="heat-grid" id="redHeat"></div></div>
+  <div class="panel"><h3>蓝球成为下一期蓝球的概率</h3><div class="heat-grid blue-grid" id="blueHeat"></div></div>
+ </div>
+</section>
+
+<section class="page" id="dimensions">
+ <div class="section-head"><div><h2>趋势分析</h2></div></div>
+ <div class="page-chart-group"><h2>最近100期走势</h2><div class="chart-grid">
+  <div class="panel chart-card"><h3>红球和值走势</h3><div class="chart"><canvas id="trendSumChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>红球跨度走势</h3><div class="chart"><canvas id="trendSpanChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>奇数数量走势</h3><div class="chart"><canvas id="trendOddChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>大号数量走势</h3><div class="chart"><canvas id="trendBigChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>连号组数走势</h3><div class="chart"><canvas id="trendConsecutiveChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>与上期重号数量走势</h3><div class="chart"><canvas id="trendRepeatChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>蓝球号码走势</h3><div class="chart"><canvas id="trendBlueChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>号码分散程度走势</h3><div class="chart"><canvas id="trendAcChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>三区号码数量走势</h3><div class="chart"><canvas id="trendZonesChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>红球6个位置走势</h3><div class="chart"><canvas id="trendPositionsChart"></canvas></div></div>
+ </div></div>
+ <div class="page-chart-group"><h2>近期次数与遗漏</h2><div class="chart-grid">
+  <div class="panel chart-card"><h3>红球近20、50、100期出现次数</h3><div class="chart wide"><canvas id="windowRedChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>蓝球近20、50、100期出现次数</h3><div class="chart wide"><canvas id="windowBlueChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>红球当前遗漏期数</h3><div class="chart wide"><canvas id="trendRedGapChart"></canvas></div></div>
+  <div class="panel chart-card"><h3>蓝球当前遗漏期数</h3><div class="chart wide"><canvas id="trendBlueGapChart"></canvas></div></div>
+ </div></div>
+ <div id="dimensionGridV3" style="display:none"></div>
+</section>
+
+<section class="page" id="history">
+ <div class="history-nav" id="historyNav">
+  <button class="active" data-section="overview">总览</button><button data-section="numbers">号码</button><button data-section="structures">组合</button><button data-section="time">时间</button><button data-section="regions">地区</button><button data-section="network">搭配</button><button data-section="draws">开奖明细</button>
+ </div>
+
+ <div class="history-section active" id="overview">
+  <div class="section-head"><div><h2>历史总览</h2></div></div><div id="overviewKpis" style="display:none"></div>
+  <div class="chart-grid">
+   <div class="panel chart-card"><h3>红球历史出现次数</h3><div class="chart wide"><canvas id="redCountChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>蓝球历史出现次数</h3><div class="chart wide"><canvas id="blueCountChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>01–16在红球和蓝球中的出现次数</h3><div class="chart wide"><canvas id="redBlueCountChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>各年开奖期数</h3><div class="chart"><canvas id="yearDrawCountChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>各年一等奖注数</h3><div class="chart"><canvas id="yearFirstWinsChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>一等奖省市前20名</h3><div class="chart wide"><canvas id="provinceChart"></canvas></div></div>
+  </div>
+ </div>
+
+ <div class="history-section" id="numbers">
+  <div class="section-head"><div><h2>号码详细统计</h2></div><button class="btn btn-ghost" data-export="numbers">导出CSV</button></div>
+  <div class="chart-grid">
+   <div class="panel chart-card"><h3>红球出现比例</h3><div class="chart"><canvas id="redRateChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>红球当前遗漏</h3><div class="chart"><canvas id="redGapHistoryChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>红球平均遗漏</h3><div class="chart"><canvas id="redAvgGapChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>红球最大遗漏</h3><div class="chart"><canvas id="redMaxGapChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>红球最大连续出现次数</h3><div class="chart"><canvas id="redStreakChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>红球周二、周四、周日出现次数</h3><div class="chart wide"><canvas id="redWeekdayChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>蓝球出现比例</h3><div class="chart"><canvas id="blueRateChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>蓝球当前遗漏</h3><div class="chart"><canvas id="blueGapHistoryChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>蓝球平均遗漏</h3><div class="chart"><canvas id="blueAvgGapChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>蓝球最大遗漏</h3><div class="chart"><canvas id="blueMaxGapChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>蓝球最大连续出现次数</h3><div class="chart"><canvas id="blueStreakChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>蓝球周二、周四、周日出现次数</h3><div class="chart wide"><canvas id="blueWeekdayChart"></canvas></div></div>
+  </div>
+  <div class="panel" style="margin-top:18px"><div class="table-tools"><input class="input" id="numberSearch" placeholder="搜索号码"><select class="select" id="numberSort"><option value="number">按号码</option><option value="redCount">红球次数降序</option><option value="blueCount">蓝球次数降序</option><option value="gap">红球遗漏降序</option><option value="modelProb">红球概率降序</option></select></div><div class="table-wrap"><table id="numberTable"><thead><tr><th>号码</th><th>红球次数</th><th>红球频率</th><th>蓝球次数</th><th>蓝球频率</th><th>近10/20/50/100</th><th>当前遗漏</th><th>平均/最大遗漏</th><th>周二/四/日</th><th>最后出现</th><th>红球预测概率</th></tr></thead><tbody></tbody></table></div></div>
+ </div>
+
+ <div class="history-section" id="structures">
+  <div class="section-head"><div><h2>组合详细统计</h2></div></div>
+  <div class="chart-grid">
+   <div class="panel chart-card"><h3>红球和值分布</h3><div class="chart"><canvas id="sumChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>红球跨度分布</h3><div class="chart"><canvas id="spanChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>奇数个数分布</h3><div class="chart"><canvas id="oddChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>大号个数分布</h3><div class="chart"><canvas id="bigChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>连号组数分布</h3><div class="chart"><canvas id="consecutiveChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>与上期重号数分布</h3><div class="chart"><canvas id="repeatChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>号码分散度分布</h3><div class="chart"><canvas id="acChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>尾数种类分布</h3><div class="chart"><canvas id="tailChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>质数个数分布</h3><div class="chart"><canvas id="primeChart"></canvas></div></div>
+  </div>
+ </div>
+
+ <div class="history-section" id="time">
+  <div class="section-head"><div><h2>年份和开奖日详细统计</h2></div><button class="btn btn-ghost" data-export="years">导出年度CSV</button></div>
+  <div class="chart-grid">
+   <div class="panel chart-card"><h3>年度平均和值</h3><div class="chart"><canvas id="yearSumChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>年度平均跨度</h3><div class="chart"><canvas id="yearSpanChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>年度平均奇数个数</h3><div class="chart"><canvas id="yearOddChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>年度平均大号个数</h3><div class="chart"><canvas id="yearBigChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>年度平均连号组数</h3><div class="chart"><canvas id="yearConsecutiveChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>年度平均重号个数</h3><div class="chart"><canvas id="yearRepeatChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>年度销量合计</h3><div class="chart"><canvas id="yearSalesChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>年度平均奖池</h3><div class="chart"><canvas id="yearPoolChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>开奖日平均和值、跨度和蓝球</h3><div class="chart"><canvas id="weekdayCompareChart"></canvas></div></div>
+  </div>
+  <div class="grid2" style="margin-top:18px"><div class="panel"><h3>年度汇总表</h3><div class="table-wrap"><table id="yearTable"><thead><tr><th>年份</th><th>期数</th><th>平均和值</th><th>平均跨度</th><th>平均奇数</th><th>平均大号</th><th>平均连号</th><th>平均重号</th><th>销量合计</th><th>平均奖池</th><th>一等奖注数</th></tr></thead><tbody></tbody></table></div></div><div class="panel"><h3>开奖日汇总表</h3><div class="table-wrap"><table id="weekdayTable"><thead><tr><th>开奖日</th><th>期数</th><th>平均和值</th><th>平均跨度</th><th>平均奇数</th><th>平均蓝球</th></tr></thead><tbody></tbody></table></div></div></div>
+ </div>
+
+ <div class="history-section" id="regions">
+  <div class="section-head"><div><h2>一等奖地区和网点详细统计</h2><span id="regionRange" style="display:none"></span></div><div><button class="btn btn-ghost" data-export="provinces">导出省市CSV</button> <button class="btn btn-ghost" data-export="outlets">导出网点CSV</button></div></div>
+  <div class="chart-grid">
+   <div class="panel chart-card"><h3>省市一等奖注数前20名</h3><div class="chart wide"><canvas id="provinceWinsChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>省市涉及开奖期数前20名</h3><div class="chart wide"><canvas id="provinceIssuesChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>省市唯一中奖网点前20名</h3><div class="chart wide"><canvas id="provinceOutletsChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>省市平均票面金额前20名</h3><div class="chart wide"><canvas id="provinceTicketChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>跨期中奖网点前20名</h3><div class="chart wide"><canvas id="repeatOutletChart"></canvas></div></div>
+  </div>
+  <div class="panel" style="margin-top:18px"><h3>全部省市统计</h3><div class="table-wrap"><table id="provinceTable"><thead><tr><th>排名</th><th>省市</th><th>一等奖注数</th><th>份额</th><th>涉及期数</th><th>明细记录</th><th>唯一网点</th><th>平均票面金额</th><th>最高票面金额</th><th>首期</th><th>末期</th></tr></thead><tbody></tbody></table></div></div>
+  <div class="panel" style="margin-top:18px"><div class="table-tools"><h3 style="margin-right:auto">全部网点</h3><input class="input" id="outletSearch" placeholder="搜索网点/地址/省市"></div><div class="table-wrap"><table id="outletTable"><thead><tr><th>网点编号</th><th>涉及期数</th><th>一等奖注数</th><th>省市</th><th>主要地址</th><th>平均票面金额</th><th>最高票面金额</th></tr></thead><tbody></tbody></table></div><div class="pager" id="outletPager"></div></div>
+ </div>
+
+ <div class="history-section" id="network">
+  <div class="section-head"><div><h2>号码搭配详细统计</h2></div></div>
+  <div class="chart-grid">
+   <div class="panel chart-card"><h3>双号码同时出现次数前20名</h3><div class="chart wide"><canvas id="pairCountChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>双号码共同出现倍数前20名</h3><div class="chart wide"><canvas id="pairLiftChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>三号码同时出现次数前20名</h3><div class="chart wide"><canvas id="tripleCountChart"></canvas></div></div>
+   <div class="panel chart-card"><h3>三号码共同出现倍数前20名</h3><div class="chart wide"><canvas id="tripleLiftChart"></canvas></div></div>
+  </div>
+  <div class="grid2" style="margin-top:18px"><div class="panel"><h3>双号码前50名</h3><div class="table-wrap"><table id="pairTable"><thead><tr><th>排名</th><th>号码对</th><th>同开次数</th><th>共同出现倍数</th><th>关系强度</th></tr></thead><tbody></tbody></table></div></div><div class="panel"><h3>三号码前50名</h3><div class="table-wrap"><table id="tripleTable"><thead><tr><th>排名</th><th>三元组合</th><th>同开次数</th><th>共同出现倍数</th></tr></thead><tbody></tbody></table></div></div></div>
+ </div>
+
+ <div class="history-section" id="draws">
+  <div class="section-head"><div><h2>全部2045期开奖明细</h2></div><button class="btn btn-ghost" data-export="draws">导出CSV</button></div>
+  <div class="panel"><div class="table-tools"><input class="input" id="drawSearch" placeholder="搜索期号/日期/号码"><select class="select" id="drawYear"></select><select class="select" id="drawPageSize"><option>30</option><option selected>50</option><option>100</option><option>200</option></select></div><div class="table-wrap"><table id="drawTable"><thead><tr><th>期号</th><th>日期</th><th>星期</th><th>红球</th><th>蓝球</th><th>和值</th><th>跨度</th><th>奇偶</th><th>大小</th><th>三区</th><th>连号</th><th>重号</th><th>号码分散度</th><th>一等奖注数</th><th>销量</th><th>奖池</th><th>来源</th></tr></thead><tbody></tbody></table></div><div class="pager" id="drawPager"></div></div>
+ </div>
+</section>
+
+<section class="page" id="professional">
+ <div class="section-head"><div><h2>专业说明</h2></div></div>
+ <div class="prof-tabs" id="profTabs"><button class="active" data-prof="model">算法模型</button><button data-prof="backtest">实际回测</button><button data-prof="statistics">统计检验</button><button data-prof="control">人为控制研究</button><button data-prof="security">漏洞研究</button><button data-prof="legal">法律取数</button></div>
+
+ <div class="prof-section active" id="prof-model">
+  <div class="section-head"><div><h2>预测算法和计算过程</h2></div></div>
+  <div class="panel"><div class="model-flow"><div class="flow-node"><b>整理数据</b><small>缺期、重复、字段</small></div><div class="flow-node"><b>提取信号</b><small>近期、间隔、前后期</small></div><div class="flow-node"><b>算法计算</b><small>LR / HGB / ET <span class="tip" tabindex="0" data-tip="三种不同的机器学习算法，用不同方式寻找历史数据中的可重复关系。">!</span></small></div><div class="flow-node"><b>校准概率</b><small>红球合计6个、蓝球1个</small></div><div class="flow-node"><b>搜索组合</b><small>逐组比较整体得分</small></div><div class="flow-node"><b>生成六组</b><small>61–82</small></div></div></div>
+  <div class="grid2" style="margin-top:18px"><div class="panel"><h3>各算法占比</h3><div id="modelWeights"></div></div><div class="panel"><h3>六种组合的计算方式</h3><div id="schemeMath"></div></div></div>
+  <div class="section-head"><div><h2>不同算法实际表现</h2></div></div><div class="panel" id="modelCompare"></div>
+ </div>
+
+ <div class="prof-section" id="prof-backtest">
+  <div class="section-head"><div><h2>实际回测</h2><p>只用更早的数据预测后面的360期</p></div></div>
+  <div class="stat-grid" id="backtestCards"></div>
+  <div class="grid2" style="margin-top:18px"><div class="panel"><h3>红球前6名每期命中数</h3><div class="chart"><canvas id="redBacktestChart"></canvas></div></div><div class="panel"><h3>蓝球第1名命中率</h3><div class="chart"><canvas id="blueBacktestChart"></canvas></div></div></div>
+ </div>
+
+ <div class="prof-section" id="prof-statistics">
+  <div class="section-head"><div><h2>统计检验</h2></div></div>
+  <div class="stat-grid" id="auditCards"></div>
+  <div class="grid2" style="margin-top:18px"><div class="panel"><h3>红球偏离程度 <span class="tip" tabindex="0" data-tip="专业名称是Z分数，表示某个号码的出现次数距离平均水平有多少个标准差。">!</span></h3><div class="chart"><canvas id="redZChart"></canvas></div></div><div class="panel"><h3>销量、奖池和号码之间的关系</h3><div class="table-wrap"><table id="correlationTable"><thead><tr><th>数据一</th><th>数据二</th><th>关系强弱</th><th>偶然造成的可能性 <span class="tip" tabindex="0" data-tip="专业名称是p值。数值越小，说明观察到的关系越不容易仅由随机波动造成。">!</span></th><th>样本数</th></tr></thead><tbody></tbody></table></div></div></div>
+  <div class="grid2" style="margin-top:18px"><div class="panel"><h3>偏离较大的红球</h3><div id="redDeviationList"></div></div><div class="panel"><h3>历史重复号码</h3><div id="duplicateSummary"></div></div></div>
+ </div>
+
+ <div class="prof-section" id="prof-control">
+  <div class="section-head"><div><h2>人为控制可能性的反向研究</h2></div></div>
+  <div class="hypothesis-grid" id="hypothesisGrid"></div>
+  <div class="section-head"><div><h2>现有数据能验证多少</h2></div></div><div class="grid2"><div class="panel" id="evidenceCoverage"></div><div class="panel"><h3>还需要的关键数据</h3><div id="controlDataNeeded"></div></div></div>
+ </div>
+
+ <div class="prof-section" id="prof-security">
+  <div class="section-head"><div><h2>漏洞研究</h2><p>从公开数据或书面授权数据中寻找可验证的异常线索</p></div></div>
+  <div class="panel"><div class="table-wrap"><table id="securityTableV3"><thead><tr><th>可能的漏洞线索</th><th>需要观察的数据</th><th>检查方法</th><th>对预测的帮助</th></tr></thead><tbody></tbody></table></div></div>
+ </div>
+
+ <div class="prof-section" id="prof-legal">
+  <div class="section-head"><div><h2>利用法律和公开规则获得更多数据</h2></div></div>
+  <div class="panel"><div class="table-wrap"><table id="legalTableV3"><thead><tr><th>法律或规则依据</th><th>可以获取或核对什么</th><th>具体做法</th><th>对预测的帮助</th></tr></thead><tbody></tbody></table></div></div>
+  <div class="section-head"><div><h2>官方依据</h2></div></div><div class="grid2" id="legalSources"></div>
+ </div>
+</section>
+
+</main></div>

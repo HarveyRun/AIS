@@ -1,0 +1,27 @@
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: diancheng-server
+  datasource:
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/diancheng?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${DB_USER:diancheng_app}
+    password: ${DB_PASSWORD:DcLocal_2026_App}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      continue-on-error: false
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+logging:
+  level:
+    root: INFO
+    com.diancheng: INFO

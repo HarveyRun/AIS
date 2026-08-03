@@ -1,0 +1,194 @@
+.rules-page {
+  --ink: #171724;
+  --muted: #707080;
+  --line: #e7e8ee;
+  --violet: #625bf6;
+  --paper: #fff;
+  --bg: #f7f7fb;
+  --font:
+    Inter, "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui,
+    sans-serif;
+}
+.rules-page * {
+  box-sizing: border-box;
+}
+.rules-page {
+  scroll-behavior: smooth;
+  scroll-padding-top: 112px;
+}
+.rules-page {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+.rules-page .live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #35a773;
+  box-shadow: 0 0 0 4px rgba(53, 167, 115, 0.12);
+}
+.rules-page .shell {
+  width: min(calc(100% - 40px), 1120px);
+  margin: auto;
+}
+.rules-page .rules-hero {
+  padding: 92px 0 58px;
+  text-align: center;
+}
+.rules-page .eyebrow {
+  color: var(--violet);
+  font:
+    760 10px/1 ui-monospace,
+    monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.rules-page .rules-hero h1 {
+  margin: 19px 0 16px;
+  font-size: clamp(45px, 7vw, 78px);
+  line-height: 1;
+  letter-spacing: -0.065em;
+}
+.rules-page .rules-hero p {
+  max-width: 610px;
+  margin: auto;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.85;
+}
+.rules-page .rules-layout {
+  padding-bottom: 110px;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.rules-page .rules-nav {
+  position: sticky;
+  top: 105px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 19px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 14px 38px rgba(28, 28, 62, 0.06);
+  backdrop-filter: blur(15px);
+}
+.rules-page .rules-nav a {
+  display: block;
+  padding: 11px 12px;
+  border-radius: 11px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 11px;
+}
+.rules-page .rules-nav a:hover {
+  background: #efeeff;
+  color: var(--violet);
+}
+.rules-page .rules-content {
+  display: grid;
+  gap: 17px;
+}
+.rules-page .rule-card {
+  padding: 32px 34px;
+  border: 1px solid var(--line);
+  border-radius: 25px;
+  background: var(--paper);
+  box-shadow: 0 14px 42px rgba(28, 28, 62, 0.05);
+}
+.rules-page .rule-card h2 {
+  margin: 0 0 18px;
+  font-size: 25px;
+  letter-spacing: -0.035em;
+}
+.rules-page .rule-card h3 {
+  margin: 24px 0 8px;
+  font-size: 13px;
+}
+.rules-page .rule-card p,
+.rules-page .rule-card li {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.9;
+}
+.rules-page .rule-card p {
+  margin: 0 0 12px;
+}
+.rules-page .rule-card ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.rules-page .rule-card li + li {
+  margin-top: 5px;
+}
+.rules-page .package-table {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  overflow: hidden;
+}
+.rules-page .package-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  padding: 14px 16px;
+  gap: 20px;
+  background: #fafafd;
+  font-size: 11px;
+}
+.rules-page .package-row + .package-row {
+  border-top: 1px solid var(--line);
+}
+.rules-page .package-row b {
+  font-size: 11px;
+}
+.rules-page .package-row span {
+  color: var(--muted);
+  line-height: 1.65;
+}
+.rules-page .rule-note {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f1f0ff;
+  color: #5049cf;
+  font-size: 10px;
+  line-height: 1.75;
+}
+.rules-page .updated {
+  margin-top: 18px;
+  color: #9b9baa;
+  font-size: 9px;
+  text-align: center;
+}
+@media (max-width: 760px) {
+  .rules-page .shell {
+    width: min(calc(100% - 24px), 1120px);
+  }
+  .rules-page .rules-hero {
+    padding: 70px 0 42px;
+  }
+  .rules-page .rules-layout {
+    grid-template-columns: 1fr;
+    padding-bottom: 72px;
+  }
+  .rules-page .rules-nav {
+    position: static;
+    display: flex;
+    gap: 4px;
+    overflow: auto;
+  }
+  .rules-page .rules-nav a {
+    white-space: nowrap;
+  }
+  .rules-page .rule-card {
+    padding: 25px 21px;
+    border-radius: 21px;
+  }
+  .rules-page .package-row {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+}

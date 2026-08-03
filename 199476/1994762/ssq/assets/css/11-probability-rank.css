@@ -1,0 +1,9 @@
+
+.next-prob{position:relative}
+.next-prob.prob-top-1{border-color:#ffd45f!important;box-shadow:0 0 0 1px rgba(255,212,95,.34),0 10px 24px rgba(255,190,60,.14)!important;background:linear-gradient(145deg,rgba(84,62,16,.72),rgba(20,25,38,.96))!important}
+.next-prob.prob-top-2{border-color:#c9d6e6!important;box-shadow:0 0 0 1px rgba(201,214,230,.24),0 10px 24px rgba(170,190,215,.10)!important;background:linear-gradient(145deg,rgba(54,65,82,.78),rgba(18,25,39,.96))!important}
+.next-prob.prob-top-3{border-color:#d89a67!important;box-shadow:0 0 0 1px rgba(216,154,103,.25),0 10px 24px rgba(185,112,64,.10)!important;background:linear-gradient(145deg,rgba(76,47,29,.78),rgba(20,25,38,.96))!important}
+.prob-rank-mark{position:absolute;top:-7px;right:-5px;min-width:25px;height:25px;padding:0 6px;border-radius:999px;display:grid;place-items:center;font-size:11px;font-weight:1000;color:#101620;border:2px solid #0b1525;line-height:1}
+.prob-top-1 .prob-rank-mark{background:#ffd45f}
+.prob-top-2 .prob-rank-mark{background:#d8e2ee}
+.prob-top-3 .prob-rank-mark{background:#dfa06d}

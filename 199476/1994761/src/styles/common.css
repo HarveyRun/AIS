@@ -1,0 +1,506 @@
+:root {
+  --global-ink: #171724;
+  --global-muted: #707080;
+  --global-line: #e7e8ee;
+  --global-violet: #625bf6;
+  --global-night: #13131f;
+  --global-bg: #f7f7fb;
+}
+[data-global-header] {
+  position: sticky;
+  top: 0;
+  z-index: 510;
+}
+.global-menu-toggle {
+  display: none;
+}
+.global-shell-page {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+.global-shell-page > [data-global-footer] {
+  margin-top: auto;
+}
+.global-nav-wrap {
+  position: relative;
+  padding: 14px 18px;
+  background: transparent;
+}
+.global-nav-wrap[data-global-header] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 10;
+}
+.global-nav {
+  width: min(1180px, 100%);
+  height: 66px;
+  margin: auto;
+  padding: 0 13px 0 17px;
+  border: 1px solid rgba(23, 23, 36, 0.09);
+  border-radius: 19px;
+  background: rgba(255, 255, 255, 0.91);
+  box-shadow: 0 12px 35px rgba(27, 27, 55, 0.08);
+  backdrop-filter: blur(18px);
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  animation: global-nav-enter 0.45s ease both;
+}
+.global-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--global-ink);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.global-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: linear-gradient(145deg, var(--global-violet), #9c72ff);
+  box-shadow: 0 8px 20px rgba(98, 91, 246, 0.24);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 12px;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.global-brand:hover .global-logo {
+  transform: rotate(-4deg) scale(1.04);
+  box-shadow: 0 12px 26px rgba(98, 91, 246, 0.3);
+}
+.global-brand-copy {
+  display: grid;
+  line-height: 1.05;
+}
+.global-brand-copy small {
+  margin-top: 5px;
+  color: var(--global-muted);
+  font-size: 8px;
+  font-weight: 600;
+}
+.global-links {
+  margin: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.global-links a {
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--global-muted);
+  text-decoration: none;
+  font-size: 11px;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+.global-links a:hover,
+.global-links a.active {
+  background: #efeeff;
+  color: var(--global-violet);
+  transform: translateY(-1px);
+}
+.global-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.global-action {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--global-night);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 750;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+.global-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 9px 22px rgba(19, 19, 31, 0.14);
+}
+.global-action:active,
+.feedback-launcher:active,
+.feedback-actions button:active {
+  transform: translateY(0) scale(0.98);
+}
+.global-action.primary {
+  color: #fff;
+}
+.global-action.ghost {
+  border: 1px solid var(--global-line);
+  background: #fff;
+  color: var(--global-ink);
+}
+.global-footer {
+  padding: 34px 18px 42px;
+  border-top: 1px solid var(--global-line);
+  background: #fbfbfd;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.global-footer-inner {
+  width: min(1180px, 100%);
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 25px;
+}
+.global-footer-copy {
+  color: var(--global-muted);
+  font-size: 10px;
+  margin-top:8px;
+}
+.global-footer-links {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+.global-footer a,
+.global-footer button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--global-muted);
+  text-decoration: none;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.global-footer a:hover,
+.global-footer button:hover {
+  color: var(--global-violet);
+}
+.floating-tools {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 520;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 17px;
+  background: linear-gradient(145deg, var(--global-violet), #8477ff);
+  box-shadow: 0 16px 38px rgba(71, 63, 191, 0.3);
+  display: flex;
+  align-items: center;
+}
+.feedback-launcher,
+.floating-back-top {
+  min-height: 46px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font:
+    800 12px/1 Inter,
+    "PingFang SC",
+    "Microsoft YaHei",
+    sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.feedback-launcher {
+  padding: 0 15px;
+  border-radius: 13px;
+}
+.floating-back-top {
+  width: 44px;
+  border-left: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 0 13px 13px 0;
+  font-size: 17px;
+}
+.floating-tools.has-back-top .feedback-launcher {
+  border-radius: 13px 0 0 13px;
+}
+.feedback-launcher:hover,
+.floating-back-top:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.feedback-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  padding: 18px;
+  background: rgba(15, 16, 27, 0.67);
+  backdrop-filter: blur(10px);
+  display: none;
+  place-items: center;
+}
+.feedback-modal.open {
+  display: grid;
+  animation: feedback-backdrop-in 0.2s ease both;
+}
+.feedback-card {
+  width: min(460px, 100%);
+  padding: 28px;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.26);
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  animation: feedback-card-in 0.24s ease both;
+}
+.feedback-card h2 {
+  margin: 0 0 8px;
+  color: var(--global-ink);
+  font-size: 23px;
+}
+.feedback-card p {
+  margin: 0 0 18px;
+  color: var(--global-muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.feedback-label {
+  display: block;
+  margin: 0 0 7px;
+  color: var(--global-ink);
+  font-size: 10px;
+  font-weight: 750;
+}
+.feedback-category {
+  width: 100%;
+  height: 44px;
+  margin-bottom: 14px;
+  padding: 0 12px;
+  border: 1px solid var(--global-line);
+  border-radius: 12px;
+  background: #fafafd;
+  color: var(--global-ink);
+  font: 11px/1 inherit;
+  outline: 0;
+}
+.feedback-card textarea {
+  width: 100%;
+  min-height: 125px;
+  padding: 14px;
+  border: 1px solid var(--global-line);
+  border-radius: 14px;
+  background: #fafafd;
+  color: var(--global-ink);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.7;
+  resize: vertical;
+  outline: 0;
+}
+.feedback-card textarea:focus,
+.feedback-category:focus {
+  border-color: rgba(98, 91, 246, 0.55);
+  box-shadow: 0 0 0 4px rgba(98, 91, 246, 0.08);
+}
+.feedback-count {
+  margin-top: 6px;
+  color: var(--global-muted);
+  font-size: 9px;
+  text-align: right;
+}
+.feedback-error {
+  min-height: 20px;
+  padding-top: 6px;
+  color: #b94754;
+  font-size: 10px;
+}
+.feedback-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.feedback-actions button {
+  min-height: 42px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--global-night);
+  color: #fff;
+  font: 750 11px/1 inherit;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+.global-shell-page main {
+  animation: global-page-enter 0.4s ease both;
+}
+/*.global-shell-page :where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid rgba(98, 91, 246, 0.24);
+  outline-offset: 3px;
+}*/
+
+@keyframes global-nav-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes global-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes feedback-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes feedback-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.feedback-actions .feedback-cancel {
+  border: 1px solid var(--global-line);
+  background: #fff;
+  color: var(--global-ink);
+}
+.feedback-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 700;
+  padding: 12px 17px;
+  border-radius: 12px;
+  background: var(--global-night);
+  color: #fff;
+  font:
+    11px/1.4 Inter,
+    "PingFang SC",
+    "Microsoft YaHei",
+    sans-serif;
+  opacity: 0;
+  transform: translate(-50%, 15px);
+  pointer-events: none;
+  transition: 0.2s;
+}
+.feedback-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+@media (max-width: 760px) {
+  .global-nav-wrap {
+    padding: 8px;
+  }
+  .global-nav {
+    height: 58px;
+    padding: 0 10px;
+    gap: 9px;
+    border-radius: 15px;
+  }
+  .global-brand-copy small {
+    display: none;
+  }
+  .global-links {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 8px;
+    right: 8px;
+    padding: 8px;
+    border: 1px solid var(--global-line);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 18px 45px rgba(27, 27, 55, 0.14);
+    display: grid;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: 0.2s ease;
+  }
+  .global-nav.menu-open .global-links {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+  .global-links a {
+    padding: 12px 14px;
+  }
+  .global-menu-toggle {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid var(--global-line);
+    border-radius: 11px;
+    background: #fff;
+    display: grid;
+    place-content: center;
+    gap: 5px;
+  }
+  .global-menu-toggle span {
+    width: 15px;
+    height: 1.5px;
+    border-radius: 2px;
+    background: var(--global-ink);
+    transition: 0.2s;
+  }
+  .global-nav.menu-open .global-menu-toggle span:first-child {
+    transform: translateY(3.25px) rotate(45deg);
+  }
+  .global-nav.menu-open .global-menu-toggle span:last-child {
+    transform: translateY(-3.25px) rotate(-45deg);
+  }
+  .global-brand {
+    margin-right: auto;
+  }
+  .global-actions .global-action.primary {
+    display: none;
+  }
+  .global-action {
+    min-height: 38px;
+    padding: 0 11px;
+  }
+  .global-footer-inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .floating-tools {
+    right: 14px;
+    bottom: 14px;
+  }
+  .feedback-card {
+    padding: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-shell-page *,
+  .global-shell-page *::before,
+  .global-shell-page *::after,
+  .feedback-modal,
+  .feedback-card,
+  .feedback-launcher,
+  .floating-back-top {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
