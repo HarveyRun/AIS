@@ -1,0 +1,57 @@
+.notice-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ec7040;
+  right: 8px;
+  top: 8px;
+  border: 1px solid #fff;
+}
+.notice-list {
+  padding: 8px 17px;
+}
+.notice-list > button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 39px 1fr 8px;
+  gap: 10px;
+  padding: 15px 0;
+  border-bottom: 1px solid #eee7e0;
+  text-align: left;
+}
+.notice-list > button > i {
+  width: 37px;
+  height: 37px;
+  border-radius: 12px;
+  background: #fff0e6;
+  color: #c86d42;
+  display: grid;
+  place-items: center;
+}
+.notice-list i svg {
+  width: 18px;
+}
+.notice-list h3 {
+  font-size: 10px;
+  margin: 0;
+}
+.notice-list p {
+  font-size: 9px;
+  line-height: 1.6;
+  color: #81766f;
+  margin: 4px 0;
+}
+.notice-list span {
+  font-size: 7px;
+  color: #aaa;
+}
+.notice-list > button > b {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ec7040;
+}
+.notice-list > button.read {
+  opacity: 0.6;
+}

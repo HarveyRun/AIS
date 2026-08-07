@@ -1,0 +1,136 @@
+.rating-head {
+  text-align: center;
+  padding: 25px 18px 16px;
+}
+.rating-head svg {
+  width: 43px;
+  height: 43px;
+  color: #5d9b72;
+}
+.rating-head h1 {
+  font-size: 19px;
+  margin: 8px 0 3px;
+}
+.rating-head p {
+  font-size: 9px;
+  color: #999;
+}
+.rating-list {
+  padding: 3px 17px;
+}
+.rating-list article {
+  display: grid;
+  grid-template-columns: 43px 1fr auto;
+  align-items: center;
+  border: 1px solid #eae1d8;
+  border-radius: 16px;
+  padding: 13px;
+  margin-bottom: 9px;
+}
+.rating-list .avatar {
+  width: 39px;
+  height: 39px;
+  border-radius: 12px;
+  font-size: 11px;
+}
+.rating-list article > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+}
+.rating-list b {
+  font-size: 10px;
+}
+.rating-list small {
+  font-size: 7px;
+  color: #999;
+  margin-top: 3px;
+}
+.rating-list article > span {
+  grid-column: 1/-1;
+  text-align: center;
+  font-size: 8px;
+  color: #a26c4b;
+}
+.rating-rule {
+  margin: 12px 17px 80px;
+  padding: 13px;
+  background: #fff3e7;
+  color: #9a6648;
+  border-radius: 14px;
+  display: flex;
+  gap: 8px;
+}
+.rating-rule svg {
+  width: 17px;
+  flex: none;
+}
+.rating-rule p {
+  font-size: 8px;
+  line-height: 1.65;
+  margin: 0;
+}
+.feedback-tabs {
+  margin: 6px 17px 10px;
+  padding: 4px;
+  background: #f2ede8;
+  border-radius: 13px;
+  display: flex;
+}
+.feedback-tabs button {
+  flex: 1;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 9px;
+}
+.feedback-tabs button.active {
+  background: #fff;
+  color: #c8673c;
+  font-weight: 700;
+}
+.feedback-form {
+  padding: 10px 18px 80px;
+}
+.feedback-form label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  margin: 15px 0 7px;
+}
+.feedback-form label small {
+  font-size: 8px;
+  color: #aaa;
+  font-weight: 400;
+}
+.feedback-form select,
+.feedback-form textarea {
+  width: 100%;
+  border: 1px solid #e5dbd2;
+  border-radius: 13px;
+  background: #fff;
+  padding: 11px;
+  font-size: 9px;
+}
+.feedback-form textarea {
+  height: 120px;
+  resize: none;
+}
+.evidence-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.evidence-actions button {
+  height: 44px;
+  border: 1px dashed #dfd2c8;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 8px;
+  color: #9e6b50;
+}
+.evidence-actions svg {
+  width: 17px;
+}
