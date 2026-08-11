@@ -26,6 +26,7 @@
   border-radius: 16px;
   padding: 13px;
   margin-bottom: 9px;
+  background: #fff;
 }
 .rating-list .avatar {
   width: 39px;
@@ -41,21 +42,21 @@
   font-size: 10px;
 }
 .rating-list small {
-  font-size: 7px;
+  font-size: 9px;
   color: #999;
   margin-top: 3px;
 }
 .rating-list article > span {
   grid-column: 1/-1;
   text-align: center;
-  font-size: 8px;
-  color: #a26c4b;
+  font-size: 9px;
+  color: var(--primary-dark);
 }
 .rating-rule {
   margin: 12px 17px 80px;
   padding: 13px;
-  background: #fff3e7;
-  color: #9a6648;
+  background: #f5f3f0;
+  color: #8f847c;
   border-radius: 14px;
   display: flex;
   gap: 8px;
@@ -65,14 +66,14 @@
   flex: none;
 }
 .rating-rule p {
-  font-size: 8px;
+  font-size: 9px;
   line-height: 1.65;
   margin: 0;
 }
 .feedback-tabs {
   margin: 6px 17px 10px;
   padding: 4px;
-  background: #f2ede8;
+  background: #f5f3f0;
   border-radius: 13px;
   display: flex;
 }
@@ -84,7 +85,7 @@
 }
 .feedback-tabs button.active {
   background: #fff;
-  color: #c8673c;
+  color: var(--primary-dark);
   font-weight: 700;
 }
 .feedback-form {
@@ -98,18 +99,61 @@
   margin: 15px 0 7px;
 }
 .feedback-form label small {
-  font-size: 8px;
+  font-size: 9px;
   color: #aaa;
   font-weight: 400;
 }
 .feedback-form select,
 .feedback-form textarea {
   width: 100%;
-  border: 1px solid #e5dbd2;
+  border: 1px solid #e5ddd5;
   border-radius: 13px;
   background: #fff;
   padding: 11px;
   font-size: 9px;
+}
+.feedback-records {
+  margin: 14px 17px 90px;
+  padding: 15px;
+  border-radius: 16px;
+  background: #f7f8fa;
+}
+.feedback-records h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.feedback-records article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #e8e4df;
+}
+.feedback-records article:last-child {
+  border-bottom: 0;
+}
+.feedback-records article div {
+  min-width: 0;
+}
+.feedback-records b,
+.feedback-records small {
+  display: block;
+}
+.feedback-records b {
+  font-size: 11px;
+}
+.feedback-records small {
+  overflow: hidden;
+  margin-top: 3px;
+  color: #8f847c;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feedback-records span {
+  flex: none;
+  color: #5f876c;
+  font-size: 10px;
 }
 .feedback-form textarea {
   height: 120px;
@@ -128,8 +172,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 8px;
-  color: #9e6b50;
+  font-size: 9px;
+  color: #8f847c;
 }
 .evidence-actions svg {
   width: 17px;

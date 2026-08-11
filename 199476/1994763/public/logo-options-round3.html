@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>事先问 Logo 第三轮</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 40px;
+        background: #f5f0ea;
+        color: #382e28;
+        font-family: system-ui, -apple-system, 'Microsoft YaHei', sans-serif;
+      }
+      header,
+      main {
+        max-width: 990px;
+        margin-right: auto;
+        margin-left: auto;
+      }
+      header {
+        margin-bottom: 25px;
+      }
+      h1 {
+        margin: 0 0 7px;
+        font-size: 27px;
+      }
+      header p {
+        margin: 0;
+        color: #8c7f76;
+        font-size: 13px;
+      }
+      main {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 17px;
+      }
+      article {
+        padding: 24px 17px 20px;
+        border: 1px solid #e7ddd4;
+        border-radius: 23px;
+        background: #fffdf9;
+        box-shadow: 0 10px 28px #68472f0e;
+        text-align: center;
+      }
+      canvas {
+        display: block;
+        width: 144px;
+        height: 144px;
+        margin: auto;
+      }
+      h2 {
+        margin: 16px 0 4px;
+        font-size: 17px;
+      }
+      article p {
+        height: 36px;
+        margin: 0;
+        color: #91847b;
+        font-size: 11px;
+        line-height: 1.6;
+      }
+      .brand-preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 13px;
+      }
+      .brand-preview canvas {
+        width: 38px;
+        height: 38px;
+        margin: 0;
+      }
+      .brand-preview div {
+        text-align: left;
+      }
+      .brand-preview b,
+      .brand-preview small {
+        display: block;
+      }
+      .brand-preview b {
+        font-size: 15px;
+        letter-spacing: 2px;
+      }
+      .brand-preview small {
+        margin-top: 1px;
+        color: #a09289;
+        font-size: 7px;
+      }
+      @media (max-width: 760px) {
+        body {
+          padding: 23px 14px;
+        }
+        main {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>“问”字标＋右上足迹</h1>
+      <p>六版都保留第6个方案的结构，右上圆点统一替换为小脚丫。</p>
+    </header>
+    <main>
+      <article>
+        <canvas id="main-a"></canvas>
+        <h2>6A · 原版优化</h2>
+        <p>最接近你选中的第6版。</p>
+        <div class="brand-preview">
+          <canvas id="mini-a"></canvas>
+          <div><b>事先问</b><small>有事先问问过来人</small></div>
+        </div>
+      </article>
+      <article>
+        <canvas id="main-b"></canvas>
+        <h2>6B · 暖橙渐变</h2>
+        <p>颜色更有层次，脚印用浅色。</p>
+        <div class="brand-preview">
+          <canvas id="mini-b"></canvas>
+          <div><b>事先问</b><small>有事先问问过来人</small></div>
+        </div>
+      </article>
+      <article>
+        <canvas id="main-c"></canvas>
+        <h2>6C · 奶油底</h2>
+        <p>更轻松温和，适合当前页面配色。</p>
+        <div class="brand-preview">
+          <canvas id="mini-c"></canvas>
+          <div><b>事先问</b><small>有事先问问过来人</small></div>
+        </div>
+      </article>
+      <article>
+        <canvas id="main-d"></canvas>
+        <h2>6D · 对话框</h2>
+        <p>增加气泡尾巴，强调“问”。</p>
+        <div class="brand-preview">
+          <canvas id="mini-d"></canvas>
+          <div><b>事先问</b><small>有事先问问过来人</small></div>
+        </div>
+      </article>
+      <article>
+        <canvas id="main-e"></canvas>
+        <h2>6E · 经验绿</h2>
+        <p>绿色代表生活经验，橙色脚印提亮。</p>
+        <div class="brand-preview">
+          <canvas id="mini-e"></canvas>
+          <div><b>事先问</b><small>有事先问问过来人</small></div>
+        </div>
+      </article>
+      <article>
+        <canvas id="main-f"></canvas>
+        <h2>6F · 印章感</h2>
+        <p>字形更厚，缩小后识别最稳定。</p>
+        <div class="brand-preview">
+          <canvas id="mini-f"></canvas>
+          <div><b>事先问</b><small>有事先问问过来人</small></div>
+        </div>
+      </article>
+    </main>
+    <script>
+      const palette = {
+        orange: '#e87542',
+        orangeDeep: '#c95b30',
+        orangeLight: '#ffb47d',
+        cream: '#fff0e4',
+        creamLight: '#fff8f1',
+        green: '#628877',
+        greenLight: '#eaf4ed',
+        white: '#fffdf9',
+        ink: '#40352f',
+      };
+
+      const prepare = (id, size) => {
+        const canvas = document.getElementById(id);
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = size * ratio;
+        canvas.height = size * ratio;
+        const context = canvas.getContext('2d');
+        context.scale(ratio * (size / 144), ratio * (size / 144));
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        return context;
+      };
+
+      const roundedSquare = (context, fill, radius = 34, inset = 5) => {
+        context.fillStyle = fill;
+        context.beginPath();
+        context.roundRect(inset, inset, 144 - inset * 2, 144 - inset * 2, radius);
+        context.fill();
+      };
+
+      const drawWord = (context, color, size = 73, y = 71, weight = 800) => {
+        context.fillStyle = color;
+        context.font = `${weight} ${size}px "Microsoft YaHei", "PingFang SC", sans-serif`;
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText('问', 70, y);
+      };
+
+      const drawFootprint = (context, x, y, color, scale = 1, rotation = -0.28) => {
+        context.save();
+        context.translate(x, y);
+        context.rotate(rotation);
+        context.scale(scale, scale);
+        context.fillStyle = color;
+
+        context.beginPath();
+        context.ellipse(0, 6, 5.8, 9.5, -0.08, 0, Math.PI * 2);
+        context.fill();
+
+        const toes = [
+          [-6.6, -5.5, 2.3],
+          [-2.4, -8.4, 2.5],
+          [2.3, -8.7, 2.4],
+          [6.3, -6.1, 2.1],
+        ];
+        toes.forEach(([toeX, toeY, radius]) => {
+          context.beginPath();
+          context.arc(toeX, toeY, radius, 0, Math.PI * 2);
+          context.fill();
+        });
+        context.restore();
+      };
+
+      const drawA = (context) => {
+        roundedSquare(context, palette.orange, 32);
+        drawWord(context, palette.white, 74, 72);
+        drawFootprint(context, 112, 28, '#ffd9bd', 1.05);
+      };
+
+      const drawB = (context) => {
+        const gradient = context.createLinearGradient(12, 8, 132, 137);
+        gradient.addColorStop(0, palette.orangeLight);
+        gradient.addColorStop(1, palette.orangeDeep);
+        roundedSquare(context, gradient, 38);
+        drawWord(context, palette.white, 72, 73);
+        drawFootprint(context, 112, 29, '#fff0df', 1.08);
+      };
+
+      const drawC = (context) => {
+        roundedSquare(context, palette.creamLight, 38);
+        context.strokeStyle = '#f2c5a9';
+        context.lineWidth = 3;
+        context.beginPath();
+        context.roundRect(13, 13, 118, 118, 31);
+        context.stroke();
+        drawWord(context, palette.orange, 72, 73);
+        drawFootprint(context, 111, 30, palette.green, 1.04);
+      };
+
+      const drawD = (context) => {
+        roundedSquare(context, palette.cream, 38);
+        context.fillStyle = palette.orange;
+        context.beginPath();
+        context.roundRect(17, 16, 112, 100, 30);
+        context.fill();
+        context.beginPath();
+        context.moveTo(38, 111);
+        context.lineTo(34, 133);
+        context.lineTo(58, 115);
+        context.fill();
+        drawWord(context, palette.white, 65, 65);
+        drawFootprint(context, 111, 31, '#ffdbc1', 0.98);
+      };
+
+      const drawE = (context) => {
+        roundedSquare(context, palette.greenLight, 38);
+        context.fillStyle = palette.green;
+        context.beginPath();
+        context.arc(71, 72, 58, 0, Math.PI * 2);
+        context.fill();
+        drawWord(context, palette.white, 70, 73);
+        drawFootprint(context, 112, 28, palette.orange, 1.08);
+      };
+
+      const drawF = (context) => {
+        roundedSquare(context, palette.orangeDeep, 27, 7);
+        context.strokeStyle = '#f7ad82';
+        context.lineWidth = 2;
+        context.beginPath();
+        context.roundRect(15, 15, 114, 114, 22);
+        context.stroke();
+        drawWord(context, palette.white, 77, 73, 900);
+        drawFootprint(context, 111, 28, '#ffc9a5', 1.1);
+      };
+
+      const render = (key, draw) => {
+        draw(prepare(`main-${key}`, 144));
+        draw(prepare(`mini-${key}`, 38));
+      };
+
+      render('a', drawA);
+      render('b', drawB);
+      render('c', drawC);
+      render('d', drawD);
+      render('e', drawE);
+      render('f', drawF);
+    </script>
+  </body>
+</html>

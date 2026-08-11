@@ -1,119 +1,84 @@
-import { BadgeCheck, BriefcaseBusiness, ChevronRight, ShieldCheck, Star } from 'lucide-react';
+import {
+  BriefcaseBusiness,
+  ChevronRight,
+  Footprints,
+  MessageCircleQuestion,
+  MessagesSquare,
+} from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import './CertificationPages.css';
 
-const platformCertifications = [
-  {
-    type: '实名认证',
-    title: '实名认证',
-    description: '身份证正面、反面及手持身份证',
-    required: true,
-    status: '已认证',
-  },
-  {
-    type: '主岗位认证',
-    title: '主岗位',
-    description: '软件工程师 · 11年经历',
-    required: true,
-    status: '已认证',
-  },
-  {
-    type: '辅助岗位认证',
-    title: '辅助岗位',
-    description: '产品设计 · 6年经历',
-    required: false,
-    status: '已认证',
-  },
-  {
-    type: '个人事业认证',
-    title: '个人事业',
-    description: '独立应用开发 · 持续4年',
-    required: false,
-    status: '已认证',
-  },
-];
-
-export default function CertificationPage({ go, setCertType }) {
-  const openCertification = (type) => {
-    setCertType(type);
-    go('certApply');
-  };
+export default function CertificationPage({
+  go,
+  certifications,
+  acceptingInquiries,
+  setAcceptingInquiries,
+}) {
+  const workItems = certifications.filter((item) => ['实名认证', '岗位认证'].includes(item.type));
+  const hasJoined = workItems
+    .filter((item) => item.required)
+    .every((item) => item.status === '已认证');
 
   return (
-    <Page title="我的档案" back={() => go('profile', 'profile')}>
+    <Page title={hasJoined ? '答主信息' : '成为答主'} back={() => go('profile', 'profile')}>
       <section className="cert-profile-hero">
         <div className="cert-profile-icon">
-          <BadgeCheck />
+          <MessageCircleQuestion />
         </div>
         <div>
-          <span>这些信息已经核实</span>
-          <h1>安然的档案</h1>
-          <p>实名与主岗位必须完成，其余认证可按实际情况补充。</p>
+          <h1>{hasJoined ? '你已成为答主' : '成为答主'}</h1>
+          <p>
+            {hasJoined
+              ? '你可以在这里查看自己的认证信息。'
+              : '完成基础信息认证后，即可回答他人的询问。'}
+          </p>
         </div>
       </section>
 
-      <section className="certification-group">
-        <header className="certification-group-title">
-          <ShieldCheck />
-          <div>
-            <h2>身份和工作经历</h2>
-            <p>让别人知道你是谁、做过什么工作</p>
-          </div>
-          <span>2项必需</span>
-        </header>
-
-        <div className="certification-list">
-          {platformCertifications.map((certification) => (
-            <button
-              type="button"
-              key={certification.type}
-              onClick={() => openCertification(certification.type)}
-            >
-              <i>
-                <BriefcaseBusiness />
-              </i>
-              <div>
-                <h3>
-                  {certification.title}
-                  <em className={certification.required ? 'required' : 'optional'}>
-                    {certification.required ? '必须' : '可选'}
-                  </em>
-                </h3>
-                <p>{certification.description}</p>
-              </div>
-              <strong>{certification.status}</strong>
-              <ChevronRight />
-            </button>
-          ))}
+      <section className={`answer-availability ${acceptingInquiries ? 'active' : 'paused'}`}>
+        <i>
+          <MessagesSquare />
+        </i>
+        <div>
+          <h2>接受新询问</h2>
+          <p>
+            {!hasJoined
+              ? '完成基础信息认证后可以开启'
+              : acceptingInquiries
+                ? '其他人可以向你发起询问'
+                : '暂停后不会收到新的询问'}
+          </p>
         </div>
-      </section>
-
-      <section className="certification-group experience-group">
-        <header className="certification-group-title">
-          <Star />
-          <div>
-            <h2>我的人生经历</h2>
-            <p>核实以后，别人可以在你的档案里看到</p>
-          </div>
-        </header>
-
-        <div className="verified-experiences">
-          <span>
-            创过业 <b>已认证</b>
-          </span>
-          <span>
-            做过产品 <b>已认证</b>
-          </span>
-        </div>
-
         <button
           type="button"
-          className="experience-entry"
-          onClick={() => openCertification('其它经历认证')}
+          className={acceptingInquiries ? 'on' : ''}
+          disabled={!hasJoined}
+          onClick={() => setAcceptingInquiries((current) => !current)}
+          aria-label={acceptingInquiries ? '暂停接受询问' : '开始接受询问'}
         >
+          <span />
+        </button>
+      </section>
+
+      <section className="certification-entry-list">
+        <button type="button" onClick={() => go('certWork')}>
+          <i className="work">
+            <BriefcaseBusiness />
+          </i>
           <div>
-            <b>添加其它经历认证</b>
-            <p>先说说这段经历，再按提示准备证明材料</p>
+            <h2>基础信息</h2>
+            <p>身份信息和我的岗位</p>
+          </div>
+          <ChevronRight />
+        </button>
+
+        <button type="button" onClick={() => go('certExperience')}>
+          <i className="experience">
+            <Footprints />
+          </i>
+          <div>
+            <h2>亲身经历</h2>
+            <p>亲自经历过的事情</p>
           </div>
           <ChevronRight />
         </button>

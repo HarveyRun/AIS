@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>事先问 A版 Logo 精修</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+        margin: 0;
+        padding: 36px;
+        background: #f5f0ea;
+        color: #382e28;
+        font-family: system-ui, -apple-system, 'Microsoft YaHei', sans-serif;
+      }
+      main {
+        width: min(860px, 100%);
+        padding: 32px;
+        border: 1px solid #e7ddd4;
+        border-radius: 28px;
+        background: #fffdf9;
+        box-shadow: 0 14px 40px #68472f12;
+      }
+      header h1 { margin: 0 0 6px; font-size: 25px; }
+      header p { margin: 0; color: #8d8077; font-size: 12px; }
+      .preview-area {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 26px;
+        align-items: center;
+        margin-top: 28px;
+      }
+      .large-preview {
+        display: grid;
+        min-height: 320px;
+        place-items: center;
+        border-radius: 22px;
+        background: #f8f4ef;
+      }
+      canvas { display: block; }
+      .usage-preview {
+        display: grid;
+        gap: 14px;
+      }
+      .usage-preview article {
+        display: flex;
+        min-height: 74px;
+        align-items: center;
+        gap: 13px;
+        padding: 14px;
+        border: 1px solid #ede4dc;
+        border-radius: 17px;
+      }
+      .usage-preview b, .usage-preview small { display: block; }
+      .usage-preview b { font-size: 18px; letter-spacing: 2px; }
+      .usage-preview small { margin-top: 3px; color: #9b8d84; font-size: 9px; }
+      .foot-note {
+        padding: 14px 16px;
+        border-radius: 15px;
+        background: #fff2e8;
+        color: #95624b;
+        font-size: 11px;
+        line-height: 1.7;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>A版小脚丫精修</h1>
+        <p>整体结构保持不变，仅优化左上点画的足迹造型。</p>
+      </header>
+      <section class="preview-area">
+        <div class="large-preview"><canvas id="large"></canvas></div>
+        <div class="usage-preview">
+          <article>
+            <canvas id="header-logo"></canvas>
+            <div><b>事先问</b><small>有事先问问过来人</small></div>
+          </article>
+          <article>
+            <canvas id="login-logo"></canvas>
+            <div><b>事先问</b><small>登录、注册页面效果</small></div>
+          </article>
+          <div class="foot-note">脚掌更窄，脚趾改成自然弧线，整体缩小并向字形内收，不再像额外贴上去的装饰。</div>
+        </div>
+      </section>
+    </main>
+    <script>
+      const prepare = (id, size) => {
+        const canvas = document.getElementById(id);
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = size * ratio;
+        canvas.height = size * ratio;
+        canvas.style.width = `${size}px`;
+        canvas.style.height = `${size}px`;
+        const context = canvas.getContext('2d');
+        context.scale(ratio * (size / 144), ratio * (size / 144));
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        return context;
+      };
+
+      const refinedFoot = (context) => {
+        context.save();
+        context.translate(47, 38);
+        context.rotate(-0.43);
+        context.fillStyle = '#fffdf9';
+
+        context.beginPath();
+        context.moveTo(-1, 11);
+        context.bezierCurveTo(-5.5, 9, -6.3, 3.5, -5.3, -1.5);
+        context.bezierCurveTo(-4.4, -6.2, -1.2, -8.2, 2.2, -6.5);
+        context.bezierCurveTo(5.6, -4.7, 6.1, 0.7, 4.7, 5.7);
+        context.bezierCurveTo(3.7, 9.2, 1.8, 11.8, -1, 11);
+        context.fill();
+
+        const toes = [
+          [-5.2, -7.3, 1.55],
+          [-2.1, -10, 1.8],
+          [1.5, -10.7, 1.95],
+          [5.2, -9.2, 1.8],
+          [7.8, -6.5, 1.45],
+        ];
+        toes.forEach(([x, y, radius]) => {
+          context.beginPath();
+          context.arc(x, y, radius, 0, Math.PI * 2);
+          context.fill();
+        });
+        context.restore();
+      };
+
+      const drawLogo = (context) => {
+        context.fillStyle = '#e87542';
+        context.beginPath();
+        context.roundRect(5, 5, 134, 134, 34);
+        context.fill();
+
+        context.fillStyle = '#fffdf9';
+        context.font = '800 80px "Microsoft YaHei", "PingFang SC", sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText('问', 73, 75);
+
+        context.fillStyle = '#e87542';
+        context.beginPath();
+        context.roundRect(31, 24, 34, 31, 8);
+        context.fill();
+
+        refinedFoot(context);
+      };
+
+      drawLogo(prepare('large', 240));
+      drawLogo(prepare('header-logo', 42));
+      drawLogo(prepare('login-logo', 58));
+    </script>
+  </body>
+</html>

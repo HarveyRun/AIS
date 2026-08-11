@@ -1,6 +1,6 @@
 .auth-page {
   min-height: 100vh;
-  background: linear-gradient(160deg, #fff6e8, #fffdf9 48%);
+  background: linear-gradient(160deg, #f5f3f0, #fff 48%);
   padding: 54px 20px 30px;
 }
 .auth-brand {
@@ -11,15 +11,14 @@
   width: 62px;
   height: 62px;
   border-radius: 21px;
-  background: #ffdfca;
-  color: #d96d3b;
+  background: transparent;
   display: grid;
   place-items: center;
   margin: auto;
   transform: rotate(-4deg);
 }
-.auth-brand > div svg {
-  width: 32px;
+.auth-brand > div canvas {
+  display: block;
 }
 .auth-brand h1 {
   font-size: 27px;
@@ -66,7 +65,7 @@
 }
 .auth-input {
   height: 45px;
-  border: 1px solid #e5dbd2;
+  border: 1px solid #e5ddd5;
   border-radius: 13px;
   display: flex;
   align-items: center;
@@ -74,7 +73,7 @@
 }
 .auth-input > svg {
   width: 17px;
-  color: #b67b5b;
+  color: var(--primary-dark);
 }
 .auth-input input {
   border: 0;
@@ -85,8 +84,8 @@
   font-size: 10px;
 }
 .auth-input button {
-  font-size: 8px;
-  color: #c66237;
+  font-size: 9px;
+  color: var(--primary-dark);
   border-left: 1px solid #eee4dc;
   padding-left: 9px;
 }
@@ -97,7 +96,7 @@
   width: 100%;
   height: 46px;
   border-radius: 14px;
-  background: #eb7f4c;
+  background: var(--primary);
   color: #fff;
   font-weight: 700;
   margin-top: 21px;
@@ -112,14 +111,24 @@
   margin: 16px;
 }
 .auth-switch button {
-  color: #c76237;
+  color: var(--primary-dark);
   font-weight: 700;
 }
 .auth-card > small {
   display: block;
   text-align: center;
-  font-size: 7px;
+  font-size: 9px;
   color: #aaa;
+}
+.auth-card > .auth-code-hint {
+  margin-top: 7px;
+  color: #6f7f72;
+  text-align: left;
+}
+.auth-card > .auth-error {
+  margin-top: 7px;
+  color: var(--primary);
+  text-align: left;
 }
 .auth-back {
   position: absolute;
@@ -137,7 +146,32 @@
   display: flex !important;
   align-items: center;
   gap: 6px;
-  font-size: 8px !important;
-  color: #82766e;
+  font-size: 9px !important;
+  color: #8f847c;
   margin-top: 14px !important;
+}
+.agree button,
+.auth-legal-links button {
+  padding: 0 2px;
+  color: var(--primary-dark);
+  font-size: inherit;
+}
+.legal-content {
+  padding: 8px 17px 80px;
+}
+.legal-content article {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f7f8fa;
+}
+.legal-content h2 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+.legal-content p {
+  margin: 0;
+  color: #756d67;
+  font-size: 11px;
+  line-height: 1.7;
 }

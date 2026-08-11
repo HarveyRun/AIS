@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>事先问 Logo 方案</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 42px;
+        background: #f7f2ec;
+        color: #342b26;
+        font-family: system-ui, -apple-system, 'Microsoft YaHei', sans-serif;
+      }
+      header {
+        max-width: 980px;
+        margin: 0 auto 28px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+      }
+      header p {
+        margin: 0;
+        color: #897a71;
+        font-size: 14px;
+      }
+      main {
+        display: grid;
+        max-width: 980px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+        margin: auto;
+      }
+      article {
+        padding: 24px;
+        border: 1px solid #eadfd6;
+        border-radius: 24px;
+        background: #fffdf9;
+        text-align: center;
+        box-shadow: 0 10px 30px #6f4b3110;
+      }
+      canvas {
+        display: block;
+        width: 128px;
+        height: 128px;
+        margin: auto;
+      }
+      h2 {
+        margin: 17px 0 4px;
+        font-size: 18px;
+      }
+      article p {
+        min-height: 40px;
+        margin: 0;
+        color: #8d7f76;
+        font-size: 12px;
+        line-height: 1.65;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        margin-top: 13px;
+        color: #4c4039;
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: 2px;
+      }
+      .brand span {
+        color: #a79488;
+        font-size: 10px;
+        font-weight: 400;
+        letter-spacing: 0;
+      }
+      @media (max-width: 760px) {
+        body {
+          padding: 24px 16px;
+        }
+        main {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        article {
+          padding: 18px 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>“事先问”Logo 方向</h1>
+      <p>全部由 Canvas 绘制，先看图形方向，不替换项目现有 Logo。</p>
+    </header>
+    <main>
+      <article>
+        <canvas id="logo1"></canvas>
+        <h2>01 · 先问</h2>
+        <p>极简问号与对话气泡，最直接。</p>
+        <div class="brand">事先问 <span>有事先问问过来人</span></div>
+      </article>
+      <article>
+        <canvas id="logo2"></canvas>
+        <h2>02 · 问明白</h2>
+        <p>对话气泡加确认勾，表示问清楚。</p>
+        <div class="brand">事先问 <span>有事先问问过来人</span></div>
+      </article>
+      <article>
+        <canvas id="logo3"></canvas>
+        <h2>03 · 过来人</h2>
+        <p>两个面对的人，中间形成对话。</p>
+        <div class="brand">事先问 <span>有事先问问过来人</span></div>
+      </article>
+      <article>
+        <canvas id="logo4"></canvas>
+        <h2>04 · 事先</h2>
+        <p>时间刻度加气泡，强调行动前先问。</p>
+        <div class="brand">事先问 <span>有事先问问过来人</span></div>
+      </article>
+      <article>
+        <canvas id="logo5"></canvas>
+        <h2>05 · 真经验</h2>
+        <p>足迹融入对话框，代表亲身经历。</p>
+        <div class="brand">事先问 <span>有事先问问过来人</span></div>
+      </article>
+      <article>
+        <canvas id="logo6"></canvas>
+        <h2>06 · 字标</h2>
+        <p>用“问”字做核心，更像独立品牌。</p>
+        <div class="brand">事先问 <span>有事先问问过来人</span></div>
+      </article>
+    </main>
+    <script>
+      const colors = {
+        orange: '#e87542',
+        orangeDark: '#c95b30',
+        cream: '#fff4e7',
+        ink: '#403630',
+        green: '#658978',
+        white: '#fffdf9',
+      };
+
+      const setup = (id) => {
+        const canvas = document.getElementById(id);
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = 128 * ratio;
+        canvas.height = 128 * ratio;
+        const context = canvas.getContext('2d');
+        context.scale(ratio, ratio);
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        return context;
+      };
+
+      const tile = (context, color = colors.cream) => {
+        context.fillStyle = color;
+        context.beginPath();
+        context.roundRect(4, 4, 120, 120, 34);
+        context.fill();
+      };
+
+      const bubble = (context, x, y, width, height, color) => {
+        context.fillStyle = color;
+        context.beginPath();
+        context.roundRect(x, y, width, height, 18);
+        context.fill();
+        context.beginPath();
+        context.moveTo(x + 18, y + height - 2);
+        context.lineTo(x + 15, y + height + 17);
+        context.lineTo(x + 35, y + height - 2);
+        context.fill();
+      };
+
+      {
+        const context = setup('logo1');
+        tile(context);
+        bubble(context, 27, 25, 75, 67, colors.orange);
+        context.fillStyle = colors.white;
+        context.font = '700 56px system-ui';
+        context.textAlign = 'center';
+        context.fillText('?', 65, 79);
+      }
+
+      {
+        const context = setup('logo2');
+        tile(context, '#fff1e5');
+        bubble(context, 23, 25, 82, 65, colors.white);
+        context.strokeStyle = colors.orange;
+        context.lineWidth = 9;
+        context.beginPath();
+        context.moveTo(42, 58);
+        context.lineTo(57, 72);
+        context.lineTo(84, 44);
+        context.stroke();
+        context.strokeStyle = '#f0c2a7';
+        context.lineWidth = 3;
+        context.beginPath();
+        context.roundRect(23, 25, 82, 65, 18);
+        context.stroke();
+      }
+
+      {
+        const context = setup('logo3');
+        tile(context, '#edf5ef');
+        context.fillStyle = colors.green;
+        context.beginPath();
+        context.arc(43, 49, 16, 0, Math.PI * 2);
+        context.arc(86, 49, 16, 0, Math.PI * 2);
+        context.fill();
+        context.beginPath();
+        context.roundRect(24, 70, 38, 25, 15);
+        context.roundRect(67, 70, 38, 25, 15);
+        context.fill();
+        context.strokeStyle = colors.orange;
+        context.lineWidth = 5;
+        context.beginPath();
+        context.moveTo(54, 31);
+        context.quadraticCurveTo(65, 18, 76, 31);
+        context.stroke();
+        context.fillStyle = colors.orange;
+        context.beginPath();
+        context.arc(65, 25, 4, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      {
+        const context = setup('logo4');
+        tile(context, '#fff1e5');
+        context.strokeStyle = colors.orange;
+        context.lineWidth = 8;
+        context.beginPath();
+        context.arc(61, 61, 34, 0, Math.PI * 2);
+        context.stroke();
+        context.beginPath();
+        context.moveTo(61, 61);
+        context.lineTo(61, 38);
+        context.moveTo(61, 61);
+        context.lineTo(79, 70);
+        context.stroke();
+        context.fillStyle = colors.orange;
+        context.beginPath();
+        context.moveTo(86, 84);
+        context.lineTo(106, 86);
+        context.lineTo(91, 99);
+        context.fill();
+      }
+
+      {
+        const context = setup('logo5');
+        tile(context, '#edf5ef');
+        bubble(context, 22, 22, 84, 72, colors.white);
+        context.fillStyle = colors.green;
+        context.save();
+        context.rotate(-0.35);
+        context.beginPath();
+        context.ellipse(42, 70, 11, 17, 0, 0, Math.PI * 2);
+        context.ellipse(75, 78, 11, 17, 0, 0, Math.PI * 2);
+        context.fill();
+        context.beginPath();
+        context.arc(35, 47, 5, 0, Math.PI * 2);
+        context.arc(48, 45, 5, 0, Math.PI * 2);
+        context.arc(69, 55, 5, 0, Math.PI * 2);
+        context.arc(82, 53, 5, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+      }
+
+      {
+        const context = setup('logo6');
+        tile(context, colors.orange);
+        context.fillStyle = colors.white;
+        context.font = '800 64px "Microsoft YaHei", sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText('问', 64, 62);
+        context.fillStyle = '#ffd9be';
+        context.beginPath();
+        context.arc(97, 29, 7, 0, Math.PI * 2);
+        context.fill();
+      }
+    </script>
+  </body>
+</html>

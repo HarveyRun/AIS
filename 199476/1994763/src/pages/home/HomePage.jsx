@@ -1,52 +1,21 @@
 import { useEffect, useState } from 'react';
-import {
-  ArrowLeft,
-  ArrowRight,
-  BadgeCheck,
-  Banknote,
-  Bell,
-  BriefcaseBusiness,
-  Building2,
-  CalendarDays,
-  Camera,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  CircleUserRound,
-  Clock3,
-  Coins,
-  FileCheck2,
-  HeartHandshake,
-  Info,
-  Landmark,
-  LockKeyhole,
-  MessageCircleMore,
-  MessageSquareWarning,
-  MoreHorizontal,
-  PlusCircle,
-  Search,
-  Send,
-  ShieldCheck,
-  SlidersHorizontal,
-  Smartphone,
-  Sparkles,
-  Star,
-  UsersRound,
-  WalletCards,
-  X,
-  Zap,
-} from 'lucide-react';
+import { Bell, ChevronRight, HeartHandshake, Search, Sparkles } from 'lucide-react';
 import { talentPool } from '../../data/mockData.js';
+import CanvasLogo from '../../components/brand/CanvasLogo.jsx';
 import TalentCard from '../../components/talent/TalentCard.jsx';
 import './HomePage.css';
 
-export default function HomePage({ go, setTalent }) {
+export default function HomePage({ go, setTalent, unreadNoticeCount = 0 }) {
   const [slide, setSlide] = useState(0);
   const [count, setCount] = useState(10);
   const banners = [
-    ['家里突然出问题', '跳闸、漏水，不知道该先找谁？', '找做过相关工作的人问问，先把原因弄清楚'],
-    ['准备装修房子', '水电、设计、施工，一堆事理不清', '把相关岗位的人叫到一个群里，一起聊明白'],
-    ['遇到劳动纠纷', '材料怎么准备，下一步该做什么？', '问问有相关工作或亲身经历的人，少走弯路'],
+    [
+      '大多数人都会遇到',
+      '买房、装修，是生活里绕不开的一环',
+      '先问问做过和经历过的人，别稀里糊涂花钱',
+    ],
+    ['上班总会遇到点糟心事', '离职、裁员，遇到容易慌？', '找经历过的人聊聊，心里就有底了'],
+    ['家庭的担子', '照顾老人、孩子成长，没人天生就会', '问问过来人，听听日常里管用的经验'],
   ];
   useEffect(() => {
     const t = setInterval(() => setSlide((x) => (x + 1) % banners.length), 10000);
@@ -64,12 +33,15 @@ export default function HomePage({ go, setTalent }) {
     <>
       <header className="brand-top">
         <div className="brand-logo">
-          <HeartHandshake />
+          <CanvasLogo size={39} />
         </div>
-        <strong>光忆</strong>
+        <div className="brand-name">
+          <strong>事先问</strong>
+          <small>有事先问问过来人</small>
+        </div>
         <button className="round" onClick={() => go('notices')}>
           <Bell size={20} />
-          <i className="notice-dot" />
+          {unreadNoticeCount > 0 && <i className="notice-dot" />}
         </button>
       </header>
       <section className="intro-section">
@@ -82,7 +54,6 @@ export default function HomePage({ go, setTalent }) {
               <h2>{banners[slide][1]}</h2>
               <p>{banners[slide][2]}</p>
             </div>
-            <HeartHandshake size={73} />
             <nav>
               {banners.map((_, i) => (
                 <button
@@ -96,19 +67,19 @@ export default function HomePage({ go, setTalent }) {
         </div>
       </section>
       <section className="home-actions">
-        <button onClick={() => go('filter')}>
-          <SlidersHorizontal size={19} />
-          <div>
-            <b>按类别</b>
-            <small>按岗位和时间找人</small>
-          </div>
-          <ChevronRight />
-        </button>
         <button onClick={() => go('knowledge')}>
           <Search size={19} />
           <div>
-            <b>按问题</b>
-            <small>先选择一个具体问题</small>
+            <b>按事情</b>
+            <small>先看看应该问哪些人</small>
+          </div>
+          <ChevronRight />
+        </button>
+        <button onClick={() => go('experiences')}>
+          <HeartHandshake size={19} />
+          <div>
+            <b>按经历</b>
+            <small>找真正经历过的人聊聊</small>
           </div>
           <ChevronRight />
         </button>
@@ -118,7 +89,7 @@ export default function HomePage({ go, setTalent }) {
           <h2>可以帮你的人</h2>
         </div>
         <div className="talent-list">
-          {talentPool.slice(0, count).map((p, i) => (
+          {talentPool.slice(0, count).map((p) => (
             <TalentCard
               key={p.uid}
               p={p}
@@ -126,7 +97,6 @@ export default function HomePage({ go, setTalent }) {
                 setTalent(p);
                 go('talent');
               }}
-              index={i}
             />
           ))}
         </div>

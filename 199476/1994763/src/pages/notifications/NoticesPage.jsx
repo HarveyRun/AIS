@@ -1,71 +1,36 @@
-import { useState } from 'react';
-import {
-  ArrowLeft,
-  ArrowRight,
-  BadgeCheck,
-  Banknote,
-  Bell,
-  BriefcaseBusiness,
-  Building2,
-  CalendarDays,
-  Camera,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  CircleUserRound,
-  Clock3,
-  Coins,
-  FileCheck2,
-  HeartHandshake,
-  Info,
-  Landmark,
-  LockKeyhole,
-  MessageCircleMore,
-  MessageSquareWarning,
-  MoreHorizontal,
-  PlusCircle,
-  Search,
-  Send,
-  ShieldCheck,
-  SlidersHorizontal,
-  Smartphone,
-  Sparkles,
-  Star,
-  UsersRound,
-  WalletCards,
-  X,
-  Zap,
-} from 'lucide-react';
+import { Bell } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import './NoticesPage.css';
 
-export default function NoticesPage({ go }) {
-  const [read, setRead] = useState([]);
-  const notices = [
-    ['事情申请', '有人邀请你以“程序开发”身份加入事情', '刚刚'],
-    ['时间提醒', '旧房装修协助中有1人的时间和其他人不同', '20分钟前'],
-    ['认证消息', '你提交的人生经历材料正在核对中', '昨天'],
-  ];
+export default function NoticesPage({ go, notices, setNotices }) {
+  const openNotice = (notice) => {
+    setNotices((current) =>
+      current.map((item) => (item.id === notice.id ? { ...item, read: true } : item)),
+    );
+    if (notice.screen) go(notice.screen);
+  };
+
   return (
     <Page title="通知" back={() => go('home')}>
       <section className="notice-list">
-        {notices.map((n, i) => (
+        {notices.map((notice) => (
           <button
-            className={read.includes(i) ? 'read' : ''}
-            key={n[0]}
-            onClick={() => setRead([...read, i])}
+            className={notice.read ? 'read' : ''}
+            key={notice.id}
+            onClick={() => openNotice(notice)}
           >
             <i>
               <Bell />
             </i>
             <div>
-              <h3>{n[0]}</h3>
-              <p>{n[1]}</p>
-              <span>{n[2]}</span>
+              <h3>{notice.title}</h3>
+              <p>{notice.content}</p>
+              <span>{notice.time}</span>
             </div>
-            {!read.includes(i) && <b />}
+            {!notice.read && <b />}
           </button>
         ))}
+        {notices.length === 0 && <p className="notice-empty">暂时没有通知</p>}
       </section>
     </Page>
   );

@@ -1,26 +1,27 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import LoginPage from '../pages/auth/LoginPage.jsx';
 import RegisterPage from '../pages/auth/RegisterPage.jsx';
+import LegalPage from '../pages/auth/LegalPage.jsx';
 import HomePage from '../pages/home/HomePage.jsx';
 import KnowledgePage from '../pages/discovery/KnowledgePage.jsx';
+import ExperiencePage from '../pages/discovery/ExperiencePage.jsx';
 import FilterPage from '../pages/discovery/FilterPage.jsx';
 import TalentPage from '../pages/talent/TalentPage.jsx';
-import ApplyPage from '../pages/items/ApplyPage.jsx';
-import MyItemsPage from '../pages/items/MyItemsPage.jsx';
-import CreateMatterPage from '../pages/items/CreateMatterPage.jsx';
-import MatterPage from '../pages/items/MatterPage.jsx';
-import MessagesPage from '../pages/messages/MessagesPage.jsx';
-import GroupChat from '../pages/messages/GroupChatPage.jsx';
+import MyInquiriesPage from '../pages/inquiries/MyInquiriesPage.jsx';
+import DirectChatPage from '../pages/messages/DirectChatPage.jsx';
 import MyProfilePage from '../pages/profile/ProfilePage.jsx';
-import SettingsPage from '../pages/profile/SettingsPage.jsx';
+import AccountSettingsPage from '../pages/profile/AccountSettingsPage.jsx';
 import WalletPage from '../pages/profile/WalletPage.jsx';
 import CertificationPage from '../pages/certification/CertificationPage.jsx';
-import CertificationApplyPage from '../pages/certification/CertificationApplyPage.jsx';
-import CertificationUploadPage from '../pages/certification/CertificationUploadPage.jsx';
+import WorkCertificationPage from '../pages/certification/WorkCertificationPage.jsx';
+import ExperienceCertificationPage from '../pages/certification/ExperienceCertificationPage.jsx';
+import BasicCertificationApplyPage from '../pages/certification/BasicCertificationApplyPage.jsx';
+import ExperienceCertificationApplyPage from '../pages/certification/ExperienceCertificationApplyPage.jsx';
 import NoticesPage from '../pages/notifications/NoticesPage.jsx';
-import RatingPage from '../pages/support/RatingPage.jsx';
 import FeedbackPage from '../pages/support/FeedbackPage.jsx';
-import RulesPage from '../pages/rules/RulesPage.jsx';
+import FaqPage from '../pages/support/FaqPage.jsx';
+import BusinessCooperationPage from '../pages/support/BusinessCooperationPage.jsx';
+import CustomerServicePage from '../pages/support/CustomerServicePage.jsx';
 import { ROUTES } from './routeConfig.js';
 
 export default function AppRoutes(props) {
@@ -29,11 +30,37 @@ export default function AppRoutes(props) {
     props.isAuthenticated ? element : <Navigate to={ROUTES.login} replace />;
   return (
     <Routes>
-      <Route path={ROUTES.login} element={<LoginPage go={go} onLogin={props.login} />} />
-      <Route path={ROUTES.register} element={<RegisterPage go={go} onRegister={props.login} />} />
+      <Route
+        path={ROUTES.login}
+        element={
+          props.isAuthenticated ? (
+            <Navigate to={ROUTES.home} replace />
+          ) : (
+            <LoginPage go={go} onLogin={props.login} notify={notify} />
+          )
+        }
+      />
+      <Route
+        path={ROUTES.register}
+        element={
+          props.isAuthenticated ? (
+            <Navigate to={ROUTES.home} replace />
+          ) : (
+            <RegisterPage go={go} onRegister={props.login} notify={notify} />
+          )
+        }
+      />
+      <Route path={ROUTES.terms} element={<LegalPage go={go} type="terms" />} />
+      <Route path={ROUTES.privacy} element={<LegalPage go={go} type="privacy" />} />
       <Route
         path={ROUTES.home}
-        element={protect(<HomePage go={go} setTalent={props.setTalent} />)}
+        element={protect(
+          <HomePage
+            go={go}
+            setTalent={props.setTalent}
+            unreadNoticeCount={props.unreadNoticeCount}
+          />,
+        )}
       />
       <Route
         path={ROUTES.talent}
@@ -41,9 +68,14 @@ export default function AppRoutes(props) {
           <TalentPage
             go={go}
             talent={props.talent}
-            matter={props.matter}
-            helpers={props.helpers}
-            setHelpers={props.setHelpers}
+            conversations={props.conversations}
+            setConversations={props.setConversations}
+            setSelectedConversation={props.setSelectedConversation}
+            balance={props.balance}
+            setBalance={props.setBalance}
+            problem={props.problem}
+            experience={props.experience}
+            addNotice={props.addNotice}
           />,
         )}
       />
@@ -56,6 +88,18 @@ export default function AppRoutes(props) {
             setCategory={props.setCategory}
             problem={props.problem}
             setProblem={props.setProblem}
+            setExperience={props.setExperience}
+          />
+        }
+      />
+      <Route
+        path={ROUTES.experiences}
+        element={
+          <ExperiencePage
+            go={go}
+            experience={props.experience}
+            setExperience={props.setExperience}
+            setProblem={props.setProblem}
           />
         }
       />
@@ -65,84 +109,63 @@ export default function AppRoutes(props) {
           <FilterPage
             go={go}
             problem={props.problem}
+            experience={props.experience}
             setTalent={props.setTalent}
-            title="按问题筛选"
-            backScreen="knowledge"
+            title={props.experience ? '按经历找人' : '按事情找人'}
+            backScreen={props.experience ? 'experiences' : 'knowledge'}
           />
         }
       />
-      <Route path={ROUTES.filter} element={<FilterPage go={go} setTalent={props.setTalent} />} />
       <Route
-        path={ROUTES.apply}
-        element={<ApplyPage go={go} selected={props.selected} setSelected={props.setSelected} />}
-      />
-      <Route
-        path={ROUTES.requests}
+        path={ROUTES.inquiries}
         element={
-          <MyItemsPage
+          <MyInquiriesPage
             go={go}
-            matter={props.matter}
-            groups={props.groups}
-            setSelectedGroup={props.setSelectedGroup}
+            conversations={props.conversations}
+            setConversations={props.setConversations}
+            setSelectedConversation={props.setSelectedConversation}
           />
         }
       />
       <Route
-        path={ROUTES.createMatter}
-        element={
-          <CreateMatterPage go={go} setMatter={props.setMatter} setHelpers={props.setHelpers} />
-        }
-      />
-      <Route
-        path={ROUTES.matter}
-        element={
-          <MatterPage
-            go={go}
-            matter={props.matter}
-            helpers={props.helpers}
-            setHelpers={props.setHelpers}
-            notify={notify}
-            hourlyFee={props.hourlyFee}
-            balance={props.balance}
-            setBalance={props.setBalance}
-            setSelectedGroup={props.setSelectedGroup}
-            setGroups={props.setGroups}
-            setLedger={props.setLedger}
-          />
-        }
-      />
-      <Route path={ROUTES.rating} element={<RatingPage go={go} notify={notify} />} />
-      <Route
-        path={ROUTES.messages}
+        path={ROUTES.directChat}
         element={protect(
-          <MessagesPage
+          <DirectChatPage
             go={go}
-            groups={props.groups}
-            setGroups={props.setGroups}
-            setSelectedGroup={props.setSelectedGroup}
+            conversation={props.selectedConversation}
+            setConversations={props.setConversations}
+            setSelectedConversation={props.setSelectedConversation}
+            currentUser={props.userProfile}
+            canAnswer={props.canAnswer}
+            acceptingInquiries={props.acceptingInquiries}
+            certifications={props.certifications}
+            addNotice={props.addNotice}
           />,
         )}
       />
       <Route
-        path={ROUTES.chat}
-        element={protect(<GroupChat go={go} notify={notify} group={props.selectedGroup} />)}
-      />
-      <Route
         path={ROUTES.profile}
         element={protect(
-          <MyProfilePage go={go} hourlyFee={props.hourlyFee} logout={props.logout} />,
+          <MyProfilePage
+            go={go}
+            certifications={props.certifications}
+            logout={props.logout}
+            userProfile={props.userProfile}
+          />,
         )}
       />
       <Route
-        path={ROUTES.settings}
+        path={ROUTES.accountSettings}
         element={protect(
-          <SettingsPage
+          <AccountSettingsPage
             go={go}
             notify={notify}
-            hourlyFee={props.hourlyFee}
-            setHourlyFee={props.setHourlyFee}
-            userSchedule={props.userSchedule}
-            setUserSchedule={props.setUserSchedule}
+            userProfile={props.userProfile}
+            setUserProfile={props.setUserProfile}
+            conversations={props.conversations}
+            balance={props.balance}
+            frozenAmount={props.frozenAmount}
+            deleteAccount={props.deleteAccount}
           />,
         )}
       />
@@ -158,27 +181,96 @@ export default function AppRoutes(props) {
             setLedger={props.setLedger}
             withdrawals={props.withdrawals}
             setWithdrawals={props.setWithdrawals}
+            accountStats={props.accountStats}
+            setAccountStats={props.setAccountStats}
+            frozenAmount={props.frozenAmount}
           />,
         )}
       />
-      <Route path={ROUTES.rules} element={<RulesPage go={go} />} />
       <Route
         path={ROUTES.certs}
-        element={<CertificationPage go={go} setCertType={props.setCertType} />}
-      />
-      <Route
-        path={ROUTES.certApply}
         element={
-          <CertificationApplyPage go={go} type={props.certType} setType={props.setCertType} />
+          <CertificationPage
+            go={go}
+            certifications={props.certifications}
+            acceptingInquiries={props.acceptingInquiries}
+            setAcceptingInquiries={props.setAcceptingInquiries}
+          />
         }
       />
       <Route
-        path={ROUTES.certUpload}
-        element={<CertificationUploadPage go={go} type={props.certType} notify={notify} />}
+        path={ROUTES.certWork}
+        element={
+          <WorkCertificationPage
+            go={go}
+            setCertType={props.setCertType}
+            certifications={props.certifications}
+          />
+        }
       />
-      <Route path={ROUTES.feedback} element={<FeedbackPage go={go} notify={notify} />} />
-      <Route path={ROUTES.notices} element={<NoticesPage go={go} />} />
-      <Route path="*" element={<Navigate to={ROUTES.login} replace />} />
+      <Route
+        path={ROUTES.certExperience}
+        element={
+          <ExperienceCertificationPage
+            go={go}
+            setCertType={props.setCertType}
+            certifications={props.certifications}
+            setCertifications={props.setCertifications}
+          />
+        }
+      />
+      <Route
+        path={ROUTES.certBasicApply}
+        element={
+          <BasicCertificationApplyPage
+            go={go}
+            certId={props.certType}
+            certifications={props.certifications}
+            setCertifications={props.setCertifications}
+            notify={notify}
+            addNotice={props.addNotice}
+          />
+        }
+      />
+      <Route
+        path={ROUTES.certExperienceApply}
+        element={
+          <ExperienceCertificationApplyPage
+            go={go}
+            certId={props.certType}
+            certifications={props.certifications}
+            setCertifications={props.setCertifications}
+            notify={notify}
+            addNotice={props.addNotice}
+          />
+        }
+      />
+      <Route
+        path={ROUTES.feedback}
+        element={
+          <FeedbackPage
+            go={go}
+            notify={notify}
+            conversations={props.conversations}
+            records={props.feedbackRecords}
+            setRecords={props.setFeedbackRecords}
+          />
+        }
+      />
+      <Route path={ROUTES.faq} element={protect(<FaqPage go={go} />)} />
+      <Route
+        path={ROUTES.business}
+        element={protect(<BusinessCooperationPage go={go} notify={notify} />)}
+      />
+      <Route path={ROUTES.customerService} element={protect(<CustomerServicePage go={go} />)} />
+      <Route
+        path={ROUTES.notices}
+        element={<NoticesPage go={go} notices={props.notices} setNotices={props.setNotices} />}
+      />
+      <Route
+        path="*"
+        element={<Navigate to={props.isAuthenticated ? ROUTES.home : ROUTES.login} replace />}
+      />
     </Routes>
   );
 }

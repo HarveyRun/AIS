@@ -3,8 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { PATH_TO_SCREEN, ROUTES } from '../routes/routeConfig.js';
 
 function tabForPath(pathname) {
-  if (pathname.startsWith('/items')) return 'requests';
-  if (pathname.startsWith('/messages')) return 'messages';
+  if (pathname.startsWith('/inquiries')) return 'inquiries';
+  if (pathname.startsWith('/messages')) return 'inquiries';
   if (pathname.startsWith('/profile')) return 'profile';
   return 'home';
 }

@@ -1,13 +1,12 @@
-import { CircleUserRound, FileCheck2, Home, MessageCircleMore } from 'lucide-react';
+import { CircleUserRound, Home, MessagesSquare, MessageCircleMore } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'home', label: '首页', Icon: Home },
-  { id: 'requests', label: '我的事项', Icon: FileCheck2 },
-  { id: 'messages', label: '消息', Icon: MessageCircleMore },
+  { id: 'inquiries', label: '我的询问', Icon: MessageCircleMore },
   { id: 'profile', label: '我的', Icon: CircleUserRound },
 ];
 
-export default function BottomNav({ active, onChange, unreadCount = 0 }) {
+export default function BottomNav({ active, onChange, inquiryUnreadCount = 0 }) {
   return (
     <nav className="bottom-nav" aria-label="主要导航">
       {NAV_ITEMS.map(({ Icon, id, label }) => (
@@ -19,8 +18,8 @@ export default function BottomNav({ active, onChange, unreadCount = 0 }) {
         >
           <span className="nav-icon">
             <Icon />
-            {id === 'messages' && unreadCount > 0 && (
-              <em>{unreadCount > 99 ? '99+' : unreadCount}</em>
+            {id === 'inquiries' && inquiryUnreadCount > 0 && (
+              <em>{inquiryUnreadCount > 99 ? '99+' : inquiryUnreadCount}</em>
             )}
           </span>
           <span>{label}</span>

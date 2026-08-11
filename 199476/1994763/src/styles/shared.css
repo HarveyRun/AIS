@@ -1,10 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap');
 :root {
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   color: #312c28;
-  background: #eee9e2;
-  --orange: #eb7e4a;
-  --deep: #c95f30;
+  background: #ffffff;
+  --primary: rgb(194 59 50);
+  --primary-dark: #8f2924;
+  --surface-soft: #f5f3f0;
+  --surface-strong: #e9e4de;
+  --surface-warm: #fffdf9;
+  --border-warm: #e5ddd5;
   --muted: #8f847c;
   --line: #eee5dc;
 }
@@ -13,7 +19,13 @@
 }
 body {
   margin: 0;
-  background: #eee9e2;
+  background: #ffffff;
+}
+html,
+body,
+#root {
+  min-height: 100%;
+  background: #ffffff;
 }
 button,
 input,
@@ -30,7 +42,7 @@ button {
   max-width: 430px;
   min-height: 100vh;
   margin: auto;
-  background: #fffdf9;
+  background: #ffffff;
   position: relative;
   box-shadow: 0 0 35px #4b342015;
 }
@@ -47,7 +59,7 @@ button {
 }
 .hello {
   font-size: 10px;
-  color: #b07b5e;
+  color: var(--primary-dark);
 }
 .topbar h1 {
   font-size: 26px;
@@ -57,7 +69,7 @@ button {
   width: 41px;
   height: 41px;
   border-radius: 14px;
-  background: #fff5e9;
+  background: var(--surface-soft);
   display: grid;
   place-items: center;
 }
@@ -69,7 +81,7 @@ button {
 }
 .section-head span {
   font-size: 9px;
-  color: var(--orange);
+  color: var(--primary);
   font-weight: 700;
 }
 .section-head h2 {
@@ -91,6 +103,22 @@ button {
   font-size: 17px;
   position: relative;
 }
+.avatar > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+.default-avatar {
+  background: var(--surface-strong);
+  color: var(--muted);
+}
+.default-avatar > svg {
+  width: 100%;
+  height: 52%;
+  stroke-width: 1.8;
+}
 .avatar i {
   position: absolute;
   right: -4px;
@@ -105,7 +133,7 @@ button {
   margin: 0;
 }
 .identity span {
-  font-size: 8px;
+  font-size: 9px;
   color: #999;
 }
 .chev {
@@ -118,7 +146,7 @@ button {
   width: 100%;
   max-width: 430px;
   height: 76px;
-  background: #fffefcf2;
+  background: #fffffff2;
   backdrop-filter: blur(12px);
   border-top: 1px solid #f0e8e1;
   display: flex;
@@ -132,7 +160,7 @@ button {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  color: #a69b93;
+  color: #a1948c;
 }
 .bottom-nav svg {
   width: 21px;
@@ -141,7 +169,7 @@ button {
   font-size: 9px;
 }
 .bottom-nav button.active {
-  color: var(--orange);
+  color: var(--primary);
   font-weight: 700;
 }
 .bottom-nav .nav-icon {
@@ -157,11 +185,11 @@ button {
   min-width: 17px;
   height: 17px;
   padding: 0 5px;
-  border: 2px solid #fffefc;
+  border: 2px solid #ffffff;
   border-radius: 9px;
-  background: #e85f4a;
+  background: var(--primary);
   color: #fff;
-  font-size: 8px;
+  font-size: 9px;
   font-style: normal;
   font-weight: 700;
   line-height: 13px;
@@ -179,7 +207,7 @@ button {
   text-align: center;
   position: sticky;
   top: 0;
-  background: #fffdf9ef;
+  background: #ffffffef;
   backdrop-filter: blur(12px);
   z-index: 20;
 }
@@ -208,7 +236,7 @@ button {
   width: min(calc(100% - 32px), 398px);
   height: 52px;
   border-radius: 16px;
-  background: var(--orange);
+  background: var(--primary);
   color: white;
   font-weight: 700;
   display: flex;
@@ -216,10 +244,10 @@ button {
   justify-content: center;
   gap: 7px;
   z-index: 30;
-  box-shadow: 0 8px 22px #d96b3735;
+  box-shadow: 0 8px 22px rgb(194 59 50 / 21%);
 }
 .sticky-primary:disabled {
-  background: #d8cec6;
+  background: #d8d3cf;
   box-shadow: none;
 }
 .msg-meta {
@@ -229,16 +257,16 @@ button {
   gap: 7px;
 }
 .msg-meta small {
-  font-size: 8px;
+  font-size: 9px;
   color: #aaa;
 }
 .msg-meta i {
   width: 17px;
   height: 17px;
   border-radius: 50%;
-  background: #ef7441;
+  background: var(--primary);
   color: #fff;
-  font-size: 8px;
+  font-size: 9px;
   display: grid;
   place-items: center;
 }
@@ -251,7 +279,7 @@ button {
 .menu button {
   width: 100%;
   height: 54px;
-  border-bottom: 1px solid #f1ebe5;
+  border-bottom: 1px solid #f5f3f0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -267,7 +295,7 @@ button {
 }
 .menu span svg {
   width: 18px;
-  color: #ad8068;
+  color: var(--primary-dark);
 }
 .menu > button > svg {
   width: 15px;
@@ -285,7 +313,7 @@ button {
   bottom: 94px;
   left: 50%;
   transform: translateX(-50%);
-  background: #38322e;
+  background: #312c28;
   color: #fff;
   padding: 10px 15px;
   border-radius: 12px;
@@ -331,13 +359,13 @@ button {
   margin: 14px 0 7px;
 }
 .apply-settings label b {
-  font-size: 8px;
-  color: #d86d3c;
+  font-size: 9px;
+  color: var(--primary-dark);
 }
 .apply-settings select {
   width: 100%;
   height: 43px;
-  border: 1px solid #e8ddd3;
+  border: 1px solid #e5ddd5;
   border-radius: 12px;
   padding: 0 11px;
   background: #fff;
@@ -345,7 +373,7 @@ button {
 }
 .money-input {
   height: 46px;
-  border: 1px solid #e8ddd3;
+  border: 1px solid #e5ddd5;
   border-radius: 13px;
   display: flex;
   align-items: center;
@@ -368,7 +396,7 @@ button {
   color: #999;
 }
 .apply-settings > p {
-  font-size: 8px;
+  font-size: 9px;
   color: #999;
 }
 .time-check-note {
@@ -392,7 +420,7 @@ button {
   width: 20px;
 }
 .round.create {
-  color: var(--orange);
+  color: var(--primary);
 }
 .unified-box {
   margin: 5px 17px 0;
@@ -429,27 +457,20 @@ button {
   background: #0004;
   z-index: 70;
 }
+
 .round {
   position: relative;
-}
-@keyframes drawerIn {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
 }
 .picker-submit {
   width: 100%;
   height: 43px;
   border-radius: 12px;
-  background: #e97f4e;
+  background: var(--primary);
   color: #fff;
   margin-top: 8px;
 }
 .picker-submit:disabled {
-  background: #d7cdc5;
+  background: #d8d3cf;
 }
 .add-success {
   display: grid;
@@ -469,7 +490,7 @@ button {
   display: flex;
   align-items: center;
   color: #4f8260;
-  font-size: 8px;
+  font-size: 9px;
 }
 .add-success button svg {
   width: 13px;

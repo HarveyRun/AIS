@@ -1,0 +1,59 @@
+.faq-list {
+  padding: 8px 17px 96px;
+}
+
+.faq-list article {
+  margin-bottom: 10px;
+  border: 1px solid #ebe6e2;
+  border-radius: 15px;
+  background: #ffffff;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.faq-list article.open {
+  border-color: rgb(194 59 50 / 24%);
+  box-shadow: 0 6px 18px rgb(58 38 31 / 6%);
+}
+
+.faq-list article > button {
+  display: flex;
+  width: 100%;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  text-align: left;
+}
+
+.faq-list b {
+  font-size: 12px;
+}
+
+.faq-list svg {
+  width: 17px;
+  flex: none;
+  color: #9a918b;
+  transition: transform 160ms ease;
+}
+
+.faq-list article.open svg {
+  color: var(--primary);
+  transform: rotate(180deg);
+}
+
+.faq-answer {
+  margin: 0 14px;
+  padding: 12px 0 15px;
+  border-top: 1px solid #f0ece9;
+}
+
+.faq-answer p {
+  margin: 0;
+  color: #786f69;
+  font-size: 11px;
+  line-height: 1.75;
+  white-space: pre-line;
+}

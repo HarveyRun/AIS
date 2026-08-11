@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>事先问 Logo 第二轮</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 38px;
+        background: #f5f0ea;
+        color: #392f29;
+        font-family: system-ui, -apple-system, 'Microsoft YaHei', sans-serif;
+      }
+      header,
+      main {
+        max-width: 1080px;
+        margin-right: auto;
+        margin-left: auto;
+      }
+      header {
+        margin-bottom: 24px;
+      }
+      h1 {
+        margin: 0 0 7px;
+        font-size: 27px;
+      }
+      header p {
+        margin: 0;
+        color: #8b7e75;
+        font-size: 13px;
+      }
+      .section-title {
+        grid-column: 1 / -1;
+        margin: 5px 0 -2px;
+        color: #66574e;
+        font-size: 14px;
+      }
+      main {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+      }
+      article {
+        padding: 21px 15px 18px;
+        border: 1px solid #e7ddd4;
+        border-radius: 22px;
+        background: #fffdf9;
+        box-shadow: 0 9px 26px #67472f0e;
+        text-align: center;
+      }
+      canvas {
+        display: block;
+        width: 132px;
+        height: 132px;
+        margin: auto;
+      }
+      h2 {
+        margin: 14px 0 4px;
+        font-size: 16px;
+      }
+      article p {
+        height: 38px;
+        margin: 0;
+        color: #92857c;
+        font-size: 11px;
+        line-height: 1.65;
+      }
+      .mini-brand {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 11px;
+      }
+      .mini-brand canvas {
+        width: 36px;
+        height: 36px;
+        margin: 0;
+      }
+      .mini-brand b {
+        font-size: 15px;
+        letter-spacing: 2px;
+      }
+      @media (max-width: 800px) {
+        body {
+          padding: 22px 14px;
+        }
+        main {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>第5、6方向深化</h1>
+      <p>上方是完整图标，下方同时展示36px手机端效果。</p>
+    </header>
+    <main>
+      <h3 class="section-title">亲身经历 · 脚印方向</h3>
+      <article>
+        <canvas id="main-5a"></canvas>
+        <h2>5A · 走过</h2>
+        <p>一枚脚印进入对话，简洁直接。</p>
+        <div class="mini-brand"><canvas id="mini-5a"></canvas><b>事先问</b></div>
+      </article>
+      <article>
+        <canvas id="main-5b"></canvas>
+        <h2>5B · 来时路</h2>
+        <p>脚步形成路径，代表亲身走过。</p>
+        <div class="mini-brand"><canvas id="mini-5b"></canvas><b>事先问</b></div>
+      </article>
+      <article>
+        <canvas id="main-5c"></canvas>
+        <h2>5C · 经历说</h2>
+        <p>双脚印形成引号，表示亲历者开口。</p>
+        <div class="mini-brand"><canvas id="mini-5c"></canvas><b>事先问</b></div>
+      </article>
+      <article>
+        <canvas id="main-5d"></canvas>
+        <h2>5D · 留个脚印</h2>
+        <p>脚印用留白切入气泡，识别更强。</p>
+        <div class="mini-brand"><canvas id="mini-5d"></canvas><b>事先问</b></div>
+      </article>
+
+      <h3 class="section-title">品牌字标 · “问”字方向</h3>
+      <article>
+        <canvas id="main-6a"></canvas>
+        <h2>6A · 方印</h2>
+        <p>保留第一版字标，调整比例和圆角。</p>
+        <div class="mini-brand"><canvas id="mini-6a"></canvas><b>事先问</b></div>
+      </article>
+      <article>
+        <canvas id="main-6b"></canvas>
+        <h2>6B · 问话</h2>
+        <p>“问”字直接放进对话气泡。</p>
+        <div class="mini-brand"><canvas id="mini-6b"></canvas><b>事先问</b></div>
+      </article>
+      <article>
+        <canvas id="main-6c"></canvas>
+        <h2>6C · 圆问</h2>
+        <p>圆形更亲切，适合头像和应用图标。</p>
+        <div class="mini-brand"><canvas id="mini-6c"></canvas><b>事先问</b></div>
+      </article>
+      <article>
+        <canvas id="main-6d"></canvas>
+        <h2>6D · 先问</h2>
+        <p>“先”与“问”组合，品牌名称更明确。</p>
+        <div class="mini-brand"><canvas id="mini-6d"></canvas><b>事先问</b></div>
+      </article>
+    </main>
+    <script>
+      const palette = {
+        orange: '#e87542',
+        orangeDeep: '#c95b30',
+        orangeSoft: '#fff0e4',
+        green: '#628877',
+        greenSoft: '#eaf4ed',
+        ink: '#40352f',
+        white: '#fffdf9',
+      };
+
+      const canvasContext = (id, displaySize) => {
+        const canvas = document.getElementById(id);
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = displaySize * ratio;
+        canvas.height = displaySize * ratio;
+        const context = canvas.getContext('2d');
+        context.scale(ratio * (displaySize / 132), ratio * (displaySize / 132));
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        return context;
+      };
+
+      const roundedTile = (context, color, radius = 34) => {
+        context.fillStyle = color;
+        context.beginPath();
+        context.roundRect(5, 5, 122, 122, radius);
+        context.fill();
+      };
+
+      const speechBubble = (context, color, x = 23, y = 22, width = 86, height = 76) => {
+        context.fillStyle = color;
+        context.beginPath();
+        context.roundRect(x, y, width, height, 21);
+        context.fill();
+        context.beginPath();
+        context.moveTo(x + 18, y + height - 2);
+        context.lineTo(x + 14, y + height + 19);
+        context.lineTo(x + 38, y + height - 2);
+        context.fill();
+      };
+
+      const foot = (context, x, y, rotation, color, scale = 1) => {
+        context.save();
+        context.translate(x, y);
+        context.rotate(rotation);
+        context.scale(scale, scale);
+        context.fillStyle = color;
+        context.beginPath();
+        context.ellipse(0, 8, 9, 15, 0, 0, Math.PI * 2);
+        context.fill();
+        [-8, -3, 3, 9].forEach((toeX, index) => {
+          context.beginPath();
+          context.arc(toeX, -8 - Math.abs(index - 1.5) * 1.5, 3.2, 0, Math.PI * 2);
+          context.fill();
+        });
+        context.restore();
+      };
+
+      const draw5a = (context) => {
+        roundedTile(context, palette.greenSoft);
+        speechBubble(context, palette.white);
+        foot(context, 66, 58, -0.18, palette.green, 1.18);
+        context.strokeStyle = palette.orange;
+        context.lineWidth = 5;
+        context.beginPath();
+        context.arc(91, 38, 5, 0, Math.PI * 2);
+        context.stroke();
+      };
+
+      const draw5b = (context) => {
+        roundedTile(context, palette.orangeSoft);
+        speechBubble(context, palette.white, 18, 19, 96, 80);
+        foot(context, 43, 72, -0.3, '#df9c78', 0.72);
+        foot(context, 67, 56, 0.22, palette.orange, 0.82);
+        foot(context, 91, 39, -0.24, palette.orangeDeep, 0.66);
+      };
+
+      const draw5c = (context) => {
+        roundedTile(context, palette.greenSoft);
+        context.fillStyle = palette.green;
+        context.beginPath();
+        context.roundRect(20, 23, 92, 78, 24);
+        context.fill();
+        foot(context, 49, 55, -0.12, palette.white, 0.94);
+        foot(context, 82, 62, 0.18, palette.white, 0.94);
+        context.fillStyle = palette.green;
+        context.beginPath();
+        context.moveTo(35, 96);
+        context.lineTo(31, 113);
+        context.lineTo(52, 99);
+        context.fill();
+      };
+
+      const draw5d = (context) => {
+        roundedTile(context, palette.orange);
+        speechBubble(context, palette.white, 21, 21, 90, 78);
+        foot(context, 65, 59, -0.2, palette.orange, 1.28);
+        context.fillStyle = '#ffd8bd';
+        context.beginPath();
+        context.arc(101, 25, 7, 0, Math.PI * 2);
+        context.fill();
+      };
+
+      const font = '"Microsoft YaHei", "PingFang SC", sans-serif';
+      const centeredText = (context, text, size, color, x = 66, y = 65) => {
+        context.fillStyle = color;
+        context.font = `800 ${size}px ${font}`;
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(text, x, y);
+      };
+
+      const draw6a = (context) => {
+        roundedTile(context, palette.orange, 30);
+        centeredText(context, '问', 68, palette.white, 65, 63);
+        context.fillStyle = '#ffd9bf';
+        context.beginPath();
+        context.arc(101, 27, 7, 0, Math.PI * 2);
+        context.fill();
+      };
+
+      const draw6b = (context) => {
+        roundedTile(context, palette.orangeSoft);
+        speechBubble(context, palette.orange, 19, 20, 94, 78);
+        centeredText(context, '问', 57, palette.white, 67, 59);
+      };
+
+      const draw6c = (context) => {
+        roundedTile(context, palette.greenSoft);
+        context.fillStyle = palette.green;
+        context.beginPath();
+        context.arc(66, 61, 48, 0, Math.PI * 2);
+        context.fill();
+        centeredText(context, '问', 57, palette.white, 66, 59);
+        context.fillStyle = palette.green;
+        context.beginPath();
+        context.moveTo(43, 99);
+        context.lineTo(43, 116);
+        context.lineTo(61, 105);
+        context.fill();
+      };
+
+      const draw6d = (context) => {
+        roundedTile(context, palette.orangeSoft);
+        context.fillStyle = palette.orange;
+        context.beginPath();
+        context.roundRect(14, 27, 104, 78, 25);
+        context.fill();
+        centeredText(context, '先', 39, palette.white, 43, 65);
+        context.strokeStyle = '#ffc7a8';
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(66, 42);
+        context.lineTo(66, 88);
+        context.stroke();
+        centeredText(context, '问', 39, palette.white, 90, 65);
+      };
+
+      const renderPair = (key, draw) => {
+        draw(canvasContext(`main-${key}`, 132));
+        draw(canvasContext(`mini-${key}`, 36));
+      };
+
+      renderPair('5a', draw5a);
+      renderPair('5b', draw5b);
+      renderPair('5c', draw5c);
+      renderPair('5d', draw5d);
+      renderPair('6a', draw6a);
+      renderPair('6b', draw6b);
+      renderPair('6c', draw6c);
+      renderPair('6d', draw6d);
+    </script>
+  </body>
+</html>

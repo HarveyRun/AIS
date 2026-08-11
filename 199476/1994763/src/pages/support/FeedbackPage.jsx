@@ -1,51 +1,34 @@
 import { useState } from 'react';
-import {
-  ArrowLeft,
-  ArrowRight,
-  BadgeCheck,
-  Banknote,
-  Bell,
-  BriefcaseBusiness,
-  Building2,
-  CalendarDays,
-  Camera,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  CircleUserRound,
-  Clock3,
-  Coins,
-  FileCheck2,
-  HeartHandshake,
-  Info,
-  Landmark,
-  LockKeyhole,
-  MessageCircleMore,
-  MessageSquareWarning,
-  MoreHorizontal,
-  PlusCircle,
-  Search,
-  Send,
-  ShieldCheck,
-  SlidersHorizontal,
-  Smartphone,
-  Sparkles,
-  Star,
-  UsersRound,
-  WalletCards,
-  X,
-  Zap,
-} from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import './SupportPages.css';
 
-export default function FeedbackPage({ go, notify }) {
+export default function FeedbackPage({ go, notify, conversations, records, setRecords }) {
   const [type, setType] = useState('feedback');
   const [target, setTarget] = useState('');
   const [text, setText] = useState('');
+  const [complaintType, setComplaintType] = useState('服务态度问题');
+  const targets = Array.from(
+    new Map(
+      conversations
+        .filter((conversation) => conversation.partner?.uid)
+        .map((conversation) => [conversation.partner.uid, conversation.partner]),
+    ).values(),
+  );
   const submit = () => {
+    const targetUser = targets.find((item) => item.uid === target);
+    const record = {
+      id: `feedback-${Date.now()}`,
+      type,
+      category: type === 'complaint' ? complaintType : '产品反馈',
+      target: targetUser ? targetUser.name || `UID ${targetUser.uid}` : '',
+      content: text.trim(),
+      status: '已提交',
+      time: '刚刚',
+    };
+    setRecords((current) => [record, ...current]);
     notify(type === 'complaint' ? '投诉已提交' : '反馈已提交');
     setText('');
+    setTarget('');
   };
 
   return (
@@ -71,13 +54,18 @@ export default function FeedbackPage({ go, notify }) {
           <>
             <label>投诉对象</label>
             <select value={target} onChange={(event) => setTarget(event.target.value)}>
-              <option value="">请选择群成员或事项</option>
-              <option>旧房装修协作群 · 装修监理</option>
-              <option>家庭网络改善 · 程序开发</option>
-              <option>某条群聊消息</option>
+              <option value="">请选择与你交流过的人</option>
+              {targets.map((item) => (
+                <option value={item.uid} key={item.uid}>
+                  {item.name?.trim() || `UID ${item.uid}`}（UID {item.uid}）
+                </option>
+              ))}
             </select>
             <label>投诉类型</label>
-            <select>
+            <select
+              value={complaintType}
+              onChange={(event) => setComplaintType(event.target.value)}
+            >
               <option>服务态度问题</option>
               <option>虚假能力信息</option>
               <option>违规收费</option>
@@ -91,10 +79,24 @@ export default function FeedbackPage({ go, notify }) {
           value={text}
           onChange={(event) => setText(event.target.value)}
           placeholder={
-            type === 'complaint' ? '请说明发生的时间、经过和诉求' : '说说你希望光忆改进什么'
+            type === 'complaint' ? '请说明发生的时间、经过和诉求' : '说说你希望事先问改进什么'
           }
         />
       </section>
+      {records.length > 0 && (
+        <section className="feedback-records">
+          <h2>我的提交</h2>
+          {records.slice(0, 5).map((record) => (
+            <article key={record.id}>
+              <div>
+                <b>{record.category}</b>
+                <small>{record.target || record.content}</small>
+              </div>
+              <span>{record.status}</span>
+            </article>
+          ))}
+        </section>
+      )}
       <button
         type="button"
         disabled={!text.trim() || (type === 'complaint' && !target)}

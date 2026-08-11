@@ -1,0 +1,269 @@
+.account-settings-page {
+  background: #ffffff;
+}
+
+.account-profile-card {
+  margin: 8px 17px 22px;
+  padding: 18px;
+  border: 1px solid #e9e4df;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.account-avatar-setting {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 17px;
+  border-bottom: 1px solid #eee9e5;
+}
+
+.account-avatar-setting .avatar {
+  width: 62px;
+  height: 62px;
+  flex: none;
+  border-radius: 19px;
+}
+
+.account-avatar-setting > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.account-avatar-setting label,
+.account-avatar-setting button {
+  display: inline-flex;
+  height: 34px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: #f2f1ef;
+  color: #655d58;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.account-avatar-setting label svg {
+  width: 14px;
+}
+
+.account-avatar-setting button {
+  color: var(--primary);
+}
+
+.account-name-setting {
+  display: block;
+  margin-top: 17px;
+}
+
+.account-name-setting > span {
+  display: block;
+  margin: 0 0 8px 2px;
+  color: #756d67;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.account-name-setting > div {
+  position: relative;
+}
+
+.account-name-setting input {
+  width: 100%;
+  height: 44px;
+  padding: 0 50px 0 12px;
+  border: 1px solid #e5ddd5;
+  border-radius: 12px;
+  outline: 0;
+  font-size: 12px;
+}
+
+.account-name-setting input:focus {
+  border-color: var(--primary);
+}
+
+.account-name-setting small {
+  position: absolute;
+  right: 11px;
+  bottom: 14px;
+  color: #aaa098;
+  font-size: 9px;
+}
+
+.account-profile-error {
+  margin: 8px 0 0;
+  color: var(--primary);
+  font-size: 10px;
+}
+
+.account-profile-save {
+  width: 100%;
+  height: 44px;
+  margin-top: 16px;
+  border-radius: 13px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.account-danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 17px 100px;
+  padding: 15px;
+  border: 1px solid #e9e4df;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.account-danger-zone > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.account-danger-zone i {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  place-items: center;
+  border-radius: 11px;
+  background: #f2f1ef;
+  color: #8f847c;
+}
+
+.account-danger-zone i svg {
+  width: 17px;
+}
+
+.account-danger-zone span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.account-danger-zone b {
+  font-size: 11px;
+}
+
+.account-danger-zone small {
+  margin-top: 3px;
+  color: #948a83;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.account-danger-zone > button {
+  flex: none;
+  padding: 7px 9px;
+  border-radius: 9px;
+  background: #f2f1ef;
+  color: var(--primary);
+  font-size: 10px;
+}
+
+.account-delete-sheet {
+  position: fixed;
+  z-index: 82;
+  bottom: 0;
+  width: 100%;
+  max-width: 430px;
+  padding: 19px 18px calc(20px + env(safe-area-inset-bottom));
+  border-radius: 22px 22px 0 0;
+  background: #ffffff;
+}
+
+.account-delete-sheet > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.account-delete-sheet > header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.account-delete-sheet > header p {
+  margin: 5px 20px 0 0;
+  color: #8f847c;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.account-delete-sheet > header button {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  flex: none;
+  place-items: center;
+  border-radius: 9px;
+  background: #f2f1ef;
+}
+
+.account-delete-sheet > header svg {
+  width: 16px;
+}
+
+.account-delete-blocked {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 13px;
+  border-radius: 13px;
+  background: #f5f3f0;
+}
+
+.account-delete-blocked b {
+  font-size: 11px;
+}
+
+.account-delete-blocked span {
+  color: #7f756f;
+  font-size: 10px;
+}
+
+.account-delete-sheet > label {
+  display: block;
+  margin-top: 18px;
+}
+
+.account-delete-sheet > label span {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.account-delete-sheet > label input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #e5ddd5;
+  border-radius: 12px;
+  outline: 0;
+  font-size: 12px;
+}
+
+.account-delete-submit {
+  width: 100%;
+  height: 44px;
+  margin-top: 18px;
+  border-radius: 13px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.account-delete-submit:disabled {
+  background: #d7d2ce;
+}

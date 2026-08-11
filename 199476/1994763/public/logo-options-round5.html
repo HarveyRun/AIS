@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>事先问 Logo 左上点画足迹方案</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px 36px;
+        background: #f5f0ea;
+        color: #382e28;
+        font-family: system-ui, -apple-system, 'Microsoft YaHei', sans-serif;
+      }
+      header, main { max-width: 990px; margin-right: auto; margin-left: auto; }
+      header { margin-bottom: 16px; }
+      h1 { margin: 0 0 5px; font-size: 25px; }
+      header p { margin: 0; color: #8d8077; font-size: 13px; }
+      main { display: grid; grid-template-columns: repeat(3, 1fr); gap: 17px; }
+      article {
+        padding: 14px 15px 13px;
+        border: 1px solid #e7ddd4;
+        border-radius: 23px;
+        background: #fffdf9;
+        box-shadow: 0 10px 28px #68472f0e;
+        text-align: center;
+      }
+      canvas { display: block; width: 118px; height: 118px; margin: auto; }
+      h2 { margin: 9px 0 3px; font-size: 16px; }
+      article p { height: 30px; margin: 0; color: #91847b; font-size: 10px; line-height: 1.5; }
+      .mini {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 7px;
+      }
+      .mini canvas { width: 32px; height: 32px; margin: 0; }
+      .mini div { text-align: left; }
+      .mini b, .mini small { display: block; }
+      .mini b { font-size: 15px; letter-spacing: 2px; }
+      .mini small { margin-top: 1px; color: #a1948b; font-size: 7px; }
+      @media (max-width: 760px) {
+        body { padding: 22px 14px; }
+        main { grid-template-columns: repeat(2, 1fr); }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>“问”字左上点画变成小脚丫</h1>
+      <p>六版都保留完整字形，只重新设计左上角第一笔。</p>
+    </header>
+    <main>
+      <article>
+        <canvas id="main-a"></canvas>
+        <h2>A · 原位替换</h2>
+        <p>脚印严格落在原点画的位置。</p>
+        <div class="mini"><canvas id="mini-a"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-b"></canvas>
+        <h2>B · 向前一步</h2>
+        <p>脚尖朝向门框，形成向前动作。</p>
+        <div class="mini"><canvas id="mini-b"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-c"></canvas>
+        <h2>C · 脚掌连笔</h2>
+        <p>脚掌末端与门框上横自然相接。</p>
+        <div class="mini"><canvas id="mini-c"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-d"></canvas>
+        <h2>D · 双色足迹</h2>
+        <p>脚掌与脚趾分色，缩小仍清晰。</p>
+        <div class="mini"><canvas id="mini-d"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-e"></canvas>
+        <h2>E · 印迹留白</h2>
+        <p>脚丫以留白方式嵌入橙色点画。</p>
+        <div class="mini"><canvas id="mini-e"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-f"></canvas>
+        <h2>F · 软笔足迹</h2>
+        <p>把脚掌做成原点画的书写走势。</p>
+        <div class="mini"><canvas id="mini-f"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+    </main>
+    <script>
+      const palette = {
+        orange: '#e87542',
+        orangeDeep: '#c85a2f',
+        orangeLight: '#ffb17a',
+        orangeSoft: '#fff0e4',
+        green: '#628877',
+        greenSoft: '#eaf4ed',
+        white: '#fffdf9',
+        cream: '#ffdbc1',
+      };
+
+      const prepare = (id, size) => {
+        const canvas = document.getElementById(id);
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = size * ratio;
+        canvas.height = size * ratio;
+        const context = canvas.getContext('2d');
+        context.scale(ratio * (size / 144), ratio * (size / 144));
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        return context;
+      };
+
+      const roundedTile = (context, fill, radius = 34) => {
+        context.fillStyle = fill;
+        context.beginPath();
+        context.roundRect(5, 5, 134, 134, radius);
+        context.fill();
+      };
+
+      const drawQuestionWord = (context, fill, background, options = {}) => {
+        const { fontSize = 80, x = 73, y = 75, weight = 800 } = options;
+        context.fillStyle = fill;
+        context.font = `${weight} ${fontSize}px "Microsoft YaHei", "PingFang SC", sans-serif`;
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText('问', x, y);
+
+        context.fillStyle = background;
+        context.beginPath();
+        context.roundRect(31, 24, 34, 31, 8);
+        context.fill();
+      };
+
+      const footprint = (context, x, y, soleColor, toeColor, scale = 1, rotation = -0.42) => {
+        context.save();
+        context.translate(x, y);
+        context.rotate(rotation);
+        context.scale(scale, scale);
+
+        context.fillStyle = soleColor;
+        context.beginPath();
+        context.ellipse(0, 6, 5.4, 8.8, -0.05, 0, Math.PI * 2);
+        context.fill();
+
+        context.fillStyle = toeColor;
+        const toes = [
+          [-6.1, -4.8, 2.05],
+          [-2.2, -7.6, 2.25],
+          [2.1, -7.8, 2.2],
+          [5.8, -5.3, 1.9],
+        ];
+        toes.forEach(([toeX, toeY, radius]) => {
+          context.beginPath();
+          context.arc(toeX, toeY, radius, 0, Math.PI * 2);
+          context.fill();
+        });
+        context.restore();
+      };
+
+      const base = (context, background, glyph) => {
+        roundedTile(context, background);
+        drawQuestionWord(context, glyph, background);
+      };
+
+      const drawA = (context) => {
+        base(context, palette.orange, palette.white);
+        footprint(context, 48, 39, palette.white, palette.white, 1.08, -0.46);
+      };
+
+      const drawB = (context) => {
+        base(context, palette.orange, palette.white);
+        footprint(context, 49, 39, palette.white, palette.white, 1.12, 0.38);
+      };
+
+      const drawC = (context) => {
+        base(context, palette.orangeDeep, palette.white);
+        context.strokeStyle = palette.white;
+        context.lineWidth = 4;
+        context.beginPath();
+        context.moveTo(53, 43);
+        context.quadraticCurveTo(60, 41, 66, 39);
+        context.stroke();
+        footprint(context, 47, 38, palette.white, palette.white, 1.08, -0.38);
+      };
+
+      const drawD = (context) => {
+        base(context, palette.orange, palette.white);
+        footprint(context, 48, 39, palette.cream, palette.white, 1.12, -0.45);
+      };
+
+      const drawE = (context) => {
+        base(context, palette.orangeSoft, palette.orange);
+        context.fillStyle = palette.orange;
+        context.beginPath();
+        context.roundRect(34, 25, 29, 27, 10);
+        context.fill();
+        footprint(context, 49, 39, palette.orangeSoft, palette.orangeSoft, 0.82, -0.45);
+      };
+
+      const drawF = (context) => {
+        base(context, palette.green, palette.white);
+        context.save();
+        context.translate(48, 39);
+        context.rotate(-0.62);
+        context.fillStyle = palette.white;
+        context.beginPath();
+        context.moveTo(-5, 12);
+        context.bezierCurveTo(-10, 4, -8, -5, 0, -10);
+        context.bezierCurveTo(8, -4, 9, 5, 4, 13);
+        context.closePath();
+        context.fill();
+        context.restore();
+        footprint(context, 47, 34, palette.white, palette.white, 0.58, -0.62);
+      };
+
+      const render = (key, draw) => {
+        draw(prepare(`main-${key}`, 144));
+        draw(prepare(`mini-${key}`, 38));
+      };
+
+      render('a', drawA);
+      render('b', drawB);
+      render('c', drawC);
+      render('d', drawD);
+      render('e', drawE);
+      render('f', drawF);
+    </script>
+  </body>
+</html>

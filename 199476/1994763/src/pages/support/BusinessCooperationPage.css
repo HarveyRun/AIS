@@ -1,0 +1,93 @@
+.business-form {
+  padding: 10px 17px 96px;
+}
+
+.business-form > div {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.business-form label {
+  display: block;
+  margin: 0 0 8px 2px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.business-form input,
+.business-form textarea {
+  width: 100%;
+  border: 1px solid #e6e0dc;
+  border-radius: 14px;
+  outline: 0;
+  background: #ffffff;
+  font-size: 12px;
+}
+
+.business-form input:focus,
+.business-form textarea:focus {
+  border-color: var(--primary);
+}
+
+.business-form input {
+  height: 46px;
+  padding: 0 13px;
+}
+
+.business-form textarea {
+  height: 138px;
+  padding: 12px 13px 30px;
+  resize: none;
+}
+
+.business-form small {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  color: #aaa19a;
+  font-size: 9px;
+}
+
+.business-submit,
+.business-success button {
+  width: 100%;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.business-submit:disabled {
+  background: #d7d2ce;
+}
+
+.business-success {
+  padding: 80px 28px 0;
+  text-align: center;
+}
+
+.business-success i {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #edf5ef;
+  color: #5f8a6d;
+  font-size: 24px;
+  font-style: normal;
+}
+
+.business-success h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.business-success p {
+  margin: 8px 0 25px;
+  color: #8d837c;
+  font-size: 11px;
+}

@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>事先问 Logo 字形融合方案</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 38px;
+        background: #f5f0ea;
+        color: #382e28;
+        font-family: system-ui, -apple-system, 'Microsoft YaHei', sans-serif;
+      }
+      header,
+      main {
+        max-width: 1060px;
+        margin-right: auto;
+        margin-left: auto;
+      }
+      header {
+        margin-bottom: 23px;
+      }
+      h1 {
+        margin: 0 0 7px;
+        font-size: 27px;
+      }
+      header p {
+        margin: 0;
+        color: #8d8077;
+        font-size: 13px;
+      }
+      main {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      article {
+        padding: 21px 16px 18px;
+        border: 1px solid #e7ddd4;
+        border-radius: 22px;
+        background: #fffdf9;
+        box-shadow: 0 9px 26px #67472f0e;
+        text-align: center;
+      }
+      canvas {
+        display: block;
+        width: 142px;
+        height: 142px;
+        margin: auto;
+      }
+      h2 {
+        margin: 13px 0 4px;
+        font-size: 16px;
+      }
+      article p {
+        height: 36px;
+        margin: 0;
+        color: #91847b;
+        font-size: 11px;
+        line-height: 1.6;
+      }
+      .mini {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 11px;
+      }
+      .mini canvas {
+        width: 38px;
+        height: 38px;
+        margin: 0;
+      }
+      .mini div {
+        text-align: left;
+      }
+      .mini b,
+      .mini small {
+        display: block;
+      }
+      .mini b {
+        font-size: 15px;
+        letter-spacing: 2px;
+      }
+      .mini small {
+        margin-top: 1px;
+        color: #a1948b;
+        font-size: 7px;
+      }
+      @media (max-width: 760px) {
+        body {
+          padding: 22px 14px;
+        }
+        main {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>足迹融入“问”字</h1>
+      <p>这次不用现成字体拼接，九版“问”字均为 Canvas 手工绘制。</p>
+    </header>
+    <main>
+      <article>
+        <canvas id="main-a"></canvas>
+        <h2>A · 足迹成点</h2>
+        <p>小脚丫直接替代“问”的点画。</p>
+        <div class="mini"><canvas id="mini-a"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-b"></canvas>
+        <h2>B · 足迹转角</h2>
+        <p>脚掌成为门框右上转角。</p>
+        <div class="mini"><canvas id="mini-b"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-c"></canvas>
+        <h2>C · 反白脚印</h2>
+        <p>脚印从门框笔画中留白出来。</p>
+        <div class="mini"><canvas id="mini-c"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-d"></canvas>
+        <h2>D · 脚步成横</h2>
+        <p>脚趾接住横画，脚掌落到竖画。</p>
+        <div class="mini"><canvas id="mini-d"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-e"></canvas>
+        <h2>E · 门里有路</h2>
+        <p>足迹嵌入门框与“口”之间。</p>
+        <div class="mini"><canvas id="mini-e"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-f"></canvas>
+        <h2>F · 两步成点</h2>
+        <p>两枚小脚印组成原来的点画。</p>
+        <div class="mini"><canvas id="mini-f"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-g"></canvas>
+        <h2>G · 足迹开门</h2>
+        <p>脚印切开门框，形成品牌缺口。</p>
+        <div class="mini"><canvas id="mini-g"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-h"></canvas>
+        <h2>H · 一步到问</h2>
+        <p>脚掌延伸成门框的右竖笔画。</p>
+        <div class="mini"><canvas id="mini-h"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+      <article>
+        <canvas id="main-i"></canvas>
+        <h2>I · 印章留足</h2>
+        <p>橙色字形与白色足迹融为一体。</p>
+        <div class="mini"><canvas id="mini-i"></canvas><div><b>事先问</b><small>有事先问问过来人</small></div></div>
+      </article>
+    </main>
+    <script>
+      const color = {
+        orange: '#e87542',
+        orangeDeep: '#c85a2f',
+        orangeSoft: '#fff0e4',
+        cream: '#fffaf4',
+        green: '#628877',
+        greenSoft: '#eaf4ed',
+        white: '#fffdf9',
+      };
+
+      const prepare = (id, size) => {
+        const canvas = document.getElementById(id);
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = size * ratio;
+        canvas.height = size * ratio;
+        const context = canvas.getContext('2d');
+        context.scale(ratio * (size / 142), ratio * (size / 142));
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        return context;
+      };
+
+      const tile = (context, fill, radius = 33) => {
+        context.fillStyle = fill;
+        context.beginPath();
+        context.roundRect(5, 5, 132, 132, radius);
+        context.fill();
+      };
+
+      const sole = (context, x, y, fill, scale = 1, rotation = -0.35) => {
+        context.save();
+        context.translate(x, y);
+        context.rotate(rotation);
+        context.scale(scale, scale);
+        context.fillStyle = fill;
+        context.beginPath();
+        context.ellipse(0, 6, 5.4, 8.8, -0.05, 0, Math.PI * 2);
+        context.fill();
+        const toes = [
+          [-6.1, -4.8, 2.1],
+          [-2.2, -7.6, 2.25],
+          [2.1, -7.8, 2.2],
+          [5.8, -5.3, 1.9],
+        ];
+        toes.forEach(([toeX, toeY, radius]) => {
+          context.beginPath();
+          context.arc(toeX, toeY, radius, 0, Math.PI * 2);
+          context.fill();
+        });
+        context.restore();
+      };
+
+      const mouth = (context, stroke, x = 54, y = 65, width = 38, height = 31) => {
+        context.strokeStyle = stroke;
+        context.lineWidth = 9;
+        context.beginPath();
+        context.roundRect(x, y, width, height, 3);
+        context.stroke();
+      };
+
+      const gate = (context, stroke, options = {}) => {
+        const { topEnd = 104, rightStart = 38, leftStart = 43, rightEnd = 111 } = options;
+        context.strokeStyle = stroke;
+        context.lineWidth = 10;
+        context.beginPath();
+        context.moveTo(37, leftStart);
+        context.lineTo(37, 111);
+        context.moveTo(55, 36);
+        context.lineTo(topEnd, 36);
+        context.quadraticCurveTo(108, 36, 108, rightStart);
+        context.lineTo(108, rightEnd);
+        context.stroke();
+        mouth(context, stroke);
+      };
+
+      const drawA = (context) => {
+        tile(context, color.orange);
+        gate(context, color.white, { topEnd: 93 });
+        sole(context, 101, 34, color.white, 1.08, -0.62);
+      };
+
+      const drawB = (context) => {
+        tile(context, color.orange);
+        gate(context, color.white, { topEnd: 91, rightStart: 52 });
+        sole(context, 102, 40, color.white, 1.26, 0.68);
+      };
+
+      const drawC = (context) => {
+        tile(context, color.orangeSoft);
+        gate(context, color.orange, { topEnd: 108 });
+        context.globalCompositeOperation = 'destination-out';
+        sole(context, 101, 36, '#000', 1.05, -0.48);
+        context.globalCompositeOperation = 'source-over';
+      };
+
+      const drawD = (context) => {
+        tile(context, color.orangeDeep);
+        context.strokeStyle = color.white;
+        context.lineWidth = 10;
+        context.beginPath();
+        context.moveTo(37, 43);
+        context.lineTo(37, 111);
+        context.moveTo(54, 36);
+        context.lineTo(89, 36);
+        context.stroke();
+        sole(context, 101, 38, color.white, 1.18, 0.56);
+        context.beginPath();
+        context.moveTo(108, 51);
+        context.lineTo(108, 111);
+        context.stroke();
+        mouth(context, color.white);
+      };
+
+      const drawE = (context) => {
+        tile(context, color.green);
+        gate(context, color.white, { topEnd: 108 });
+        sole(context, 88, 51, '#ffbd8f', 0.94, -0.42);
+        mouth(context, color.white, 53, 69, 36, 28);
+      };
+
+      const drawF = (context) => {
+        tile(context, color.orange);
+        gate(context, color.white, { topEnd: 89 });
+        sole(context, 98, 31, color.white, 0.72, -0.62);
+        sole(context, 109, 43, '#ffd7bc', 0.62, 0.52);
+      };
+
+      const drawG = (context) => {
+        tile(context, color.greenSoft);
+        gate(context, color.green, { topEnd: 108 });
+        context.globalCompositeOperation = 'destination-out';
+        sole(context, 104, 37, '#000', 1.08, 0.5);
+        context.globalCompositeOperation = 'source-over';
+        sole(context, 104, 37, color.orange, 0.64, 0.5);
+      };
+
+      const drawH = (context) => {
+        tile(context, color.orangeSoft);
+        context.strokeStyle = color.orange;
+        context.lineWidth = 10;
+        context.beginPath();
+        context.moveTo(37, 43);
+        context.lineTo(37, 111);
+        context.moveTo(55, 36);
+        context.lineTo(93, 36);
+        context.stroke();
+        sole(context, 103, 41, color.orange, 1.22, 0.55);
+        context.beginPath();
+        context.moveTo(108, 54);
+        context.lineTo(108, 111);
+        context.stroke();
+        mouth(context, color.orange);
+      };
+
+      const drawI = (context) => {
+        tile(context, color.cream);
+        context.fillStyle = color.orangeDeep;
+        context.beginPath();
+        context.roundRect(14, 14, 114, 114, 27);
+        context.fill();
+        gate(context, color.white, { topEnd: 108 });
+        context.globalCompositeOperation = 'destination-out';
+        sole(context, 103, 36, '#000', 1.02, -0.52);
+        context.globalCompositeOperation = 'source-over';
+      };
+
+      const render = (key, draw) => {
+        draw(prepare(`main-${key}`, 142));
+        draw(prepare(`mini-${key}`, 38));
+      };
+
+      render('a', drawA);
+      render('b', drawB);
+      render('c', drawC);
+      render('d', drawD);
+      render('e', drawE);
+      render('f', drawF);
+      render('g', drawG);
+      render('h', drawH);
+      render('i', drawI);
+    </script>
+  </body>
+</html>
