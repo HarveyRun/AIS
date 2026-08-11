@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Bell, ChevronRight, HeartHandshake, Search, Sparkles } from 'lucide-react';
-import { talentPool } from '../../data/mockData.js';
 import CanvasLogo from '../../components/brand/CanvasLogo.jsx';
 import TalentCard from '../../components/talent/TalentCard.jsx';
 import './HomePage.css';
 
-export default function HomePage({ go, setTalent, unreadNoticeCount = 0 }) {
+export default function HomePage({ go, setTalent, unreadNoticeCount = 0, answerers = [] }) {
   const [slide, setSlide] = useState(0);
   const [count, setCount] = useState(10);
+  const visiblePeople = answerers;
   const banners = [
     [
       '大多数人都会遇到',
@@ -21,7 +21,7 @@ export default function HomePage({ go, setTalent, unreadNoticeCount = 0 }) {
     const t = setInterval(() => setSlide((x) => (x + 1) % banners.length), 10000);
     const scroll = () => {
       if (innerHeight + scrollY >= document.body.offsetHeight - 180)
-        setCount((x) => Math.min(x + 10, talentPool.length));
+        setCount((x) => Math.min(x + 10, visiblePeople.length));
     };
     addEventListener('scroll', scroll);
     return () => {
@@ -89,7 +89,7 @@ export default function HomePage({ go, setTalent, unreadNoticeCount = 0 }) {
           <h2>可以帮你的人</h2>
         </div>
         <div className="talent-list">
-          {talentPool.slice(0, count).map((p) => (
+          {visiblePeople.slice(0, count).map((p) => (
             <TalentCard
               key={p.uid}
               p={p}
@@ -102,7 +102,7 @@ export default function HomePage({ go, setTalent, unreadNoticeCount = 0 }) {
         </div>
       </section>
       <div className="endline">
-        {count < talentPool.length ? '继续下滑，看看更多人' : '已经到底啦'}
+        {count < visiblePeople.length ? '继续下滑，看看更多人' : '已经到底啦'}
       </div>
     </>
   );

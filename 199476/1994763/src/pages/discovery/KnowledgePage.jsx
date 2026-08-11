@@ -1,7 +1,7 @@
 import { ArrowRight, Check, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Page from '../../components/layout/Page.jsx';
-import { knowledge } from '../../data/mockData.js';
+import { knowledge } from '../../data/knowledgeData.js';
 import './DiscoveryPages.css';
 
 export default function KnowledgePage({

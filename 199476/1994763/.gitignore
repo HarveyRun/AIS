@@ -4,3 +4,13 @@ dist/
 .env.local
 *.log
 .DS_Store
+backend/target/
+backend/src/main/resources/application-local.yml
+backend/uploads/
+backend/*.log
+frontend*.log
+admin-web/node_modules/
+admin-web/dist/
+admin-web/*.log
+.idea/
+*.iml

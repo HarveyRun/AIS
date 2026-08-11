@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -11,6 +11,7 @@ import {
 import { createConfirmationDeadline } from '../../hooks/useDirectInquirySettlement.js';
 import UserAvatar from '../../components/profile/UserAvatar.jsx';
 import './MessagePages.css';
+import { api, request } from '../../api/http.js';
 
 function formatDeadline(value) {
   if (!value) return '';
@@ -65,6 +66,21 @@ export default function DirectChatPage({
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
+  useEffect(() => {
+    if (!conversation?.id || String(conversation.id).startsWith('direct-')) return;
+    api.inquiry(conversation.id).then((detail) => {
+      const loadedMessages = detail.messages.map((message) => ({
+        id: message.id,
+        name: message.senderName,
+        text: message.content,
+        avatar: message.senderAvatar,
+        me: message.senderId === currentUser.id,
+        time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }));
+      setMessages(loadedMessages);
+    }).catch(() => {});
+  }, [conversation?.id, currentUser.id]);
+
   const updateConversation = (changes) => {
     const updatedConversation = {
       ...conversation,
@@ -85,9 +101,10 @@ export default function DirectChatPage({
     });
   };
 
-  const respondToInquiry = (accepted) => {
+  const respondToInquiry = async (accepted) => {
     if (accepted && !allowedToAnswer) return;
     if (!accepted) {
+      await request(`/inquiries/${conversation.id}/reject`, { method: 'POST' });
       updateConversation({
         inquiryStatus: 'rejected',
         status: 'rejected',
@@ -102,6 +119,7 @@ export default function DirectChatPage({
       return;
     }
 
+    await request(`/inquiries/${conversation.id}/accept`, { method: 'POST' });
     const acceptedMessage = {
       id: `accepted-${Date.now()}`,
       name: '我',
@@ -127,7 +145,8 @@ export default function DirectChatPage({
     });
   };
 
-  const requestEnd = () => {
+  const requestEnd = async () => {
+    await request(`/inquiries/${conversation.id}/request-end`, { method: 'POST' });
     updateConversation({
       inquiryStatus: 'awaiting_confirmation',
       status: 'awaiting',
@@ -138,7 +157,8 @@ export default function DirectChatPage({
     });
   };
 
-  const continueConversation = () => {
+  const continueConversation = async () => {
+    await request(`/inquiries/${conversation.id}/continue`, { method: 'POST' });
     updateConversation({
       inquiryStatus: 'active',
       status: 'active',
@@ -149,7 +169,8 @@ export default function DirectChatPage({
     });
   };
 
-  const confirmEnd = () => {
+  const confirmEnd = async () => {
+    await request(`/inquiries/${conversation.id}/confirm-end`, { method: 'POST' });
     updateConversation({
       inquiryStatus: 'ended',
       settlementStatus: 'settled',
@@ -160,7 +181,8 @@ export default function DirectChatPage({
     });
   };
 
-  const cancelInquiry = () => {
+  const cancelInquiry = async () => {
+    await request(`/inquiries/${conversation.id}/cancel`, { method: 'POST' });
     updateConversation({
       inquiryStatus: 'cancelled',
       settlementStatus: 'refunded',
@@ -171,14 +193,18 @@ export default function DirectChatPage({
     });
   };
 
-  const send = () => {
+  const send = async () => {
     const content = text.trim();
     if (!canChat || !content) return;
 
+    const saved = await request(`/inquiries/${conversation.id}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
     const nextMessages = [
       ...messages,
       {
-        id: `message-${Date.now()}`,
+        id: saved.id,
         name: '我',
         text: content,
         color: '#c23b32',

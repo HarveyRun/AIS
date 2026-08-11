@@ -1,0 +1,129 @@
+.service-workbench {
+  height: calc(100vh - 160px);
+  min-height: 520px;
+  display: grid;
+  grid-template-columns: 310px 1fr;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e5e7ea;
+  border-radius: 12px;
+}
+.service-workbench > aside {
+  overflow: auto;
+  border-right: 1px solid #e8e9ec;
+}
+.service-workbench > aside button {
+  width: 100%;
+  padding: 15px;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid #eff0f2;
+  background: #fff;
+  cursor: pointer;
+}
+.service-workbench > aside button.active {
+  background: #fff3f1;
+}
+.service-workbench > aside button div {
+  display: flex;
+  justify-content: space-between;
+}
+.service-workbench > aside em {
+  min-width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #d33a2c;
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+}
+.service-workbench > aside p {
+  margin: 7px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #656a73;
+  font-size: 13px;
+}
+.service-workbench small {
+  color: #9297a0;
+  font-size: 11px;
+}
+.service-workbench > main {
+  display: grid;
+  grid-template-rows: 64px 1fr auto;
+  min-width: 0;
+}
+.service-workbench > main > header {
+  padding: 13px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+}
+.service-workbench > main > header span {
+  color: #90959d;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.service-messages {
+  padding: 20px;
+  overflow: auto;
+}
+.service-messages article {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+.service-messages article.service {
+  align-items: flex-end;
+}
+.service-messages p {
+  max-width: 70%;
+  margin: 0 0 5px;
+  padding: 10px 13px;
+  border-radius: 10px;
+  background: #f1f2f4;
+  line-height: 1.55;
+  font-size: 13px;
+}
+.service-messages .service p {
+  background: #d33a2c;
+  color: #fff;
+}
+.service-workbench > main > footer {
+  padding: 13px;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 10px;
+}
+.service-workbench textarea {
+  flex: 1;
+  min-height: 65px;
+  resize: none;
+  border: 1px solid #dddfe3;
+  border-radius: 8px;
+  padding: 10px;
+}
+.service-workbench footer button {
+  width: 90px;
+  border: 0;
+  border-radius: 8px;
+  background: #d33a2c;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.service-workbench footer svg {
+  width: 16px;
+}
+.service-empty {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  color: #969ba3;
+}

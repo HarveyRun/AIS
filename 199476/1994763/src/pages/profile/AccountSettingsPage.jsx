@@ -3,6 +3,7 @@ import { Camera, Trash2, X } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import UserAvatar from '../../components/profile/UserAvatar.jsx';
 import './AccountSettingsPage.css';
+import { api } from '../../api/http.js';
 
 export default function AccountSettingsPage({
   go,
@@ -17,6 +18,7 @@ export default function AccountSettingsPage({
   const [name, setName] = useState(userProfile.name?.trim() || '');
   const [avatar, setAvatar] = useState(userProfile.avatar || '');
   const [profileError, setProfileError] = useState('');
+  const [avatarFile, setAvatarFile] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const activeInquiryCount = conversations.filter((conversation) =>
@@ -39,19 +41,23 @@ export default function AccountSettingsPage({
     reader.onload = () => {
       setAvatar(reader.result);
       setProfileError('');
+      setAvatarFile(file);
     };
     reader.onerror = () => setProfileError('头像读取失败，请重新选择');
     reader.readAsDataURL(file);
   };
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     const nextName = name.trim();
-    setUserProfile((current) => ({
-      ...current,
-      name: nextName === `UID ${current.uid}` ? '' : nextName,
-      avatar,
-    }));
-    notify('个人信息已保存');
+    try {
+      const updated = await api.updateProfile({ nickname: nextName, avatarUrl: avatarFile ? userProfile.avatar : avatar });
+      const avatarResult = avatarFile ? await api.updateAvatar(avatarFile) : updated;
+      setUserProfile((current) => ({ ...current, name: avatarResult.nickname || '', avatar: avatarResult.avatarUrl || '' }));
+      setAvatarFile(null);
+      notify('个人信息已保存');
+    } catch (requestError) {
+      setProfileError(requestError.message);
+    }
   };
 
   return (

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronRight, Landmark, X } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import './ProfilePages.css';
+import { api } from '../../api/http.js';
 
 export default function WalletPage({
   go,
@@ -45,7 +46,7 @@ export default function WalletPage({
     setEditingBank(true);
   };
 
-  const saveBank = () => {
+  const saveBank = async () => {
     const cardNumber = bankDraft.cardNumber.replace(/\s/g, '');
     if (!bankDraft.holderName.trim()) {
       setBankError('请填写持卡人姓名');
@@ -60,19 +61,28 @@ export default function WalletPage({
       return;
     }
 
-    setAccountStats((current) => ({
-      ...current,
-      bankCard: {
-        holderName: bankDraft.holderName.trim(),
-        bankName: bankDraft.bankName,
+    try {
+      const saved = await api.bindBankCard({
+        ...bankDraft,
         cardNumber,
-      },
-    }));
-    setEditingBank(false);
-    notify(boundBank ? '银行卡已修改' : '银行卡已绑定');
+        holderName: bankDraft.holderName.trim(),
+      });
+      setAccountStats((current) => ({
+        ...current,
+        bankCard: {
+          holderName: saved.holderName,
+          bankName: saved.bankName,
+          cardNumber: saved.lastFour,
+        },
+      }));
+      setEditingBank(false);
+      notify(boundBank ? '银行卡已修改' : '银行卡已绑定');
+    } catch (requestError) {
+      setBankError(requestError.message);
+    }
   };
 
-  const submitMoney = () => {
+  const submitMoney = async () => {
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) return;
     if (mode === 'withdraw' && value > balance) {
@@ -84,27 +94,43 @@ export default function WalletPage({
       return;
     }
     if (mode === 'recharge') {
-      setBalance((current) => Number((current + value).toFixed(2)));
-      setRecords((current) => [['收入', '余额充值', `+¥${value.toFixed(2)}`, '刚刚'], ...current]);
-      notify('充值成功');
+      try {
+        const order = await api.createRecharge(value);
+        notify(order.paymentUrl ? '正在打开支付宝' : '充值订单已创建，请完成支付宝支付');
+        if (order.paymentUrl) window.location.href = order.paymentUrl;
+      } catch (requestError) {
+        notify(requestError.message);
+        return;
+      }
     } else {
-      setBalance((current) => Number((current - value).toFixed(2)));
-      setAccountStats((current) => ({
-        ...current,
-        totalWithdrawn: Number((Number(current.totalWithdrawn || 0) + value).toFixed(2)),
-      }));
-      setWithdrawals((current) => [
-        [
-          `¥${arrivalAmount.toFixed(2)}`,
-          '处理中',
-          '刚刚',
-          `手续费 ¥${commission.toFixed(2)}`,
-          bankLabel,
-        ],
-        ...current,
-      ]);
-      setRecords((current) => [['支出', '余额提现', `-¥${value.toFixed(2)}`, '刚刚'], ...current]);
-      notify(commission > 0 ? `提现已提交，手续费 ¥${commission.toFixed(2)}` : '提现申请已经提交');
+      try {
+        const withdrawal = await api.withdraw(value);
+        setBalance((current) => Number((current - value).toFixed(2)));
+        setAccountStats((current) => ({
+          ...current,
+          totalWithdrawn: Number((Number(current.totalWithdrawn || 0) + value).toFixed(2)),
+        }));
+        setWithdrawals((current) => [
+          [
+            `¥${arrivalAmount.toFixed(2)}`,
+            '处理中',
+            '刚刚',
+            `手续费 ¥${Number(withdrawal.fee).toFixed(2)}`,
+            bankLabel,
+          ],
+          ...current,
+        ]);
+        setRecords((current) => [
+          ['支出', '余额提现', `-¥${value.toFixed(2)}`, '刚刚'],
+          ...current,
+        ]);
+        notify(
+          commission > 0 ? `提现已提交，手续费 ¥${commission.toFixed(2)}` : '提现申请已经提交',
+        );
+      } catch (requestError) {
+        notify(requestError.message);
+        return;
+      }
     }
     setAmount('');
     setMode(mode === 'recharge' ? 'ledger' : 'history');

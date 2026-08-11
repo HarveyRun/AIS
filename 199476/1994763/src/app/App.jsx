@@ -5,112 +5,40 @@ import useAppNavigation from '../hooks/useAppNavigation.js';
 import useDirectInquirySettlement from '../hooks/useDirectInquirySettlement.js';
 import useToast from '../hooks/useToast.js';
 import usePersistentState from '../hooks/usePersistentState.js';
-import { conversationMessages, people } from '../data/mockData.js';
 import AppRoutes from '../routes/AppRoutes.jsx';
+import { api, getAccessToken, setAccessToken } from '../api/http.js';
 import '../styles/index.css';
+
+const DATA_RESET_VERSION = '2026-08-11-clean-start-1';
+
+if (localStorage.getItem('shixianwen-data-reset-version') !== DATA_RESET_VERSION) {
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith('shixianwen-') || key.startsWith('guangyi-'))
+    .forEach((key) => localStorage.removeItem(key));
+  sessionStorage.clear();
+  localStorage.setItem('shixianwen-data-reset-version', DATA_RESET_VERSION);
+}
 
 function App() {
   const { tab, screen, go } = useAppNavigation('login', 'home');
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () =>
-      sessionStorage.getItem('shixianwen-authenticated') === 'true' ||
-      sessionStorage.getItem('guangyi-authenticated') === 'true',
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getAccessToken()));
   const [category, setCategory] = usePersistentState('shixianwen-category', '生活');
   const { toast, notify } = useToast();
   const [problem, setProblem] = usePersistentState('shixianwen-problem', '');
   const [experience, setExperience] = usePersistentState('shixianwen-experience', '');
-  const [talent, setTalent] = usePersistentState('shixianwen-selected-talent', people[0]);
+  const [talent, setTalent] = usePersistentState('shixianwen-selected-talent', null);
+  const [answerers, setAnswerers] = useState([]);
   const [certType, setCertType] = usePersistentState('shixianwen-cert-type', '');
   const [userProfile, setUserProfile] = usePersistentState('shixianwen-user-profile', {
     name: '',
-    uid: '1000286',
+    uid: '',
     phone: '',
-    avatar: '/images/avatar1.jpg',
+    avatar: '',
   });
-  const [certifications, setCertifications] = usePersistentState('shixianwen-certifications', [
-    {
-      id: 'identity',
-      type: '实名认证',
-      title: '实名认证',
-      description: '身份证正面、反面及手持身份证',
-      required: true,
-      status: '已认证',
-      name: '安然',
-      detail: '本人身份认证',
-      materials: [
-        { kind: 'image', name: '身份证正面.png', size: 56205, url: '/images/img.png' },
-        { kind: 'image', name: '身份证反面.png', size: 56205, url: '/images/img.png' },
-        { kind: 'image', name: '手持身份证.png', size: 56205, url: '/images/img.png' },
-      ],
-    },
-    {
-      id: 'main-job',
-      type: '岗位认证',
-      title: '我的岗位',
-      description: '软件工程师 · 11年经历',
-      required: true,
-      status: '已认证',
-      name: '软件工程师',
-      detail: '从事软件开发工作11年，主要负责应用开发。',
-      materials: [
-        { kind: 'image', name: '在职证明.png', size: 56205, url: '/images/img.png' },
-        { kind: 'image', name: '工作年限证明.png', size: 56205, url: '/images/img.png' },
-        { kind: 'image', name: '岗位证明.png', size: 56205, url: '/images/img.png' },
-      ],
-    },
-    {
-      id: 'experience-startup',
-      type: '其它经历认证',
-      title: '创过业',
-      description: '个人创业经历',
-      required: false,
-      status: '已认证',
-      name: '创过业',
-      detail: '曾独立经营项目。',
-      materials: [
-        {
-          kind: 'archive',
-          name: '创业经历.zip',
-          size: 22,
-          url: 'data:application/zip;base64,UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA==',
-        },
-        {
-          kind: 'video',
-          name: '创业经历录像.mp4',
-          size: 947184,
-          url: '/images/video.mp4',
-        },
-        {
-          kind: 'image',
-          name: '创业经历照片.png',
-          size: 56205,
-          url: '/images/img.png',
-        },
-      ],
-    },
-    {
-      id: 'experience-arbitration',
-      type: '其它经历认证',
-      title: '经历过劳动仲裁',
-      description: '亲自处理过劳动仲裁申请',
-      required: false,
-      status: '已认证',
-      name: '经历过劳动仲裁',
-      detail: '亲自准备材料并完成劳动仲裁流程。',
-      materials: [
-        {
-          kind: 'archive',
-          name: '劳动仲裁经历.zip',
-          size: 194,
-          url: '/images/ysb.zip',
-        },
-      ],
-    },
-  ]);
+  const [certifications, setCertifications] = usePersistentState('shixianwen-certifications', []);
   const [conversations, setConversations] = usePersistentState(
     'shixianwen-conversations',
-    conversationMessages,
+    [],
   );
   const inquiryUnreadCount = conversations.reduce(
     (total, conversation) => total + Math.max(0, Number(conversation.unread) || 0),
@@ -120,47 +48,13 @@ function App() {
     'shixianwen-selected-conversation',
     () => conversations[0] || null,
   );
-  const [balance, setBalance] = usePersistentState('shixianwen-balance', 2680);
-  const [ledger, setLedger] = usePersistentState('shixianwen-ledger', [
-    ['支出', '二手房经历询问', '-¥120.00', '今天 19:02'],
-    ['收入', '家庭网络经历解答', '+¥80.00', '昨天 22:30'],
-    ['支出', '劳动仲裁经历询问', '-¥180.00', '8月5日'],
-    ['收入', '询问费用结算', '+¥144.00', '8月3日'],
-  ]);
-  const [withdrawals, setWithdrawals] = usePersistentState('shixianwen-withdrawals', [
-    ['¥800.00', '处理中', '今天 10:30'],
-    ['¥1,200.00', '已到账', '7月28日'],
-    ['¥1,200.00', '已到账', '7月12日'],
-  ]);
+  const [balance, setBalance] = usePersistentState('shixianwen-balance', 0);
+  const [ledger, setLedger] = usePersistentState('shixianwen-ledger', []);
+  const [withdrawals, setWithdrawals] = usePersistentState('shixianwen-withdrawals', []);
   const [accountStats, setAccountStats] = usePersistentState('shixianwen-account-stats', {
-    totalWithdrawn: 3200,
+    totalWithdrawn: 0,
   });
-  const [notices, setNotices] = usePersistentState('shixianwen-notices', [
-    {
-      id: 'notice-inquiry',
-      title: '新的询问',
-      content: '有人向你发起了一次经历询问',
-      time: '刚刚',
-      screen: 'inquiries',
-      read: false,
-    },
-    {
-      id: 'notice-accepted',
-      title: '询问已接受',
-      content: '许知行接受了你的询问，现在可以开始聊了',
-      time: '20分钟前',
-      screen: 'inquiries',
-      read: false,
-    },
-    {
-      id: 'notice-certification',
-      title: '认证消息',
-      content: '你提交的人生经历材料正在核对中',
-      time: '昨天',
-      screen: 'certs',
-      read: false,
-    },
-  ]);
+  const [notices, setNotices] = usePersistentState('shixianwen-notices', []);
   const [feedbackRecords, setFeedbackRecords] = usePersistentState(
     'shixianwen-feedback-records',
     [],
@@ -199,35 +93,46 @@ function App() {
     setNotices,
   });
 
-  const login = (profile = {}) => {
+  const login = ({ token, user }) => {
+    setAccessToken(token);
     sessionStorage.setItem('shixianwen-authenticated', 'true');
-    if (profile.phone || profile.name !== undefined) {
-      setUserProfile((current) => ({
-        ...current,
-        ...profile,
-        name:
-          Object.prototype.hasOwnProperty.call(profile, 'name') && profile.name !== undefined
-            ? profile.name.trim()
-            : current.name || '',
-      }));
-    }
+    setUserProfile({
+      id: user.id,
+      name: user.nickname || '',
+      uid: user.uid,
+      phone: user.phone,
+      avatar: user.avatarUrl || '',
+    });
+    setAcceptingInquiries(user.acceptingInquiries);
     setIsAuthenticated(true);
     go('home');
   };
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.logout();
+    } catch {
+      // 本地仍需退出，避免失效会话困住用户。
+    }
+    setAccessToken('');
     sessionStorage.removeItem('shixianwen-authenticated');
     sessionStorage.removeItem('guangyi-authenticated');
     setIsAuthenticated(false);
     go('login');
   };
-  const deleteAccount = () => {
+  const deleteAccount = async () => {
+    try {
+      await api.deleteAccount();
+    } catch (error) {
+      notify(error.message);
+      return;
+    }
     setProblem('');
     setExperience('');
-    setTalent(people[0]);
+    setTalent(null);
     setCertType('');
     setUserProfile({
       name: '',
-      uid: '1000286',
+      uid: '',
       phone: '',
       avatar: '',
     });
@@ -243,9 +148,36 @@ function App() {
     setAcceptingInquiries(true);
     sessionStorage.removeItem('shixianwen-authenticated');
     sessionStorage.removeItem('guangyi-authenticated');
+    setAccessToken('');
     setIsAuthenticated(false);
     go('login');
   };
+
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+    let active = true;
+    Promise.all([api.me(), api.wallet(), api.walletTransactions(), api.withdrawals(), api.notifications(), api.inquiries(), api.answerers(), api.bankCard()])
+      .then(([user, wallet, transactions, withdrawalItems, notificationItems, inquiryItems, answererItems, bankCard]) => {
+        if (!active) return;
+        setUserProfile({ id: user.id, name: user.nickname || '', uid: user.uid, phone: user.phone, avatar: user.avatarUrl || '' });
+        setAcceptingInquiries(user.acceptingInquiries);
+        setBalance(Number(wallet.availableBalance));
+        setAccountStats({ totalWithdrawn: Number(wallet.totalWithdrawn), bankCard: bankCard ? { holderName: bankCard.holderName, bankName: bankCard.bankName, cardNumber: bankCard.lastFour } : null });
+        setLedger(transactions.map((item) => [item.direction === 'IN' ? '收入' : '支出', item.description, `${item.direction === 'IN' ? '+' : '-'}¥${item.amount}`, new Date(item.createdAt).toLocaleString()]));
+        setWithdrawals(withdrawalItems.map((item) => [`¥${item.amount}`, item.status === 'COMPLETED' ? '已到账' : '处理中', new Date(item.createdAt).toLocaleString()]));
+        setNotices(notificationItems.map((item) => ({ id: item.id, title: item.title, content: item.content, time: new Date(item.createdAt).toLocaleString(), screen: 'inquiries', read: item.read })));
+        setConversations(inquiryItems.map((item) => ({ id: item.id, direction: item.role === 'QUESTIONER' ? 'outgoing' : 'incoming', name: item.otherName, avatar: item.otherAvatar, title: item.topic || item.question, question: item.question, amount: Number(item.amount), inquiryStatus: item.status.toLowerCase(), settlementStatus: item.fundsStatus === 'SETTLED' ? 'settled' : item.fundsStatus.toLowerCase(), unread: 0, partner: { id: item.otherUserId, name: item.otherName, avatar: item.otherAvatar }, messages: [] })));
+        setAnswerers(answererItems.filter((item) => item.id !== user.id).map((item) => ({ id: item.id, uid: item.uid, name: item.nickname || `UID ${item.uid}`, avatar: item.avatarUrl || '', acceptingInquiries: item.acceptingInquiries, main: item.mainJob || '-', mainYears: item.mainJobYears || 0, venture: '-', ventureYears: 0, experiences: item.experiences.map((experienceItem) => experienceItem.title), experienceDetails: item.experiences })));
+      })
+      .catch((error) => {
+        if (!active) return;
+        if (!getAccessToken()) {
+          setIsAuthenticated(false);
+          go('login');
+        } else notify(error.message);
+      });
+    return () => { active = false; };
+  }, [isAuthenticated]);
   const addNotice = ({ title, content, screen = 'inquiries' }) => {
     setNotices((current) => [
       {
@@ -314,6 +246,7 @@ function App() {
     login,
     logout,
     deleteAccount,
+    answerers,
   };
 
   return (

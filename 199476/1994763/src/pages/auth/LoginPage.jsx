@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { LockKeyhole, Smartphone } from 'lucide-react';
 import './AuthPages.css';
 import CanvasLogo from '../../components/brand/CanvasLogo.jsx';
+import { api } from '../../api/http.js';
 
 const digitsOnly = (value) => value.replace(/\D/g, '');
 
@@ -18,24 +19,30 @@ export default function LoginPage({ go, onLogin, notify }) {
     return () => window.clearInterval(timer);
   }, [countdown]);
 
-  const sendCode = () => {
-    setSent(true);
-    setCountdown(60);
-    setCode('');
-    setError('');
-    notify('验证码已发送，演示验证码为 123456');
+  const sendCode = async () => {
+    try {
+      await api.sendCode(phone);
+      setSent(true);
+      setCountdown(60);
+      setCode('');
+      setError('');
+      notify('验证码已发送');
+    } catch (requestError) {
+      setError(requestError.message);
+    }
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!sent) {
       setError('请先获取验证码');
       return;
     }
-    if (code !== '123456') {
-      setError('验证码不正确');
-      return;
+    try {
+      const result = await api.login(phone, code);
+      onLogin(result);
+    } catch (requestError) {
+      setError(requestError.message);
     }
-    onLogin({ phone });
   };
 
   return (
@@ -83,7 +90,6 @@ export default function LoginPage({ go, onLogin, notify }) {
             {countdown > 0 ? `${countdown}秒` : sent ? '重新获取' : '获取验证码'}
           </button>
         </div>
-        {sent && <small className="auth-code-hint">演示验证码：123456</small>}
         {error && <small className="auth-error">{error}</small>}
         <button
           type="button"

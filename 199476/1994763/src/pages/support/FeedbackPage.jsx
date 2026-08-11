@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Page from '../../components/layout/Page.jsx';
 import './SupportPages.css';
+import { api } from '../../api/http.js';
 
 export default function FeedbackPage({ go, notify, conversations, records, setRecords }) {
   const [type, setType] = useState('feedback');
@@ -10,14 +11,21 @@ export default function FeedbackPage({ go, notify, conversations, records, setRe
   const targets = Array.from(
     new Map(
       conversations
-        .filter((conversation) => conversation.partner?.uid)
-        .map((conversation) => [conversation.partner.uid, conversation.partner]),
+        .filter((conversation) => conversation.partner?.id || conversation.partner?.uid)
+        .map((conversation) => [conversation.partner.id || conversation.partner.uid, conversation.partner]),
     ).values(),
   );
-  const submit = () => {
-    const targetUser = targets.find((item) => item.uid === target);
+  const submit = async () => {
+    const targetUser = targets.find((item) => String(item.id || item.uid) === target);
+    try {
+      const saved = await api.submitFeedback({
+        type: type === 'complaint' ? 'COMPLAINT' : 'PRODUCT',
+        category: type === 'complaint' ? complaintType : '产品反馈',
+        content: text.trim(),
+        targetUserId: targetUser?.id || null,
+      });
     const record = {
-      id: `feedback-${Date.now()}`,
+      id: saved.id,
       type,
       category: type === 'complaint' ? complaintType : '产品反馈',
       target: targetUser ? targetUser.name || `UID ${targetUser.uid}` : '',
@@ -29,6 +37,9 @@ export default function FeedbackPage({ go, notify, conversations, records, setRe
     notify(type === 'complaint' ? '投诉已提交' : '反馈已提交');
     setText('');
     setTarget('');
+    } catch (requestError) {
+      notify(requestError.message);
+    }
   };
 
   return (
@@ -56,7 +67,7 @@ export default function FeedbackPage({ go, notify, conversations, records, setRe
             <select value={target} onChange={(event) => setTarget(event.target.value)}>
               <option value="">请选择与你交流过的人</option>
               {targets.map((item) => (
-                <option value={item.uid} key={item.uid}>
+                <option value={item.id || item.uid} key={item.id || item.uid}>
                   {item.name?.trim() || `UID ${item.uid}`}（UID {item.uid}）
                 </option>
               ))}

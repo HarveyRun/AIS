@@ -59,6 +59,7 @@ export default function AppRoutes(props) {
             go={go}
             setTalent={props.setTalent}
             unreadNoticeCount={props.unreadNoticeCount}
+            answerers={props.answerers}
           />,
         )}
       />
@@ -113,6 +114,7 @@ export default function AppRoutes(props) {
             setTalent={props.setTalent}
             title={props.experience ? '按经历找人' : '按事情找人'}
             backScreen={props.experience ? 'experiences' : 'knowledge'}
+            answerers={props.answerers}
           />
         }
       />

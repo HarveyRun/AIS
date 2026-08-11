@@ -1,0 +1,88 @@
+.admin-login {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f7f3f2, #fff 55%, #f2f4f7);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.admin-login section {
+  width: min(420px, 100%);
+  background: #fff;
+  border: 1px solid #e7e8eb;
+  border-radius: 18px;
+  padding: 34px;
+  box-shadow: 0 20px 60px rgba(31, 34, 40, 0.09);
+}
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 34px;
+}
+.login-brand i {
+  width: 45px;
+  height: 45px;
+  background: #d33a2c;
+  color: #fff;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 21px;
+  font-weight: 800;
+}
+.login-brand h1,
+.login-brand p {
+  margin: 0;
+}
+.login-brand p {
+  font-size: 12px;
+  color: #8b9098;
+  margin-top: 3px;
+}
+.admin-login h2 {
+  margin: 0 0 8px;
+}
+.login-tip {
+  color: #7b8089;
+  margin: 0 0 25px;
+  font-size: 14px;
+}
+.admin-login form {
+  display: grid;
+  gap: 18px;
+}
+.admin-login label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.admin-login input {
+  height: 44px;
+  border: 1px solid #dfe1e5;
+  border-radius: 9px;
+  padding: 0 13px;
+  font: inherit;
+  outline: none;
+}
+.admin-login input:focus {
+  border-color: #d33a2c;
+  box-shadow: 0 0 0 3px rgba(211, 58, 44, 0.09);
+}
+.admin-login form > button {
+  height: 46px;
+  border: 0;
+  border-radius: 9px;
+  background: #d33a2c;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.login-error {
+  font-size: 13px;
+  color: #bd3025;
+  background: #fff2f0;
+  padding: 10px;
+  border-radius: 8px;
+}

@@ -5,6 +5,7 @@ import UserAvatar from '../../components/profile/UserAvatar.jsx';
 import { Career } from '../../components/talent/TalentCard.jsx';
 import { createResponseDeadline } from '../../hooks/useDirectInquirySettlement.js';
 import './TalentPage.css';
+import { api } from '../../api/http.js';
 
 export default function TalentPage({
   go,
@@ -49,7 +50,7 @@ export default function TalentPage({
     setInquiryOpen(true);
   };
 
-  const submitExperienceInquiry = () => {
+  const submitExperienceInquiry = async () => {
     const question = inquiryQuestion.trim();
     const amount = Number(inquiryAmount);
 
@@ -66,7 +67,20 @@ export default function TalentPage({
       return;
     }
 
-    const conversationId = `direct-${p.uid}-${Date.now()}`;
+    if (!p.id) {
+      setInquiryError('档案数据尚未加载完成，请稍后再试');
+      return;
+    }
+
+    try {
+      const created = await api.createInquiry({
+        answererId: p.id,
+        topic: inquiryContext,
+        sourceType: experience ? 'EXPERIENCE' : problem ? 'PROBLEM' : 'PROFILE',
+        question,
+        amount: Number(amount.toFixed(2)),
+      });
+      const conversationId = created.id;
     const conversation = {
       id: conversationId,
       type: 'direct',
@@ -84,7 +98,7 @@ export default function TalentPage({
       financeProcessed: false,
       amount: Number(amount.toFixed(2)),
       question,
-      responseDeadline: createResponseDeadline(),
+      responseDeadline: created.responseDeadline || createResponseDeadline(),
       continueCount: 0,
       endRequestCount: 0,
       topic: inquiryContext,
@@ -110,6 +124,9 @@ export default function TalentPage({
     });
     setInquiryOpen(false);
     go('directChat');
+    } catch (requestError) {
+      setInquiryError(requestError.message);
+    }
   };
 
   return (

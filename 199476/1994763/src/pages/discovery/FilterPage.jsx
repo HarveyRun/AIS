@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
-import { people } from '../../data/mockData.js';
 import TalentCard from '../../components/talent/TalentCard.jsx';
 import './DiscoveryPages.css';
 
@@ -33,9 +32,11 @@ export default function FilterPage({
   experience = '',
   title = '找人',
   backScreen = 'home',
+  answerers = [],
 }) {
   const [keyword, setKeyword] = useState('');
-  const filtered = people.filter((person) => {
+  const sourcePeople = answerers;
+  const filtered = sourcePeople.filter((person) => {
     const personContext = normalizeContext(
       [
         person.main,

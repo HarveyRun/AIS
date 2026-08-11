@@ -1,0 +1,130 @@
+.admin-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: #f5f6f8;
+}
+.admin-shell aside {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background: #17191d;
+  color: #fff;
+  padding: 24px 14px;
+  display: flex;
+  flex-direction: column;
+}
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px 24px;
+}
+.admin-brand i {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #d33a2c;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-weight: 800;
+}
+.admin-brand div {
+  display: flex;
+  flex-direction: column;
+}
+.admin-brand b {
+  font-size: 17px;
+}
+.admin-brand span {
+  font-size: 12px;
+  color: #9499a3;
+  margin-top: 3px;
+}
+.admin-shell nav {
+  display: grid;
+  gap: 5px;
+}
+.admin-shell nav a,
+.logout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 13px;
+  color: #b9bdc5;
+  border-radius: 9px;
+  text-decoration: none;
+  font-size: 14px;
+}
+.admin-shell nav svg,
+.logout svg {
+  width: 18px;
+}
+.admin-shell nav a.active {
+  background: #d33a2c;
+  color: #fff;
+}
+.logout {
+  margin-top: auto;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.admin-shell main > header {
+  height: 72px;
+  background: #fff;
+  border-bottom: 1px solid #e7e8eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+}
+.admin-shell main > header div {
+  display: flex;
+  flex-direction: column;
+}
+.admin-shell main > header span {
+  font-size: 12px;
+  color: #8a8f98;
+  margin-top: 3px;
+}
+.admin-shell main > header em {
+  font-style: normal;
+  background: #f1f2f4;
+  padding: 8px 13px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+.admin-content {
+  padding: 28px;
+  max-width: 1500px;
+  margin: auto;
+}
+@media (max-width: 900px) {
+  .admin-shell {
+    grid-template-columns: 72px 1fr;
+  }
+  .admin-shell aside {
+    padding: 18px 10px;
+  }
+  .admin-brand div,
+  .admin-shell nav a:not(.active) {
+    font-size: 0;
+  }
+  .admin-shell nav a {
+    justify-content: center;
+    padding: 0;
+  }
+  .admin-brand {
+    padding: 0 6px 20px;
+  }
+  .logout {
+    font-size: 0;
+    justify-content: center;
+  }
+  .admin-content {
+    padding: 16px;
+  }
+}

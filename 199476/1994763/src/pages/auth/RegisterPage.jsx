@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, CircleUserRound, LockKeyhole, Smartphone } from 'lucide-react';
 import './AuthPages.css';
 import CanvasLogo from '../../components/brand/CanvasLogo.jsx';
+import { api } from '../../api/http.js';
 
 const digitsOnly = (value) => value.replace(/\D/g, '');
 
@@ -20,20 +21,30 @@ export default function RegisterPage({ go, onRegister, notify }) {
     return () => window.clearInterval(timer);
   }, [countdown]);
 
-  const sendCode = () => {
-    setSent(true);
-    setCountdown(60);
-    setCode('');
-    setError('');
-    notify('验证码已发送，演示验证码为 123456');
+  const sendCode = async () => {
+    try {
+      await api.sendCode(phone);
+      setSent(true);
+      setCountdown(60);
+      setCode('');
+      setError('');
+      notify('验证码已发送');
+    } catch (requestError) {
+      setError(requestError.message);
+    }
   };
 
-  const submit = () => {
-    if (!sent || code !== '123456') {
-      setError(sent ? '验证码不正确' : '请先获取验证码');
+  const submit = async () => {
+    if (!sent) {
+      setError('请先获取验证码');
       return;
     }
-    onRegister({ name: name.trim(), phone });
+    try {
+      const result = await api.register(phone, code, name.trim());
+      onRegister(result);
+    } catch (requestError) {
+      setError(requestError.message);
+    }
   };
 
   return (
@@ -92,7 +103,6 @@ export default function RegisterPage({ go, onRegister, notify }) {
             {countdown > 0 ? `${countdown}秒` : sent ? '重新获取' : '获取验证码'}
           </button>
         </div>
-        {sent && <small className="auth-code-hint">演示验证码：123456</small>}
         {error && <small className="auth-error">{error}</small>}
         <label className="agree">
           <input
