@@ -1,11 +1,22 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../../api/adminApi.js';
 import { date, Empty } from '../users/UsersPage.jsx';
+import Pagination from '../../components/data/Pagination.jsx';
 import '../shared/Page.css';
 export default function AuditPage() {
   const [data, setData] = useState({ items: [], total: 0 });
+  const [page, setPage] = useState(0);
+  const [error, setError] = useState('');
+  const size = 20;
+  const load = (targetPage) => {
+    setError('');
+    adminApi
+      .logs(new URLSearchParams({ page: targetPage, size }).toString())
+      .then(setData)
+      .catch((e) => setError(e.message));
+  };
   useEffect(() => {
-    adminApi.logs().then(setData);
+    load(0);
   }, []);
   return (
     <>
@@ -16,6 +27,16 @@ export default function AuditPage() {
         </div>
         <span>共 {data.total} 条</span>
       </div>
+      {error && <div className="error-box">{error}</div>}
+      <Pagination
+        page={page}
+        size={size}
+        total={data.total}
+        onChange={(next) => {
+          setPage(next);
+          load(next);
+        }}
+      />
       <div className="table-card">
         <table>
           <thead>

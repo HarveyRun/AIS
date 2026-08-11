@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X, ExternalLink } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
 import { date, Empty, Status } from '../users/UsersPage.jsx';
+import Pagination from '../../components/data/Pagination.jsx';
 import '../shared/Page.css';
 const meta = {
   certifications: ['认证审核', '核对用户提交的身份、岗位与经历材料'],
@@ -17,30 +18,56 @@ export default function RecordsPage({ type }) {
   const [materials, setMaterials] = useState([]);
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
-  const load = () =>
-    adminApi
-      .table(type, new URLSearchParams({ status }).toString())
+  const [page, setPage] = useState(0);
+  const size = 20;
+  const load = (targetPage = page) => {
+    setError('');
+    return adminApi
+      .table(type, new URLSearchParams({ status, page: targetPage, size }).toString())
       .then(setData)
       .catch((e) => setError(e.message));
+  };
   useEffect(() => {
     setSelected(null);
-    load();
+    setPage(0);
+    load(0);
   }, [type, status]);
   const open = async (row) => {
-    setSelected(row);
-    setReason('');
-    if (type === 'certifications') setMaterials(await adminApi.materials(row.id));
+    try {
+      setError('');
+      setSelected(row);
+      setReason('');
+      setMaterials([]);
+      if (type === 'certifications') setMaterials(await adminApi.materials(row.id));
+    } catch (e) {
+      setSelected(null);
+      setError(e.message);
+    }
   };
   const review = async (approved) => {
-    await adminApi.review(selected.id, { approved, reason });
-    setSelected(null);
-    load();
+    if (!approved && !reason.trim()) {
+      setError('驳回时请填写原因');
+      return;
+    }
+    try {
+      setError('');
+      await adminApi.review(selected.id, { approved, reason: reason.trim() });
+      setSelected(null);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
   };
   const process = async (statusValue) => {
-    if (type === 'withdrawals') await adminApi.withdrawalStatus(selected.id, statusValue);
-    else await adminApi.recordStatus(type, selected.id, statusValue);
-    setSelected(null);
-    load();
+    try {
+      setError('');
+      if (type === 'withdrawals') await adminApi.withdrawalStatus(selected.id, statusValue);
+      else await adminApi.recordStatus(type, selected.id, statusValue);
+      setSelected(null);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
   };
   return (
     <>
@@ -54,16 +81,22 @@ export default function RecordsPage({ type }) {
       <div className="toolbar">
         <select value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">全部状态</option>
-          <option value="PENDING">待处理</option>
-          <option value="SUBMITTED">待处理</option>
-          <option value="PROCESSING">处理中</option>
-          <option value="APPROVED">已通过</option>
-          <option value="COMPLETED">已完成</option>
-          <option value="REJECTED">已驳回</option>
-          <option value="RESOLVED">已解决</option>
-          <option value="CLOSED">已关闭</option>
+          {statusOptions[type].map(([value, label]) => (
+            <option value={value} key={value}>
+              {label}
+            </option>
+          ))}
         </select>
       </div>
+      <Pagination
+        page={page}
+        size={size}
+        total={data.total}
+        onChange={(next) => {
+          setPage(next);
+          load(next);
+        }}
+      />
       {error && <div className="error-box">{error}</div>}
       <div className="table-card">
         <table>
@@ -176,6 +209,38 @@ export default function RecordsPage({ type }) {
     </>
   );
 }
+const statusOptions = {
+  certifications: [
+    ['PENDING', '待审核'],
+    ['APPROVED', '已通过'],
+    ['REJECTED', '已驳回'],
+  ],
+  inquiries: [
+    ['PENDING', '待接受'],
+    ['ACTIVE', '交流中'],
+    ['AWAITING_CONFIRMATION', '待确认结束'],
+    ['COMPLETED', '已完成'],
+    ['REJECTED', '未接受'],
+    ['CANCELLED', '已撤销'],
+    ['EXPIRED', '已过期'],
+    ['REFUNDED', '已退款'],
+  ],
+  withdrawals: [
+    ['PROCESSING', '处理中'],
+    ['COMPLETED', '已完成'],
+    ['FAILED', '失败'],
+  ],
+  feedback: [
+    ['SUBMITTED', '待处理'],
+    ['PROCESSING', '处理中'],
+    ['RESOLVED', '已解决'],
+  ],
+  cooperations: [
+    ['SUBMITTED', '待处理'],
+    ['PROCESSING', '处理中'],
+    ['CLOSED', '已关闭'],
+  ],
+};
 const labels = {
   uid: '用户UID',
   nickname: '昵称',

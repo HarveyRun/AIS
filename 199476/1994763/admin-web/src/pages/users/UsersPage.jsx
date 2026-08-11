@@ -2,20 +2,33 @@ import { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
 import '../shared/Page.css';
+import Pagination from '../../components/data/Pagination.jsx';
 export default function UsersPage() {
   const [data, setData] = useState({ items: [], total: 0 });
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
-  const load = () =>
-    adminApi
-      .users(new URLSearchParams({ keyword, status }).toString())
+  const [page, setPage] = useState(0);
+  const size = 20;
+  const load = (targetPage = page) => {
+    setError('');
+    return adminApi
+      .users(new URLSearchParams({ keyword, status, page: targetPage, size }).toString())
       .then(setData)
       .catch((e) => setError(e.message));
-  useEffect(load, [status]);
+  };
+  useEffect(() => {
+    setPage(0);
+    load(0);
+  }, [status]);
   const change = async (u) => {
-    await adminApi.userStatus(u.id, u.accountStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE');
-    load();
+    try {
+      setError('');
+      await adminApi.userStatus(u.id, u.accountStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE');
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
   };
   return (
     <>
@@ -41,8 +54,9 @@ export default function UsersPage() {
           <option value="ACTIVE">正常</option>
           <option value="SUSPENDED">已停用</option>
         </select>
-        <button onClick={load}>查询</button>
+          <button onClick={() => { setPage(0); load(0); }}>查询</button>
       </div>
+      <Pagination page={page} size={size} total={data.total} onChange={(next) => { setPage(next); load(next); }} />
       {error && <div className="error-box">{error}</div>}
       <div className="table-card">
         <table>
@@ -95,6 +109,7 @@ export const Status = ({ value }) => (
       ACTIVE: '正常',
       SUSPENDED: '已停用',
       APPROVED: '已通过',
+      NOT_APPLIED: '未申请',
       PENDING: '待处理',
       PROCESSING: '处理中',
       COMPLETED: '已完成',
@@ -105,6 +120,9 @@ export const Status = ({ value }) => (
       CLOSED: '已关闭',
       REFUNDED: '已退款',
       SETTLED: '已结算',
+      CANCELLED: '已撤销',
+      EXPIRED: '已过期',
+      AWAITING_CONFIRMATION: '待确认结束',
     }[value] ||
       value ||
       '—'}

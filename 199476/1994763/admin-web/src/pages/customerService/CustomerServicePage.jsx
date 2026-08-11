@@ -9,22 +9,43 @@ export default function CustomerServicePage() {
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
+  const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
 
-  const loadConversations = () => adminApi.customerServiceConversations().then(setConversations);
-  useEffect(loadConversations, []);
+  const loadConversations = () =>
+    adminApi
+      .customerServiceConversations()
+      .then(setConversations)
+      .catch((e) => setError(e.message));
+  useEffect(() => {
+    loadConversations();
+  }, []);
 
   const open = async (conversation) => {
-    setSelected(conversation);
-    setMessages(await adminApi.customerServiceMessages(conversation.userId));
-    loadConversations();
+    try {
+      setError('');
+      setSelected(conversation);
+      setMessages(await adminApi.customerServiceMessages(conversation.userId));
+      loadConversations();
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
   const reply = async () => {
     if (!text.trim()) return;
-    await adminApi.replyCustomerService(selected.userId, text.trim());
-    setText('');
-    setMessages(await adminApi.customerServiceMessages(selected.userId));
-    loadConversations();
+    try {
+      setSending(true);
+      setError('');
+      await adminApi.replyCustomerService(selected.userId, text.trim());
+      setText('');
+      setMessages(await adminApi.customerServiceMessages(selected.userId));
+      loadConversations();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -35,6 +56,7 @@ export default function CustomerServicePage() {
           <p>查看用户留言并直接回复</p>
         </div>
       </div>
+      {error && <div className="error-box">{error}</div>}
       <section className="service-workbench">
         <aside>
           {conversations.map((item) => (
@@ -79,9 +101,9 @@ export default function CustomerServicePage() {
                   onChange={(event) => setText(event.target.value)}
                   placeholder="输入回复内容"
                 />
-                <button disabled={!text.trim()} onClick={reply}>
+                <button disabled={!text.trim() || sending} onClick={reply}>
                   <Send />
-                  发送
+                  {sending ? '发送中' : '发送'}
                 </button>
               </footer>
             </>

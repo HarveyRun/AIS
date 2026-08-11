@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminApi, token } from '../../api/adminApi.js';
 import './LoginPage.css';
-export default function LoginPage() {
+export default function LoginPage({ onAuthenticated }) {
   const nav = useNavigate();
   const [setup, setSetup] = useState(false);
   const [form, setForm] = useState({ phone: '', password: '', displayName: '' });
@@ -21,7 +21,8 @@ export default function LoginPage() {
     try {
       const result = setup ? await adminApi.setup(form) : await adminApi.login(form);
       token.set(result.token);
-      nav('/dashboard');
+      onAuthenticated();
+      nav('/dashboard', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -40,7 +41,7 @@ export default function LoginPage() {
         </div>
         <h2>{setup ? '创建首位管理员' : '管理员登录'}</h2>
         <p className="login-tip">
-          {setup ? '系统尚未初始化，请设置管理账号。' : '请输入管理账号继续。'}
+          {setup ? '系统尚未初始化，请设置管理员信息。' : '请输入管理员手机号和密码。'}
         </p>
         <form onSubmit={submit}>
           {setup && (

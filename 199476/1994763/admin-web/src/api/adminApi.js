@@ -10,7 +10,10 @@ export async function request(path, options = {}) {
   const response = await fetch(`/api/admin${path}`, { ...options, headers });
   const payload = await response.json().catch(() => null);
   if (!response.ok || payload?.success === false) {
-    if (response.status === 401) token.set('');
+    if (response.status === 401) {
+      token.set('');
+      window.dispatchEvent(new Event('shixianwen-admin-unauthorized'));
+    }
     throw new Error(payload?.message || '请求失败');
   }
   return payload.data;
@@ -33,7 +36,7 @@ export const adminApi = {
     request(`/withdrawals/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   recordStatus: (type, id, status) =>
     request(`/${type}/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-  logs: () => request('/audit-logs'),
+  logs: (query = '') => request(`/audit-logs?${query}`),
   customerServiceConversations: () => request('/customer-service/conversations'),
   customerServiceMessages: (userId) => request(`/customer-service/users/${userId}/messages`),
   replyCustomerService: (userId, content) =>

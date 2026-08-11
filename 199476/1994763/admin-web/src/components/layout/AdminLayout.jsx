@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -24,14 +25,22 @@ const items = [
   ['/customer-service', '在线客服', Headset],
   ['/audit', '操作记录', ScrollText],
 ];
-export default function AdminLayout() {
+export default function AdminLayout({ onLoggedOut }) {
   const navigate = useNavigate();
+  const [adminName, setAdminName] = useState('管理员');
+  useEffect(() => {
+    adminApi
+      .me()
+      .then((admin) => setAdminName(admin.displayName || '管理员'))
+      .catch(() => {});
+  }, []);
   const logout = async () => {
     try {
       await adminApi.logout();
     } catch {}
     token.set('');
-    navigate('/login');
+    onLoggedOut();
+    navigate('/login', { replace: true });
   };
   return (
     <div className="admin-shell">
@@ -62,7 +71,7 @@ export default function AdminLayout() {
             <b>事先问运营管理</b>
             <span>数据、审核与资金处理</span>
           </div>
-          <em>管理员</em>
+          <em>{adminName}</em>
         </header>
         <div className="admin-content">
           <Outlet />
