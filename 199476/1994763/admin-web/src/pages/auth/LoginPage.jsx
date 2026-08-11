@@ -2,29 +2,29 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminApi, token } from '../../api/adminApi.js';
 import './LoginPage.css';
+import { message } from '../../components/feedback/message.js';
 export default function LoginPage({ onAuthenticated }) {
   const nav = useNavigate();
   const [setup, setSetup] = useState(false);
   const [form, setForm] = useState({ phone: '', password: '', displayName: '' });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     adminApi
       .setupStatus()
       .then((r) => setSetup(r.needsSetup))
-      .catch((e) => setError(e.message));
+      .catch((e) => message.error(e.message));
   }, []);
   const submit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
     try {
       const result = setup ? await adminApi.setup(form) : await adminApi.login(form);
       token.set(result.token);
+      message.success(setup ? '管理员初始化成功' : '登录成功');
       onAuthenticated();
       nav('/dashboard', { replace: true });
     } catch (err) {
-      setError(err.message);
+      message.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,6 @@ export default function LoginPage({ onAuthenticated }) {
               placeholder="至少10位，包含字母和数字"
             />
           </label>
-          {error && <div className="login-error">{error}</div>}
           <button disabled={loading}>
             {loading ? '正在处理…' : setup ? '完成初始化' : '登录'}
           </button>

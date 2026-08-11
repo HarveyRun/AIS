@@ -1,39 +1,44 @@
 import { ArrowRight, Check, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Page from '../../components/layout/Page.jsx';
 import './DiscoveryPages.css';
 
-const experienceGroups = [
-  {
-    title: '工作中的经历',
-    items: ['经历过劳动仲裁', '经历过裁员', '成功转过行', '开过实体店'],
-  },
-  {
-    title: '生活中的经历',
-    items: ['买过二手房', '装修过旧房', '处理过交通事故', '长期照顾过老人'],
-  },
-  {
-    title: '人生选择',
-    items: ['出国留过学', '回乡创过业', '独自带过孩子', '长期在异地生活'],
-  },
-];
-
-export default function ExperiencePage({ go, experience, setExperience, setProblem }) {
+export default function ExperiencePage({
+  go,
+  experience,
+  experienceCategoryId,
+  setExperience,
+  setProblem,
+  category,
+  setCategory,
+  setExperienceCategoryId,
+  catalog = { categories: [] },
+  refreshCatalog,
+}) {
   const [selected, setSelected] = useState(experience || '');
+  const [selectedCategoryId, setSelectedCategoryId] = useState(experienceCategoryId || null);
   const [keyword, setKeyword] = useState('');
+  const categories = catalog.categories || [];
+  const selectedMain = categories.find((item) => item.name === category) || categories[0];
+  useEffect(() => {
+    refreshCatalog?.();
+  }, [refreshCatalog]);
   const visibleGroups = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
-    return experienceGroups
+    return (selectedMain?.subcategories || [])
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) => item.toLowerCase().includes(normalizedKeyword)),
+        items: group.experiences.filter((item) =>
+          item.title.toLowerCase().includes(normalizedKeyword),
+        ),
       }))
       .filter((group) => group.items.length > 0);
-  }, [keyword]);
+  }, [keyword, selectedMain]);
 
   const continueToPeople = () => {
     setProblem('');
     setExperience(selected);
+    setExperienceCategoryId(selectedCategoryId);
     go('filtered');
   };
 
@@ -48,20 +53,39 @@ export default function ExperiencePage({ go, experience, setExperience, setProbl
         />
       </label>
 
+      <div className="category-tabs">
+        {categories.map((item) => (
+          <button
+            className={selectedMain?.code === item.code ? 'active' : ''}
+            onClick={() => {
+              setCategory(item.name);
+              setSelected('');
+              setSelectedCategoryId(null);
+            }}
+            key={item.code}
+          >
+            {item.name}
+          </button>
+        ))}
+      </div>
+
       <section className="experience-groups">
         {visibleGroups.map((group) => (
-          <div key={group.title}>
-            <h2>{group.title}</h2>
+          <div key={group.id}>
+            <h2>{group.name}</h2>
             <div>
               {group.items.map((item) => (
                 <button
                   type="button"
-                  className={selected === item ? 'active' : ''}
-                  onClick={() => setSelected(item)}
-                  key={item}
+                  className={selected === item.title && selectedCategoryId === group.id ? 'active' : ''}
+                  onClick={() => {
+                    setSelected(item.title);
+                    setSelectedCategoryId(group.id);
+                  }}
+                  key={`${group.id}-${item.title}`}
                 >
-                  <span>{item}</span>
-                  {selected === item && <Check />}
+                  <span>{item.title}</span>
+                  {selected === item.title && selectedCategoryId === group.id && <Check />}
                 </button>
               ))}
             </div>
@@ -72,7 +96,7 @@ export default function ExperiencePage({ go, experience, setExperience, setProbl
 
       <button
         type="button"
-        disabled={!selected}
+        disabled={!selected || !selectedCategoryId}
         className="sticky-primary"
         onClick={continueToPeople}
       >

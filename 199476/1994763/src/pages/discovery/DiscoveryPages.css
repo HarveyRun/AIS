@@ -208,6 +208,258 @@
   font-size: 11px;
 }
 
+.matter-result-hero {
+  margin: 4px 17px 16px;
+  padding: 19px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #3e3128, #745848);
+  color: #fff;
+  box-shadow: 0 12px 30px #3e312826;
+}
+
+.matter-result-hero > span {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: #ffffff1f;
+  font-size: 9px;
+}
+
+.matter-result-hero h1 {
+  margin: 9px 0 8px;
+  font-size: 23px;
+}
+
+.matter-result-hero p {
+  margin: 0;
+  color: #f2eae4;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.matter-participants-section {
+  padding: 0 17px 24px;
+}
+
+.participant-type-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border-radius: 13px;
+  background: #f2efec;
+}
+
+.participant-type-tabs button {
+  height: 34px;
+  border-radius: 10px;
+  color: #7e746e;
+  font-size: 10px;
+}
+
+.participant-type-tabs button.active {
+  background: #fff;
+  color: var(--primary-dark);
+  font-weight: 700;
+  box-shadow: 0 2px 8px #3b2c2212;
+}
+
+.matter-participant-list {
+  display: grid;
+  gap: 12px;
+}
+
+.matter-participant-item {
+  position: relative;
+  padding-top: 29px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.matter-participant-item > .participation-tag {
+  position: absolute;
+  top: 9px;
+  left: 11px;
+  padding: 4px 7px;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.matter-participant-item > .participation-tag.primary {
+  color: #ad4034;
+  background: #fff0ee;
+}
+
+.matter-participant-item > .participation-tag.supporting {
+  color: #577064;
+  background: #ecf3ef;
+}
+
+.matter-participant-item > p {
+  margin: 0;
+  padding: 0 12px 8px;
+  color: #776d67;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.matter-participant-item .talent-card {
+  border: 0;
+  border-top: 1px solid #eee9e5;
+  border-radius: 0;
+}
+
+.matter-participants-unconfigured {
+  margin: 28px 17px;
+  padding: 32px 20px;
+  border-radius: 18px;
+  background: #f5f2ee;
+  text-align: center;
+}
+
+.matter-participants-unconfigured svg { color: #8e7d72; }
+.matter-participants-unconfigured h2 { margin: 10px 0 0; font-size: 16px; }
+
+.team-map-section,
+.role-people-section {
+  padding: 0 17px 18px;
+}
+
+.team-map-section > header,
+.role-people-section > header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+
+.team-map-section header small,
+.role-people-section header small {
+  color: var(--primary);
+  font-size: 9px;
+}
+
+.team-map-section header h2,
+.role-people-section header h2 {
+  margin: 2px 0 0;
+  font-size: 17px;
+}
+
+.team-map-section > header > span {
+  color: #8b7e76;
+  font-size: 10px;
+}
+
+.team-map-note {
+  margin: 0 0 11px;
+  color: #887c74;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.team-map-note b:first-child { color: #b5483a; }
+.team-map-note b:last-child { color: #64726b; }
+
+.role-map-list {
+  display: grid;
+  gap: 8px;
+}
+
+.role-map-card {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #fff;
+}
+
+.role-map-card.required { border-left: 3px solid #c85648; }
+.role-map-card.optional { border-left: 3px solid #7d9589; }
+
+.role-map-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #f4f0eb;
+  color: var(--primary-dark);
+}
+
+.role-map-icon svg { width: 19px; }
+.role-map-card > div:nth-child(2) > span { color: #a6968c; font-size: 8px; }
+.role-map-card h3 { margin: 2px 0 3px; font-size: 13px; }
+.role-map-card p { margin: 0; color: #81756e; font-size: 10px; line-height: 1.45; }
+.role-map-card > small { color: #998d85; font-size: 9px; white-space: nowrap; }
+
+.role-people-section {
+  padding-top: 17px;
+  border-top: 8px solid #f5f2ee;
+}
+
+.role-type-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  padding: 4px;
+  margin-bottom: 9px;
+  border-radius: 13px;
+  background: #f2efec;
+}
+
+.role-type-tabs button {
+  height: 34px;
+  border-radius: 10px;
+  color: #7e746e;
+  font-size: 10px;
+}
+
+.role-type-tabs button.active {
+  background: #fff;
+  color: var(--primary-dark);
+  font-weight: 700;
+  box-shadow: 0 2px 8px #3b2c2212;
+}
+
+.role-search { margin-bottom: 14px; }
+.role-people-groups { display: grid; gap: 18px; }
+.role-people-group { min-width: 0; }
+
+.role-group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.role-group-heading > div { display: flex; align-items: center; gap: 7px; }
+.role-group-heading h3 { margin: 0; font-size: 14px; }
+.role-group-heading span { padding: 3px 6px; border-radius: 6px; font-size: 8px; }
+.role-group-heading span.required { color: #ad4034; background: #fff0ee; }
+.role-group-heading span.optional { color: #577064; background: #ecf3ef; }
+.role-group-heading small { color: #9b9088; font-size: 9px; }
+.role-people-group > p { margin: 0 0 9px; color: #887d75; font-size: 10px; }
+.role-empty { padding: 18px; border-radius: 13px; background: #f7f5f2; color: #9b9088; font-size: 10px; text-align: center; }
+
+.matter-role-unconfigured {
+  margin: 28px 17px;
+  padding: 32px 20px;
+  border-radius: 18px;
+  background: #f5f2ee;
+  text-align: center;
+}
+
+.matter-role-unconfigured svg { color: #8e7d72; }
+.matter-role-unconfigured h2 { margin: 10px 0 6px; font-size: 16px; }
+.matter-role-unconfigured p { margin: 0; color: #8c817a; font-size: 10px; line-height: 1.6; }
+
 .discovery-search {
   display: flex;
   height: 44px;

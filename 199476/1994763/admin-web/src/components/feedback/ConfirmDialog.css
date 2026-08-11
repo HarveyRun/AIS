@@ -1,0 +1,13 @@
+.confirm-dialog-layer { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; }
+.confirm-dialog-mask { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: rgba(20, 22, 25, .48); cursor: default; }
+.confirm-dialog { position: relative; width: min(420px, 100%); background: #fff; border-radius: 14px; padding: 22px; box-shadow: 0 24px 70px rgba(0, 0, 0, .2); }
+.confirm-dialog header { display: flex; align-items: center; justify-content: space-between; }
+.confirm-dialog header i { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; background: #fff0ee; color: #c13a30; }
+.confirm-dialog header svg { width: 20px; }
+.confirm-dialog header > button { border: 0; background: transparent; color: #8a8f98; cursor: pointer; }
+.confirm-dialog h2 { margin: 17px 0 8px; font-size: 18px; }
+.confirm-dialog p { margin: 0; color: #737881; font-size: 14px; line-height: 1.7; }
+.confirm-dialog footer { display: flex; justify-content: flex-end; gap: 9px; margin-top: 24px; }
+.confirm-dialog footer button { min-width: 84px; height: 38px; border-radius: 8px; cursor: pointer; }
+.confirm-dialog footer button:disabled { opacity: .6; cursor: not-allowed; }
+.confirm-dialog .danger-confirm { border: 1px solid #c13a30; background: #c13a30; color: #fff; }

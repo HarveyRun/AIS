@@ -86,6 +86,7 @@ public class UserService {
         user.setAnswererStatus("CLOSED");
         user.setNickname(null);
         user.setAvatarUrl(null);
+        user.setCapabilityDescription(null);
         user.setPhone("deleted-" + user.getId() + "-" + System.currentTimeMillis());
         userRepository.save(user);
     }

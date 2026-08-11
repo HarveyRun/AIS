@@ -42,15 +42,23 @@ public class AnswererService {
             .orElse(null);
         List<ExperienceView> experiences = certifications.stream()
             .filter(item -> "EXPERIENCE".equals(item.getCategory()))
-            .map(item -> new ExperienceView(item.getId(), item.getTitle(), item.getDescription(), item.getYears()))
+            .map(item -> new ExperienceView(
+                item.getId(), item.getTitle(), item.getDescription(), item.getYears(), item.getDiscoveryCategoryId()
+            ))
             .toList();
         return new AnswererView(
             user.getId(), user.getUid(), user.getNickname(), user.getAvatarUrl(), user.isAcceptingInquiries(),
-            job == null ? null : job.getTitle(), job == null ? null : job.getYears(), experiences
+            job == null ? null : job.getTitle(), job == null ? null : job.getYears(), user.getCapabilityDescription(), experiences
         );
     }
 
-    public record ExperienceView(Long certificationId, String title, String description, Integer years) {
+    public record ExperienceView(
+        Long certificationId,
+        String title,
+        String description,
+        Integer years,
+        Long discoveryCategoryId
+    ) {
     }
 
     public record AnswererView(
@@ -61,6 +69,7 @@ public class AnswererService {
         boolean acceptingInquiries,
         String mainJob,
         Integer mainJobYears,
+        String capabilityDescription,
         List<ExperienceView> experiences
     ) {
     }

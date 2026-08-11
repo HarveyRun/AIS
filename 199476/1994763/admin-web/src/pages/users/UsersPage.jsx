@@ -3,19 +3,20 @@ import { Search } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
 import '../shared/Page.css';
 import Pagination from '../../components/data/Pagination.jsx';
+import { message } from '../../components/feedback/message.js';
 export default function UsersPage() {
   const [data, setData] = useState({ items: [], total: 0 });
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState('');
-  const [error, setError] = useState('');
   const [page, setPage] = useState(0);
+  const [editingUser, setEditingUser] = useState(null);
+  const [descriptionDraft, setDescriptionDraft] = useState('');
   const size = 20;
   const load = (targetPage = page) => {
-    setError('');
     return adminApi
       .users(new URLSearchParams({ keyword, status, page: targetPage, size }).toString())
       .then(setData)
-      .catch((e) => setError(e.message));
+      .catch((e) => message.error(e.message));
   };
   useEffect(() => {
     setPage(0);
@@ -23,11 +24,25 @@ export default function UsersPage() {
   }, [status]);
   const change = async (u) => {
     try {
-      setError('');
       await adminApi.userStatus(u.id, u.accountStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE');
       await load();
+      message.success(u.accountStatus === 'ACTIVE' ? '用户已停用' : '用户已恢复');
     } catch (e) {
-      setError(e.message);
+      message.error(e.message);
+    }
+  };
+  const editDescription = (user) => {
+    setEditingUser(user);
+    setDescriptionDraft(user.capabilityDescription || '');
+  };
+  const saveDescription = async () => {
+    try {
+      await adminApi.updateUserCapabilityDescription(editingUser.id, descriptionDraft);
+      await load();
+      setEditingUser(null);
+      message.success('一句话介绍已保存');
+    } catch (error) {
+      message.error(error.message);
     }
   };
   return (
@@ -57,7 +72,6 @@ export default function UsersPage() {
           <button onClick={() => { setPage(0); load(0); }}>查询</button>
       </div>
       <Pagination page={page} size={size} total={data.total} onChange={(next) => { setPage(next); load(next); }} />
-      {error && <div className="error-box">{error}</div>}
       <div className="table-card">
         <table>
           <thead>
@@ -65,6 +79,7 @@ export default function UsersPage() {
               <th>用户</th>
               <th>手机号</th>
               <th>答主状态</th>
+              <th>认证岗位 / 一句话介绍</th>
               <th>可用 / 冻结</th>
               <th>注册时间</th>
               <th>操作</th>
@@ -81,11 +96,16 @@ export default function UsersPage() {
                 <td>
                   <Status value={u.answererStatus} />
                 </td>
+                <td className="user-capability-cell">
+                  <b>{u.mainJob || '暂未通过岗位认证'}</b>
+                  <small>{u.capabilityDescription || '暂未填写一句话介绍'}</small>
+                </td>
                 <td>
                   ¥{u.availableBalance} / ¥{u.frozenBalance}
                 </td>
                 <td>{date(u.createdAt)}</td>
                 <td>
+                  <button className="plain" onClick={() => editDescription(u)}>编辑介绍</button>
                   <button
                     className={u.accountStatus === 'ACTIVE' ? 'danger' : 'plain'}
                     onClick={() => change(u)}
@@ -99,6 +119,16 @@ export default function UsersPage() {
         </table>
         {!data.items.length && <Empty />}
       </div>
+      {editingUser && (
+        <>
+          <button className="modal-mask" type="button" onClick={() => setEditingUser(null)} />
+          <section className="detail-modal capability-description-modal">
+            <header><div><h2>编辑一句话介绍</h2><p>{editingUser.nickname || `UID ${editingUser.uid}`} · {editingUser.mainJob || '暂未认证岗位'}</p></div></header>
+            <label><span>这个人主要能帮用户做什么</span><textarea autoFocus maxLength="240" value={descriptionDraft} onChange={(event) => setDescriptionDraft(event.target.value)} placeholder="例如：帮你统筹施工人员，把整个装修现场管起来。" /><small>{descriptionDraft.length}/240</small></label>
+            <div className="modal-actions"><button className="plain" type="button" onClick={() => setEditingUser(null)}>取消</button><button className="primary" type="button" onClick={saveDescription}>保存</button></div>
+          </section>
+        </>
+      )}
     </>
   );
 }

@@ -32,6 +32,11 @@ export const adminApi = {
     request(`/certifications/${id}/review`, { method: 'POST', body: JSON.stringify(body) }),
   userStatus: (id, status) =>
     request(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  updateUserCapabilityDescription: (id, description) =>
+    request(`/users/${id}/capability-description`, {
+      method: 'PATCH',
+      body: JSON.stringify({ description }),
+    }),
   withdrawalStatus: (id, status) =>
     request(`/withdrawals/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   recordStatus: (type, id, status) =>
@@ -43,5 +48,21 @@ export const adminApi = {
     request(`/customer-service/users/${userId}/reply`, {
       method: 'POST',
       body: JSON.stringify({ content }),
+    }),
+  discovery: () => request('/discovery'),
+  createDiscoveryCategory: (body) =>
+    request('/discovery/categories', { method: 'POST', body: JSON.stringify(body) }),
+  updateDiscoveryCategory: (id, body) =>
+    request(`/discovery/categories/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteDiscoveryCategory: (id) => request(`/discovery/categories/${id}`, { method: 'DELETE' }),
+  createDiscoveryMatter: (body) =>
+    request('/discovery/matters', { method: 'POST', body: JSON.stringify(body) }),
+  updateDiscoveryMatter: (id, body) =>
+    request(`/discovery/matters/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteDiscoveryMatter: (id) => request(`/discovery/matters/${id}`, { method: 'DELETE' }),
+  classifyExperience: (id, categoryId) =>
+    request(`/discovery/experiences/${id}/category`, {
+      method: 'PATCH',
+      body: JSON.stringify({ categoryId }),
     }),
 };

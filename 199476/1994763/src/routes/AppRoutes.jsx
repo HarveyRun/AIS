@@ -89,7 +89,12 @@ export default function AppRoutes(props) {
             setCategory={props.setCategory}
             problem={props.problem}
             setProblem={props.setProblem}
+            matterId={props.matterId}
+            setMatterId={props.setMatterId}
             setExperience={props.setExperience}
+            setExperienceCategoryId={props.setExperienceCategoryId}
+            catalog={props.discoveryCatalog}
+            refreshCatalog={props.refreshDiscoveryCatalog}
           />
         }
       />
@@ -99,8 +104,14 @@ export default function AppRoutes(props) {
           <ExperiencePage
             go={go}
             experience={props.experience}
+            experienceCategoryId={props.experienceCategoryId}
             setExperience={props.setExperience}
             setProblem={props.setProblem}
+            category={props.category}
+            setCategory={props.setCategory}
+            setExperienceCategoryId={props.setExperienceCategoryId}
+            catalog={props.discoveryCatalog}
+            refreshCatalog={props.refreshDiscoveryCatalog}
           />
         }
       />
@@ -110,11 +121,14 @@ export default function AppRoutes(props) {
           <FilterPage
             go={go}
             problem={props.problem}
+            matterId={props.matterId}
             experience={props.experience}
+            experienceCategoryId={props.experienceCategoryId}
             setTalent={props.setTalent}
             title={props.experience ? '按经历找人' : '按事情找人'}
             backScreen={props.experience ? 'experiences' : 'knowledge'}
             answerers={props.answerers}
+            catalog={props.discoveryCatalog}
           />
         }
       />

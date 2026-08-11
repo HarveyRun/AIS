@@ -3,32 +3,31 @@ import { Send } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
 import { date } from '../users/UsersPage.jsx';
 import './CustomerServicePage.css';
+import { message } from '../../components/feedback/message.js';
 
 export default function CustomerServicePage() {
   const [conversations, setConversations] = useState([]);
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
-  const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
 
   const loadConversations = () =>
     adminApi
       .customerServiceConversations()
       .then(setConversations)
-      .catch((e) => setError(e.message));
+      .catch((e) => message.error(e.message));
   useEffect(() => {
     loadConversations();
   }, []);
 
   const open = async (conversation) => {
     try {
-      setError('');
       setSelected(conversation);
       setMessages(await adminApi.customerServiceMessages(conversation.userId));
       loadConversations();
     } catch (e) {
-      setError(e.message);
+      message.error(e.message);
     }
   };
 
@@ -36,13 +35,13 @@ export default function CustomerServicePage() {
     if (!text.trim()) return;
     try {
       setSending(true);
-      setError('');
       await adminApi.replyCustomerService(selected.userId, text.trim());
       setText('');
       setMessages(await adminApi.customerServiceMessages(selected.userId));
       loadConversations();
+      message.success('回复已发送');
     } catch (e) {
-      setError(e.message);
+      message.error(e.message);
     } finally {
       setSending(false);
     }
@@ -56,7 +55,6 @@ export default function CustomerServicePage() {
           <p>查看用户留言并直接回复</p>
         </div>
       </div>
-      {error && <div className="error-box">{error}</div>}
       <section className="service-workbench">
         <aside>
           {conversations.map((item) => (

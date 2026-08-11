@@ -8,6 +8,7 @@ import UsersPage from '../pages/users/UsersPage.jsx';
 import RecordsPage from '../pages/records/RecordsPage.jsx';
 import AuditPage from '../pages/audit/AuditPage.jsx';
 import CustomerServicePage from '../pages/customerService/CustomerServicePage.jsx';
+import DiscoveryManagementPage from '../pages/discovery/DiscoveryManagementPage.jsx';
 export default function App() {
   const [authed, setAuthed] = useState(() => Boolean(token.get()));
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/certifications" element={<RecordsPage type="certifications" />} />
+        <Route path="/discovery" element={<DiscoveryManagementPage />} />
         <Route path="/inquiries" element={<RecordsPage type="inquiries" />} />
         <Route path="/withdrawals" element={<RecordsPage type="withdrawals" />} />
         <Route path="/feedback" element={<RecordsPage type="feedback" />} />

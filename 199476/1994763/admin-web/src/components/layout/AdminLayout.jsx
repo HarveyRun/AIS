@@ -11,6 +11,7 @@ import {
   ScrollText,
   Headset,
   LogOut,
+  Tags,
 } from 'lucide-react';
 import { adminApi, token } from '../../api/adminApi.js';
 import './AdminLayout.css';
@@ -18,6 +19,7 @@ const items = [
   ['/dashboard', '概览', LayoutDashboard],
   ['/users', '用户管理', Users],
   ['/certifications', '认证审核', ShieldCheck],
+  ['/discovery', '内容分类', Tags],
   ['/inquiries', '询问管理', MessagesSquare],
   ['/withdrawals', '提现处理', WalletCards],
   ['/feedback', '投诉反馈', MessageSquareWarning],

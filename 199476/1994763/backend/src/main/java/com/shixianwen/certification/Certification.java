@@ -29,6 +29,9 @@ public class Certification {
     @Column(nullable = false, length = 30)
     private String category;
 
+    @Column(name = "discovery_category_id")
+    private Long discoveryCategoryId;
+
     @Column(name = "certification_type", nullable = false, length = 50)
     private String certificationType;
 

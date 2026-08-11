@@ -31,6 +31,9 @@ public class User {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
+    @Column(name = "capability_description", length = 240)
+    private String capabilityDescription;
+
     @Column(name = "accepting_inquiries", nullable = false)
     private boolean acceptingInquiries = true;
 

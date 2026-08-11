@@ -25,6 +25,7 @@ export async function request(path, options = {}) {
 }
 
 export const api = {
+  discoveryCatalog: () => request('/public/discovery/catalog'),
   sendCode: (phone) => request('/auth/verification-codes', { method: 'POST', body: JSON.stringify({ phone }) }),
   login: (phone, code) => request('/auth/login', { method: 'POST', body: JSON.stringify({ phone, code }) }),
   register: (phone, code, nickname) => request('/auth/register', { method: 'POST', body: JSON.stringify({ phone, code, nickname }) }),

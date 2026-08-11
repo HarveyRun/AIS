@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import BottomNav from '../components/navigation/BottomNav.jsx';
 import useAppNavigation from '../hooks/useAppNavigation.js';
@@ -25,7 +25,13 @@ function App() {
   const [category, setCategory] = usePersistentState('shixianwen-category', '生活');
   const { toast, notify } = useToast();
   const [problem, setProblem] = usePersistentState('shixianwen-problem', '');
+  const [matterId, setMatterId] = usePersistentState('shixianwen-matter-id', null);
   const [experience, setExperience] = usePersistentState('shixianwen-experience', '');
+  const [experienceCategoryId, setExperienceCategoryId] = usePersistentState(
+    'shixianwen-experience-category-id',
+    null,
+  );
+  const [discoveryCatalog, setDiscoveryCatalog] = useState({ categories: [] });
   const [talent, setTalent] = usePersistentState('shixianwen-selected-talent', null);
   const [answerers, setAnswerers] = useState([]);
   const [certType, setCertType] = usePersistentState('shixianwen-cert-type', '');
@@ -127,7 +133,9 @@ function App() {
       return;
     }
     setProblem('');
+    setMatterId(null);
     setExperience('');
+    setExperienceCategoryId(null);
     setTalent(null);
     setCertType('');
     setUserProfile({
@@ -153,6 +161,21 @@ function App() {
     go('login');
   };
 
+  const refreshDiscoveryCatalog = useCallback(async () => {
+    try {
+      const catalog = await api.discoveryCatalog();
+      setDiscoveryCatalog(catalog || { categories: [] });
+      return catalog;
+    } catch (error) {
+      notify(error.message);
+      return null;
+    }
+  }, [notify]);
+
+  useEffect(() => {
+    refreshDiscoveryCatalog();
+  }, [refreshDiscoveryCatalog]);
+
   useEffect(() => {
     if (!isAuthenticated) return undefined;
     let active = true;
@@ -167,7 +190,7 @@ function App() {
         setWithdrawals(withdrawalItems.map((item) => [`¥${item.amount}`, item.status === 'COMPLETED' ? '已到账' : '处理中', new Date(item.createdAt).toLocaleString()]));
         setNotices(notificationItems.map((item) => ({ id: item.id, title: item.title, content: item.content, time: new Date(item.createdAt).toLocaleString(), screen: 'inquiries', read: item.read })));
         setConversations(inquiryItems.map((item) => ({ id: item.id, direction: item.role === 'QUESTIONER' ? 'outgoing' : 'incoming', name: item.otherName, avatar: item.otherAvatar, title: item.topic || item.question, question: item.question, amount: Number(item.amount), inquiryStatus: item.status.toLowerCase(), settlementStatus: item.fundsStatus === 'SETTLED' ? 'settled' : item.fundsStatus.toLowerCase(), unread: 0, partner: { id: item.otherUserId, name: item.otherName, avatar: item.otherAvatar }, messages: [] })));
-        setAnswerers(answererItems.filter((item) => item.id !== user.id).map((item) => ({ id: item.id, uid: item.uid, name: item.nickname || `UID ${item.uid}`, avatar: item.avatarUrl || '', acceptingInquiries: item.acceptingInquiries, main: item.mainJob || '-', mainYears: item.mainJobYears || 0, venture: '-', ventureYears: 0, experiences: item.experiences.map((experienceItem) => experienceItem.title), experienceDetails: item.experiences })));
+        setAnswerers(answererItems.filter((item) => item.id !== user.id).map((item) => ({ id: item.id, uid: item.uid, name: item.nickname || `UID ${item.uid}`, avatar: item.avatarUrl || '', acceptingInquiries: item.acceptingInquiries, main: item.mainJob || '-', mainYears: item.mainJobYears || 0, capabilityDescription: item.capabilityDescription || '', venture: '-', ventureYears: 0, experiences: item.experiences.map((experienceItem) => experienceItem.title), experienceDetails: item.experiences })));
       })
       .catch((error) => {
         if (!active) return;
@@ -210,8 +233,14 @@ function App() {
     setCategory,
     problem,
     setProblem,
+    matterId,
+    setMatterId,
     experience,
     setExperience,
+    experienceCategoryId,
+    setExperienceCategoryId,
+    discoveryCatalog,
+    refreshDiscoveryCatalog,
     talent,
     setTalent,
     certType,

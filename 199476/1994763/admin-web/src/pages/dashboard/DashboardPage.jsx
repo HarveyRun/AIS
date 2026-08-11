@@ -9,6 +9,7 @@ import {
   Landmark,
 } from 'lucide-react';
 import '../shared/Page.css';
+import { message } from '../../components/feedback/message.js';
 const cards = [
   ['users', '有效用户', Users],
   ['answerers', '答主', ShieldCheck],
@@ -19,12 +20,11 @@ const cards = [
 ];
 export default function DashboardPage() {
   const [data, setData] = useState(null);
-  const [error, setError] = useState('');
   useEffect(() => {
     adminApi
       .dashboard()
       .then(setData)
-      .catch((e) => setError(e.message));
+      .catch((e) => message.error(e.message));
   }, []);
   return (
     <>
@@ -34,7 +34,6 @@ export default function DashboardPage() {
           <p>平台当前需要关注的业务数据</p>
         </div>
       </div>
-      {error && <div className="error-box">{error}</div>}
       <section className="stat-grid">
         {cards.map(([key, label, Icon]) => (
           <article key={key}>

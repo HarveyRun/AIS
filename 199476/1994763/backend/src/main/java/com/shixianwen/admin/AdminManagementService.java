@@ -31,7 +31,7 @@ public class AdminManagementService {
         String where=" WHERE (?='' OR u.uid LIKE ? OR u.phone LIKE ? OR COALESCE(u.nickname,'') LIKE ?) AND (?='' OR u.account_status=?) ";
         String q=keyword==null?"":keyword.trim(), s=status==null?"":status.trim(); String like="%"+q+"%";
         Long total=jdbc.queryForObject("SELECT COUNT(*) FROM users u"+where,Long.class,q,like,like,like,s,s);
-        List<Map<String,Object>> items=jdbc.queryForList("SELECT u.id,u.uid,u.phone,u.nickname,u.avatar_url AS avatarUrl,u.answerer_status AS answererStatus,u.account_status AS accountStatus,u.accepting_inquiries AS acceptingInquiries,u.created_at AS createdAt,COALESCE(w.available_balance,0) AS availableBalance,COALESCE(w.frozen_balance,0) AS frozenBalance FROM users u LEFT JOIN wallet_accounts w ON w.user_id=u.id"+where+" ORDER BY u.id DESC LIMIT ? OFFSET ?",q,like,like,like,s,s,size,page*size);
+        List<Map<String,Object>> items=jdbc.queryForList("SELECT u.id,u.uid,u.phone,u.nickname,u.avatar_url AS avatarUrl,u.capability_description AS capabilityDescription,u.answerer_status AS answererStatus,u.account_status AS accountStatus,u.accepting_inquiries AS acceptingInquiries,u.created_at AS createdAt,COALESCE(w.available_balance,0) AS availableBalance,COALESCE(w.frozen_balance,0) AS frozenBalance,(SELECT c.title FROM certifications c WHERE c.user_id=u.id AND c.certification_type='MAIN_JOB' AND c.status='APPROVED' ORDER BY c.id LIMIT 1) AS mainJob FROM users u LEFT JOIN wallet_accounts w ON w.user_id=u.id"+where+" ORDER BY u.id DESC LIMIT ? OFFSET ?",q,like,like,like,s,s,size,page*size);
         return new PageResult(items,total,page,size);
     }
     public PageResult table(String type,String status,int page,int size) {
@@ -51,6 +51,12 @@ public class AdminManagementService {
         if(!List.of("ACTIVE","SUSPENDED").contains(status)) throw BusinessException.badRequest("用户状态不正确");
         if(jdbc.update("UPDATE users SET account_status=?,accepting_inquiries=CASE WHEN ?='SUSPENDED' THEN FALSE ELSE accepting_inquiries END WHERE id=?",status,status,id)!=1) throw BusinessException.notFound("用户不存在");
         audit(admin,"CHANGE_USER_STATUS","USER",id,status,ip);
+    }
+    @Transactional public void userCapabilityDescription(AdminUser admin,Long id,String description,String ip) {
+        String value=description==null?null:description.trim();
+        if(value!=null&&value.length()>240) throw BusinessException.badRequest("一句话介绍不能超过240个字");
+        if(jdbc.update("UPDATE users SET capability_description=? WHERE id=?",value==null||value.isBlank()?null:value,id)!=1) throw BusinessException.notFound("用户不存在");
+        audit(admin,"UPDATE_USER_CAPABILITY_DESCRIPTION","USER",id,value,ip);
     }
     @Transactional public void processWithdrawal(AdminUser admin,Long id,String status,String ip) {
         if(!List.of("COMPLETED","FAILED").contains(status)) throw BusinessException.badRequest("提现状态不正确");
@@ -86,6 +92,117 @@ public class AdminManagementService {
         jdbc.update("INSERT INTO customer_service_messages(user_id,sender_type,content,read_flag) VALUES (?,'SERVICE',?,FALSE)",userId,content.trim());
         audit(admin,"REPLY_CUSTOMER_SERVICE","USER",userId,content.trim(),ip);
     }
+    public Map<String,Object> discovery() {
+        Map<String,Object> result=new LinkedHashMap<>();
+        result.put("categories",jdbc.queryForList("SELECT id,main_category AS mainCategory,name,sort_order AS sortOrder,active FROM discovery_categories ORDER BY FIELD(main_category,'LIFE','WORK','ENTERTAINMENT'),sort_order,id"));
+        result.put("matters",jdbc.queryForList("SELECT m.id,m.category_id AS categoryId,m.title,m.sort_order AS sortOrder,m.active,c.main_category AS mainCategory,c.name AS categoryName FROM discovery_matters m JOIN discovery_categories c ON c.id=m.category_id ORDER BY FIELD(c.main_category,'LIFE','WORK','ENTERTAINMENT'),c.sort_order,m.sort_order,m.id"));
+        result.put("matterParticipants",jdbc.queryForList("SELECT matter_id AS matterId,user_id AS userId,participation_type AS type,sort_order AS sortOrder FROM discovery_matter_participants ORDER BY matter_id,CASE participation_type WHEN 'PRIMARY' THEN 0 ELSE 1 END,sort_order,user_id"));
+        result.put("answerers",jdbc.queryForList("SELECT DISTINCT u.id AS userId,u.uid,u.nickname,u.capability_description AS capabilityDescription,c.title AS mainJob FROM users u JOIN certifications c ON c.user_id=u.id AND c.certification_type='MAIN_JOB' AND c.status='APPROVED' WHERE u.account_status='ACTIVE' AND u.answerer_status='APPROVED' ORDER BY c.title,u.nickname,u.id"));
+        result.put("experiences",jdbc.queryForList("SELECT t.id,t.title,t.description,t.status,t.discovery_category_id AS categoryId,t.reviewed_at AS reviewedAt,u.uid,u.nickname,c.main_category AS mainCategory,c.name AS categoryName FROM certifications t JOIN users u ON u.id=t.user_id LEFT JOIN discovery_categories c ON c.id=t.discovery_category_id WHERE t.category='EXPERIENCE' AND t.status='APPROVED' ORDER BY CASE WHEN t.discovery_category_id IS NULL THEN 0 ELSE 1 END,t.id DESC"));
+        return result;
+    }
+    @Transactional public void createCategory(AdminUser admin,String mainCategory,String name,Integer sortOrder,String ip) {
+        String main=mainCategory(mainCategory), value=required(name,"子分类名称不能为空");
+        ensureCategoryNameAvailable(main,value,null);
+        int tail=jdbc.queryForObject("SELECT COUNT(*)+1 FROM discovery_categories WHERE main_category=?",Integer.class,main);
+        jdbc.update("INSERT INTO discovery_categories(main_category,name,sort_order,active) VALUES (?,?,?,TRUE)",main,value,tail);
+        Long id=jdbc.queryForObject("SELECT LAST_INSERT_ID()",Long.class);
+        reorderCategories(main,id,sortOrder==null?tail:sortOrder);
+        audit(admin,"CREATE_DISCOVERY_CATEGORY","DISCOVERY_CATEGORY",id,main+"/"+value,ip);
+    }
+    @Transactional public void updateCategory(AdminUser admin,Long id,String mainCategory,String name,Integer sortOrder,Boolean active,String ip) {
+        String main=mainCategory(mainCategory), value=required(name,"子分类名称不能为空");
+        ensureCategoryNameAvailable(main,value,id);
+        String oldMain=jdbc.query("SELECT main_category FROM discovery_categories WHERE id=?",rs->rs.next()?rs.getString(1):null,id);
+        if(oldMain==null) throw BusinessException.notFound("子分类不存在");
+        jdbc.update("UPDATE discovery_categories SET main_category=?,name=?,active=? WHERE id=?",main,value,active==null||active,id);
+        if(!oldMain.equals(main)) normalizeCategories(oldMain);
+        reorderCategories(main,id,sortOrder==null?Integer.MAX_VALUE:sortOrder);
+        audit(admin,"UPDATE_DISCOVERY_CATEGORY","DISCOVERY_CATEGORY",id,main+"/"+value,ip);
+    }
+    @Transactional public void deleteCategory(AdminUser admin,Long id,String ip) {
+        if(count("discovery_matters","category_id="+id)>0) throw BusinessException.badRequest("该分类下仍有事情，请先删除或转移事情");
+        if(count("certifications","discovery_category_id="+id)>0) throw BusinessException.badRequest("该分类仍关联认证经历，请先取消或调整经历分类");
+        String main=jdbc.query("SELECT main_category FROM discovery_categories WHERE id=?",rs->rs.next()?rs.getString(1):null,id);
+        if(main==null||jdbc.update("DELETE FROM discovery_categories WHERE id=?",id)!=1) throw BusinessException.notFound("子分类不存在");
+        normalizeCategories(main);
+        audit(admin,"DELETE_DISCOVERY_CATEGORY","DISCOVERY_CATEGORY",id,"DELETE",ip);
+    }
+    @Transactional public void createMatter(AdminUser admin,Long categoryId,String title,Integer sortOrder,List<AdminManagementController.MatterParticipantRequest> participants,String ip) {
+        requireCategory(categoryId); String value=required(title,"事情名称不能为空");
+        ensureMatterTitleAvailable(categoryId,value,null);
+        int tail=jdbc.queryForObject("SELECT COUNT(*)+1 FROM discovery_matters WHERE category_id=?",Integer.class,categoryId);
+        jdbc.update("INSERT INTO discovery_matters(category_id,title,sort_order,active) VALUES (?,?,?,TRUE)",categoryId,value,tail);
+        Long id=jdbc.queryForObject("SELECT LAST_INSERT_ID()",Long.class);
+        replaceMatterParticipants(id,participants);
+        reorderMatters(categoryId,id,sortOrder==null?tail:sortOrder);
+        audit(admin,"CREATE_DISCOVERY_MATTER","DISCOVERY_MATTER",id,value,ip);
+    }
+    @Transactional public void updateMatter(AdminUser admin,Long id,Long categoryId,String title,Integer sortOrder,Boolean active,List<AdminManagementController.MatterParticipantRequest> participants,String ip) {
+        requireCategory(categoryId); String value=required(title,"事情名称不能为空");
+        ensureMatterTitleAvailable(categoryId,value,id);
+        Long oldCategory=jdbc.query("SELECT category_id FROM discovery_matters WHERE id=?",rs->rs.next()?rs.getLong(1):null,id);
+        if(oldCategory==null) throw BusinessException.notFound("事情不存在");
+        jdbc.update("UPDATE discovery_matters SET category_id=?,title=?,active=? WHERE id=?",categoryId,value,active==null||active,id);
+        replaceMatterParticipants(id,participants);
+        if(!oldCategory.equals(categoryId)) normalizeMatters(oldCategory);
+        reorderMatters(categoryId,id,sortOrder==null?Integer.MAX_VALUE:sortOrder);
+        audit(admin,"UPDATE_DISCOVERY_MATTER","DISCOVERY_MATTER",id,value,ip);
+    }
+    @Transactional public void deleteMatter(AdminUser admin,Long id,String ip) {
+        Long categoryId=jdbc.query("SELECT category_id FROM discovery_matters WHERE id=?",rs->rs.next()?rs.getLong(1):null,id);
+        if(categoryId==null||jdbc.update("DELETE FROM discovery_matters WHERE id=?",id)!=1) throw BusinessException.notFound("事情不存在");
+        normalizeMatters(categoryId);
+        audit(admin,"DELETE_DISCOVERY_MATTER","DISCOVERY_MATTER",id,"DELETE",ip);
+    }
+    @Transactional public void classifyExperience(AdminUser admin,Long id,Long categoryId,String ip) {
+        if(categoryId!=null) requireCategory(categoryId);
+        if(jdbc.update("UPDATE certifications SET discovery_category_id=? WHERE id=? AND category='EXPERIENCE' AND status='APPROVED'",categoryId,id)!=1) throw BusinessException.badRequest("仅可分类已审核通过的亲身经历");
+        audit(admin,"CLASSIFY_EXPERIENCE","CERTIFICATION",id,String.valueOf(categoryId),ip);
+    }
+    private void requireCategory(Long id){if(id==null||count("discovery_categories","id="+id+" AND active=TRUE")==0) throw BusinessException.badRequest("请选择有效的子分类");}
+    private void ensureCategoryNameAvailable(String main,String name,Long excludedId){
+        Long total=excludedId==null
+            ? jdbc.queryForObject("SELECT COUNT(*) FROM discovery_categories WHERE main_category=? AND name=?",Long.class,main,name)
+            : jdbc.queryForObject("SELECT COUNT(*) FROM discovery_categories WHERE main_category=? AND name=? AND id<>?",Long.class,main,name,excludedId);
+        if(total!=null&&total>0) throw BusinessException.badRequest("该业务大类下已存在同名子分类");
+    }
+    private void ensureMatterTitleAvailable(Long categoryId,String title,Long excludedId){
+        Long total=excludedId==null
+            ? jdbc.queryForObject("SELECT COUNT(*) FROM discovery_matters WHERE category_id=? AND title=?",Long.class,categoryId,title)
+            : jdbc.queryForObject("SELECT COUNT(*) FROM discovery_matters WHERE category_id=? AND title=? AND id<>?",Long.class,categoryId,title,excludedId);
+        if(total!=null&&total>0) throw BusinessException.badRequest("该子分类下已存在同名事情");
+    }
+    private void replaceMatterParticipants(Long matterId,List<AdminManagementController.MatterParticipantRequest> participants){
+        jdbc.update("DELETE FROM discovery_matter_participants WHERE matter_id=?",matterId);
+        if(participants==null||participants.isEmpty()) throw BusinessException.badRequest("每件事情至少选择一名主要参与用户");
+        int primaryOrder=1, supportingOrder=1;
+        Set<Long> seen=new HashSet<>();
+        for(AdminManagementController.MatterParticipantRequest participant:participants){
+            if(participant==null||participant.userId()==null) continue;
+            if(!seen.add(participant.userId())) throw BusinessException.badRequest("同一用户不能重复参与同一件事情");
+            String type="SUPPORTING".equalsIgnoreCase(participant.type())?"SUPPORTING":"PRIMARY";
+            Long valid=jdbc.queryForObject("SELECT COUNT(*) FROM users u JOIN certifications c ON c.user_id=u.id AND c.certification_type='MAIN_JOB' AND c.status='APPROVED' WHERE u.id=? AND u.account_status='ACTIVE' AND u.answerer_status='APPROVED'",Long.class,participant.userId());
+            if(valid==null||valid==0) throw BusinessException.badRequest("所选用户没有通过岗位认证");
+            int order="PRIMARY".equals(type)?primaryOrder++:supportingOrder++;
+            jdbc.update("INSERT INTO discovery_matter_participants(matter_id,user_id,participation_type,sort_order) VALUES (?,?,?,?)",matterId,participant.userId(),type,order);
+        }
+        if(primaryOrder==1) throw BusinessException.badRequest("每件事情至少选择一名主要参与用户");
+    }
+    private String mainCategory(String value){String result=value==null?"":value.trim().toUpperCase(Locale.ROOT);if(!List.of("LIFE","WORK","ENTERTAINMENT").contains(result)) throw BusinessException.badRequest("主分类不正确");return result;}
+    private String required(String value,String message){if(value==null||value.isBlank()) throw BusinessException.badRequest(message);return value.trim();}
+    private void reorderCategories(String main,Long movingId,int requestedPosition){
+        List<Long> ids=jdbc.queryForList("SELECT id FROM discovery_categories WHERE main_category=? AND id<>? ORDER BY sort_order,id",Long.class,main,movingId);
+        ids.add(Math.max(0,Math.min(requestedPosition-1,ids.size())),movingId);
+        for(int index=0;index<ids.size();index++) jdbc.update("UPDATE discovery_categories SET sort_order=? WHERE id=?",index+1,ids.get(index));
+    }
+    private void normalizeCategories(String main){List<Long> ids=jdbc.queryForList("SELECT id FROM discovery_categories WHERE main_category=? ORDER BY sort_order,id",Long.class,main);for(int i=0;i<ids.size();i++) jdbc.update("UPDATE discovery_categories SET sort_order=? WHERE id=?",i+1,ids.get(i));}
+    private void reorderMatters(Long categoryId,Long movingId,int requestedPosition){
+        List<Long> ids=jdbc.queryForList("SELECT id FROM discovery_matters WHERE category_id=? AND id<>? ORDER BY sort_order,id",Long.class,categoryId,movingId);
+        ids.add(Math.max(0,Math.min(requestedPosition-1,ids.size())),movingId);
+        for(int index=0;index<ids.size();index++) jdbc.update("UPDATE discovery_matters SET sort_order=? WHERE id=?",index+1,ids.get(index));
+    }
+    private void normalizeMatters(Long categoryId){List<Long> ids=jdbc.queryForList("SELECT id FROM discovery_matters WHERE category_id=? ORDER BY sort_order,id",Long.class,categoryId);for(int i=0;i<ids.size();i++) jdbc.update("UPDATE discovery_matters SET sort_order=? WHERE id=?",i+1,ids.get(i));}
     private long count(String table,String where){return jdbc.queryForObject("SELECT COUNT(*) FROM "+table+" WHERE "+where,Long.class);}
     private void audit(AdminUser admin,String action,String type,Object id,String detail,String ip){ AdminAuditLog l=new AdminAuditLog();l.setAdminUser(admin);l.setAction(action);l.setTargetType(type);l.setTargetId(String.valueOf(id));l.setDetail(detail);l.setIpAddress(ip);audits.save(l); }
     private TableSpec spec(String type){return switch(type){

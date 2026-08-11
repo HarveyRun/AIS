@@ -1,0 +1,11 @@
+.global-message-host { position: fixed; z-index: 120; top: 18px; left: 50%; transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); display: grid; gap: 9px; pointer-events: none; }
+.global-message { min-height: 46px; display: flex; align-items: center; gap: 10px; padding: 11px 12px; background: #fff; color: #34373c; border: 1px solid #e2e4e7; border-radius: 10px; box-shadow: 0 10px 30px rgba(25, 28, 33, .14); pointer-events: auto; animation: message-in .18s ease-out; }
+.global-message > svg { width: 19px; flex: 0 0 auto; }
+.global-message span { flex: 1; font-size: 14px; line-height: 1.45; }
+.global-message button { width: 28px; height: 28px; border: 0; background: transparent; color: #9297a0; cursor: pointer; display: grid; place-items: center; }
+.global-message button svg { width: 15px; }
+.global-message.success > svg { color: #27804b; }
+.global-message.warning > svg { color: #b17412; }
+.global-message.error > svg { color: #c13a30; }
+.global-message.default > svg { color: #4c6fa8; }
+@keyframes message-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }

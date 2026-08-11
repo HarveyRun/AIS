@@ -225,13 +225,16 @@ button.primary {
   place-items: center;
   color: #979ca4;
 }
-.error-box {
-  background: #fff0ee;
-  color: #b6382e;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 14px;
-}
+.user-capability-cell { max-width: 320px; }
+.user-capability-cell b, .user-capability-cell small { display: block; }
+.user-capability-cell small { margin-top: 5px; color: #7f858e; white-space: normal; line-height: 1.45; }
+.user-capability-cell + td + td button + button { margin-left: 6px; }
+.capability-description-modal { width: min(560px, calc(100vw - 40px)); }
+.capability-description-modal label { display: block; }
+.capability-description-modal label > span { display: block; margin-bottom: 8px; color: #656b73; font-size: 13px; }
+.capability-description-modal textarea { width: 100%; min-height: 120px; resize: vertical; border: 1px solid #d8dbe0; border-radius: 8px; padding: 11px; font: inherit; }
+.capability-description-modal label > small { display: block; margin-top: 5px; color: #8a9098; text-align: right; }
+.capability-description-modal .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .modal-mask {
   position: fixed;
   inset: 0;

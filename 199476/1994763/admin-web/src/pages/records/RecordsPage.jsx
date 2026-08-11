@@ -4,6 +4,7 @@ import { adminApi } from '../../api/adminApi.js';
 import { date, Empty, Status } from '../users/UsersPage.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
 import '../shared/Page.css';
+import { message } from '../../components/feedback/message.js';
 const meta = {
   certifications: ['认证审核', '核对用户提交的身份、岗位与经历材料'],
   inquiries: ['询问管理', '查看询问状态和资金流转'],
@@ -17,15 +18,13 @@ export default function RecordsPage({ type }) {
   const [selected, setSelected] = useState(null);
   const [materials, setMaterials] = useState([]);
   const [reason, setReason] = useState('');
-  const [error, setError] = useState('');
   const [page, setPage] = useState(0);
   const size = 20;
   const load = (targetPage = page) => {
-    setError('');
     return adminApi
       .table(type, new URLSearchParams({ status, page: targetPage, size }).toString())
       .then(setData)
-      .catch((e) => setError(e.message));
+      .catch((e) => message.error(e.message));
   };
   useEffect(() => {
     setSelected(null);
@@ -34,39 +33,38 @@ export default function RecordsPage({ type }) {
   }, [type, status]);
   const open = async (row) => {
     try {
-      setError('');
       setSelected(row);
       setReason('');
       setMaterials([]);
       if (type === 'certifications') setMaterials(await adminApi.materials(row.id));
     } catch (e) {
       setSelected(null);
-      setError(e.message);
+      message.error(e.message);
     }
   };
   const review = async (approved) => {
     if (!approved && !reason.trim()) {
-      setError('驳回时请填写原因');
+      message.warning('驳回时请填写原因');
       return;
     }
     try {
-      setError('');
       await adminApi.review(selected.id, { approved, reason: reason.trim() });
       setSelected(null);
       await load();
+      message.success(approved ? '认证已通过' : '认证已驳回');
     } catch (e) {
-      setError(e.message);
+      message.error(e.message);
     }
   };
   const process = async (statusValue) => {
     try {
-      setError('');
       if (type === 'withdrawals') await adminApi.withdrawalStatus(selected.id, statusValue);
       else await adminApi.recordStatus(type, selected.id, statusValue);
       setSelected(null);
       await load();
+      message.success(type === 'withdrawals' ? '提现状态已更新' : '处理状态已更新');
     } catch (e) {
-      setError(e.message);
+      message.error(e.message);
     }
   };
   return (
@@ -97,7 +95,6 @@ export default function RecordsPage({ type }) {
           load(next);
         }}
       />
-      {error && <div className="error-box">{error}</div>}
       <div className="table-card">
         <table>
           <thead>
