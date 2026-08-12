@@ -38,6 +38,12 @@ public class Inquiry {
     @Column(nullable = false, length = 1000)
     private String question;
 
+    @Column(name = "request_ip", length = 45, updatable = false)
+    private String requestIp;
+
+    @Column(name = "request_location", length = 100, updatable = false)
+    private String requestLocation;
+
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
 
@@ -46,6 +52,12 @@ public class Inquiry {
 
     @Column(name = "funds_status", nullable = false, length = 30)
     private String fundsStatus;
+
+    @Column(name = "questioner_unread_count", nullable = false)
+    private int questionerUnreadCount;
+
+    @Column(name = "answerer_unread_count", nullable = false)
+    private int answererUnreadCount;
 
     @Column(name = "response_deadline")
     private LocalDateTime responseDeadline;
@@ -58,6 +70,9 @@ public class Inquiry {
 
     @Column(name = "ended_at")
     private LocalDateTime endedAt;
+
+    @Column(name = "last_message_at")
+    private LocalDateTime lastMessageAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

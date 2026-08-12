@@ -1,4 +1,4 @@
-import { CircleUserRound, Home, MessagesSquare, MessageCircleMore } from 'lucide-react';
+import { CircleUserRound, Home, MessageCircleMore } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'home', label: '首页', Icon: Home },

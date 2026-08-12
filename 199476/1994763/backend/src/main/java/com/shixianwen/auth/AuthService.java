@@ -5,6 +5,7 @@ import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
 import com.shixianwen.wallet.WalletAccount;
 import com.shixianwen.wallet.WalletAccountRepository;
+import com.shixianwen.network.ClientNetworkInfo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final AuthSessionRepository authSessionRepository;
     private final WalletAccountRepository walletAccountRepository;
+    private final UserLoginRecordRepository loginRecordRepository;
     private final SecureRandom secureRandom = new SecureRandom();
     private final String verificationCode;
     private final int tokenValidDays;
@@ -31,12 +33,14 @@ public class AuthService {
         UserRepository userRepository,
         AuthSessionRepository authSessionRepository,
         WalletAccountRepository walletAccountRepository,
+        UserLoginRecordRepository loginRecordRepository,
         @Value("${app.auth.demo-verification-code}") String verificationCode,
         @Value("${app.auth.token-valid-days}") int tokenValidDays
     ) {
         this.userRepository = userRepository;
         this.authSessionRepository = authSessionRepository;
         this.walletAccountRepository = walletAccountRepository;
+        this.loginRecordRepository = loginRecordRepository;
         this.verificationCode = verificationCode;
         this.tokenValidDays = tokenValidDays;
     }
@@ -48,7 +52,7 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResult register(String phone, String nickname, String code) {
+    public LoginResult register(String phone, String nickname, String code, ClientNetworkInfo network) {
         validateCode(code);
         if (userRepository.findByPhoneAndAccountStatus(phone, "ACTIVE").isPresent()) {
             throw BusinessException.badRequest("该手机号已经注册");
@@ -58,6 +62,8 @@ public class AuthService {
         user.setUid(generateUid());
         user.setPhone(phone);
         user.setNickname(normalizeNickname(nickname));
+        user.setRegisterIp(network.ipAddress());
+        user.setRegisterLocation(network.location());
         user = userRepository.save(user);
 
         WalletAccount wallet = new WalletAccount();
@@ -67,10 +73,18 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResult login(String phone, String code) {
+    public LoginResult login(String phone, String code, ClientNetworkInfo network) {
         validateCode(code);
         User user = userRepository.findByPhoneAndAccountStatus(phone, "ACTIVE")
             .orElseThrow(() -> BusinessException.notFound("账号不存在，请先注册"));
+        user.setLastLoginIp(network.ipAddress());
+        user.setLastLoginLocation(network.location());
+        user.setLastLoginAt(LocalDateTime.now());
+        UserLoginRecord loginRecord = new UserLoginRecord();
+        loginRecord.setUser(user);
+        loginRecord.setIpAddress(network.ipAddress());
+        loginRecord.setIpLocation(network.location());
+        loginRecordRepository.save(loginRecord);
         return createSession(user);
     }
 
@@ -88,6 +102,8 @@ public class AuthService {
     }
 
     private LoginResult createSession(User user) {
+        authSessionRepository.deleteByUserId(user.getId());
+        authSessionRepository.flush();
         byte[] bytes = new byte[32];
         secureRandom.nextBytes(bytes);
         String token = HexFormat.of().formatHex(bytes);

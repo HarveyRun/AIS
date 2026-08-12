@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronRight, Landmark, X } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import './ProfilePages.css';
@@ -25,7 +25,7 @@ export default function WalletPage({
     cardNumber: '',
     holderName: '',
   });
-  const [bankError, setBankError] = useState('');
+  const [rechargeCapability, setRechargeCapability] = useState(null);
   const boundBank = accountStats.bankCard || null;
   const numericAmount = Number(amount || 0);
   const remainingFree = Math.max(0, 10000 - Number(accountStats.totalWithdrawn || 0));
@@ -33,6 +33,47 @@ export default function WalletPage({
   const commission = Number((commissionBase * 0.2).toFixed(2));
   const arrivalAmount = Number(Math.max(0, numericAmount - commission).toFixed(2));
   const bankLabel = boundBank ? `${boundBank.bankName}（${boundBank.cardNumber.slice(-4)}）` : '';
+
+  useEffect(() => {
+    const parameters = new URLSearchParams(window.location.search);
+    const orderNo = parameters.get('orderNo');
+    if (parameters.get('recharge') !== 'success' || !orderNo) return;
+
+    Promise.all([
+      api.rechargeOrder(orderNo),
+      api.wallet(),
+      api.walletTransactions(),
+    ]).then(([order, wallet, transactionItems]) => {
+      setBalance(Number(wallet.availableBalance));
+      setAccountStats((current) => ({
+        ...current,
+        totalWithdrawn: Number(wallet.totalWithdrawn),
+      }));
+      setRecords(transactionItems.map((item) => [
+        item.direction === 'IN' ? '收入' : '支出',
+        item.description,
+        `${item.direction === 'IN' ? '+' : '-'}¥${item.amount}`,
+        new Date(item.createdAt).toLocaleString(),
+      ]));
+      notify(
+        order.status === 'PAID' ? '充值成功' : '支付结果确认中',
+        order.status === 'PAID' ? 'success' : 'default',
+      );
+      window.history.replaceState({}, '', window.location.pathname);
+      setMode('ledger');
+    }).catch((requestError) => notify(requestError.message, 'error'));
+  }, [notify, setAccountStats, setBalance, setRecords]);
+
+  const openRecharge = async () => {
+    setMode('recharge');
+    try {
+      const capability = await api.rechargeCapability();
+      setRechargeCapability(capability);
+      if (!capability.available) notify(capability.message, 'warning');
+    } catch (requestError) {
+      notify(requestError.message, 'error');
+    }
+  };
 
   const openBankEditor = () => {
     setBankDraft(
@@ -42,31 +83,31 @@ export default function WalletPage({
         holderName: '',
       },
     );
-    setBankError('');
     setEditingBank(true);
   };
 
   const saveBank = async () => {
     const cardNumber = bankDraft.cardNumber.replace(/\s/g, '');
     if (!bankDraft.holderName.trim()) {
-      setBankError('请填写持卡人姓名');
+      notify('请填写持卡人姓名', 'warning');
       return;
     }
     if (!bankDraft.bankName) {
-      setBankError('请选择开户银行');
+      notify('请选择开户银行', 'warning');
       return;
     }
     if (!/^\d{12,19}$/.test(cardNumber)) {
-      setBankError('请输入正确的银行卡号');
+      notify('请输入正确的银行卡号', 'warning');
       return;
     }
 
     try {
-      const saved = await api.bindBankCard({
+      await api.bindBankCard({
         ...bankDraft,
         cardNumber,
         holderName: bankDraft.holderName.trim(),
       });
+      const saved = await api.bankCard();
       setAccountStats((current) => ({
         ...current,
         bankCard: {
@@ -76,9 +117,9 @@ export default function WalletPage({
         },
       }));
       setEditingBank(false);
-      notify(boundBank ? '银行卡已修改' : '银行卡已绑定');
+      notify(boundBank ? '银行卡已修改' : '银行卡已绑定', 'success');
     } catch (requestError) {
-      setBankError(requestError.message);
+      notify(requestError.message, 'error');
     }
   };
 
@@ -86,7 +127,7 @@ export default function WalletPage({
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) return;
     if (mode === 'withdraw' && value > balance) {
-      notify('余额不足');
+      notify('余额不足', 'warning');
       return;
     }
     if (mode === 'withdraw' && !boundBank) {
@@ -94,41 +135,51 @@ export default function WalletPage({
       return;
     }
     if (mode === 'recharge') {
+      if (rechargeCapability?.available === false) {
+        notify(rechargeCapability.message, 'warning');
+        return;
+      }
       try {
         const order = await api.createRecharge(value);
-        notify(order.paymentUrl ? '正在打开支付宝' : '充值订单已创建，请完成支付宝支付');
+        notify(
+          order.paymentUrl ? '正在打开支付宝' : '充值订单已创建，请完成支付宝支付',
+          'default',
+        );
         if (order.paymentUrl) window.location.href = order.paymentUrl;
       } catch (requestError) {
-        notify(requestError.message);
+        notify(requestError.message, 'error');
         return;
       }
     } else {
       try {
-        const withdrawal = await api.withdraw(value);
-        setBalance((current) => Number((current - value).toFixed(2)));
+        await api.withdraw(value);
+        const [wallet, transactionItems, withdrawalItems] = await Promise.all([
+          api.wallet(),
+          api.walletTransactions(),
+          api.withdrawals(),
+        ]);
+        setBalance(Number(wallet.availableBalance));
         setAccountStats((current) => ({
           ...current,
-          totalWithdrawn: Number((Number(current.totalWithdrawn || 0) + value).toFixed(2)),
+          totalWithdrawn: Number(wallet.totalWithdrawn),
         }));
-        setWithdrawals((current) => [
-          [
-            `¥${arrivalAmount.toFixed(2)}`,
-            '处理中',
-            '刚刚',
-            `手续费 ¥${Number(withdrawal.fee).toFixed(2)}`,
-            bankLabel,
-          ],
-          ...current,
-        ]);
-        setRecords((current) => [
-          ['支出', '余额提现', `-¥${value.toFixed(2)}`, '刚刚'],
-          ...current,
-        ]);
+        setRecords(transactionItems.map((item) => [
+          item.direction === 'IN' ? '收入' : '支出',
+          item.description,
+          `${item.direction === 'IN' ? '+' : '-'}¥${item.amount}`,
+          new Date(item.createdAt).toLocaleString(),
+        ]));
+        setWithdrawals(withdrawalItems.map((item) => [
+          `¥${item.amount}`,
+          item.status === 'COMPLETED' ? '已到账' : '处理中',
+          new Date(item.createdAt).toLocaleString(),
+        ]));
         notify(
           commission > 0 ? `提现已提交，手续费 ¥${commission.toFixed(2)}` : '提现申请已经提交',
+          'success',
         );
       } catch (requestError) {
-        notify(requestError.message);
+        notify(requestError.message, 'error');
         return;
       }
     }
@@ -160,7 +211,7 @@ export default function WalletPage({
         <button className={mode === 'history' ? 'active' : ''} onClick={() => setMode('history')}>
           提现记录
         </button>
-        <button className={mode === 'recharge' ? 'active' : ''} onClick={() => setMode('recharge')}>
+        <button className={mode === 'recharge' ? 'active' : ''} onClick={openRecharge}>
           充值
         </button>
         <button className={mode === 'withdraw' ? 'active' : ''} onClick={() => setMode('withdraw')}>
@@ -243,7 +294,11 @@ export default function WalletPage({
               </>
             )}
           </section>
-          <button disabled={!Number(amount)} className="sticky-primary" onClick={submitMoney}>
+          <button
+            disabled={!Number(amount) || (mode === 'recharge' && rechargeCapability?.available === false)}
+            className="sticky-primary"
+            onClick={submitMoney}
+          >
             {mode === 'recharge' ? '支付宝充值' : boundBank ? '确认提现' : '绑定银行卡并提现'}
           </button>
         </>
@@ -271,7 +326,6 @@ export default function WalletPage({
                     ...current,
                     holderName: event.target.value,
                   }));
-                  setBankError('');
                 }}
                 placeholder="请输入持卡人姓名"
               />
@@ -285,7 +339,6 @@ export default function WalletPage({
                     ...current,
                     bankName: event.target.value,
                   }));
-                  setBankError('');
                 }}
               >
                 <option value="">请选择开户银行</option>
@@ -306,12 +359,10 @@ export default function WalletPage({
                 onChange={(event) => {
                   const cardNumber = event.target.value.replace(/\D/g, '').slice(0, 19);
                   setBankDraft((current) => ({ ...current, cardNumber }));
-                  setBankError('');
                 }}
                 placeholder="请输入银行卡号"
               />
             </label>
-            {bankError && <p className="bank-editor-error">{bankError}</p>}
             <button className="bank-editor-save" type="button" onClick={saveBank}>
               {boundBank ? '保存修改' : '确认绑定'}
             </button>

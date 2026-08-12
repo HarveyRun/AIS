@@ -19,9 +19,20 @@ public class NotificationController {
         return ApiResponse.ok(service.list(user.getId()));
     }
 
+    @GetMapping("/unread-count")
+    public ApiResponse<Long> unreadCount(@CurrentUser User user) {
+        return ApiResponse.ok(service.unreadCount(user.getId()));
+    }
+
     @PutMapping("/{id}/read")
     public ApiResponse<Void> read(@CurrentUser User user, @PathVariable Long id) {
         service.read(user.getId(), id);
+        return ApiResponse.ok();
+    }
+
+    @PutMapping("/read-all")
+    public ApiResponse<Void> readAll(@CurrentUser User user) {
+        service.readAll(user.getId());
         return ApiResponse.ok();
     }
 }

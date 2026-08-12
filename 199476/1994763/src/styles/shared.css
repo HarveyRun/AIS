@@ -40,15 +40,18 @@ button {
 }
 .app {
   max-width: 430px;
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: auto;
   background: #ffffff;
   position: relative;
   box-shadow: 0 0 35px #4b342015;
 }
 .app main {
-  min-height: 100vh;
-  padding-bottom: 86px;
+  min-height: 100dvh;
+  padding-bottom: 0;
+}
+.app.has-bottom-nav main {
+  padding-bottom: 76px;
 }
 .topbar {
   height: 86px;
@@ -146,7 +149,7 @@ button {
   width: 100%;
   max-width: 430px;
   height: 76px;
-  background: #fffffff2;
+  background: #fff;
   backdrop-filter: blur(12px);
   border-top: 1px solid #f0e8e1;
   display: flex;
@@ -196,8 +199,11 @@ button {
   text-align: center;
 }
 .page {
-  min-height: 100vh;
-  padding-bottom: 60px;
+  min-height: 100dvh;
+  padding-bottom: 24px;
+}
+.app.has-bottom-nav .page {
+  min-height: calc(100dvh - 76px);
 }
 .page-head {
   height: 64px;
@@ -306,21 +312,6 @@ button {
   font-size: 9px;
   color: #b4aaa3;
   margin: 35px;
-}
-.toast {
-  position: fixed;
-  z-index: 99;
-  bottom: 94px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #312c28;
-  color: #fff;
-  padding: 10px 15px;
-  border-radius: 12px;
-  font-size: 10px;
-  display: flex;
-  gap: 6px;
-  align-items: center;
 }
 @media (min-width: 431px) {
   .sticky-primary {

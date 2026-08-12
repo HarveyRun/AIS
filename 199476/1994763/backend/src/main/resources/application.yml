@@ -37,3 +37,18 @@ app:
   auth:
     token-valid-days: 30
     demo-verification-code: ${DEMO_VERIFICATION_CODE:123456}
+  network:
+    trusted-proxies: ${TRUSTED_PROXIES:127.0.0.1,0:0:0:0:0:0:0:1,::1}
+  ip-location:
+    ipv4-xdb-path: ${IP2REGION_V4_PATH:./ip2region_v4.xdb}
+    ipv6-xdb-path: ${IP2REGION_V6_PATH:./ip2region_v6.xdb}
+  payment:
+    provider: ${PAYMENT_PROVIDER:alipay}
+    mock-return-url: ${PAYMENT_MOCK_RETURN_URL:http://localhost:5173/profile/wallet}
+    alipay:
+      gateway-url: ${ALIPAY_GATEWAY_URL:https://openapi.alipay.com/gateway.do}
+      app-id: ${ALIPAY_APP_ID:}
+      private-key: ${ALIPAY_PRIVATE_KEY:}
+      public-key: ${ALIPAY_PUBLIC_KEY:}
+      notify-url: ${ALIPAY_NOTIFY_URL:}
+      return-url: ${ALIPAY_RETURN_URL:}

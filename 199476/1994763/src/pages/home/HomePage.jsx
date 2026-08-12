@@ -4,9 +4,8 @@ import CanvasLogo from '../../components/brand/CanvasLogo.jsx';
 import TalentCard from '../../components/talent/TalentCard.jsx';
 import './HomePage.css';
 
-export default function HomePage({ go, setTalent, unreadNoticeCount = 0, answerers = [] }) {
+export default function HomePage({ go, setTalent, unreadNoticeCount = 0, answerers = [], hasMore, loadMore }) {
   const [slide, setSlide] = useState(0);
-  const [count, setCount] = useState(10);
   const visiblePeople = answerers;
   const banners = [
     [
@@ -20,15 +19,14 @@ export default function HomePage({ go, setTalent, unreadNoticeCount = 0, answere
   useEffect(() => {
     const t = setInterval(() => setSlide((x) => (x + 1) % banners.length), 10000);
     const scroll = () => {
-      if (innerHeight + scrollY >= document.body.offsetHeight - 180)
-        setCount((x) => Math.min(x + 10, visiblePeople.length));
+      if (innerHeight + scrollY >= document.body.offsetHeight - 180) loadMore?.();
     };
     addEventListener('scroll', scroll);
     return () => {
       clearInterval(t);
       removeEventListener('scroll', scroll);
     };
-  }, []);
+  }, [loadMore]);
   return (
     <>
       <header className="brand-top">
@@ -41,7 +39,11 @@ export default function HomePage({ go, setTalent, unreadNoticeCount = 0, answere
         </div>
         <button className="round" onClick={() => go('notices')}>
           <Bell size={20} />
-          {unreadNoticeCount > 0 && <i className="notice-dot" />}
+          {unreadNoticeCount > 0 && (
+            <i className="notice-count">
+              {unreadNoticeCount > 99 ? '99+' : unreadNoticeCount}
+            </i>
+          )}
         </button>
       </header>
       <section className="intro-section">
@@ -89,7 +91,7 @@ export default function HomePage({ go, setTalent, unreadNoticeCount = 0, answere
           <h2>可以帮你的人</h2>
         </div>
         <div className="talent-list">
-          {visiblePeople.slice(0, count).map((p) => (
+          {visiblePeople.map((p) => (
             <TalentCard
               key={p.uid}
               p={p}
@@ -102,7 +104,7 @@ export default function HomePage({ go, setTalent, unreadNoticeCount = 0, answere
         </div>
       </section>
       <div className="endline">
-        {count < visiblePeople.length ? '继续下滑，看看更多人' : '已经到底啦'}
+        {hasMore ? '继续下滑，看看更多人' : '已经到底啦'}
       </div>
     </>
   );

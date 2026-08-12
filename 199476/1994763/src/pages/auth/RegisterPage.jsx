@@ -13,7 +13,6 @@ export default function RegisterPage({ go, onRegister, notify }) {
   const [agreed, setAgreed] = useState(true);
   const [sent, setSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     if (countdown <= 0) return undefined;
@@ -27,23 +26,22 @@ export default function RegisterPage({ go, onRegister, notify }) {
       setSent(true);
       setCountdown(60);
       setCode('');
-      setError('');
-      notify('验证码已发送');
+      notify('验证码已发送', 'success');
     } catch (requestError) {
-      setError(requestError.message);
+      notify(requestError.message, 'error');
     }
   };
 
   const submit = async () => {
     if (!sent) {
-      setError('请先获取验证码');
+      notify('请先获取验证码', 'warning');
       return;
     }
     try {
       const result = await api.register(phone, code, name.trim());
       onRegister(result);
     } catch (requestError) {
-      setError(requestError.message);
+      notify(requestError.message, 'error');
     }
   };
 
@@ -79,7 +77,6 @@ export default function RegisterPage({ go, onRegister, notify }) {
               setPhone(digitsOnly(event.target.value));
               setSent(false);
               setCountdown(0);
-              setError('');
             }}
             maxLength="11"
             inputMode="numeric"
@@ -93,7 +90,6 @@ export default function RegisterPage({ go, onRegister, notify }) {
             value={code}
             onChange={(event) => {
               setCode(digitsOnly(event.target.value));
-              setError('');
             }}
             maxLength="6"
             inputMode="numeric"
@@ -103,7 +99,6 @@ export default function RegisterPage({ go, onRegister, notify }) {
             {countdown > 0 ? `${countdown}秒` : sent ? '重新获取' : '获取验证码'}
           </button>
         </div>
-        {error && <small className="auth-error">{error}</small>}
         <label className="agree">
           <input
             type="checkbox"

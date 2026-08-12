@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, CircleStop, RotateCcw, Video, X } from 'lucide-react';
 
-export default function CameraCapture({ mode, facingMode = 'environment', onCapture, onClose }) {
+export default function CameraCapture({
+  mode,
+  facingMode = 'environment',
+  onCapture,
+  onClose,
+  notify,
+}) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
   const [ready, setReady] = useState(false);
   const [recording, setRecording] = useState(false);
-  const [error, setError] = useState('');
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -30,7 +36,8 @@ export default function CameraCapture({ mode, facingMode = 'environment', onCapt
         await videoRef.current.play();
         setReady(true);
       } catch {
-        setError('无法使用摄像头，请允许相机权限后重试');
+        setFailed(true);
+        notify?.('无法使用摄像头，请允许相机权限后重试', 'error');
       }
     };
 
@@ -72,12 +79,14 @@ export default function CameraCapture({ mode, facingMode = 'environment', onCapt
       };
       recorder.onerror = () => {
         setRecording(false);
-        setError('录像失败，请关闭后重新录制');
+        setFailed(true);
+        notify?.('录像失败，请关闭后重新录制', 'error');
       };
       recorder.start();
       setRecording(true);
     } catch {
-      setError('当前浏览器不支持录像，请更换浏览器后重试');
+      setFailed(true);
+      notify?.('当前浏览器不支持录像，请更换浏览器后重试', 'error');
     }
   };
 
@@ -100,17 +109,16 @@ export default function CameraCapture({ mode, facingMode = 'environment', onCapt
 
       <div className="camera-preview">
         <video ref={videoRef} muted playsInline />
-        {!ready && !error && <span>正在打开摄像头…</span>}
-        {error && (
+        {!ready && !failed && <span>正在打开摄像头…</span>}
+        {failed && (
           <div className="camera-error">
             <RotateCcw />
-            <p>{error}</p>
           </div>
         )}
         {recording && <em>录制中</em>}
       </div>
 
-      {!error && (
+      {!failed && (
         <footer>
           {mode === 'photo' && (
             <button className="camera-shutter" type="button" disabled={!ready} onClick={takePhoto}>

@@ -3,17 +3,18 @@ import { BadgeCheck, UserRound } from 'lucide-react';
 
 export default function UserAvatar({ src, uid, name, className = 'avatar', verified = false }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const showImage = Boolean(src) && !imageFailed;
+  const normalizedSrc = src && !/^(?:https?:|data:|blob:|\/)/i.test(src) ? `/${src}` : src;
+  const showImage = Boolean(normalizedSrc) && !imageFailed;
 
   useEffect(() => {
     setImageFailed(false);
-  }, [src]);
+  }, [normalizedSrc]);
 
   return (
     <div className={`${className}${showImage ? '' : ' default-avatar'}`}>
       {showImage ? (
         <img
-          src={src}
+          src={normalizedSrc}
           alt={`${name || (uid ? `UID ${uid}` : '用户')}的头像`}
           onError={() => setImageFailed(true)}
         />

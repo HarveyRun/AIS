@@ -9,6 +9,8 @@ import RecordsPage from '../pages/records/RecordsPage.jsx';
 import AuditPage from '../pages/audit/AuditPage.jsx';
 import CustomerServicePage from '../pages/customerService/CustomerServicePage.jsx';
 import DiscoveryManagementPage from '../pages/discovery/DiscoveryManagementPage.jsx';
+import JobsPage from '../pages/jobs/JobsPage.jsx';
+import GlobalLoading from '../components/feedback/GlobalLoading.jsx';
 export default function App() {
   const [authed, setAuthed] = useState(() => Boolean(token.get()));
   useEffect(() => {
@@ -17,7 +19,8 @@ export default function App() {
     return () => window.removeEventListener('shixianwen-admin-unauthorized', unauthorized);
   }, []);
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route
         path="/login"
         element={
@@ -40,6 +43,7 @@ export default function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/users" element={<UsersPage />} />
+        <Route path="/jobs" element={<JobsPage />} />
         <Route path="/certifications" element={<RecordsPage type="certifications" />} />
         <Route path="/discovery" element={<DiscoveryManagementPage />} />
         <Route path="/inquiries" element={<RecordsPage type="inquiries" />} />
@@ -50,6 +54,8 @@ export default function App() {
         <Route path="/audit" element={<AuditPage />} />
       </Route>
       <Route path="*" element={<Navigate to={authed ? '/dashboard' : '/login'} replace />} />
-    </Routes>
+      </Routes>
+      <GlobalLoading />
+    </>
   );
 }

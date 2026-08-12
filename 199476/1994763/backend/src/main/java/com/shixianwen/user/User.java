@@ -35,13 +35,28 @@ public class User {
     private String capabilityDescription;
 
     @Column(name = "accepting_inquiries", nullable = false)
-    private boolean acceptingInquiries = true;
+    private boolean acceptingInquiries = false;
 
     @Column(name = "answerer_status", nullable = false, length = 30)
     private String answererStatus = "NOT_APPLIED";
 
     @Column(name = "account_status", nullable = false, length = 30)
     private String accountStatus = "ACTIVE";
+
+    @Column(name = "register_ip", length = 45, updatable = false)
+    private String registerIp;
+
+    @Column(name = "register_location", length = 100, updatable = false)
+    private String registerLocation;
+
+    @Column(name = "last_login_ip", length = 45)
+    private String lastLoginIp;
+
+    @Column(name = "last_login_location", length = 100)
+    private String lastLoginLocation;
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

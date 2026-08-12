@@ -1,17 +1,21 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   CheckCircle2,
   Clock3,
   MessageCircleMore,
-  Send,
+  ImagePlus,
+  Keyboard,
+  Plus,
+  Smile,
   WalletCards,
   XCircle,
 } from 'lucide-react';
-import { createConfirmationDeadline } from '../../hooks/useDirectInquirySettlement.js';
 import UserAvatar from '../../components/profile/UserAvatar.jsx';
 import './MessagePages.css';
-import { api, request } from '../../api/http.js';
+import { api } from '../../api/http.js';
+
+const EMOJIS = ['😀', '😄', '😂', '😊', '🥰', '😎', '🤔', '👍', '👏', '🙏', '💪', '🎉', '❤️', '👌', '🌹', '🤝'];
 
 function formatDeadline(value) {
   if (!value) return '';
@@ -23,12 +27,45 @@ function formatDeadline(value) {
   }).format(new Date(value));
 }
 
-function currentMessageTime() {
-  return new Intl.DateTimeFormat('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date());
+function messageFromApi(message, currentUserId) {
+  return {
+    id: message.id,
+    name: message.senderName,
+    text: message.content,
+    avatar: message.senderAvatar,
+    me: message.senderId === currentUserId,
+    status: 'sent',
+    createdAt: message.createdAt,
+    time: new Date(message.createdAt).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    attachment: message.attachmentUrl ? {
+      url: message.attachmentUrl,
+      name: message.attachmentName || '照片',
+      type: message.type === 'IMAGE' ? 'image/*' : '',
+    } : null,
+  };
+}
+
+function formatMessageTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  const now = new Date();
+  const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  const isToday = date.getFullYear() === now.getFullYear()
+    && date.getMonth() === now.getMonth()
+    && date.getDate() === now.getDate();
+  return isToday ? time : `${date.getMonth() + 1}月${date.getDate()}日 ${time}`;
+}
+
+function shouldShowMessageTime(messages, index) {
+  const currentTime = messages[index]?.createdAt;
+  if (!currentTime) return false;
+  if (index === 0) return true;
+  const previousTime = messages[index - 1]?.createdAt;
+  if (!previousTime) return true;
+  return new Date(currentTime).getTime() - new Date(previousTime).getTime() >= 10 * 60 * 1000;
 }
 
 export default function DirectChatPage({
@@ -40,7 +77,8 @@ export default function DirectChatPage({
   canAnswer,
   acceptingInquiries,
   certifications,
-  addNotice = () => {},
+  refreshWallet,
+  notify,
 }) {
   const partner = conversation?.partner || {
     name: conversation?.title || '',
@@ -60,203 +98,235 @@ export default function DirectChatPage({
   const allowedToAnswer = Boolean(canAnswer && acceptingInquiries && matchesCapability);
   const canChat = inquiryStatus === 'active';
   const [text, setText] = useState('');
-  const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const [messages, setMessages] = useState(conversation?.messages || []);
-  const [fileError, setFileError] = useState('');
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const imageInputRef = useRef(null);
+  const textInputRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
-  useEffect(() => {
-    if (!conversation?.id || String(conversation.id).startsWith('direct-')) return;
-    api.inquiry(conversation.id).then((detail) => {
-      const loadedMessages = detail.messages.map((message) => ({
-        id: message.id,
-        name: message.senderName,
-        text: message.content,
-        avatar: message.senderAvatar,
-        me: message.senderId === currentUser.id,
-        time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }));
-      setMessages(loadedMessages);
-    }).catch(() => {});
-  }, [conversation?.id, currentUser.id]);
-
-  const updateConversation = (changes) => {
+  const applyInquiryDetail = (detail) => {
+    const item = detail.inquiry;
+    const loadedMessages = detail.messages.map((message) => messageFromApi(message, currentUser.id));
+    const normalizedStatus = item.status === 'COMPLETED' ? 'ended' : item.status.toLowerCase();
+    const lastMessageTime = item.lastMessageAt
+      ? new Date(item.lastMessageAt).toLocaleString('zh-CN', {
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '尚未聊天';
     const updatedConversation = {
       ...conversation,
-      ...changes,
-      time: '刚刚',
+      amount: Number(item.amount),
+      inquiryStatus: normalizedStatus,
+      settlementStatus: item.fundsStatus === 'SETTLED' ? 'settled' : item.fundsStatus.toLowerCase(),
+      responseDeadline: item.responseDeadline,
+      confirmationDeadline: item.confirmationDeadline,
+      lastMessageAt: item.lastMessageAt,
+      time: lastMessageTime,
+      messages: loadedMessages,
     };
-
+    setMessages(loadedMessages);
     setConversations((current) =>
-      current.map((item) => (item.id === updatedConversation.id ? updatedConversation : item)),
+      current.map((entry) => (entry.id === updatedConversation.id ? updatedConversation : entry)),
     );
     setSelectedConversation(updatedConversation);
+    return updatedConversation;
   };
 
-  const saveMessages = (nextMessages, preview) => {
-    updateConversation({
-      messages: nextMessages,
-      desc: preview,
-    });
+  const refreshInquiry = async () => applyInquiryDetail(await api.inquiry(conversation.id));
+
+  const appendPendingMessage = (message) => {
+    setMessages((current) => [...current, message]);
+    setConversations((current) => current.map((item) => (
+      item.id === conversation.id
+        ? { ...item, messages: [...(item.messages || []), message] }
+        : item
+    )));
+    setSelectedConversation((current) => (
+      current?.id === conversation.id
+        ? { ...current, messages: [...(current.messages || []), message] }
+        : current
+    ));
   };
+
+  const replacePendingMessage = (temporaryId, message) => {
+    const replace = (items = []) => items.map((item) => (
+      item.id === temporaryId ? message : item
+    ));
+    setMessages((current) => replace(current));
+    setConversations((current) => current.map((item) => (
+      item.id === conversation.id
+        ? {
+            ...item,
+            messages: replace(item.messages),
+            lastMessageAt: message.createdAt || item.lastMessageAt,
+          }
+        : item
+    )));
+    setSelectedConversation((current) => (
+      current?.id === conversation.id
+        ? { ...current, messages: replace(current.messages) }
+        : current
+    ));
+  };
+
+  useEffect(() => {
+    setMessages(conversation?.messages || []);
+  }, [conversation?.messages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: 'end' });
+  }, [messages]);
+
+  useEffect(() => {
+    if (!conversation?.id) return;
+    api
+      .inquiry(conversation.id)
+      .then(async (detail) => {
+        applyInquiryDetail(detail);
+        await api.markInquiryRead(conversation.id);
+        setConversations((current) => current.map((item) => (
+          item.id === conversation.id ? { ...item, unread: 0 } : item
+        )));
+      })
+      .catch((error) => notify(error.message, 'error'));
+  }, [conversation?.id, currentUser.id, notify]);
 
   const respondToInquiry = async (accepted) => {
-    if (accepted && !allowedToAnswer) return;
-    if (!accepted) {
-      await request(`/inquiries/${conversation.id}/reject`, { method: 'POST' });
-      updateConversation({
-        inquiryStatus: 'rejected',
-        status: 'rejected',
-        statusText: '未接受',
-        desc: '本次询问未接受',
-      });
-      addNotice({
-        title: '询问未接受',
-        content: `你没有接受${partnerLabel}的询问`,
-        screen: 'inquiries',
-      });
+    if (accepted && !allowedToAnswer) {
+      notify('当前无法接受这次询问', 'warning');
       return;
     }
-
-    await request(`/inquiries/${conversation.id}/accept`, { method: 'POST' });
-    const acceptedMessage = {
-      id: `accepted-${Date.now()}`,
-      name: '我',
-      text: '我已接受这次询问，可以开始聊了。',
-      color: '#c23b32',
-      me: true,
-      uid: currentUser.uid,
-      time: currentMessageTime(),
-    };
-    const nextMessages = [...messages, acceptedMessage];
-    setMessages(nextMessages);
-    updateConversation({
-      inquiryStatus: 'active',
-      status: 'active',
-      statusText: '交流中',
-      desc: '已经接受，可以开始交流',
-      messages: nextMessages,
-    });
-    addNotice({
-      title: '已接受询问',
-      content: `你和${partnerLabel}现在可以开始交流`,
-      screen: 'inquiries',
-    });
+    try {
+      if (!accepted) {
+        await api.rejectInquiry(conversation.id);
+        await refreshInquiry();
+        await refreshWallet();
+        notify('已拒绝询问，冻结金额将退回', 'success');
+        return;
+      }
+      await api.acceptInquiry(conversation.id);
+      await refreshInquiry();
+      await refreshWallet();
+      notify('已接受询问', 'success');
+    } catch (error) {
+      notify(error.message, 'error');
+    }
   };
 
   const requestEnd = async () => {
-    await request(`/inquiries/${conversation.id}/request-end`, { method: 'POST' });
-    updateConversation({
-      inquiryStatus: 'awaiting_confirmation',
-      status: 'awaiting',
-      statusText: '待确认',
-      desc: '已申请结束，等待提问者确认',
-      endRequestCount: Number(conversation?.endRequestCount || 0) + 1,
-      confirmationDeadline: createConfirmationDeadline(),
-    });
+    try {
+      await api.requestInquiryEnd(conversation.id);
+      await refreshInquiry();
+      await refreshWallet();
+      notify('结束申请已发送', 'success');
+    } catch (error) {
+      notify(error.message, 'error');
+    }
   };
 
   const continueConversation = async () => {
-    await request(`/inquiries/${conversation.id}/continue`, { method: 'POST' });
-    updateConversation({
-      inquiryStatus: 'active',
-      status: 'active',
-      statusText: '交流中',
-      desc: '继续交流中',
-      continueCount: Number(conversation?.continueCount || 0) + 1,
-      confirmationDeadline: null,
-    });
+    try {
+      await api.continueInquiry(conversation.id);
+      await refreshInquiry();
+      notify('已继续交流', 'success');
+    } catch (error) {
+      notify(error.message, 'error');
+    }
   };
 
   const confirmEnd = async () => {
-    await request(`/inquiries/${conversation.id}/confirm-end`, { method: 'POST' });
-    updateConversation({
-      inquiryStatus: 'ended',
-      settlementStatus: 'settled',
-      status: 'ended',
-      statusText: '已结束',
-      desc: '本次交流已经结束',
-      confirmationDeadline: null,
-    });
+    try {
+      await api.confirmInquiryEnd(conversation.id);
+      await refreshInquiry();
+      await refreshWallet();
+      notify('本次交流已结束', 'success');
+    } catch (error) {
+      notify(error.message, 'error');
+    }
   };
 
   const cancelInquiry = async () => {
-    await request(`/inquiries/${conversation.id}/cancel`, { method: 'POST' });
-    updateConversation({
-      inquiryStatus: 'cancelled',
-      settlementStatus: 'refunded',
-      status: 'cancelled',
-      statusText: '已撤销',
-      desc: '你已撤销本次询问',
-      responseDeadline: null,
-    });
+    try {
+      await api.cancelInquiry(conversation.id);
+      await refreshInquiry();
+      await refreshWallet();
+      notify('询问已撤销，冻结金额已退回', 'success');
+    } catch (error) {
+      notify(error.message, 'error');
+    }
   };
 
   const send = async () => {
     const content = text.trim();
     if (!canChat || !content) return;
 
-    const saved = await request(`/inquiries/${conversation.id}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ content }),
-    });
-    const nextMessages = [
-      ...messages,
-      {
-        id: saved.id,
-        name: '我',
-        text: content,
-        color: '#c23b32',
-        me: true,
-        uid: currentUser.uid,
-        time: currentMessageTime(),
-      },
-    ];
-    setMessages(nextMessages);
-    saveMessages(nextMessages, content);
+    const temporaryId = `sending-${Date.now()}`;
+    const pendingMessage = {
+      id: temporaryId,
+      name: currentUser.name,
+      text: content,
+      avatar: currentUser.avatar,
+      me: true,
+      status: 'sending',
+      time: '',
+    };
     setText('');
+    appendPendingMessage(pendingMessage);
+    try {
+      const saved = await api.sendInquiryMessage(conversation.id, content);
+      const deliveredMessage = messageFromApi(saved, currentUser.id);
+      deliveredMessage.createdAt = saved.createdAt;
+      replacePendingMessage(temporaryId, deliveredMessage);
+    } catch (error) {
+      replacePendingMessage(temporaryId, { ...pendingMessage, status: 'failed' });
+      notify(error.message, 'error');
+    }
   };
 
-  const sendFile = (event, kind) => {
-    const file = event.target.files?.[0];
-    if (!canChat || !file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      setFileError('单个附件不能超过2MB');
-      event.target.value = '';
+  const sendImage = async (event) => {
+    const image = event.target.files?.[0];
+    event.target.value = '';
+    if (!image || !canChat) return;
+    if (!image.type.startsWith('image/')) {
+      notify('只能发送照片', 'warning');
       return;
     }
-
-    const fileMessage = `${kind}：${file.name}`;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const nextMessages = [
-        ...messages,
-        {
-          id: `file-${Date.now()}`,
-          name: '我',
-          text: fileMessage,
-          color: '#c23b32',
-          me: true,
-          uid: currentUser.uid,
-          time: currentMessageTime(),
-          attachment: {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            url: reader.result,
-          },
-        },
-      ];
-      setMessages(nextMessages);
-      saveMessages(nextMessages, fileMessage);
-      setMoreActionsOpen(false);
-      setFileError('');
+    if (image.size > 10 * 1024 * 1024) {
+      notify('照片不能超过10MB', 'warning');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(image);
+    const temporaryId = `sending-image-${Date.now()}`;
+    const pendingMessage = {
+      id: temporaryId,
+      name: currentUser.name,
+      avatar: currentUser.avatar,
+      me: true,
+      status: 'sending',
+      time: '',
+      attachment: {
+        url: previewUrl,
+        name: image.name || '照片',
+        type: image.type,
+      },
     };
-    reader.onerror = () => setFileError('附件读取失败，请重新选择');
-    reader.readAsDataURL(file);
-    event.target.value = '';
+    appendPendingMessage(pendingMessage);
+    try {
+      const saved = await api.sendInquiryImage(conversation.id, image);
+      const deliveredMessage = messageFromApi(saved, currentUser.id);
+      deliveredMessage.createdAt = saved.createdAt;
+      replacePendingMessage(temporaryId, deliveredMessage);
+      URL.revokeObjectURL(previewUrl);
+    } catch (error) {
+      replacePendingMessage(temporaryId, { ...pendingMessage, status: 'failed' });
+      notify(error.message, 'error');
+    }
   };
 
   const statePresentation = {
@@ -268,7 +338,7 @@ export default function DirectChatPage({
     active: {
       className: 'active',
       Icon: MessageCircleMore,
-      text: `正在聊：${conversation?.topic || '亲身经历'}`,
+      text: '交流进行中',
     },
     awaiting_confirmation: {
       className: 'pending',
@@ -290,6 +360,16 @@ export default function DirectChatPage({
       Icon: XCircle,
       text: '本次询问已撤销',
     },
+    expired: {
+      className: 'ended',
+      Icon: Clock3,
+      text: '本次询问已超时',
+    },
+    disputed: {
+      className: 'pending',
+      Icon: Clock3,
+      text: '本次询问正在处理中',
+    },
   }[inquiryStatus];
   const StateIcon = statePresentation.Icon;
 
@@ -310,11 +390,12 @@ export default function DirectChatPage({
         <span>{statePresentation.text}</span>
       </div>
 
+      <div className="chat-body">
+
       <section className={`direct-inquiry-card ${inquiryStatus}`}>
         <span>本次询问</span>
         <p>{conversation?.question || '询问亲身经历中的实际情况'}</p>
         <div>
-          <WalletCards />
           <b>¥{Number(conversation?.amount || 0).toFixed(2)}</b>
         </div>
         {!['ended', 'rejected', 'cancelled'].includes(inquiryStatus) && !isIncoming && (
@@ -382,9 +463,13 @@ export default function DirectChatPage({
       </section>
 
       <div className="messages">
-        {messages.map((message) => {
+        {messages.map((message, index) => {
           const sender = message.me
-            ? currentUser
+            ? {
+                ...currentUser,
+                avatar: currentUser.avatar || message.avatar,
+                name: currentUser.name || message.name,
+              }
             : {
                 name: message.name || partner.name,
                 uid: message.uid || partner.uid || '',
@@ -394,7 +479,11 @@ export default function DirectChatPage({
           const senderLabel = sender.name?.trim() || (sender.uid ? `UID ${sender.uid}` : '用户');
 
           return (
-            <div className={`message ${message.me ? 'me' : ''}`} key={message.id}>
+            <Fragment key={message.id}>
+              {shouldShowMessageTime(messages, index) && (
+                <time className="chat-time-divider">{formatMessageTime(message.createdAt)}</time>
+              )}
+            <div className={`message ${message.me ? 'me' : ''}`}>
               {!message.me && (
                 <UserAvatar
                   src={sender.avatar}
@@ -403,24 +492,29 @@ export default function DirectChatPage({
                   className="mini-avatar"
                 />
               )}
+              {message.me && message.status === 'sending' && (
+                <i className="message-send-state sending" aria-label="发送中" />
+              )}
+              {message.me && message.status === 'failed' && (
+                <i className="message-send-state failed" aria-label="发送失败">!</i>
+              )}
               <div className="message-content">
                 <span className="message-sender">
                   <b>{senderLabel}</b>
                 </span>
-                <p>{message.text}</p>
+                {message.text && <p>{message.text}</p>}
                 {message.attachment && (
                   <a
                     className="message-attachment"
                     href={message.attachment.url}
-                    download={message.attachment.name}
+                    target="_blank"
+                    rel="noreferrer"
                   >
                     {message.attachment.type?.startsWith('image/') && (
                       <img src={message.attachment.url} alt={message.attachment.name} />
                     )}
-                    <span>{message.attachment.name}</span>
                   </a>
                 )}
-                <time>{message.time || ''}</time>
               </div>
               {message.me && (
                 <UserAvatar
@@ -431,19 +525,13 @@ export default function DirectChatPage({
                 />
               )}
             </div>
+            </Fragment>
           );
         })}
+        <div ref={messagesEndRef} />
       </div>
 
-      {inquiryStatus === 'active' && (
-        <button
-          className="direct-request-end"
-          type="button"
-          onClick={isIncoming ? requestEnd : () => setEndConfirmOpen(true)}
-        >
-          {isIncoming ? '申请结束' : '结束并结算'}
-        </button>
-      )}
+      </div>
 
       {endConfirmOpen && (
         <>
@@ -497,44 +585,29 @@ export default function DirectChatPage({
         </>
       )}
 
-      {fileError && <small className="chat-file-error">{fileError}</small>}
-
-      {moreActionsOpen && canChat && (
-        <>
-          <button className="sheet-mask" type="button" onClick={() => setMoreActionsOpen(false)} />
-          <div className="chat-sheet direct-chat-sheet">
-            <label>
-              <input
-                type="file"
-                hidden
-                accept="image/*"
-                onChange={(event) => sendFile(event, '图片')}
-              />
-              <i>图</i>
-              <span>图片</span>
-            </label>
-            <label>
-              <input type="file" hidden onChange={(event) => sendFile(event, '文件')} />
-              <i>文</i>
-              <span>文件</span>
-            </label>
-          </div>
-        </>
-      )}
-
       <div className={`composer ${!canChat ? 'disabled' : ''}`}>
-        <button
-          type="button"
-          disabled={!canChat}
-          onClick={() => setMoreActionsOpen((current) => !current)}
-        >
-          ＋
-        </button>
         <input
+          ref={imageInputRef}
+          className="chat-image-input"
+          type="file"
+          accept="image/*"
+          onChange={sendImage}
+        />
+        <input
+          ref={textInputRef}
           disabled={!canChat}
           value={text}
           onChange={(event) => setText(event.target.value)}
-          onKeyDown={(event) => event.key === 'Enter' && send()}
+          onFocus={() => {
+            setEmojiOpen(false);
+            setMoreOpen(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+            event.preventDefault();
+            send();
+          }}
+          enterKeyHint="send"
           placeholder={
             canChat
               ? '说点什么…'
@@ -543,10 +616,76 @@ export default function DirectChatPage({
                 : '本次交流已经结束'
           }
         />
-        <button type="button" disabled={!canChat} className="send" onClick={send}>
-          <Send size={17} />
+        <button
+          type="button"
+          disabled={!canChat}
+          aria-label="选择表情"
+          onClick={() => {
+            if (emojiOpen) {
+              setEmojiOpen(false);
+              window.setTimeout(() => textInputRef.current?.focus(), 0);
+              return;
+            }
+            setMoreOpen(false);
+            setEmojiOpen(true);
+            textInputRef.current?.blur();
+          }}
+        >
+          {emojiOpen ? <Keyboard size={21} /> : <Smile size={21} />}
+        </button>
+        <button
+          type="button"
+          disabled={!canChat}
+          aria-label="更多"
+          onClick={() => {
+            setEmojiOpen(false);
+            setMoreOpen((current) => !current);
+            textInputRef.current?.blur();
+          }}
+        >
+          <Plus size={23} />
         </button>
       </div>
+      {emojiOpen && canChat && (
+        <section className="emoji-panel">
+          {EMOJIS.map((emoji) => (
+            <button
+              type="button"
+              key={emoji}
+              onClick={() => {
+                setText((current) => `${current}${emoji}`);
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </section>
+      )}
+      {moreOpen && canChat && (
+        <section className="chat-more-panel">
+          <button
+            type="button"
+            onClick={() => {
+              setMoreOpen(false);
+              imageInputRef.current?.click();
+            }}
+          >
+            <i><ImagePlus /></i>
+            <span>照片</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMoreOpen(false);
+              if (isIncoming) requestEnd();
+              else setEndConfirmOpen(true);
+            }}
+          >
+            <i><WalletCards /></i>
+            <span>{isIncoming ? '申请结束' : '结束并结算'}</span>
+          </button>
+        </section>
+      )}
     </div>
   );
 }

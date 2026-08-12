@@ -60,6 +60,8 @@ export default function AppRoutes(props) {
             setTalent={props.setTalent}
             unreadNoticeCount={props.unreadNoticeCount}
             answerers={props.answerers}
+            hasMore={props.answerersHaveMore}
+            loadMore={props.loadMoreAnswerers}
           />,
         )}
       />
@@ -73,10 +75,11 @@ export default function AppRoutes(props) {
             setConversations={props.setConversations}
             setSelectedConversation={props.setSelectedConversation}
             balance={props.balance}
-            setBalance={props.setBalance}
+            refreshWallet={props.refreshWallet}
             problem={props.problem}
             experience={props.experience}
             addNotice={props.addNotice}
+            notify={notify}
           />,
         )}
       />
@@ -95,6 +98,7 @@ export default function AppRoutes(props) {
             setExperienceCategoryId={props.setExperienceCategoryId}
             catalog={props.discoveryCatalog}
             refreshCatalog={props.refreshDiscoveryCatalog}
+            notify={notify}
           />
         }
       />
@@ -112,6 +116,7 @@ export default function AppRoutes(props) {
             setExperienceCategoryId={props.setExperienceCategoryId}
             catalog={props.discoveryCatalog}
             refreshCatalog={props.refreshDiscoveryCatalog}
+            notify={notify}
           />
         }
       />
@@ -127,8 +132,8 @@ export default function AppRoutes(props) {
             setTalent={props.setTalent}
             title={props.experience ? '按经历找人' : '按事情找人'}
             backScreen={props.experience ? 'experiences' : 'knowledge'}
-            answerers={props.answerers}
             catalog={props.discoveryCatalog}
+            notify={notify}
           />
         }
       />
@@ -156,6 +161,8 @@ export default function AppRoutes(props) {
             acceptingInquiries={props.acceptingInquiries}
             certifications={props.certifications}
             addNotice={props.addNotice}
+            refreshWallet={props.refreshWallet}
+            notify={notify}
           />,
         )}
       />
@@ -231,7 +238,6 @@ export default function AppRoutes(props) {
             go={go}
             setCertType={props.setCertType}
             certifications={props.certifications}
-            setCertifications={props.setCertifications}
           />
         }
       />
@@ -242,9 +248,9 @@ export default function AppRoutes(props) {
             go={go}
             certId={props.certType}
             certifications={props.certifications}
-            setCertifications={props.setCertifications}
             notify={notify}
             addNotice={props.addNotice}
+            refreshCurrentScreen={props.refreshCurrentScreen}
           />
         }
       />
@@ -255,9 +261,9 @@ export default function AppRoutes(props) {
             go={go}
             certId={props.certType}
             certifications={props.certifications}
-            setCertifications={props.setCertifications}
             notify={notify}
             addNotice={props.addNotice}
+            refreshCurrentScreen={props.refreshCurrentScreen}
           />
         }
       />
@@ -278,10 +284,19 @@ export default function AppRoutes(props) {
         path={ROUTES.business}
         element={protect(<BusinessCooperationPage go={go} notify={notify} />)}
       />
-      <Route path={ROUTES.customerService} element={protect(<CustomerServicePage go={go} />)} />
+      <Route
+        path={ROUTES.customerService}
+        element={protect(<CustomerServicePage go={go} notify={notify} />)}
+      />
       <Route
         path={ROUTES.notices}
-        element={<NoticesPage go={go} notices={props.notices} setNotices={props.setNotices} />}
+        element={
+          <NoticesPage
+            go={go}
+            notices={props.notices}
+            setNotices={props.setNotices}
+          />
+        }
       />
       <Route
         path="*"

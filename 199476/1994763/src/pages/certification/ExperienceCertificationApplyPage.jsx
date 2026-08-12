@@ -16,6 +16,7 @@ import MaterialPreview, {
   materialUrl,
 } from '../../components/certification/MaterialPreview.jsx';
 import Page from '../../components/layout/Page.jsx';
+import { api } from '../../api/http.js';
 import './CertificationPages.css';
 
 const ONE_GB = 1024 * 1024 * 1024;
@@ -24,9 +25,9 @@ const FIVE_HUNDRED_MB = 500 * 1024 * 1024;
 function existingMaterials(certification) {
   const materials = certification?.materials || [];
   return {
-    archive: materials.find((item) => /\.(rar|zip)$/i.test(materialName(item))) || '',
-    video: materials.find((item) => /\.(mp4|mov|webm)$/i.test(materialName(item))) || '',
-    photos: materials.filter((item) => /\.(jpg|jpeg|png|webp)$/i.test(materialName(item))),
+    archive: materials.find((item) => item.kind === 'archive' || /\.(rar|zip)$/i.test(materialName(item))) || '',
+    video: materials.find((item) => item.kind === 'video' || /\.(mp4|mov|webm)$/i.test(materialName(item))) || '',
+    photos: materials.filter((item) => item.kind === 'image' || /\.(jpg|jpeg|png|webp)$/i.test(materialName(item))),
   };
 }
 
@@ -34,20 +35,32 @@ export default function ExperienceCertificationApplyPage({
   go,
   certId,
   certifications,
-  setCertifications,
   notify,
   addNotice = () => {},
+  refreshCurrentScreen,
 }) {
-  const certification = certifications.find((item) => item.id === certId);
+  const isNew = certId === 'new-experience';
+  const certification = isNew
+    ? {
+        id: 'new-experience',
+        type: '其它经历认证',
+        title: '一段亲身经历',
+        description: '',
+        status: '填写中',
+        name: '',
+        detail: '',
+        materials: [],
+      }
+    : certifications.find((item) => item.id === certId);
   const initialMaterials = existingMaterials(certification);
   const [name, setName] = useState(certification?.name || '');
   const [detail, setDetail] = useState(certification?.detail || '');
   const [archive, setArchive] = useState(initialMaterials.archive);
   const [video, setVideo] = useState(initialMaterials.video);
   const [photos, setPhotos] = useState(initialMaterials.photos);
-  const [error, setError] = useState('');
   const [cameraMode, setCameraMode] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const editable = ['填写中', '退回修改'].includes(certification?.status);
 
   if (!certification) {
@@ -55,33 +68,28 @@ export default function ExperienceCertificationApplyPage({
   }
 
   const leavePage = () => {
-    if (certification.isNew && certification.status === '填写中') {
-      setCertifications((current) => current.filter((item) => item.id !== certification.id));
-    }
     go('certExperience');
   };
 
   const selectArchive = (file) => {
     if (!file) return;
     if (!/\.(rar|zip)$/i.test(file.name)) {
-      setError('只支持 RAR 或 ZIP 压缩包');
+      notify('只支持 RAR 或 ZIP 压缩包', 'warning');
       return;
     }
     if (file.size > ONE_GB) {
-      setError('压缩包不能超过1GB');
+      notify('压缩包不能超过1GB', 'warning');
       return;
     }
-    setError('');
     setArchive(createMaterial(file, 'archive'));
   };
 
   const selectVideo = (file) => {
     if (!file) return;
     if (file.size > FIVE_HUNDRED_MB) {
-      setError('录像不能超过500MB');
+      notify('录像不能超过500MB', 'warning');
       return;
     }
-    setError('');
     setVideo(createMaterial(file, 'video', `现场录制-${Date.now()}.webm`));
     setCameraMode(null);
   };
@@ -89,10 +97,9 @@ export default function ExperienceCertificationApplyPage({
   const takePhoto = (blob) => {
     if (!blob) return;
     if (photos.length >= 5) {
-      setError('照片最多拍摄5张');
+      notify('照片最多拍摄5张', 'warning');
       return;
     }
-    setError('');
     setPhotos((current) => [
       ...current,
       createMaterial(blob, 'image', `现场拍摄-${Date.now()}.jpg`),
@@ -100,31 +107,42 @@ export default function ExperienceCertificationApplyPage({
     setCameraMode(null);
   };
 
-  const submit = () => {
+  const submit = async () => {
+    if (!name.trim()) {
+      notify('请填写经历标题', 'warning');
+      return;
+    }
+    if (!detail.trim()) {
+      notify('请填写经历简述', 'warning');
+      return;
+    }
+    if (!archive) {
+      notify('请上传一个 RAR 或 ZIP 压缩包', 'warning');
+      return;
+    }
     const materials = [archive, video, ...photos].filter(Boolean);
-    setCertifications((current) =>
-      current.map((item) =>
-        item.id === certification.id
-          ? {
-              ...item,
-              name,
-              title: name,
-              description: detail,
-              detail,
-              materials,
-              status: '审核中',
-              isNew: false,
-            }
-          : item,
-      ),
-    );
-    notify('已经提交审核');
-    addNotice({
-      title: '经历认证已经提交',
-      content: `${name}已进入审核`,
-      screen: 'certExperience',
-    });
-    go('certExperience');
+    const files = materials.map((material) => material.file).filter(Boolean);
+    if (files.length !== materials.length) {
+      notify('请重新拍摄或上传要提交的认证材料', 'warning');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await api.submitExperienceCertification(
+        isNew ? null : certification.serverId,
+        name.trim(),
+        detail.trim(),
+        files,
+      );
+      await refreshCurrentScreen();
+      notify('已经提交审核', 'success');
+      addNotice({ title: '经历认证已经提交', content: `${name.trim()}已进入审核`, screen: 'certExperience' });
+      go('certExperience');
+    } catch (requestError) {
+      notify(requestError.message, 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -185,7 +203,7 @@ export default function ExperienceCertificationApplyPage({
         <div className="upload-list">
           <MaterialRow
             Icon={FileArchive}
-            title="压缩包"
+            title="压缩包（必填）"
             description={archive ? materialName(archive) : 'RAR 或 ZIP，最大1GB，最多1个'}
             material={archive}
             materialType="archive"
@@ -197,7 +215,7 @@ export default function ExperienceCertificationApplyPage({
           />
           <MaterialRow
             Icon={Video}
-            title="录制录像"
+            title="录制录像（选填）"
             description={video ? materialName(video) : '最大500MB，最多1个'}
             material={video}
             materialType="video"
@@ -209,7 +227,7 @@ export default function ExperienceCertificationApplyPage({
           />
           <MaterialRow
             Icon={Image}
-            title="拍摄照片"
+            title="拍摄照片（选填）"
             description={photos.length ? `已拍摄${photos.length}张，最多5张` : '现场拍摄，最多5张'}
             editable={editable}
             action="拍摄"
@@ -251,13 +269,12 @@ export default function ExperienceCertificationApplyPage({
             </div>
           )}
         </div>
-        {error && <small className="cert-material-error">{error}</small>}
       </section>
 
       {editable && (
         <div className="cert-draft-actions single-action">
-          <button type="button" disabled={!name.trim() || !detail.trim()} onClick={submit}>
-            提交认证
+          <button type="button" disabled={submitting || !name.trim() || !detail.trim() || !archive} onClick={submit}>
+            {submitting ? '正在提交' : '提交认证'}
           </button>
         </div>
       )}
@@ -269,6 +286,7 @@ export default function ExperienceCertificationApplyPage({
             facingMode="environment"
             onCapture={cameraMode === 'photo' ? takePhoto : selectVideo}
             onClose={() => setCameraMode(null)}
+            notify={notify}
           />
         </>
       )}

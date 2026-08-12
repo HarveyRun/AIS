@@ -18,27 +18,26 @@ export default function FeedbackPage({ go, notify, conversations, records, setRe
   const submit = async () => {
     const targetUser = targets.find((item) => String(item.id || item.uid) === target);
     try {
-      const saved = await api.submitFeedback({
+      await api.submitFeedback({
         type: type === 'complaint' ? 'COMPLAINT' : 'PRODUCT',
         category: type === 'complaint' ? complaintType : '产品反馈',
         content: text.trim(),
         targetUserId: targetUser?.id || null,
       });
-    const record = {
-      id: saved.id,
-      type,
-      category: type === 'complaint' ? complaintType : '产品反馈',
-      target: targetUser ? targetUser.name || `UID ${targetUser.uid}` : '',
-      content: text.trim(),
-      status: '已提交',
-      time: '刚刚',
-    };
-    setRecords((current) => [record, ...current]);
-    notify(type === 'complaint' ? '投诉已提交' : '反馈已提交');
+    const serverRecords = await api.feedbackRecords();
+    setRecords(serverRecords.map((item) => ({
+      id: item.id,
+      type: item.type,
+      category: item.category,
+      content: item.content,
+      status: item.status,
+      time: new Date(item.createdAt).toLocaleString(),
+    })));
+    notify(type === 'complaint' ? '投诉已提交' : '反馈已提交', 'success');
     setText('');
     setTarget('');
     } catch (requestError) {
-      notify(requestError.message);
+      notify(requestError.message, 'error');
     }
   };
 

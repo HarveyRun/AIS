@@ -17,7 +17,6 @@ export default function AccountSettingsPage({
 }) {
   const [name, setName] = useState(userProfile.name?.trim() || '');
   const [avatar, setAvatar] = useState(userProfile.avatar || '');
-  const [profileError, setProfileError] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -29,34 +28,34 @@ export default function AccountSettingsPage({
   const selectAvatar = (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setProfileError('请选择图片文件');
+      notify('请选择图片文件', 'warning');
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setProfileError('头像图片不能超过2MB');
+      notify('头像图片不能超过2MB', 'warning');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
       setAvatar(reader.result);
-      setProfileError('');
       setAvatarFile(file);
     };
-    reader.onerror = () => setProfileError('头像读取失败，请重新选择');
+    reader.onerror = () => notify('头像读取失败，请重新选择', 'error');
     reader.readAsDataURL(file);
   };
 
   const saveProfile = async () => {
     const nextName = name.trim();
     try {
-      const updated = await api.updateProfile({ nickname: nextName, avatarUrl: avatarFile ? userProfile.avatar : avatar });
-      const avatarResult = avatarFile ? await api.updateAvatar(avatarFile) : updated;
-      setUserProfile((current) => ({ ...current, name: avatarResult.nickname || '', avatar: avatarResult.avatarUrl || '' }));
+      await api.updateProfile({ nickname: nextName, avatarUrl: avatarFile ? userProfile.avatar : avatar });
+      if (avatarFile) await api.updateAvatar(avatarFile);
+      const latest = await api.me();
+      setUserProfile({ id: latest.id, name: latest.nickname || '', uid: latest.uid, phone: latest.phone, avatar: latest.avatarUrl || '' });
       setAvatarFile(null);
-      notify('个人信息已保存');
+      notify('个人信息已保存', 'success');
     } catch (requestError) {
-      setProfileError(requestError.message);
+      notify(requestError.message, 'error');
     }
   };
 
@@ -92,7 +91,6 @@ export default function AccountSettingsPage({
               maxLength={12}
               onChange={(event) => {
                 setName(event.target.value);
-                setProfileError('');
               }}
               placeholder={`UID ${userProfile.uid}`}
             />
@@ -100,7 +98,6 @@ export default function AccountSettingsPage({
           </div>
         </label>
 
-        {profileError && <p className="account-profile-error">{profileError}</p>}
         <button className="account-profile-save" type="button" onClick={saveProfile}>
           保存
         </button>

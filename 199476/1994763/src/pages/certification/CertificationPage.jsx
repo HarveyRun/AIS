@@ -35,30 +35,29 @@ export default function CertificationPage({
         </div>
       </section>
 
-      <section className={`answer-availability ${acceptingInquiries ? 'active' : 'paused'}`}>
-        <i>
-          <MessagesSquare />
-        </i>
-        <div>
-          <h2>接受新询问</h2>
-          <p>
-            {!hasJoined
-              ? '完成基础信息认证后可以开启'
-              : acceptingInquiries
+      {hasJoined && (
+        <section className={`answer-availability ${acceptingInquiries ? 'active' : 'paused'}`}>
+          <i>
+            <MessagesSquare />
+          </i>
+          <div>
+            <h2>接受新询问</h2>
+            <p>
+              {acceptingInquiries
                 ? '其他人可以向你发起询问'
                 : '暂停后不会收到新的询问'}
-          </p>
-        </div>
-        <button
-          type="button"
-          className={acceptingInquiries ? 'on' : ''}
-          disabled={!hasJoined}
-          onClick={() => setAcceptingInquiries((current) => !current)}
-          aria-label={acceptingInquiries ? '暂停接受询问' : '开始接受询问'}
-        >
-          <span />
-        </button>
-      </section>
+            </p>
+          </div>
+          <button
+            type="button"
+            className={acceptingInquiries ? 'on' : ''}
+            onClick={() => setAcceptingInquiries((current) => !current)}
+            aria-label={acceptingInquiries ? '暂停接受询问' : '开始接受询问'}
+          >
+            <span />
+          </button>
+        </section>
+      )}
 
       <section className="certification-entry-list">
         <button type="button" onClick={() => go('certWork')}>

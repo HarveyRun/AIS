@@ -6,7 +6,6 @@ export default function ExperienceCertificationPage({
   go,
   setCertType,
   certifications,
-  setCertifications,
 }) {
   const items = certifications.filter((item) =>
     ['个人事业认证', '其它经历认证'].includes(item.type),
@@ -18,20 +17,7 @@ export default function ExperienceCertificationPage({
   };
 
   const createExperience = () => {
-    const item = {
-      id: `experience-${Date.now()}`,
-      type: '其它经历认证',
-      title: '一段亲身经历',
-      description: '尚未提交',
-      required: false,
-      status: '填写中',
-      name: '',
-      detail: '',
-      materials: [],
-      isNew: true,
-    };
-    setCertifications((current) => [...current, item]);
-    setCertType(item.id);
+    setCertType('new-experience');
     go('certExperienceApply');
   };
 

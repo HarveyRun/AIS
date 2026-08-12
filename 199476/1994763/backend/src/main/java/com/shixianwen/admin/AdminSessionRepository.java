@@ -5,4 +5,5 @@ import java.util.Optional;
 public interface AdminSessionRepository extends JpaRepository<AdminSession, Long> {
     Optional<AdminSession> findByTokenHashAndExpiresAtAfter(String hash, LocalDateTime now);
     void deleteByTokenHash(String hash);
+    void deleteByAdminUserId(Long adminUserId);
 }

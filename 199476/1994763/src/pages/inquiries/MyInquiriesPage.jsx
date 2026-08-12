@@ -28,7 +28,22 @@ const statusLabels = {
     outgoing: '已撤销',
     incoming: '已撤销',
   },
+  expired: {
+    outgoing: '已超时',
+    incoming: '已超时',
+  },
 };
+
+function formatLastMessageTime(value) {
+  if (!value) return '尚未聊天';
+  const date = new Date(value);
+  const now = new Date();
+  const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  const isToday = date.getFullYear() === now.getFullYear()
+    && date.getMonth() === now.getMonth()
+    && date.getDate() === now.getDate();
+  return isToday ? time : `${date.getMonth() + 1}/${date.getDate()} ${time}`;
+}
 
 export default function MyInquiriesPage({
   go,
@@ -39,6 +54,12 @@ export default function MyInquiriesPage({
   const [type, setType] = useState('outgoing');
   const visibleConversations = conversations.filter(
     (conversation) => conversation.direction === type,
+  );
+  const outgoingUnread = conversations.some(
+    (conversation) => conversation.direction === 'outgoing' && conversation.unread > 0,
+  );
+  const incomingUnread = conversations.some(
+    (conversation) => conversation.direction === 'incoming' && conversation.unread > 0,
   );
 
   const openConversation = (conversation) => {
@@ -65,10 +86,12 @@ export default function MyInquiriesPage({
 
       <div className="inquiry-tabs">
         <button className={type === 'outgoing' ? 'active' : ''} onClick={() => setType('outgoing')}>
-          我发起的
+          <span>我发起的</span>
+          {outgoingUnread && <i aria-label="有未读消息" />}
         </button>
         <button className={type === 'incoming' ? 'active' : ''} onClick={() => setType('incoming')}>
-          我收到的
+          <span>我收到的</span>
+          {incomingUnread && <i aria-label="有未读消息" />}
         </button>
       </div>
 
@@ -101,7 +124,7 @@ export default function MyInquiriesPage({
                 </small>
               </div>
               <div className="inquiry-row-meta">
-                <time>{conversation.time || ''}</time>
+                <time>{formatLastMessageTime(conversation.lastMessageAt)}</time>
                 {conversation.unread > 0 && (
                   <em>{conversation.unread > 99 ? '99+' : conversation.unread}</em>
                 )}

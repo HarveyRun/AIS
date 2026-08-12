@@ -14,6 +14,7 @@ export function createMaterial(file, kind, name = file.name) {
     name,
     size: file.size,
     url: URL.createObjectURL(file),
+    file,
   };
 }
 

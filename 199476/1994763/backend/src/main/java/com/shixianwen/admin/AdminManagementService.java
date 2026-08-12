@@ -31,33 +31,70 @@ public class AdminManagementService {
         String where=" WHERE (?='' OR u.uid LIKE ? OR u.phone LIKE ? OR COALESCE(u.nickname,'') LIKE ?) AND (?='' OR u.account_status=?) ";
         String q=keyword==null?"":keyword.trim(), s=status==null?"":status.trim(); String like="%"+q+"%";
         Long total=jdbc.queryForObject("SELECT COUNT(*) FROM users u"+where,Long.class,q,like,like,like,s,s);
-        List<Map<String,Object>> items=jdbc.queryForList("SELECT u.id,u.uid,u.phone,u.nickname,u.avatar_url AS avatarUrl,u.capability_description AS capabilityDescription,u.answerer_status AS answererStatus,u.account_status AS accountStatus,u.accepting_inquiries AS acceptingInquiries,u.created_at AS createdAt,COALESCE(w.available_balance,0) AS availableBalance,COALESCE(w.frozen_balance,0) AS frozenBalance,(SELECT c.title FROM certifications c WHERE c.user_id=u.id AND c.certification_type='MAIN_JOB' AND c.status='APPROVED' ORDER BY c.id LIMIT 1) AS mainJob FROM users u LEFT JOIN wallet_accounts w ON w.user_id=u.id"+where+" ORDER BY u.id DESC LIMIT ? OFFSET ?",q,like,like,like,s,s,size,page*size);
+        List<Map<String,Object>> items=jdbc.queryForList("SELECT u.id,u.uid,u.phone,u.nickname,u.avatar_url AS avatarUrl,u.answerer_status AS answererStatus,u.account_status AS accountStatus,u.accepting_inquiries AS acceptingInquiries,u.created_at AS createdAt,COALESCE(w.available_balance,0) AS availableBalance,COALESCE(w.frozen_balance,0) AS frozenBalance FROM users u LEFT JOIN wallet_accounts w ON w.user_id=u.id"+where+" ORDER BY u.id DESC LIMIT ? OFFSET ?",q,like,like,like,s,s,size,page*size);
         return new PageResult(items,total,page,size);
     }
-    public PageResult table(String type,String status,int page,int size) {
+    public PageResult table(String type,String status,String category,int page,int size) {
         TableSpec spec=spec(type); String s=status==null?"":status;
-        Long total=jdbc.queryForObject("SELECT COUNT(*) FROM "+spec.table+" t WHERE (?='' OR t.status=?)",Long.class,s,s);
-        List<Map<String,Object>> rows=jdbc.queryForList(spec.select+" WHERE (?='' OR t.status=?) ORDER BY t.id DESC LIMIT ? OFFSET ?",s,s,size,page*size);
+        String c=category==null?"":category;
+        String categorySql="certifications".equals(type)?" AND (?='' OR t.category=?)":" AND (?='' OR ?='')";
+        Long total=jdbc.queryForObject("SELECT COUNT(*) FROM "+spec.table+" t WHERE (?='' OR t.status=?)"+categorySql,Long.class,s,s,c,c);
+        List<Map<String,Object>> rows=jdbc.queryForList(spec.select+" WHERE (?='' OR t.status=?)"+categorySql+" ORDER BY t.id DESC LIMIT ? OFFSET ?",s,s,c,c,size,page*size);
         return new PageResult(rows,total,page,size);
     }
     public List<Map<String,Object>> certificationMaterials(Long id) {
         return jdbc.queryForList("SELECT id,material_kind AS kind,original_name AS name,CONCAT('/uploads/',storage_key) AS url,content_type AS contentType,file_size AS size FROM certification_materials WHERE certification_id=? ORDER BY id",id);
     }
-    @Transactional public void reviewCertification(AdminUser admin,Long id,boolean approved,String reason,String ip) {
+    @Transactional public void reviewCertification(AdminUser admin,Long id,boolean approved,String reason,Long jobId,Integer years,String ip) {
         if(!approved && (reason==null||reason.isBlank())) throw BusinessException.badRequest("驳回时请填写原因");
-        certifications.review(id,approved,reason); audit(admin,"REVIEW_CERTIFICATION","CERTIFICATION",id,String.valueOf(approved),ip);
+        Map<String,Object> certification=jdbc.queryForMap("SELECT user_id AS userId,certification_type AS type,title,status FROM certifications WHERE id=? FOR UPDATE",id);
+        if(!"PENDING".equals(certification.get("status"))) throw BusinessException.badRequest("该认证已经处理");
+        if(approved&&"MAIN_JOB".equals(certification.get("type"))){
+            if(jobId==null) throw BusinessException.badRequest("请选择审核判定的岗位");
+            List<String> jobNames=jdbc.query(
+                "SELECT name FROM jobs WHERE id=? AND active=TRUE",
+                (resultSet,rowNumber)->resultSet.getString("name"),
+                jobId
+            );
+            if(jobNames.isEmpty()) throw BusinessException.badRequest("所选岗位不存在或已停用");
+            if(years==null) throw BusinessException.badRequest("请填写工龄");
+            if(years<1||years>80) throw BusinessException.badRequest("工龄必须是1至80之间的整数");
+            String selectedJobName=jobNames.get(0);
+            jdbc.update("UPDATE certifications SET title=?,years=? WHERE id=?",selectedJobName,years,id);
+            certification.put("title",selectedJobName);
+        }
+        certifications.review(id,approved,reason);
+        if("MAIN_JOB".equals(certification.get("type"))){
+            if(approved){
+                jdbc.update("DELETE FROM user_jobs WHERE user_id=?",certification.get("userId"));
+                jdbc.update("INSERT INTO user_jobs(user_id,job_id,certification_id,verified) VALUES (?,?,?,TRUE)",certification.get("userId"),jobId,id);
+            }else {
+                jdbc.update("DELETE FROM user_jobs WHERE certification_id=?",id);
+                jdbc.update("UPDATE users SET answerer_status='PENDING',accepting_inquiries=FALSE WHERE id=?",certification.get("userId"));
+            }
+        }
+        audit(admin,"REVIEW_CERTIFICATION","CERTIFICATION",id,String.valueOf(approved),ip);
     }
     @Transactional public void userStatus(AdminUser admin,Long id,String status,String ip) {
         if(!List.of("ACTIVE","SUSPENDED").contains(status)) throw BusinessException.badRequest("用户状态不正确");
         if(jdbc.update("UPDATE users SET account_status=?,accepting_inquiries=CASE WHEN ?='SUSPENDED' THEN FALSE ELSE accepting_inquiries END WHERE id=?",status,status,id)!=1) throw BusinessException.notFound("用户不存在");
         audit(admin,"CHANGE_USER_STATUS","USER",id,status,ip);
     }
-    @Transactional public void userCapabilityDescription(AdminUser admin,Long id,String description,String ip) {
-        String value=description==null?null:description.trim();
-        if(value!=null&&value.length()>240) throw BusinessException.badRequest("一句话介绍不能超过240个字");
-        if(jdbc.update("UPDATE users SET capability_description=? WHERE id=?",value==null||value.isBlank()?null:value,id)!=1) throw BusinessException.notFound("用户不存在");
-        audit(admin,"UPDATE_USER_CAPABILITY_DESCRIPTION","USER",id,value,ip);
+    public List<Map<String,Object>> jobs(){return jdbc.queryForList("SELECT j.id,j.name,j.description,j.active,j.created_at AS createdAt,COUNT(DISTINCT uj.user_id) AS userCount,COUNT(DISTINCT mj.matter_id) AS matterCount FROM jobs j LEFT JOIN user_jobs uj ON uj.job_id=j.id LEFT JOIN discovery_matter_jobs mj ON mj.job_id=j.id GROUP BY j.id,j.name,j.description,j.active,j.created_at ORDER BY j.active DESC,j.name,j.id");}
+    public List<Map<String,Object>> jobUsers(Long jobId){
+        if(count("jobs","id="+jobId)==0)throw BusinessException.notFound("岗位不存在");
+        return jdbc.queryForList(
+            "SELECT u.id AS userId,u.uid,u.nickname,u.avatar_url AS avatarUrl,"+
+                "u.account_status AS accountStatus,uj.verified,c.years "+
+                "FROM user_jobs uj JOIN users u ON u.id=uj.user_id " +
+                "LEFT JOIN certifications c ON c.id=uj.certification_id " +
+                "WHERE uj.job_id=? ORDER BY uj.verified DESC,u.id DESC",
+            jobId
+        );
     }
+    @Transactional public void createJob(AdminUser admin,String name,String description,String ip){String value=required(name,"岗位名称不能为空");ensureJobName(value,null);jdbc.update("INSERT INTO jobs(name,description,active) VALUES (?,?,TRUE)",value,cleanDescription(description));Long id=jdbc.queryForObject("SELECT LAST_INSERT_ID()",Long.class);audit(admin,"CREATE_JOB","JOB",id,value,ip);}
+    @Transactional public void updateJob(AdminUser admin,Long id,String name,String description,Boolean active,String ip){String value=required(name,"岗位名称不能为空");ensureJobName(value,id);if(jdbc.update("UPDATE jobs SET name=?,description=?,active=? WHERE id=?",value,cleanDescription(description),active==null||active,id)!=1)throw BusinessException.notFound("岗位不存在");audit(admin,"UPDATE_JOB","JOB",id,value,ip);}
+    @Transactional public void deleteJob(AdminUser admin,Long id,String ip){if(count("user_jobs","job_id="+id)>0||count("discovery_matter_jobs","job_id="+id)>0)throw BusinessException.badRequest("该岗位仍关联用户或事情，请先解除关联");if(jdbc.update("DELETE FROM jobs WHERE id=?",id)!=1)throw BusinessException.notFound("岗位不存在");audit(admin,"DELETE_JOB","JOB",id,"DELETE",ip);}
     @Transactional public void processWithdrawal(AdminUser admin,Long id,String status,String ip) {
         if(!List.of("COMPLETED","FAILED").contains(status)) throw BusinessException.badRequest("提现状态不正确");
         Map<String,Object> row=jdbc.queryForMap("SELECT user_id,amount,status FROM withdrawals WHERE id=? FOR UPDATE",id);
@@ -96,8 +133,8 @@ public class AdminManagementService {
         Map<String,Object> result=new LinkedHashMap<>();
         result.put("categories",jdbc.queryForList("SELECT id,main_category AS mainCategory,name,sort_order AS sortOrder,active FROM discovery_categories ORDER BY FIELD(main_category,'LIFE','WORK','ENTERTAINMENT'),sort_order,id"));
         result.put("matters",jdbc.queryForList("SELECT m.id,m.category_id AS categoryId,m.title,m.sort_order AS sortOrder,m.active,c.main_category AS mainCategory,c.name AS categoryName FROM discovery_matters m JOIN discovery_categories c ON c.id=m.category_id ORDER BY FIELD(c.main_category,'LIFE','WORK','ENTERTAINMENT'),c.sort_order,m.sort_order,m.id"));
-        result.put("matterParticipants",jdbc.queryForList("SELECT matter_id AS matterId,user_id AS userId,participation_type AS type,sort_order AS sortOrder FROM discovery_matter_participants ORDER BY matter_id,CASE participation_type WHEN 'PRIMARY' THEN 0 ELSE 1 END,sort_order,user_id"));
-        result.put("answerers",jdbc.queryForList("SELECT DISTINCT u.id AS userId,u.uid,u.nickname,u.capability_description AS capabilityDescription,c.title AS mainJob FROM users u JOIN certifications c ON c.user_id=u.id AND c.certification_type='MAIN_JOB' AND c.status='APPROVED' WHERE u.account_status='ACTIVE' AND u.answerer_status='APPROVED' ORDER BY c.title,u.nickname,u.id"));
+        result.put("matterJobs",jdbc.queryForList("SELECT mj.matter_id AS matterId,mj.job_id AS jobId,mj.participation_type AS type,mj.sort_order AS sortOrder,j.name AS jobName FROM discovery_matter_jobs mj JOIN jobs j ON j.id=mj.job_id ORDER BY mj.matter_id,CASE mj.participation_type WHEN 'PRIMARY' THEN 0 ELSE 1 END,mj.sort_order,j.name"));
+        result.put("jobs",jobs());
         result.put("experiences",jdbc.queryForList("SELECT t.id,t.title,t.description,t.status,t.discovery_category_id AS categoryId,t.reviewed_at AS reviewedAt,u.uid,u.nickname,c.main_category AS mainCategory,c.name AS categoryName FROM certifications t JOIN users u ON u.id=t.user_id LEFT JOIN discovery_categories c ON c.id=t.discovery_category_id WHERE t.category='EXPERIENCE' AND t.status='APPROVED' ORDER BY CASE WHEN t.discovery_category_id IS NULL THEN 0 ELSE 1 END,t.id DESC"));
         return result;
     }
@@ -128,23 +165,23 @@ public class AdminManagementService {
         normalizeCategories(main);
         audit(admin,"DELETE_DISCOVERY_CATEGORY","DISCOVERY_CATEGORY",id,"DELETE",ip);
     }
-    @Transactional public void createMatter(AdminUser admin,Long categoryId,String title,Integer sortOrder,List<AdminManagementController.MatterParticipantRequest> participants,String ip) {
+    @Transactional public void createMatter(AdminUser admin,Long categoryId,String title,Integer sortOrder,List<AdminManagementController.MatterJobRequest> jobs,String ip) {
         requireCategory(categoryId); String value=required(title,"事情名称不能为空");
         ensureMatterTitleAvailable(categoryId,value,null);
         int tail=jdbc.queryForObject("SELECT COUNT(*)+1 FROM discovery_matters WHERE category_id=?",Integer.class,categoryId);
         jdbc.update("INSERT INTO discovery_matters(category_id,title,sort_order,active) VALUES (?,?,?,TRUE)",categoryId,value,tail);
         Long id=jdbc.queryForObject("SELECT LAST_INSERT_ID()",Long.class);
-        replaceMatterParticipants(id,participants);
+        replaceMatterJobs(id,jobs);
         reorderMatters(categoryId,id,sortOrder==null?tail:sortOrder);
         audit(admin,"CREATE_DISCOVERY_MATTER","DISCOVERY_MATTER",id,value,ip);
     }
-    @Transactional public void updateMatter(AdminUser admin,Long id,Long categoryId,String title,Integer sortOrder,Boolean active,List<AdminManagementController.MatterParticipantRequest> participants,String ip) {
+    @Transactional public void updateMatter(AdminUser admin,Long id,Long categoryId,String title,Integer sortOrder,Boolean active,List<AdminManagementController.MatterJobRequest> jobs,String ip) {
         requireCategory(categoryId); String value=required(title,"事情名称不能为空");
         ensureMatterTitleAvailable(categoryId,value,id);
         Long oldCategory=jdbc.query("SELECT category_id FROM discovery_matters WHERE id=?",rs->rs.next()?rs.getLong(1):null,id);
         if(oldCategory==null) throw BusinessException.notFound("事情不存在");
         jdbc.update("UPDATE discovery_matters SET category_id=?,title=?,active=? WHERE id=?",categoryId,value,active==null||active,id);
-        replaceMatterParticipants(id,participants);
+        replaceMatterJobs(id,jobs);
         if(!oldCategory.equals(categoryId)) normalizeMatters(oldCategory);
         reorderMatters(categoryId,id,sortOrder==null?Integer.MAX_VALUE:sortOrder);
         audit(admin,"UPDATE_DISCOVERY_MATTER","DISCOVERY_MATTER",id,value,ip);
@@ -173,22 +210,23 @@ public class AdminManagementService {
             : jdbc.queryForObject("SELECT COUNT(*) FROM discovery_matters WHERE category_id=? AND title=? AND id<>?",Long.class,categoryId,title,excludedId);
         if(total!=null&&total>0) throw BusinessException.badRequest("该子分类下已存在同名事情");
     }
-    private void replaceMatterParticipants(Long matterId,List<AdminManagementController.MatterParticipantRequest> participants){
-        jdbc.update("DELETE FROM discovery_matter_participants WHERE matter_id=?",matterId);
-        if(participants==null||participants.isEmpty()) throw BusinessException.badRequest("每件事情至少选择一名主要参与用户");
+    private void replaceMatterJobs(Long matterId,List<AdminManagementController.MatterJobRequest> jobs){
+        jdbc.update("DELETE FROM discovery_matter_jobs WHERE matter_id=?",matterId);
+        if(jobs==null||jobs.isEmpty()) throw BusinessException.badRequest("每件事情至少设置一个重点问的岗位");
         int primaryOrder=1, supportingOrder=1;
         Set<Long> seen=new HashSet<>();
-        for(AdminManagementController.MatterParticipantRequest participant:participants){
-            if(participant==null||participant.userId()==null) continue;
-            if(!seen.add(participant.userId())) throw BusinessException.badRequest("同一用户不能重复参与同一件事情");
-            String type="SUPPORTING".equalsIgnoreCase(participant.type())?"SUPPORTING":"PRIMARY";
-            Long valid=jdbc.queryForObject("SELECT COUNT(*) FROM users u JOIN certifications c ON c.user_id=u.id AND c.certification_type='MAIN_JOB' AND c.status='APPROVED' WHERE u.id=? AND u.account_status='ACTIVE' AND u.answerer_status='APPROVED'",Long.class,participant.userId());
-            if(valid==null||valid==0) throw BusinessException.badRequest("所选用户没有通过岗位认证");
+        for(AdminManagementController.MatterJobRequest job:jobs){
+            if(job==null||job.jobId()==null) continue;
+            if(!seen.add(job.jobId())) throw BusinessException.badRequest("同一岗位不能重复配置");
+            String type="SUPPORTING".equalsIgnoreCase(job.type())?"SUPPORTING":"PRIMARY";
+            if(count("jobs","id="+job.jobId()+" AND active=TRUE")==0) throw BusinessException.badRequest("所选岗位不存在或已停用");
             int order="PRIMARY".equals(type)?primaryOrder++:supportingOrder++;
-            jdbc.update("INSERT INTO discovery_matter_participants(matter_id,user_id,participation_type,sort_order) VALUES (?,?,?,?)",matterId,participant.userId(),type,order);
+            jdbc.update("INSERT INTO discovery_matter_jobs(matter_id,job_id,participation_type,sort_order) VALUES (?,?,?,?)",matterId,job.jobId(),type,order);
         }
-        if(primaryOrder==1) throw BusinessException.badRequest("每件事情至少选择一名主要参与用户");
+        if(primaryOrder==1) throw BusinessException.badRequest("每件事情至少设置一个重点问的岗位");
     }
+    private void ensureJobName(String name,Long excludedId){Long total=excludedId==null?jdbc.queryForObject("SELECT COUNT(*) FROM jobs WHERE name=?",Long.class,name):jdbc.queryForObject("SELECT COUNT(*) FROM jobs WHERE name=? AND id<>?",Long.class,name,excludedId);if(total!=null&&total>0)throw BusinessException.badRequest("岗位名称已存在");}
+    private String cleanDescription(String value){if(value==null||value.isBlank())return null;String result=value.trim();if(result.length()>240)throw BusinessException.badRequest("介绍不能超过240个字");return result;}
     private String mainCategory(String value){String result=value==null?"":value.trim().toUpperCase(Locale.ROOT);if(!List.of("LIFE","WORK","ENTERTAINMENT").contains(result)) throw BusinessException.badRequest("主分类不正确");return result;}
     private String required(String value,String message){if(value==null||value.isBlank()) throw BusinessException.badRequest(message);return value.trim();}
     private void reorderCategories(String main,Long movingId,int requestedPosition){

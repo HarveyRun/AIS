@@ -36,13 +36,14 @@ public class CertificationController {
     @PostMapping(value = "/experiences", consumes = "multipart/form-data")
     public ApiResponse<CertificationService.CertificationView> submitExperience(
         @CurrentUser User user,
+        @RequestParam(required = false) Long existingId,
         @RequestParam String title,
         @RequestParam(required = false) String description,
         @RequestParam(required = false) Integer years,
         @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
         return ApiResponse.ok(certificationService.submitExperience(
-            user, title, description, years, files == null ? List.of() : files
+            user, existingId, title, description, years, files == null ? List.of() : files
         ));
     }
 

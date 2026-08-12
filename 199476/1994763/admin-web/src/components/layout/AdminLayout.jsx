@@ -12,12 +12,14 @@ import {
   Headset,
   LogOut,
   Tags,
+  BriefcaseBusiness,
 } from 'lucide-react';
 import { adminApi, token } from '../../api/adminApi.js';
 import './AdminLayout.css';
 const items = [
   ['/dashboard', '概览', LayoutDashboard],
   ['/users', '用户管理', Users],
+  ['/jobs', '岗位管理', BriefcaseBusiness],
   ['/certifications', '认证审核', ShieldCheck],
   ['/discovery', '内容分类', Tags],
   ['/inquiries', '询问管理', MessagesSquare],

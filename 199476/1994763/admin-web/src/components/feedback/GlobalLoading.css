@@ -1,0 +1,37 @@
+.admin-global-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  background: rgb(255 255 255 / 20%);
+  cursor: wait;
+}
+
+.admin-global-loading > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 18px;
+  border-radius: 12px;
+  background: rgb(37 40 45 / 90%);
+  box-shadow: 0 12px 34px rgb(20 24 30 / 18%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-global-loading i {
+  width: 19px;
+  height: 19px;
+  border: 2px solid rgb(255 255 255 / 35%);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: admin-loading-spin 0.75s linear infinite;
+}
+
+@keyframes admin-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

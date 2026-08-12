@@ -11,7 +11,6 @@ export default function LoginPage({ go, onLogin, notify }) {
   const [code, setCode] = useState('');
   const [sent, setSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     if (countdown <= 0) return undefined;
@@ -25,23 +24,22 @@ export default function LoginPage({ go, onLogin, notify }) {
       setSent(true);
       setCountdown(60);
       setCode('');
-      setError('');
-      notify('验证码已发送');
+      notify('验证码已发送', 'success');
     } catch (requestError) {
-      setError(requestError.message);
+      notify(requestError.message, 'error');
     }
   };
 
   const submit = async () => {
     if (!sent) {
-      setError('请先获取验证码');
+      notify('请先获取验证码', 'warning');
       return;
     }
     try {
       const result = await api.login(phone, code);
       onLogin(result);
     } catch (requestError) {
-      setError(requestError.message);
+      notify(requestError.message, 'error');
     }
   };
 
@@ -68,7 +66,6 @@ export default function LoginPage({ go, onLogin, notify }) {
               setPhone(digitsOnly(event.target.value));
               setSent(false);
               setCountdown(0);
-              setError('');
             }}
             placeholder="请输入手机号"
           />
@@ -82,7 +79,6 @@ export default function LoginPage({ go, onLogin, notify }) {
             value={code}
             onChange={(event) => {
               setCode(digitsOnly(event.target.value));
-              setError('');
             }}
             placeholder="请输入验证码"
           />
@@ -90,7 +86,6 @@ export default function LoginPage({ go, onLogin, notify }) {
             {countdown > 0 ? `${countdown}秒` : sent ? '重新获取' : '获取验证码'}
           </button>
         </div>
-        {error && <small className="auth-error">{error}</small>}
         <button
           type="button"
           className="auth-submit"

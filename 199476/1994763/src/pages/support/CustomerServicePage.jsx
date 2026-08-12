@@ -1,39 +1,42 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Send } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import './CustomerServicePage.css';
+import { api } from '../../api/http.js';
 
-export default function CustomerServicePage({ go }) {
+export default function CustomerServicePage({ go, notify }) {
   const [text, setText] = useState('');
-  const [messages, setMessages] = useState([
-    {
-      id: 'welcome',
-      role: 'service',
-      content: '你好，我是事先问客服。请告诉我你遇到了什么问题。',
-      time: '现在',
-    },
-  ]);
+  const [messages, setMessages] = useState([]);
 
-  const send = () => {
+  useEffect(() => {
+    api.customerServiceMessages()
+      .then((items) => {
+        setMessages(items.map((item) => ({
+          id: item.id,
+          role: item.senderType === 'USER' ? 'user' : 'service',
+          content: item.content,
+          time: new Date(item.createdAt).toLocaleString(),
+        })));
+      })
+      .catch((error) => notify(error.message, 'error'));
+  }, [notify]);
+
+  const send = async () => {
     const content = text.trim();
     if (!content) return;
-
-    setMessages((current) => [
-      ...current,
-      {
-        id: `user-${Date.now()}`,
-        role: 'user',
-        content,
-        time: '现在',
-      },
-      {
-        id: `service-${Date.now()}`,
-        role: 'service',
-        content: '已经收到，我们会尽快查看并回复你。',
-        time: '现在',
-      },
-    ]);
-    setText('');
+    try {
+      await api.sendCustomerServiceMessage(content);
+      const latest = await api.customerServiceMessages();
+      setMessages(latest.map((item) => ({
+        id: item.id,
+        role: item.senderType === 'USER' ? 'user' : 'service',
+        content: item.content,
+        time: new Date(item.createdAt).toLocaleString(),
+      })));
+      setText('');
+    } catch (error) {
+      notify(error.message, 'error');
+    }
   };
 
   return (

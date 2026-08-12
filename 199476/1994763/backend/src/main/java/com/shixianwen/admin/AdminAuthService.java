@@ -47,6 +47,8 @@ public class AdminAuthService {
     }
     @Transactional public void logout(String token) { sessions.deleteByTokenHash(hash(token)); }
     private LoginResult session(AdminUser user) {
+        sessions.deleteByAdminUserId(user.getId());
+        sessions.flush();
         byte[] bytes = new byte[32]; random.nextBytes(bytes); String raw = HexFormat.of().formatHex(bytes);
         AdminSession session = new AdminSession(); session.setAdminUser(user); session.setTokenHash(hash(raw));
         session.setExpiresAt(LocalDateTime.now().plusHours(12)); sessions.save(session);

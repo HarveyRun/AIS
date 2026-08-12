@@ -9,4 +9,5 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
     List<Certification> findByUserIdOrderByIdAsc(Long userId);
     List<Certification> findByUserIdAndStatusOrderByIdAsc(Long userId, String status);
     Optional<Certification> findByIdAndUserId(Long id, Long userId);
+    Optional<Certification> findFirstByUserIdAndCertificationTypeOrderByIdDesc(Long userId, String certificationType);
 }

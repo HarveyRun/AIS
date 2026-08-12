@@ -1,22 +1,47 @@
+import { beginRequest, endRequest } from './requestActivity.js';
+
 const TOKEN_KEY = 'shixianwen-admin-token';
+const inFlightRequests = new Map();
 export const token = {
   get: () => localStorage.getItem(TOKEN_KEY) || '',
   set: (v) => (v ? localStorage.setItem(TOKEN_KEY, v) : localStorage.removeItem(TOKEN_KEY)),
 };
-export async function request(path, options = {}) {
-  const headers = new Headers(options.headers || {});
-  if (token.get()) headers.set('Authorization', `Bearer ${token.get()}`);
-  if (options.body) headers.set('Content-Type', 'application/json');
-  const response = await fetch(`/api/admin${path}`, { ...options, headers });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok || payload?.success === false) {
-    if (response.status === 401) {
-      token.set('');
-      window.dispatchEvent(new Event('shixianwen-admin-unauthorized'));
+function requestKey(path, options, accessToken) {
+  const method = String(options.method || 'GET').toUpperCase();
+  return `${method}:${path}:${accessToken}:${String(options.body || '')}`;
+}
+
+export function request(path, options = {}) {
+  const accessToken = token.get();
+  const key = requestKey(path, options, accessToken);
+  const existingRequest = inFlightRequests.get(key);
+  if (existingRequest) return existingRequest;
+
+  const activeRequest = (async () => {
+    beginRequest();
+    try {
+      const headers = new Headers(options.headers || {});
+      if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
+      if (options.body) headers.set('Content-Type', 'application/json');
+
+      const response = await fetch(`/api/admin${path}`, { ...options, headers });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || payload?.success === false) {
+        if (response.status === 401) {
+          token.set('');
+          window.dispatchEvent(new Event('shixianwen-admin-unauthorized'));
+        }
+        throw new Error(payload?.message || '请求失败');
+      }
+      return payload.data;
+    } finally {
+      inFlightRequests.delete(key);
+      endRequest();
     }
-    throw new Error(payload?.message || '请求失败');
-  }
-  return payload.data;
+  })();
+
+  inFlightRequests.set(key, activeRequest);
+  return activeRequest;
 }
 export const adminApi = {
   setupStatus: () => request('/auth/setup-status'),
@@ -26,17 +51,17 @@ export const adminApi = {
   logout: () => request('/auth/logout', { method: 'POST' }),
   dashboard: () => request('/dashboard'),
   users: (query) => request(`/users?${query}`),
+  jobs: () => request('/jobs'),
+  jobUsers: (jobId) => request(`/jobs/${jobId}/users`),
+  createJob: (body) => request('/jobs', { method: 'POST', body: JSON.stringify(body) }),
+  updateJob: (id, body) => request(`/jobs/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteJob: (id) => request(`/jobs/${id}`, { method: 'DELETE' }),
   table: (type, query = '') => request(`/${type}?${query}`),
   materials: (id) => request(`/certifications/${id}/materials`),
   review: (id, body) =>
     request(`/certifications/${id}/review`, { method: 'POST', body: JSON.stringify(body) }),
   userStatus: (id, status) =>
     request(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-  updateUserCapabilityDescription: (id, description) =>
-    request(`/users/${id}/capability-description`, {
-      method: 'PATCH',
-      body: JSON.stringify({ description }),
-    }),
   withdrawalStatus: (id, status) =>
     request(`/withdrawals/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   recordStatus: (type, id, status) =>

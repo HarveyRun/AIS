@@ -7,11 +7,23 @@
 }
 
 .inquiry-tabs button {
+  position: relative;
+  display: flex;
   height: 38px;
   flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border-radius: 10px;
   color: #8f847c;
   font-size: 12px;
+}
+
+.inquiry-tabs button i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
 }
 
 .inquiry-tabs button.active {
@@ -27,7 +39,7 @@
 .inquiry-row {
   display: grid;
   width: 100%;
-  grid-template-columns: 50px 1fr 48px;
+  grid-template-columns: 50px 1fr 72px;
   gap: 11px;
   align-items: center;
   padding: 14px 0;
@@ -117,6 +129,7 @@
 .inquiry-row-meta time {
   color: #aaa;
   font-size: 10px;
+  white-space: nowrap;
 }
 
 .inquiry-row-meta em {

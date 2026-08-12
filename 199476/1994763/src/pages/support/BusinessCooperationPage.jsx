@@ -1,17 +1,22 @@
 import { useState } from 'react';
 import Page from '../../components/layout/Page.jsx';
 import './BusinessCooperationPage.css';
+import { api } from '../../api/http.js';
 
 export default function BusinessCooperationPage({ go, notify }) {
   const [contact, setContact] = useState('');
   const [content, setContent] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     if (!contact.trim() || !content.trim()) return;
-
-    setSubmitted(true);
-    notify('合作意向已提交');
+    try {
+      await api.submitBusinessCooperation({ contact: contact.trim(), content: content.trim() });
+      setSubmitted(true);
+      notify('合作意向已提交', 'success');
+    } catch (error) {
+      notify(error.message, 'error');
+    }
   };
 
   return (

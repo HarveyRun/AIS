@@ -3,7 +3,6 @@ import { MessageCircleMore, ShieldCheck, WalletCards, X } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import UserAvatar from '../../components/profile/UserAvatar.jsx';
 import { Career } from '../../components/talent/TalentCard.jsx';
-import { createResponseDeadline } from '../../hooks/useDirectInquirySettlement.js';
 import './TalentPage.css';
 import { api } from '../../api/http.js';
 
@@ -14,15 +13,14 @@ export default function TalentPage({
   setConversations,
   setSelectedConversation,
   balance,
-  setBalance,
+  refreshWallet,
   problem,
   experience,
-  addNotice = () => {},
+  notify,
 }) {
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [inquiryQuestion, setInquiryQuestion] = useState('');
   const [inquiryAmount, setInquiryAmount] = useState('');
-  const [inquiryError, setInquiryError] = useState('');
   const inquiryContext = experience || problem || p.main;
   const acceptsInquiries = p.acceptingInquiries !== false;
   const openInquiry = () => {
@@ -46,7 +44,6 @@ export default function TalentPage({
 
     setInquiryQuestion('');
     setInquiryAmount('');
-    setInquiryError('');
     setInquiryOpen(true);
   };
 
@@ -55,20 +52,20 @@ export default function TalentPage({
     const amount = Number(inquiryAmount);
 
     if (!question) {
-      setInquiryError('请先写下你想问的事情');
+      notify('请先写下你想问的事情', 'warning');
       return;
     }
     if (!Number.isFinite(amount) || amount <= 0) {
-      setInquiryError('请输入有效金额');
+      notify('请输入有效金额', 'warning');
       return;
     }
     if (amount > balance) {
-      setInquiryError('余额不足，请先调整金额');
+      notify('余额不足，请先调整金额', 'warning');
       return;
     }
 
     if (!p.id) {
-      setInquiryError('档案数据尚未加载完成，请稍后再试');
+      notify('档案数据尚未加载完成，请稍后再试', 'warning');
       return;
     }
 
@@ -80,52 +77,50 @@ export default function TalentPage({
         question,
         amount: Number(amount.toFixed(2)),
       });
-      const conversationId = created.id;
-    const conversation = {
-      id: conversationId,
-      type: 'direct',
-      direction: 'outgoing',
-      title: p.name?.trim() || `UID ${p.uid}`,
-      desc: question,
-      members: 2,
-      time: '刚刚',
-      unread: 0,
-      color: p.color,
-      status: 'pending',
-      statusText: '待接受',
-      inquiryStatus: 'pending',
-      settlementStatus: 'unsettled',
-      financeProcessed: false,
-      amount: Number(amount.toFixed(2)),
-      question,
-      responseDeadline: created.responseDeadline || createResponseDeadline(),
-      continueCount: 0,
-      endRequestCount: 0,
-      topic: inquiryContext,
-      sourceType: experience ? 'experience' : problem ? 'problem' : 'profile',
-      capability: experience || p.main,
-      partner: {
-        uid: p.uid,
-        name: p.name,
-        role: p.main,
+      const detail = await api.inquiry(created.id);
+      const confirmed = detail.inquiry;
+      const conversationId = confirmed.id;
+      const conversation = {
+        id: conversationId,
+        type: 'direct',
+        direction: 'outgoing',
+        title: p.name?.trim() || `UID ${p.uid}`,
+        desc: question,
+        members: 2,
+        time: '刚刚',
+        unread: 0,
         color: p.color,
-        avatar: p.avatar,
-      },
-      messages: [],
-    };
+        status: 'pending',
+        statusText: '待接受',
+        inquiryStatus: 'pending',
+        settlementStatus: 'unsettled',
+        financeProcessed: false,
+        amount: Number(confirmed.amount),
+        question,
+        responseDeadline: confirmed.responseDeadline,
+        continueCount: 0,
+        endRequestCount: 0,
+        topic: inquiryContext,
+        sourceType: experience ? 'experience' : problem ? 'problem' : 'profile',
+        capability: experience || p.main,
+        partner: {
+          uid: p.uid,
+          name: p.name,
+          role: p.main,
+          color: p.color,
+          avatar: p.avatar,
+        },
+        messages: [],
+      };
 
-    setBalance((current) => Number((current - conversation.amount).toFixed(2)));
-    setConversations((current) => [conversation, ...current]);
-    setSelectedConversation(conversation);
-    addNotice({
-      title: '询问已发起',
-      content: `已经向${conversation.title}发起询问`,
-      screen: 'inquiries',
-    });
-    setInquiryOpen(false);
-    go('directChat');
+      setConversations((current) => [conversation, ...current]);
+      setSelectedConversation(conversation);
+      await refreshWallet();
+      setInquiryOpen(false);
+      notify('询问已发出，等待对方回应', 'success');
+      go('directChat');
     } catch (requestError) {
-      setInquiryError(requestError.message);
+      notify(requestError.message, 'error');
     }
   };
 
@@ -149,6 +144,7 @@ export default function TalentPage({
           {(p.experiences || []).map((x) => (
             <span key={x}>{x}</span>
           ))}
+          {(p.experiences || []).length === 0 && <span>暂未填写亲身经历</span>}
         </div>
         <p>这些经历基础材料已核实。</p>
       </section>
@@ -182,7 +178,6 @@ export default function TalentPage({
                 value={inquiryQuestion}
                 onChange={(event) => {
                   setInquiryQuestion(event.target.value);
-                  setInquiryError('');
                 }}
                 maxLength={120}
                 placeholder="把想了解的事情简单说清楚"
@@ -201,7 +196,6 @@ export default function TalentPage({
                     const value = event.target.value;
                     if (/^\d*(\.\d{0,2})?$/.test(value)) {
                       setInquiryAmount(value);
-                      setInquiryError('');
                     }
                   }}
                   placeholder="0.00"
@@ -216,7 +210,6 @@ export default function TalentPage({
               </span>
             </div>
             <p className="inquiry-payment-note">发起后金额暂时冻结，对方未接受会自动退回。</p>
-            {inquiryError && <small className="inquiry-error">{inquiryError}</small>}
             <button className="inquiry-submit" type="button" onClick={submitExperienceInquiry}>
               确认发起
             </button>

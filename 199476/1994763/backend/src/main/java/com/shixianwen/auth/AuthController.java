@@ -5,6 +5,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import jakarta.servlet.http.HttpServletRequest;
+import com.shixianwen.network.ClientNetworkService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -13,9 +15,11 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService authService;
+    private final ClientNetworkService clientNetworkService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, ClientNetworkService clientNetworkService) {
         this.authService = authService;
+        this.clientNetworkService = clientNetworkService;
     }
 
     @PostMapping("/verification-codes")
@@ -24,13 +28,28 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ApiResponse<AuthService.LoginResult> register(@Valid @RequestBody RegisterRequest request) {
-        return ApiResponse.ok(authService.register(request.phone(), request.nickname(), request.code()));
+    public ApiResponse<AuthService.LoginResult> register(
+        @Valid @RequestBody RegisterRequest request,
+        HttpServletRequest servletRequest
+    ) {
+        return ApiResponse.ok(authService.register(
+            request.phone(),
+            request.nickname(),
+            request.code(),
+            clientNetworkService.resolve(servletRequest)
+        ));
     }
 
     @PostMapping("/login")
-    public ApiResponse<AuthService.LoginResult> login(@Valid @RequestBody LoginRequest request) {
-        return ApiResponse.ok(authService.login(request.phone(), request.code()));
+    public ApiResponse<AuthService.LoginResult> login(
+        @Valid @RequestBody LoginRequest request,
+        HttpServletRequest servletRequest
+    ) {
+        return ApiResponse.ok(authService.login(
+            request.phone(),
+            request.code(),
+            clientNetworkService.resolve(servletRequest)
+        ));
     }
 
     @PostMapping("/logout")

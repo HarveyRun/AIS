@@ -1,24 +1,26 @@
+import { useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import './NoticesPage.css';
+import { api } from '../../api/http.js';
 
-export default function NoticesPage({ go, notices, setNotices }) {
-  const openNotice = (notice) => {
-    setNotices((current) =>
-      current.map((item) => (item.id === notice.id ? { ...item, read: true } : item)),
-    );
-    if (notice.screen) go(notice.screen);
-  };
+export default function NoticesPage({
+  go,
+  notices,
+  setNotices,
+}) {
+  useEffect(() => {
+    if (!notices.some((notice) => !notice.read)) return;
+    api.readAllNotifications()
+      .then(() => setNotices((current) => current.map((notice) => ({ ...notice, read: true }))))
+      .catch(() => {});
+  }, [notices, setNotices]);
 
   return (
     <Page title="通知" back={() => go('home')}>
       <section className="notice-list">
         {notices.map((notice) => (
-          <button
-            className={notice.read ? 'read' : ''}
-            key={notice.id}
-            onClick={() => openNotice(notice)}
-          >
+          <article key={notice.id}>
             <i>
               <Bell />
             </i>
@@ -27,8 +29,7 @@ export default function NoticesPage({ go, notices, setNotices }) {
               <p>{notice.content}</p>
               <span>{notice.time}</span>
             </div>
-            {!notice.read && <b />}
-          </button>
+          </article>
         ))}
         {notices.length === 0 && <p className="notice-empty">暂时没有通知</p>}
       </section>

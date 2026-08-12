@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, ExternalLink } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
 import { date, Empty, Status } from '../users/UsersPage.jsx';
@@ -15,14 +15,35 @@ const meta = {
 export default function RecordsPage({ type }) {
   const [data, setData] = useState({ items: [], total: 0 });
   const [status, setStatus] = useState('');
+  const [certificationCategory, setCertificationCategory] = useState('BASIC');
   const [selected, setSelected] = useState(null);
   const [materials, setMaterials] = useState([]);
+  const [jobs, setJobs] = useState([]);
   const [reason, setReason] = useState('');
+  const [selectedJobId, setSelectedJobId] = useState('');
+  const [jobKeyword, setJobKeyword] = useState('');
+  const [workYears, setWorkYears] = useState('');
   const [page, setPage] = useState(0);
   const size = 20;
+  const visibleJobs = useMemo(() => {
+    const keyword = jobKeyword.trim().toLowerCase();
+    const matched = keyword
+      ? jobs.filter((job) => (
+          job.name.toLowerCase().includes(keyword)
+          || (job.description || '').toLowerCase().includes(keyword)
+        ))
+      : jobs;
+
+    return matched.slice(0, 20);
+  }, [jobs, jobKeyword]);
   const load = (targetPage = page) => {
     return adminApi
-      .table(type, new URLSearchParams({ status, page: targetPage, size }).toString())
+      .table(type, new URLSearchParams({
+        status,
+        category: type === 'certifications' ? certificationCategory : '',
+        page: targetPage,
+        size,
+      }).toString())
       .then(setData)
       .catch((e) => message.error(e.message));
   };
@@ -30,13 +51,25 @@ export default function RecordsPage({ type }) {
     setSelected(null);
     setPage(0);
     load(0);
-  }, [type, status]);
+  }, [type, status, certificationCategory]);
   const open = async (row) => {
     try {
       setSelected(row);
       setReason('');
+      setSelectedJobId('');
+      setJobKeyword('');
+      setWorkYears(row.type === 'MAIN_JOB' && row.years != null ? String(row.years) : '');
       setMaterials([]);
-      if (type === 'certifications') setMaterials(await adminApi.materials(row.id));
+      setJobs([]);
+      if (type === 'certifications') {
+        const requests = [adminApi.materials(row.id)];
+        if (row.type === 'MAIN_JOB' && row.status === 'PENDING') {
+          requests.push(adminApi.jobs());
+        }
+        const [materialResult, jobResult = []] = await Promise.all(requests);
+        setMaterials(materialResult);
+        setJobs(jobResult.filter((job) => job.active));
+      }
     } catch (e) {
       setSelected(null);
       message.error(e.message);
@@ -48,7 +81,25 @@ export default function RecordsPage({ type }) {
       return;
     }
     try {
-      await adminApi.review(selected.id, { approved, reason: reason.trim() });
+      if (approved && selected.type === 'MAIN_JOB' && !selectedJobId) {
+        message.warning('请选择审核判定的岗位');
+        return;
+      }
+      if (approved && selected.type === 'MAIN_JOB' && !/^\d+$/.test(workYears)) {
+        message.warning('请填写工龄');
+        return;
+      }
+      const numericYears = Number(workYears);
+      if (approved && selected.type === 'MAIN_JOB' && (numericYears < 1 || numericYears > 80)) {
+        message.warning('工龄必须是1至80之间的整数');
+        return;
+      }
+      await adminApi.review(selected.id, {
+        approved,
+        reason: reason.trim(),
+        jobId: selected.type === 'MAIN_JOB' ? Number(selectedJobId) : null,
+        years: selected.type === 'MAIN_JOB' ? numericYears : null,
+      });
       setSelected(null);
       await load();
       message.success(approved ? '认证已通过' : '认证已驳回');
@@ -86,6 +137,12 @@ export default function RecordsPage({ type }) {
           ))}
         </select>
       </div>
+      {type === 'certifications' && (
+        <div className="certification-tabs">
+          <button className={certificationCategory === 'BASIC' ? 'active' : ''} onClick={() => setCertificationCategory('BASIC')}>基础信息</button>
+          <button className={certificationCategory === 'EXPERIENCE' ? 'active' : ''} onClick={() => setCertificationCategory('EXPERIENCE')}>亲身经历</button>
+        </div>
+      )}
       <Pagination
         page={page}
         size={size}
@@ -159,6 +216,54 @@ export default function RecordsPage({ type }) {
                 </div>
                 {selected.status === 'PENDING' && (
                   <>
+                    {selected.type === 'MAIN_JOB' && (
+                      <>
+                        <label className="review-job-field">
+                          <span>审核判定岗位</span>
+                          <input
+                            value={jobKeyword}
+                            onChange={(event) => {
+                              setJobKeyword(event.target.value);
+                              setSelectedJobId('');
+                            }}
+                            placeholder="输入岗位名称搜索"
+                          />
+                          <div className="review-job-options">
+                            {visibleJobs.map((job) => (
+                              <button
+                                type="button"
+                                className={selectedJobId === String(job.id) ? 'selected' : ''}
+                                key={job.id}
+                                onClick={() => {
+                                  setSelectedJobId(String(job.id));
+                                  setJobKeyword(job.name);
+                                }}
+                              >
+                                <b>{job.name}</b>
+                                {job.description && <small>{job.description}</small>}
+                              </button>
+                            ))}
+                            {!visibleJobs.length && (
+                              <p>没有找到相关岗位，请先到岗位管理中新增</p>
+                            )}
+                          </div>
+                          <small>只可选择岗位库中已启用的岗位</small>
+                        </label>
+                        <label className="review-job-field">
+                          <span>工龄</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="80"
+                            step="1"
+                            value={workYears}
+                            onChange={(event) => setWorkYears(event.target.value)}
+                            placeholder="请输入整数年数"
+                          />
+                          <small>岗位认证通过后，将展示在该用户档案中</small>
+                        </label>
+                      </>
+                    )}
                     <textarea
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
@@ -282,8 +387,8 @@ function cells(type, r) {
           <small>UID {r.uid}</small>
         </td>
         <td>
-          <b>{r.title}</b>
-          <small>{r.category}</small>
+          <b>{certificationTitle(r)}</b>
+          <small>{certificationTypeName(r.type)}</small>
         </td>
         <td>
           <Status value={r.status} />
@@ -339,4 +444,12 @@ function cells(type, r) {
       </td>
     </>
   );
+}
+function certificationTitle(record) {
+  if (record.type === 'IDENTITY') return '身份信息';
+  if (record.type === 'MAIN_JOB' && record.status === 'PENDING') return '岗位材料';
+  return record.title;
+}
+function certificationTypeName(type) {
+  return { IDENTITY: '基础信息 · 身份', MAIN_JOB: '基础信息 · 岗位', EXPERIENCE: '亲身经历' }[type] || type;
 }
