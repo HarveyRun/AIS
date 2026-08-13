@@ -4,7 +4,6 @@ import com.shixianwen.common.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import jakarta.servlet.http.HttpServletRequest;
 import com.shixianwen.network.ClientNetworkService;
 import org.springframework.web.bind.annotation.*;
@@ -25,19 +24,6 @@ public class AuthController {
     @PostMapping("/verification-codes")
     public ApiResponse<Map<String, Object>> sendCode(@Valid @RequestBody PhoneRequest request) {
         return ApiResponse.ok(Map.of("sent", true, "expiresIn", 300));
-    }
-
-    @PostMapping("/register")
-    public ApiResponse<AuthService.LoginResult> register(
-        @Valid @RequestBody RegisterRequest request,
-        HttpServletRequest servletRequest
-    ) {
-        return ApiResponse.ok(authService.register(
-            request.phone(),
-            request.nickname(),
-            request.code(),
-            clientNetworkService.resolve(servletRequest)
-        ));
     }
 
     @PostMapping("/login")
@@ -71,10 +57,4 @@ public class AuthController {
     ) {
     }
 
-    public record RegisterRequest(
-        @NotBlank @Pattern(regexp = "^1\\d{10}$", message = "请输入正确的手机号") String phone,
-        @NotBlank(message = "请输入验证码") String code,
-        @Size(max = 12, message = "昵称最多12个字") String nickname
-    ) {
-    }
 }

@@ -25,7 +25,6 @@ export default function WalletPage({
     cardNumber: '',
     holderName: '',
   });
-  const [rechargeCapability, setRechargeCapability] = useState(null);
   const boundBank = accountStats.bankCard || null;
   const numericAmount = Number(amount || 0);
   const remainingFree = Math.max(0, 10000 - Number(accountStats.totalWithdrawn || 0));
@@ -68,7 +67,6 @@ export default function WalletPage({
     setMode('recharge');
     try {
       const capability = await api.rechargeCapability();
-      setRechargeCapability(capability);
       if (!capability.available) notify(capability.message, 'warning');
     } catch (requestError) {
       notify(requestError.message, 'error');
@@ -126,19 +124,7 @@ export default function WalletPage({
   const submitMoney = async () => {
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) return;
-    if (mode === 'withdraw' && value > balance) {
-      notify('余额不足', 'warning');
-      return;
-    }
-    if (mode === 'withdraw' && !boundBank) {
-      openBankEditor();
-      return;
-    }
     if (mode === 'recharge') {
-      if (rechargeCapability?.available === false) {
-        notify(rechargeCapability.message, 'warning');
-        return;
-      }
       try {
         const order = await api.createRecharge(value);
         notify(
@@ -152,6 +138,11 @@ export default function WalletPage({
       }
     } else {
       try {
+        const currentBankCard = await api.bankCard();
+        if (!currentBankCard) {
+          openBankEditor();
+          return;
+        }
         await api.withdraw(value);
         const [wallet, transactionItems, withdrawalItems] = await Promise.all([
           api.wallet(),
@@ -295,7 +286,7 @@ export default function WalletPage({
             )}
           </section>
           <button
-            disabled={!Number(amount) || (mode === 'recharge' && rechargeCapability?.available === false)}
+            disabled={!Number(amount)}
             className="sticky-primary"
             onClick={submitMoney}
           >

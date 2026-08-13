@@ -10,9 +10,6 @@ export default function AccountSettingsPage({
   notify,
   userProfile,
   setUserProfile,
-  conversations,
-  balance,
-  frozenAmount,
   deleteAccount,
 }) {
   const [name, setName] = useState(userProfile.name?.trim() || '');
@@ -20,10 +17,6 @@ export default function AccountSettingsPage({
   const [avatarFile, setAvatarFile] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
-  const activeInquiryCount = conversations.filter((conversation) =>
-    ['pending', 'active', 'awaiting_confirmation'].includes(conversation.inquiryStatus),
-  ).length;
-  const canDeleteAccount = balance <= 0 && frozenAmount <= 0 && activeInquiryCount === 0;
 
   const selectAvatar = (file) => {
     if (!file) return;
@@ -138,30 +131,19 @@ export default function AccountSettingsPage({
               </button>
             </header>
 
-            {!canDeleteAccount && (
-              <div className="account-delete-blocked">
-                <b>当前暂时不能注销</b>
-                {balance > 0 && <span>账户仍有可用余额 ¥{balance.toFixed(2)}</span>}
-                {frozenAmount > 0 && <span>仍有 ¥{frozenAmount.toFixed(2)} 正在冻结</span>}
-                {activeInquiryCount > 0 && <span>仍有 {activeInquiryCount} 个询问尚未结束</span>}
-              </div>
-            )}
-
-            {canDeleteAccount && (
-              <label>
-                <span>输入“注销账号”确认</span>
-                <input
-                  value={deleteConfirm}
-                  onChange={(event) => setDeleteConfirm(event.target.value)}
-                  placeholder="注销账号"
-                />
-              </label>
-            )}
+            <label>
+              <span>输入“注销账号”确认</span>
+              <input
+                value={deleteConfirm}
+                onChange={(event) => setDeleteConfirm(event.target.value)}
+                placeholder="注销账号"
+              />
+            </label>
 
             <button
               className="account-delete-submit"
               type="button"
-              disabled={!canDeleteAccount || deleteConfirm !== '注销账号'}
+              disabled={deleteConfirm !== '注销账号'}
               onClick={deleteAccount}
             >
               确认注销

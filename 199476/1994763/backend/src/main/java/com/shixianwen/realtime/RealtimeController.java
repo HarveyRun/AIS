@@ -16,6 +16,6 @@ public class RealtimeController {
 
     @PostMapping("/tickets")
     public ApiResponse<RealtimeTicketService.TicketView> ticket(@CurrentUser User user) {
-        return ApiResponse.ok(tickets.issue(user.getId()));
+        return ApiResponse.ok(tickets.issueUser(user.getId()));
     }
 }

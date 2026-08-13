@@ -17,7 +17,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
-import java.util.Optional;
 
 @Service
 public class AuthService {
@@ -52,31 +51,12 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResult register(String phone, String nickname, String code, ClientNetworkInfo network) {
-        validateCode(code);
-        if (userRepository.findByPhoneAndAccountStatus(phone, "ACTIVE").isPresent()) {
-            throw BusinessException.badRequest("该手机号已经注册");
-        }
-
-        User user = new User();
-        user.setUid(generateUid());
-        user.setPhone(phone);
-        user.setNickname(normalizeNickname(nickname));
-        user.setRegisterIp(network.ipAddress());
-        user.setRegisterLocation(network.location());
-        user = userRepository.save(user);
-
-        WalletAccount wallet = new WalletAccount();
-        wallet.setUser(user);
-        walletAccountRepository.save(wallet);
-        return createSession(user);
-    }
-
-    @Transactional
     public LoginResult login(String phone, String code, ClientNetworkInfo network) {
         validateCode(code);
-        User user = userRepository.findByPhoneAndAccountStatus(phone, "ACTIVE")
-            .orElseThrow(() -> BusinessException.notFound("账号不存在，请先注册"));
+        User user = userRepository.findByPhone(phone).orElseGet(() -> createUser(phone, network));
+        if (!"ACTIVE".equals(user.getAccountStatus())) {
+            throw BusinessException.forbidden("该账号当前无法登录");
+        }
         user.setLastLoginIp(network.ipAddress());
         user.setLastLoginLocation(network.location());
         user.setLastLoginAt(LocalDateTime.now());
@@ -86,6 +66,20 @@ public class AuthService {
         loginRecord.setIpLocation(network.location());
         loginRecordRepository.save(loginRecord);
         return createSession(user);
+    }
+
+    private User createUser(String phone, ClientNetworkInfo network) {
+        User user = new User();
+        user.setUid(generateUid());
+        user.setPhone(phone);
+        user.setRegisterIp(network.ipAddress());
+        user.setRegisterLocation(network.location());
+        user = userRepository.save(user);
+
+        WalletAccount wallet = new WalletAccount();
+        wallet.setUser(user);
+        walletAccountRepository.save(wallet);
+        return user;
     }
 
     @Transactional(readOnly = true)
@@ -124,11 +118,6 @@ public class AuthService {
             }
         }
         throw new IllegalStateException("无法生成用户UID");
-    }
-
-    private static String normalizeNickname(String nickname) {
-        if (nickname == null || nickname.isBlank()) return null;
-        return nickname.trim();
     }
 
     private static String hash(String value) {

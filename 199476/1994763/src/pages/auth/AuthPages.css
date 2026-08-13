@@ -150,6 +150,16 @@
   color: #8f847c;
   margin-top: 14px !important;
 }
+.agree > input {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  accent-color: var(--primary);
+}
+.auth-login-agree {
+  justify-content: center;
+  margin-top: 13px !important;
+}
 .agree button,
 .auth-legal-links button {
   padding: 0 2px;

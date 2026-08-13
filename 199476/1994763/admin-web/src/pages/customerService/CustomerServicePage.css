@@ -1,34 +1,110 @@
 .service-workbench {
-  height: calc(100vh - 160px);
-  min-height: 520px;
+  height: calc(100vh - 190px);
+  min-height: 320px;
   display: grid;
   grid-template-columns: 310px 1fr;
   overflow: hidden;
-  background: #fff;
-  border: 1px solid #e5e7ea;
+  background: #17191e;
+  border: 1px solid #2e323a;
   border-radius: 12px;
+  box-shadow: 0 12px 32px rgb(22 24 29 / 12%);
 }
-.service-workbench > aside {
+.service-conversation-list {
   overflow: auto;
-  border-right: 1px solid #e8e9ec;
+  border-right: 1px solid #343840;
+  background: #22252b;
 }
-.service-workbench > aside button {
+.service-conversation-list-header {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: flex;
+  height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 17px;
+  border-bottom: 1px solid #343840;
+  background: #22252b;
+}
+.service-conversation-list-header b {
+  color: #f3f4f6;
+  font-size: 14px;
+}
+.service-conversation-list-header span {
+  color: #8f959f;
+  font-size: 12px;
+}
+.service-conversation-list > button {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 11px;
   width: 100%;
-  padding: 15px;
+  min-height: 76px;
+  padding: 13px 16px;
   text-align: left;
   border: 0;
-  border-bottom: 1px solid #eff0f2;
-  background: #fff;
+  border-bottom: 1px solid #2f333b;
+  background: transparent;
   cursor: pointer;
+  transition: background 140ms ease;
 }
-.service-workbench > aside button.active {
-  background: #fff3f1;
+.service-conversation-list > button:hover {
+  background: #292d34;
 }
-.service-workbench > aside button div {
+.service-conversation-list > button.active {
+  background: #30343c;
+}
+.service-conversation-list > button.active::before {
+  position: absolute;
+  inset: 10px auto 10px 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #d33a2c;
+  content: '';
+}
+.service-person-avatar {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  background: #3a3f48;
+  color: #c9cdd4;
+  font-style: normal;
+}
+.service-person-avatar svg {
+  width: 19px;
+}
+.service-person-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+.service-person-content {
+  min-width: 0;
+}
+.service-person-heading {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
-.service-workbench > aside em {
+.service-person-heading b {
+  overflow: hidden;
+  color: #f1f2f4;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.service-person-heading small {
+  flex: 0 0 auto;
+}
+.service-conversation-list > button > em {
+  position: absolute;
+  right: 16px;
+  bottom: 11px;
   min-width: 20px;
   height: 20px;
   display: grid;
@@ -39,35 +115,43 @@
   font-size: 11px;
   font-style: normal;
 }
-.service-workbench > aside p {
-  margin: 7px 0;
+.service-person-content p {
+  margin: 7px 28px 0 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #656a73;
-  font-size: 13px;
+  color: #989ea8;
+  font-size: 12px;
 }
 .service-workbench small {
-  color: #9297a0;
+  color: #858b95;
   font-size: 11px;
 }
-.service-workbench > main {
+.service-chat-panel {
   display: grid;
-  grid-template-rows: 64px 1fr auto;
+  grid-template-rows: 64px minmax(0, 1fr) 92px;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #17191e;
 }
-.service-workbench > main > header {
+.service-chat-panel > header {
   padding: 13px 20px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #30343c;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  background: #1d2026;
+  color: #f4f5f7;
 }
-.service-workbench > main > header span {
-  color: #90959d;
+.service-chat-panel > header span {
+  color: #9298a3;
   font-size: 12px;
   margin-top: 4px;
 }
 .service-messages {
+  min-height: 0;
   padding: 20px;
   overflow: auto;
 }
@@ -85,27 +169,44 @@
   margin: 0 0 5px;
   padding: 10px 13px;
   border-radius: 10px;
-  background: #f1f2f4;
+  background: #2c3038;
+  color: #f0f2f4;
   line-height: 1.55;
   font-size: 13px;
 }
 .service-messages .service p {
-  background: #d33a2c;
+  background: #b9342a;
   color: #fff;
 }
-.service-workbench > main > footer {
+.service-chat-panel > footer {
+  min-height: 92px;
   padding: 13px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #30343c;
   display: flex;
+  align-items: stretch;
   gap: 10px;
+  background: #1d2026;
 }
 .service-workbench textarea {
   flex: 1;
-  min-height: 65px;
+  min-width: 0;
+  height: 66px;
   resize: none;
-  border: 1px solid #dddfe3;
+  border: 1px solid #3c414b;
   border-radius: 8px;
   padding: 10px;
+  background: #282c33;
+  color: #f4f5f7;
+  outline: none;
+}
+.service-workbench textarea:focus {
+  border-color: #d33a2c;
+  background: #2b2f37;
+}
+.service-workbench textarea:disabled {
+  background: #24272d;
+  color: #777d87;
+  cursor: not-allowed;
 }
 .service-workbench footer button {
   width: 90px;
@@ -118,6 +219,11 @@
   justify-content: center;
   gap: 6px;
 }
+.service-workbench footer button:disabled {
+  background: #3a3e46;
+  color: #777d86;
+  cursor: not-allowed;
+}
 .service-workbench footer svg {
   width: 16px;
 }
@@ -125,5 +231,168 @@
   display: grid;
   place-items: center;
   min-height: 160px;
-  color: #969ba3;
+  color: #8d939d;
+}
+
+.service-new-conversation {
+  display: flex;
+  height: 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 8px;
+  background: #d33a2c;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.service-new-conversation svg {
+  width: 16px;
+}
+
+.service-empty-action {
+  gap: 14px;
+  align-content: center;
+}
+
+.service-empty-action button {
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid #d33a2c;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #d33a2c;
+  cursor: pointer;
+}
+
+.service-user-picker-mask {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(15 17 20 / 42%);
+}
+
+.service-user-picker {
+  display: grid;
+  width: min(560px, 100%);
+  max-height: min(680px, calc(100vh - 48px));
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgb(15 17 20 / 24%);
+}
+
+.service-user-picker > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid #eceef1;
+}
+
+.service-user-picker h2,
+.service-user-picker p {
+  margin: 0;
+}
+
+.service-user-picker h2 {
+  font-size: 18px;
+}
+
+.service-user-picker header p {
+  margin-top: 5px;
+  color: #858b94;
+  font-size: 12px;
+}
+
+.service-user-picker header > button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #f3f4f6;
+  cursor: pointer;
+}
+
+.service-user-picker header svg {
+  width: 17px;
+}
+
+.service-user-search {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  margin: 16px 20px 12px;
+  padding-left: 12px;
+  border: 1px solid #dfe2e6;
+  border-radius: 9px;
+}
+
+.service-user-search svg {
+  width: 17px;
+  color: #9499a2;
+}
+
+.service-user-search input {
+  height: 42px;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+}
+
+.service-user-search button {
+  height: 34px;
+  margin-right: 4px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 7px;
+  background: #d33a2c;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.service-user-results {
+  min-height: 260px;
+  overflow: auto;
+  padding: 0 20px 20px;
+}
+
+.service-user-results > button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 4px;
+  border: 0;
+  border-bottom: 1px solid #eff0f2;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.service-user-results > button:hover {
+  background: #fafafa;
+}
+
+.service-user-results span {
+  display: grid;
+  gap: 5px;
+}
+
+.service-user-results small {
+  color: #8c929b;
+}
+
+.service-user-results em {
+  color: #d33a2c;
+  font-size: 12px;
+  font-style: normal;
 }

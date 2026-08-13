@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  AlertCircle,
-  Check,
-  Eye,
-  Image,
-  LockKeyhole,
-  Trash2,
-  Video,
-} from 'lucide-react';
+import { AlertCircle, Check, Eye, Image, LockKeyhole, Trash2, Video } from 'lucide-react';
 import CameraCapture from '../../components/certification/CameraCapture.jsx';
 import MaterialPreview, {
   createMaterial,
@@ -28,8 +20,13 @@ const identityRequirements = [
 
 function splitJobMaterials(materials = []) {
   return {
-    video: materials.find((item) => item.kind === 'video' || /\.(mp4|mov|webm)$/i.test(materialName(item))) || '',
-    photos: materials.filter((item) => item.kind === 'image' || /\.(jpg|jpeg|png|webp)$/i.test(materialName(item))),
+    video:
+      materials.find(
+        (item) => item.kind === 'video' || /\.(mp4|mov|webm)$/i.test(materialName(item)),
+      ) || '',
+    photos: materials.filter(
+      (item) => item.kind === 'image' || /\.(jpg|jpeg|png|webp)$/i.test(materialName(item)),
+    ),
   };
 }
 
@@ -94,14 +91,14 @@ export default function BasicCertificationApplyPage({
     }
     try {
       setSubmitting(true);
-      await api.submitBasicCertification(
-        identity ? 'IDENTITY' : 'MAIN_JOB',
-        '',
-        files,
-      );
+      await api.submitBasicCertification(identity ? 'IDENTITY' : 'MAIN_JOB', '', files);
       await refreshCurrentScreen();
       notify('已经提交审核', 'success');
-      addNotice({ title: '认证已经提交', content: `${identity ? '身份信息' : '岗位材料'}已进入审核`, screen: 'certWork' });
+      addNotice({
+        title: '认证已经提交',
+        content: `${identity ? '身份信息' : '岗位材料'}已进入审核`,
+        screen: 'certWork',
+      });
       go('certWork');
     } catch (requestError) {
       notify(requestError.message, 'error');
@@ -147,7 +144,6 @@ export default function BasicCertificationApplyPage({
             }
           />
         )}
-
       </section>
 
       {editable && (
@@ -209,7 +205,13 @@ function CertificationStatus({ certification }) {
     );
   }
   if (certification.status === '已认证') {
-    return <StatusNotice className="approved" title="已经通过认证" text="认证内容已显示在你的个人页面。" />;
+    return (
+      <StatusNotice
+        className="approved"
+        title="已经通过认证"
+        text="认证内容已显示在你的个人页面。"
+      />
+    );
   }
   return null;
 }
@@ -218,7 +220,10 @@ function StatusNotice({ className, title, text, Icon = LockKeyhole }) {
   return (
     <section className={`cert-edit-notice ${className}`}>
       <Icon />
-      <div><h2>{title}</h2><p>{text}</p></div>
+      <div>
+        <h2>{title}</h2>
+        <p>{text}</p>
+      </div>
     </section>
   );
 }
@@ -229,11 +234,20 @@ function IdentityMaterials({ editable, photos, onCapture, onPreview }) {
       {identityRequirements.map((requirement, index) => {
         const material = photos[index];
         return (
-          <article className={material ? 'material-card completed' : 'material-card'} key={requirement.title}>
+          <article
+            className={material ? 'material-card completed' : 'material-card'}
+            key={requirement.title}
+          >
             <i className={material ? 'done' : ''}>{material ? <Check /> : <Image />}</i>
-            <div><b>{requirement.title}</b><small>{material ? materialName(material) : requirement.description}</small></div>
+            <div>
+              <b>{requirement.title}</b>
+              <small>{material ? materialName(material) : requirement.description}</small>
+            </div>
             {!editable && material && materialUrl(material) && (
-              <button className="material-action" type="button" onClick={() => onPreview(material)}><Eye />预览</button>
+              <button className="material-action" type="button" onClick={() => onPreview(material)}>
+                <Eye />
+                预览
+              </button>
             )}
             {editable && (
               <button className="upload-button" type="button" onClick={() => onCapture(index)}>
@@ -260,7 +274,7 @@ function JobMaterials({
     <div className="upload-list">
       <JobMaterialRow
         Icon={Video}
-        title="录制录像（二选一）"
+        title="录像（二选一）"
         description={video ? materialName(video) : '与拍摄照片至少提交一种，最大500MB'}
         material={video}
         editable={editable}
@@ -270,8 +284,10 @@ function JobMaterials({
       />
       <JobMaterialRow
         Icon={Image}
-        title="拍摄照片（二选一）"
-        description={photos.length ? `已拍摄${photos.length}张，最多5张` : '与录制录像至少提交一种，最多5张'}
+        title="拍摄（二选一）"
+        description={
+          photos.length ? `已拍摄${photos.length}张，最多5张` : '与录制录像至少提交一种，最多5张'
+        }
         editable={editable}
         disabled={photos.length >= 5}
         onCapture={() => onCapture('photo')}
@@ -281,11 +297,21 @@ function JobMaterials({
           {photos.map((photo, index) => (
             <div className="photo-material-item" key={`${materialName(photo)}-${index}`}>
               <button type="button" onClick={() => onPreview({ material: photo, type: 'image' })}>
-                {materialUrl(photo) ? <img src={materialUrl(photo)} alt={`照片${index + 1}`} /> : <Image />}
-                <span>照片{index + 1}</span><Eye />
+                {materialUrl(photo) ? (
+                  <img src={materialUrl(photo)} alt={`照片${index + 1}`} />
+                ) : (
+                  <Image />
+                )}
+                <span>照片{index + 1}</span>
+                <Eye />
               </button>
               {editable && (
-                <button className="photo-material-remove" type="button" aria-label={`删除照片${index + 1}`} onClick={() => onRemovePhoto(index)}>
+                <button
+                  className="photo-material-remove"
+                  type="button"
+                  aria-label={`删除照片${index + 1}`}
+                  onClick={() => onRemovePhoto(index)}
+                >
                   <Trash2 />
                 </button>
               )}
@@ -310,18 +336,33 @@ function JobMaterialRow({
 }) {
   return (
     <article className={material ? 'material-card completed' : 'material-card'}>
-      <i><Icon /></i>
-      <div><b>{title}</b><small>{description}</small></div>
+      <i>
+        <Icon />
+      </i>
+      <div>
+        <b>{title}</b>
+        <small>{description}</small>
+      </div>
       {!editable && material && onPreview && materialUrl(material) && (
-        <button className="material-action" type="button" onClick={onPreview}><Eye />预览</button>
+        <button className="material-action" type="button" onClick={onPreview}>
+          <Eye />
+          预览
+        </button>
       )}
       {editable && onCapture && (
-        <button className={`upload-button ${disabled ? 'disabled' : ''}`} type="button" disabled={disabled} onClick={onCapture}>
-          {disabled ? '已满' : material ? '重新录制' : title === '拍摄照片' ? '拍摄' : '录制'}
+        <button
+          className={`upload-button ${disabled ? 'disabled' : ''}`}
+          type="button"
+          disabled={disabled}
+          onClick={onCapture}
+        >
+          {disabled ? '已满' : material ? '重新录制' : title === '拍摄（二选一）' ? '拍摄' : '录制'}
         </button>
       )}
       {editable && material && onRemove && (
-        <button className="material-remove" type="button" onClick={onRemove}><Trash2 /></button>
+        <button className="material-remove" type="button" onClick={onRemove}>
+          <Trash2 />
+        </button>
       )}
     </article>
   );

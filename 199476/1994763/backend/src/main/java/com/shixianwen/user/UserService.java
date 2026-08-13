@@ -24,19 +24,22 @@ public class UserService {
     private final InquiryRepository inquiryRepository;
     private final AuthSessionRepository authSessionRepository;
     private final FileStorage fileStorage;
+    private final AnswererEligibilityService answererEligibility;
 
     public UserService(
         UserRepository userRepository,
         WalletAccountRepository walletAccountRepository,
         InquiryRepository inquiryRepository,
         AuthSessionRepository authSessionRepository,
-        FileStorage fileStorage
+        FileStorage fileStorage,
+        AnswererEligibilityService answererEligibility
     ) {
         this.userRepository = userRepository;
         this.walletAccountRepository = walletAccountRepository;
         this.inquiryRepository = inquiryRepository;
         this.authSessionRepository = authSessionRepository;
         this.fileStorage = fileStorage;
+        this.answererEligibility = answererEligibility;
     }
 
     @Transactional
@@ -57,11 +60,18 @@ public class UserService {
 
     @Transactional
     public AuthService.UserView setAcceptingInquiries(User user, boolean accepting) {
-        if (!"APPROVED".equals(user.getAnswererStatus())) {
-            throw BusinessException.forbidden("完成基础信息认证后才能接受询问");
+        User current = userRepository.findById(user.getId())
+            .orElseThrow(() -> BusinessException.notFound("用户不存在"));
+        if (accepting) {
+            answererEligibility.requireQualified(current.getId());
         }
-        user.setAcceptingInquiries(accepting);
-        return AuthService.UserView.from(userRepository.save(user));
+        current.setAcceptingInquiries(accepting);
+        return AuthService.UserView.from(userRepository.save(current));
+    }
+
+    @Transactional(readOnly = true)
+    public AnswererEligibilityService.Eligibility answererEligibility(User user) {
+        return answererEligibility.current(user.getId());
     }
 
     @Transactional

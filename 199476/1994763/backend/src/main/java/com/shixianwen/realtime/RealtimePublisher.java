@@ -12,6 +12,15 @@ public class RealtimePublisher {
 
     public void afterCommit(Long userId, String type, Object payload) {
         Runnable publish = () -> handler.send(userId, type, payload);
+        afterCommit(publish);
+    }
+
+    public void afterCommitToAdmins(String type, Object payload) {
+        Runnable publish = () -> handler.sendAdmins(type, payload);
+        afterCommit(publish);
+    }
+
+    private void afterCommit(Runnable publish) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
             publish.run();
             return;

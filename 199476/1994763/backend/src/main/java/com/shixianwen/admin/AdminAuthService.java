@@ -20,12 +20,28 @@ public class AdminAuthService {
     private final JdbcTemplate jdbc;
     private final SecureRandom random = new SecureRandom();
 
+    @Transactional(readOnly = true)
     public boolean needsSetup() {
-        Boolean initialized = jdbc.queryForObject("SELECT initialized FROM admin_system_state WHERE id=1", Boolean.class);
-        return !Boolean.TRUE.equals(initialized);
+        return users.count() == 0;
     }
+
     @Transactional
     public LoginResult setup(String phone, String password, String displayName) {
+        boolean hasAdmin = users.count() > 0;
+        jdbc.update(
+            "INSERT IGNORE INTO admin_system_state(id,initialized,initialized_at) VALUES (1,?,?)",
+            hasAdmin,
+            hasAdmin ? LocalDateTime.now() : null
+        );
+        if (hasAdmin) {
+            jdbc.update(
+                "UPDATE admin_system_state SET initialized=TRUE,initialized_at=COALESCE(initialized_at,NOW(6)) WHERE id=1"
+            );
+            throw BusinessException.forbidden("管理员已经初始化");
+        }
+        jdbc.update(
+            "UPDATE admin_system_state SET initialized=FALSE,initialized_at=NULL WHERE id=1 AND NOT EXISTS (SELECT 1 FROM admin_users)"
+        );
         int claimed = jdbc.update("UPDATE admin_system_state SET initialized=TRUE,initialized_at=NOW(6) WHERE id=1 AND initialized=FALSE");
         if (claimed != 1) throw BusinessException.forbidden("管理员已经初始化");
         validate(phone, password);

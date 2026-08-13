@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Search, UsersRound } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import TalentCard from '../../components/talent/TalentCard.jsx';
 import './DiscoveryPages.css';
@@ -37,20 +36,20 @@ export default function FilterPage({
   problem = '',
   matterId = null,
   experience = '',
-  experienceCategoryId = null,
+  experienceId = null,
   title = '找人',
   backScreen = 'home',
   catalog = { categories: [] },
   notify,
 }) {
-  const [keyword, setKeyword] = useState('');
-  const [participantType, setParticipantType] = useState('PRIMARY');
   const [matterDetail, setMatterDetail] = useState(null);
   const [matchedAnswerers, setMatchedAnswerers] = useState([]);
+  const [selectedJobName, setSelectedJobName] = useState('');
   const selectedMatter = matterDetail || findMatter(catalog, matterId, problem);
+
   useEffect(() => {
-    setParticipantType('PRIMARY');
-  }, [matterId, experience]);
+    setSelectedJobName('');
+  }, [matterId]);
 
   useEffect(() => {
     if (!matterId || experience) {
@@ -75,35 +74,34 @@ export default function FilterPage({
     };
   }, [experience, matterId, notify]);
   useEffect(() => {
-    if (!experience || !experienceCategoryId) return undefined;
+    if (!experience || !experienceId) return undefined;
     let active = true;
-    const timer = window.setTimeout(() => {
-      api
-        .answerersByExperience(experienceCategoryId, experience, keyword)
-        .then((people) => {
-          if (active) setMatchedAnswerers(people.map(answererFromApi));
-        })
-        .catch((error) => {
-          if (active) {
-            setMatchedAnswerers([]);
-            notify(error.message, 'error');
-          }
-        });
-    }, 250);
+    api
+      .answerersByExperience(experienceId)
+      .then((people) => {
+        if (active) setMatchedAnswerers(people.map(answererFromApi));
+      })
+      .catch((error) => {
+        if (active) {
+          setMatchedAnswerers([]);
+          notify(error.message, 'error');
+        }
+      });
     return () => {
       active = false;
-      window.clearTimeout(timer);
     };
-  }, [experience, experienceCategoryId, keyword, notify]);
+  }, [experience, experienceId, notify]);
   const participants = selectedMatter?.participants || [];
   const matterJobs = selectedMatter?.jobs || [];
   const participantPeople = participants
-    .filter((participant) => participant.type === participantType)
     .map((participant) => ({
       participant,
       person: matchedAnswerers.find((person) => String(person.uid) === String(participant.uid)),
     }))
     .filter((item) => item.person);
+  const visibleParticipantPeople = selectedJobName
+    ? participantPeople.filter(({ person }) => person.main === selectedJobName)
+    : participantPeople;
 
   const experiencePeople = matchedAnswerers;
 
@@ -116,19 +114,9 @@ export default function FilterPage({
     return (
       <Page title={title} back={() => go(backScreen)}>
         <section className="result-title compact">
-          <span>你想了解的经历</span>
+          <span>你想了解</span>
           <h2>{experience}</h2>
-          <p>下面的人提交过相关经历证明，可以直接找他们聊聊。</p>
-        </section>
-        <section className="filter-panel">
-          <div className="searchbox">
-            <Search size={18} />
-            <input
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              placeholder="搜索姓名或岗位"
-            />
-          </div>
+          <p>下面的人提交过相关经历证明，可以找他们聊聊。</p>
         </section>
         <section className="talent-section results">
           <div className="section-head simple">
@@ -140,7 +128,7 @@ export default function FilterPage({
               <TalentCard key={person.uid} p={person} onClick={() => openTalent(person)} />
             ))}
           </div>
-          {!experiencePeople.length && <p className="discovery-empty">暂时没有匹配的认证用户</p>}
+          {!experiencePeople.length && <p className="discovery-empty">暂无匹配用户</p>}
         </section>
       </Page>
     );
@@ -148,19 +136,30 @@ export default function FilterPage({
 
   return (
     <Page title={title} back={() => go(backScreen)}>
-      <section className="matter-result-hero">
+      <section className="result-title compact">
         <span>你想做</span>
-        <h1>{selectedMatter?.title || problem}</h1>
+        <h2>{selectedMatter?.title || problem}</h2>
+        <p>下面这些人的岗位与这件事有关，可以找他们聊聊。</p>
       </section>
 
       {matterJobs.length > 0 && (
-        <section className="matter-participants-section">
+        <section className="matter-participants-section mt20">
           <div className="section-head simple">
             <h2>可能会问到</h2>
           </div>
           <div className="matter-job-summary">
             {matterJobs.map((job) => (
-              <span key={job.id}>{job.name}</span>
+              <button
+                className={selectedJobName === job.name ? 'active' : ''}
+                type="button"
+                aria-pressed={selectedJobName === job.name}
+                onClick={() => {
+                  setSelectedJobName((current) => (current === job.name ? '' : job.name));
+                }}
+                key={job.id}
+              >
+                {job.name}
+              </button>
             ))}
           </div>
         </section>
@@ -168,25 +167,15 @@ export default function FilterPage({
 
       {participants.length ? (
         <section className="matter-participants-section">
-          <div className="participant-type-tabs">
-            <button
-              className={participantType === 'PRIMARY' ? 'active' : ''}
-              onClick={() => setParticipantType('PRIMARY')}
-            >
-              重点问
-            </button>
-            <button
-              className={participantType === 'SUPPORTING' ? 'active' : ''}
-              onClick={() => setParticipantType('SUPPORTING')}
-            >
-              顺便问
-            </button>
-          </div>
           <div className="matter-participant-list">
-            {participantPeople.map(({ person }) => (
+            {visibleParticipantPeople.map(({ person }) => (
               <TalentCard key={person.uid} p={person} onClick={() => openTalent(person)} />
             ))}
-            {!participantPeople.length && <p className="discovery-empty">暂无用户</p>}
+            {!visibleParticipantPeople.length && (
+              <p className="discovery-empty">
+                {selectedJobName ? '该岗位暂无可交流的人' : '暂无用户'}
+              </p>
+            )}
           </div>
         </section>
       ) : (

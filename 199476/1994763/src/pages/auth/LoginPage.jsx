@@ -11,6 +11,7 @@ export default function LoginPage({ go, onLogin, notify }) {
   const [code, setCode] = useState('');
   const [sent, setSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     if (countdown <= 0) return undefined;
@@ -31,6 +32,10 @@ export default function LoginPage({ go, onLogin, notify }) {
   };
 
   const submit = async () => {
+    if (!agreed) {
+      notify('请先阅读并同意用户协议和隐私政策', 'warning');
+      return;
+    }
     if (!sent) {
       notify('请先获取验证码', 'warning');
       return;
@@ -53,8 +58,8 @@ export default function LoginPage({ go, onLogin, notify }) {
         <p>有事先问问过来人</p>
       </div>
       <section className="auth-card">
-        <h2>欢迎回来</h2>
-        <p>使用手机号登录</p>
+        <h2>手机号登录</h2>
+        <p>首次登录将自动创建账号</p>
         <label>手机号</label>
         <div className="auth-input">
           <Smartphone />
@@ -94,22 +99,23 @@ export default function LoginPage({ go, onLogin, notify }) {
         >
           登录
         </button>
-        <div className="auth-switch">
-          还没有账号？
-          <button type="button" onClick={() => go('register')}>
-            立即注册
-          </button>
-        </div>
-        <small className="auth-legal-links">
-          登录即代表你同意
-          <button type="button" onClick={() => go('terms')}>
-            《用户协议》
-          </button>
-          和
-          <button type="button" onClick={() => go('privacy')}>
-            《隐私政策》
-          </button>
-        </small>
+        <label className="agree auth-login-agree">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(event) => setAgreed(event.target.checked)}
+          />
+          <span>
+            我已阅读并同意
+            <button type="button" onClick={(event) => { event.preventDefault(); go('terms'); }}>
+              《用户协议》
+            </button>
+            和
+            <button type="button" onClick={(event) => { event.preventDefault(); go('privacy'); }}>
+              《隐私政策》
+            </button>
+          </span>
+        </label>
       </section>
     </div>
   );

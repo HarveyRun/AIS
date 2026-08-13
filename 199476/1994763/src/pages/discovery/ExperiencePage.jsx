@@ -8,7 +8,7 @@ export default function ExperiencePage({
   go,
   setExperience,
   setProblem,
-  setExperienceCategoryId,
+  setExperienceId,
   notify,
 }) {
   const [keyword, setKeyword] = useState('');
@@ -64,7 +64,7 @@ export default function ExperiencePage({
   const selectExperience = (item) => {
     setProblem('');
     setExperience(item.title);
-    setExperienceCategoryId(item.categoryId);
+    setExperienceId(item.id);
     go('filtered');
   };
 
@@ -83,18 +83,16 @@ export default function ExperiencePage({
         {groupedResults.map((group) => (
           <div key={group.id}>
             <h2>{group.name}</h2>
-            <div>
-              {group.experiences.map((item) => {
-                return (
-                  <button
-                    type="button"
-                    onClick={() => selectExperience(item)}
-                    key={`${item.categoryId}-${item.title}`}
-                  >
-                    <span>{item.title}</span>
-                  </button>
-                );
-              })}
+            <div className="experience-group-items">
+              {group.experiences.map((item) => (
+                <button
+                  type="button"
+                  onClick={() => selectExperience(item)}
+                  key={`${item.categoryId}-${item.title}`}
+                >
+                  <span>{item.title}</span>
+                </button>
+              ))}
             </div>
           </div>
         ))}

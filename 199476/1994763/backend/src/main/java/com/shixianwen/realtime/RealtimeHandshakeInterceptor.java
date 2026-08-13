@@ -26,7 +26,9 @@ public class RealtimeHandshakeInterceptor implements HandshakeInterceptor {
         MultiValueMap<String, String> query = UriComponentsBuilder.fromUri(request.getURI())
             .build()
             .getQueryParams();
-        attributes.put("userId", tickets.consume(query.getFirst("ticket")));
+        RealtimeTicketService.RealtimePrincipal principal = tickets.consume(query.getFirst("ticket"));
+        attributes.put("subjectType", principal.subjectType());
+        attributes.put("subjectId", principal.subjectId());
         return true;
     }
 

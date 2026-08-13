@@ -11,6 +11,9 @@ import java.util.List;
 
 @Service
 public class AnswererService {
+    private static final String QUALIFIED =
+        "EXISTS (SELECT 1 FROM certifications ci WHERE ci.user_id=u.id AND ci.certification_type='IDENTITY' AND ci.status='APPROVED' AND ci.enabled=TRUE AND ci.deleted_at IS NULL) " +
+        "AND EXISTS (SELECT 1 FROM certifications cj WHERE cj.user_id=u.id AND cj.certification_type='MAIN_JOB' AND cj.status='APPROVED' AND cj.enabled=TRUE AND cj.deleted_at IS NULL) ";
     private final UserRepository userRepository;
     private final CertificationRepository certificationRepository;
     private final JdbcTemplate jdbc;
@@ -27,10 +30,10 @@ public class AnswererService {
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, 50));
         List<Long> ids = jdbc.queryForList(
-            "SELECT u.id FROM users u WHERE u.id<>? AND u.account_status='ACTIVE' AND u.answerer_status='APPROVED' AND u.accepting_inquiries=TRUE " +
+            "SELECT u.id FROM users u WHERE u.id<>? AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED +
                 "AND (?='' OR COALESCE(u.nickname,'') LIKE CONCAT('%',?,'%') " +
-                "OR EXISTS (SELECT 1 FROM user_jobs uj JOIN jobs j ON j.id=uj.job_id WHERE uj.user_id=u.id AND uj.verified=TRUE AND j.name LIKE CONCAT('%',?,'%')) " +
-                "OR EXISTS (SELECT 1 FROM certifications c WHERE c.user_id=u.id AND c.status='APPROVED' AND (c.title LIKE CONCAT('%',?,'%') OR COALESCE(c.description,'') LIKE CONCAT('%',?,'%')))) " +
+                "OR EXISTS (SELECT 1 FROM user_jobs uj JOIN jobs j ON j.id=uj.job_id WHERE uj.user_id=u.id AND uj.verified=TRUE AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND j.name LIKE CONCAT('%',?,'%')) " +
+                "OR EXISTS (SELECT 1 FROM certifications c WHERE c.user_id=u.id AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL AND (c.title LIKE CONCAT('%',?,'%') OR COALESCE(c.description,'') LIKE CONCAT('%',?,'%')))) " +
                 "ORDER BY u.id DESC LIMIT ? OFFSET ?",
             Long.class, currentUserId, normalizedKeyword, normalizedKeyword, normalizedKeyword, normalizedKeyword, normalizedKeyword,
             safeSize + 1, safePage * safeSize
@@ -44,16 +47,16 @@ public class AnswererService {
     @Transactional(readOnly = true)
     public AnswererView detail(String uid) {
         User user = userRepository.findByUidAndAccountStatus(uid, "ACTIVE")
-            .filter(item -> "APPROVED".equals(item.getAnswererStatus()))
+            .filter(item -> currentQualification(item.getId()))
             .orElseThrow(() -> BusinessException.notFound("该答主不存在"));
         return toView(user);
     }
 
     private AnswererView toView(User user) {
         List<Certification> certifications =
-            certificationRepository.findByUserIdAndStatusOrderByIdAsc(user.getId(), "APPROVED");
+            certificationRepository.findByUserIdAndStatusAndEnabledTrueOrderByIdAsc(user.getId(), "APPROVED");
         List<JobView> jobs = jdbc.query(
-            "SELECT j.name,uj.capability_description,c.years FROM user_jobs uj JOIN jobs j ON j.id=uj.job_id LEFT JOIN certifications c ON c.id=uj.certification_id WHERE uj.user_id=? AND uj.verified=TRUE AND j.active=TRUE ORDER BY CASE WHEN uj.certification_id IS NOT NULL THEN 0 ELSE 1 END,uj.certification_id DESC,j.name LIMIT 1",
+            "SELECT j.name,uj.capability_description,c.years FROM user_jobs uj JOIN jobs j ON j.id=uj.job_id LEFT JOIN certifications c ON c.id=uj.certification_id WHERE uj.user_id=? AND uj.verified=TRUE AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND (c.id IS NULL OR (c.enabled=TRUE AND c.deleted_at IS NULL)) ORDER BY CASE WHEN uj.certification_id IS NOT NULL THEN 0 ELSE 1 END,uj.certification_id DESC,j.name LIMIT 1",
             (rs, row) -> new JobView(rs.getString("name"), (Integer) rs.getObject("years"), rs.getString("capability_description")),
             user.getId()
         );
@@ -61,7 +64,7 @@ public class AnswererService {
         List<ExperienceView> experiences = certifications.stream()
             .filter(item -> "EXPERIENCE".equals(item.getCategory()))
             .map(item -> new ExperienceView(
-                item.getId(), item.getTitle(), item.getDescription(), item.getYears(), item.getDiscoveryCategoryId()
+                item.getId(), item.getTitle(), item.getDescription(), item.getYears(), item.getDiscoveryCategoryId(), item.getDiscoveryExperienceId()
             ))
             .toList();
         return new AnswererView(
@@ -75,26 +78,33 @@ public class AnswererService {
         List<Long> ids = jdbc.queryForList(
             "SELECT DISTINCT u.id FROM discovery_matter_jobs mj " +
                 "JOIN user_jobs uj ON uj.job_id=mj.job_id JOIN users u ON u.id=uj.user_id " +
-                "WHERE mj.matter_id=? AND uj.verified=TRUE AND u.account_status='ACTIVE' " +
-                "AND u.answerer_status='APPROVED' AND u.accepting_inquiries=TRUE ORDER BY u.id DESC",
+                "JOIN jobs j ON j.id=uj.job_id WHERE mj.matter_id=? AND mj.active=TRUE AND mj.deleted_at IS NULL AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND uj.verified=TRUE AND u.account_status='ACTIVE' " +
+                "AND u.accepting_inquiries=TRUE AND " + QUALIFIED + "ORDER BY u.id DESC",
             Long.class, matterId
         );
         return ids.stream().map(userRepository::findById).flatMap(java.util.Optional::stream).map(this::toView).toList();
     }
 
     @Transactional(readOnly = true)
-    public List<AnswererView> forExperience(Long categoryId, String title, String keyword) {
-        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+    public List<AnswererView> forExperience(Long experienceId) {
         List<Long> ids = jdbc.queryForList(
             "SELECT DISTINCT u.id FROM certifications c JOIN users u ON u.id=c.user_id " +
-                "LEFT JOIN user_jobs uj ON uj.user_id=u.id AND uj.verified=TRUE LEFT JOIN jobs j ON j.id=uj.job_id " +
-                "WHERE c.category='EXPERIENCE' AND c.status='APPROVED' AND c.discovery_category_id=? AND c.title=? " +
-                "AND u.account_status='ACTIVE' AND u.answerer_status='APPROVED' AND u.accepting_inquiries=TRUE " +
-                "AND (?='' OR COALESCE(u.nickname,'') LIKE CONCAT('%',?,'%') OR COALESCE(j.name,'') LIKE CONCAT('%',?,'%')) " +
+                "JOIN discovery_experiences e ON e.id=c.discovery_experience_id " +
+                "WHERE c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL AND c.discovery_experience_id=? AND e.active=TRUE AND e.deleted_at IS NULL " +
+                "AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED +
                 "ORDER BY u.id DESC",
-            Long.class, categoryId, title, normalizedKeyword, normalizedKeyword, normalizedKeyword
+            Long.class, experienceId
         );
         return ids.stream().map(userRepository::findById).flatMap(java.util.Optional::stream).map(this::toView).toList();
+    }
+
+    private boolean currentQualification(Long userId) {
+        Integer count = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM users u WHERE u.id=? AND " + QUALIFIED,
+            Integer.class,
+            userId
+        );
+        return count != null && count > 0;
     }
 
     private record JobView(String name, Integer years, String description) {}
@@ -104,7 +114,8 @@ public class AnswererService {
         String title,
         String description,
         Integer years,
-        Long discoveryCategoryId
+        Long discoveryCategoryId,
+        Long discoveryExperienceId
     ) {
     }
 

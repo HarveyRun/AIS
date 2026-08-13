@@ -1,11 +1,13 @@
 import { ChevronRight, Footprints, Plus, Store } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
+import { api } from '../../api/http.js';
 import './CertificationPages.css';
 
 export default function ExperienceCertificationPage({
   go,
   setCertType,
   certifications,
+  notify,
 }) {
   const items = certifications.filter((item) =>
     ['个人事业认证', '其它经历认证'].includes(item.type),
@@ -16,9 +18,18 @@ export default function ExperienceCertificationPage({
     go('certExperienceApply');
   };
 
-  const createExperience = () => {
-    setCertType('new-experience');
-    go('certExperienceApply');
+  const createExperience = async () => {
+    try {
+      const eligibility = await api.answererEligibility();
+      if (!eligibility.basicInformationApproved) {
+        notify('完成基础信息认证后才能添加亲身经历', 'warning');
+        return;
+      }
+      setCertType('new-experience');
+      go('certExperienceApply');
+    } catch (error) {
+      notify(error.message, 'error');
+    }
   };
 
   return (

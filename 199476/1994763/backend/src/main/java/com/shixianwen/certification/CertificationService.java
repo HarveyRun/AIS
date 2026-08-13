@@ -23,10 +23,9 @@ public class CertificationService {
     private final FileStorage fileStorage;
 
     public CertificationService(
-        CertificationRepository certificationRepository,
-        UserRepository userRepository,
-        FileStorage fileStorage
-    ) {
+            CertificationRepository certificationRepository,
+            UserRepository userRepository,
+            FileStorage fileStorage) {
         this.certificationRepository = certificationRepository;
         this.userRepository = userRepository;
         this.fileStorage = fileStorage;
@@ -35,49 +34,47 @@ public class CertificationService {
     @Transactional(readOnly = true)
     public List<CertificationView> list(User user) {
         return certificationRepository.findByUserIdOrderByIdAsc(user.getId()).stream()
-            .map(CertificationView::from)
-            .toList();
+                .map(CertificationView::from)
+                .toList();
     }
 
     @Transactional
     public CertificationView submitBasic(
-        User user,
-        String type,
-        String title,
-        Integer years,
-        List<MultipartFile> files
-    ) {
+            User user,
+            String type,
+            String title,
+            Integer years,
+            List<MultipartFile> files) {
         String normalizedType = type.toUpperCase(Locale.ROOT);
         if (!List.of("IDENTITY", "MAIN_JOB").contains(normalizedType)) {
             throw BusinessException.badRequest("基础认证类型不正确");
         }
         if ("IDENTITY".equals(normalizedType) &&
-            (files.size() != 3 || files.stream().anyMatch(file -> !isImage(file)))) {
+                (files.size() != 3 || files.stream().anyMatch(file -> !isImage(file)))) {
             throw BusinessException.badRequest("身份信息认证需要按要求提交3张图片");
         }
         if ("MAIN_JOB".equals(normalizedType)) {
             validateJobFiles(files);
         }
         Certification existing = certificationRepository
-            .findFirstByUserIdAndCertificationTypeOrderByIdDesc(user.getId(), normalizedType)
-            .orElse(null);
+                .findFirstByUserIdAndCertificationTypeOrderByIdDesc(user.getId(), normalizedType)
+                .orElse(null);
         if (existing != null && !"REJECTED".equals(existing.getStatus())) {
             throw BusinessException.badRequest("该基础信息认证已经提交");
         }
         Certification certification = existing == null
-            ? baseCertification(
-                user,
-                "BASIC",
-                normalizedType,
-                "IDENTITY".equals(normalizedType) ? "实名认证" : "待判定岗位",
-                true
-            )
-            : existing;
-        certification.setTitle("IDENTITY".equals(normalizedType) ? "实名认证" : "待判定岗位");
+                ? baseCertification(
+                        user,
+                        "BASIC",
+                        normalizedType,
+                        "IDENTITY".equals(normalizedType) ? "实名认证" : "",
+                        true)
+                : existing;
+        certification.setTitle("IDENTITY".equals(normalizedType) ? "实名认证" : "");
         certification.setStatus("PENDING");
         certification.setRejectionReason(null);
         certification.setSubmittedAt(LocalDateTime.now());
-        certification.getMaterials().clear();
+        retireMaterials(certification);
         certification.setYears(years);
         attachFiles(certification, files);
         return CertificationView.from(certificationRepository.save(certification));
@@ -85,24 +82,38 @@ public class CertificationService {
 
     @Transactional
     public CertificationView submitExperience(
-        User user,
-        Long existingId,
-        String title,
-        String description,
-        Integer years,
-        List<MultipartFile> files
-    ) {
-        if (title == null || title.isBlank()) throw BusinessException.badRequest("请填写经历标题");
-        if (description == null || description.isBlank()) throw BusinessException.badRequest("请填写经历简述");
+            User user,
+            Long existingId,
+            String title,
+            String description,
+            Integer years,
+            List<MultipartFile> files) {
+        boolean identityVerified = certificationRepository
+                .existsByUserIdAndCertificationTypeAndStatusAndEnabledTrue(
+                        user.getId(),
+                        "IDENTITY",
+                        "APPROVED");
+        boolean jobVerified = certificationRepository
+                .existsByUserIdAndCertificationTypeAndStatusAndEnabledTrue(
+                        user.getId(),
+                        "MAIN_JOB",
+                        "APPROVED");
+        if (!identityVerified || !jobVerified) {
+            throw BusinessException.badRequest("完成基础信息认证后才能添加亲身经历");
+        }
+        if (title == null || title.isBlank())
+            throw BusinessException.badRequest("请填写经历标题");
+        if (description == null || description.isBlank())
+            throw BusinessException.badRequest("请填写经历简述");
         validateExperienceFiles(files);
         Certification certification;
         if (existingId == null) {
             certification = baseCertification(user, "EXPERIENCE", "EXPERIENCE", title.trim(), false);
         } else {
             certification = certificationRepository.findByIdAndUserId(existingId, user.getId())
-                .filter(item -> "EXPERIENCE".equals(item.getCategory()) && "REJECTED".equals(item.getStatus()))
-                .orElseThrow(() -> BusinessException.badRequest("该经历不能重新提交"));
-            certification.getMaterials().clear();
+                    .filter(item -> "EXPERIENCE".equals(item.getCategory()) && "REJECTED".equals(item.getStatus()))
+                    .orElseThrow(() -> BusinessException.badRequest("该经历不能重新提交"));
+            retireMaterials(certification);
             certification.setTitle(title.trim());
             certification.setStatus("PENDING");
             certification.setRejectionReason(null);
@@ -117,7 +128,7 @@ public class CertificationService {
     @Transactional
     public CertificationView review(Long id, boolean approved, String reason) {
         Certification certification = certificationRepository.findById(id)
-            .orElseThrow(() -> BusinessException.notFound("认证不存在"));
+                .orElseThrow(() -> BusinessException.notFound("认证不存在"));
         certification.setStatus(approved ? "APPROVED" : "REJECTED");
         certification.setRejectionReason(approved ? null : reason);
         certification.setReviewedAt(LocalDateTime.now());
@@ -152,6 +163,11 @@ public class CertificationService {
         }
     }
 
+    private void retireMaterials(Certification certification) {
+        LocalDateTime now = LocalDateTime.now();
+        certification.getMaterials().forEach(material -> material.setDeletedAt(now));
+    }
+
     private void validateExperienceFiles(List<MultipartFile> files) {
         long archives = files.stream().filter(this::isArchive).count();
         long videos = files.stream().filter(this::isVideo).count();
@@ -160,24 +176,32 @@ public class CertificationService {
             throw BusinessException.badRequest("经历认证必须上传1个压缩包，另可提交1段录像和最多5张照片");
         }
         files.stream().filter(this::isArchive).filter(file -> file.getSize() > ONE_GB).findAny()
-            .ifPresent(file -> { throw BusinessException.badRequest("压缩包不能超过1GB"); });
+                .ifPresent(file -> {
+                    throw BusinessException.badRequest("压缩包不能超过1GB");
+                });
         files.stream().filter(this::isVideo).filter(file -> file.getSize() > FIVE_HUNDRED_MB).findAny()
-            .ifPresent(file -> { throw BusinessException.badRequest("录像不能超过500MB"); });
+                .ifPresent(file -> {
+                    throw BusinessException.badRequest("录像不能超过500MB");
+                });
     }
 
     private void validateJobFiles(List<MultipartFile> files) {
         long videos = files.stream().filter(this::isVideo).count();
         long images = files.stream().filter(this::isImage).count();
-        if (videos + images == 0) throw BusinessException.badRequest("岗位认证至少需要一段录像或一张照片");
+        if (videos + images == 0)
+            throw BusinessException.badRequest("岗位认证至少需要一段录像或一张照片");
         if (videos > 1 || images > 5 || videos + images != files.size()) {
             throw BusinessException.badRequest("岗位材料只支持1段录像和最多5张照片");
         }
         files.stream().filter(this::isVideo).filter(file -> file.getSize() > FIVE_HUNDRED_MB).findAny()
-            .ifPresent(file -> { throw BusinessException.badRequest("录像不能超过500MB"); });
+                .ifPresent(file -> {
+                    throw BusinessException.badRequest("录像不能超过500MB");
+                });
     }
 
     private void refreshAnswererStatus(User user, String reviewedCertificationType) {
-        List<Certification> certifications = certificationRepository.findByUserIdAndStatusOrderByIdAsc(user.getId(), "APPROVED");
+        List<Certification> certifications = certificationRepository
+                .findByUserIdAndStatusAndEnabledTrueOrderByIdAsc(user.getId(), "APPROVED");
         boolean identity = certifications.stream().anyMatch(item -> "IDENTITY".equals(item.getCertificationType()));
         boolean mainJob = certifications.stream().anyMatch(item -> "MAIN_JOB".equals(item.getCertificationType()));
         boolean basicInformationApproved = identity && mainJob;
@@ -206,39 +230,41 @@ public class CertificationService {
     }
 
     private String kindOf(MultipartFile file) {
-        if (isImage(file)) return "IMAGE";
-        if (isVideo(file)) return "VIDEO";
+        if (isImage(file))
+            return "IMAGE";
+        if (isVideo(file))
+            return "VIDEO";
         return "ARCHIVE";
     }
 
     public record MaterialView(Long id, String kind, String name, String url, long size, String contentType) {
         static MaterialView from(CertificationMaterial material) {
             return new MaterialView(
-                material.getId(), material.getMaterialKind(), material.getOriginalName(),
-                "/uploads/" + material.getStorageKey(), material.getFileSize(), material.getContentType()
-            );
+                    material.getId(), material.getMaterialKind(), material.getOriginalName(),
+                    "/uploads/" + material.getStorageKey(), material.getFileSize(), material.getContentType());
         }
     }
 
     public record CertificationView(
-        Long id,
-        String category,
-        String type,
-        String title,
-        String description,
-        Integer years,
-        boolean required,
-        String status,
-        String rejectionReason,
-        List<MaterialView> materials
-    ) {
+            Long id,
+            String category,
+            String type,
+            String title,
+            String description,
+            Integer years,
+            boolean required,
+            String status,
+            boolean enabled,
+            String rejectionReason,
+            List<MaterialView> materials) {
         static CertificationView from(Certification certification) {
             return new CertificationView(
-                certification.getId(), certification.getCategory(), certification.getCertificationType(),
-                certification.getTitle(), certification.getDescription(), certification.getYears(),
-                certification.isRequiredItem(), certification.getStatus(), certification.getRejectionReason(),
-                certification.getMaterials().stream().map(MaterialView::from).toList()
-            );
+                    certification.getId(), certification.getCategory(), certification.getCertificationType(),
+                    certification.getTitle(), certification.getDescription(), certification.getYears(),
+                    certification.isRequiredItem(), certification.getStatus(), certification.isEnabled(),
+                    certification.getRejectionReason(),
+                    certification.getMaterials().stream().filter(material -> material.getDeletedAt() == null)
+                            .map(MaterialView::from).toList());
         }
     }
 }

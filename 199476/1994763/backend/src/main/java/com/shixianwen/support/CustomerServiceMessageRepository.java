@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface CustomerServiceMessageRepository extends JpaRepository<CustomerServiceMessage, Long> {
     List<CustomerServiceMessage> findByUserIdOrderByCreatedAtAsc(Long userId);
+    long countByUserIdAndSenderTypeAndReadFalse(Long userId, String senderType);
 }

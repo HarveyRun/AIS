@@ -43,6 +43,13 @@ public class UserController {
         return ApiResponse.ok(userService.setAcceptingInquiries(user, request.accepting()));
     }
 
+    @GetMapping("/answerer-eligibility")
+    public ApiResponse<AnswererEligibilityService.Eligibility> answererEligibility(
+        @CurrentUser User user
+    ) {
+        return ApiResponse.ok(userService.answererEligibility(user));
+    }
+
     @DeleteMapping
     public ApiResponse<Void> delete(@CurrentUser User user) {
         userService.deleteAccount(user);

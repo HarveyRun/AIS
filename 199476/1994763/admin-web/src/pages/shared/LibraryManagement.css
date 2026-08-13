@@ -1,0 +1,152 @@
+.library-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.library-title-actions > span {
+  color: #858a92;
+  font-size: 13px;
+}
+
+.library-title-actions > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding-inline: 14px;
+}
+
+.library-title-actions svg {
+  width: 16px;
+  height: 16px;
+}
+
+.library-section {
+  display: grid;
+  gap: 14px;
+}
+
+.library-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 1px solid #eceef1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.library-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(390px, 100%);
+}
+
+.library-search-field svg {
+  position: absolute;
+  left: 12px;
+  width: 17px;
+  height: 17px;
+  color: #9a9fa7;
+  pointer-events: none;
+}
+
+.library-search-field input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 38px;
+  border: 1px solid #dfe2e6;
+  border-radius: 8px;
+  background: #fafbfc;
+  outline: none;
+}
+
+.library-search-field input:focus {
+  border-color: #d56a61;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(211, 58, 44, 0.08);
+}
+
+.library-toolbar > button {
+  height: 38px;
+}
+
+.library-table-card {
+  border: 1px solid #eceef1;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.library-table-card th {
+  height: 44px;
+  background: #fafafa;
+  color: #70757d;
+  font-weight: 600;
+}
+
+.library-table-card td {
+  height: 60px;
+}
+
+.library-table-card tbody tr:hover {
+  background: #fcfcfd;
+}
+
+.library-count-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 112px;
+  padding: 7px 10px;
+  border: 1px solid #e6c7c4;
+  border-radius: 7px;
+  background: #fff;
+  color: #a92f26;
+  cursor: pointer;
+  font: inherit;
+}
+
+.library-count-link:hover {
+  border-color: #d66157;
+  background: #fffafa;
+}
+
+.library-count-link svg {
+  width: 15px;
+  height: 15px;
+}
+
+.library-count-link svg:last-child {
+  width: 13px;
+  margin-left: auto;
+}
+
+.library-count-link em {
+  color: #8b8f96;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.library-table-card .row-actions button {
+  padding: 6px 10px;
+}
+
+@media (max-width: 900px) {
+  .library-title-actions {
+    align-items: flex-end;
+    flex-direction: column-reverse;
+    gap: 6px;
+  }
+
+  .library-toolbar {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .library-search-field {
+    width: 100%;
+  }
+}

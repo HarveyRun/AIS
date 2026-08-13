@@ -9,7 +9,7 @@ export default function KnowledgePage({
   setProblem,
   setMatterId,
   setExperience,
-  setExperienceCategoryId,
+  setExperienceId,
   notify,
 }) {
   const [keyword, setKeyword] = useState('');
@@ -66,7 +66,7 @@ export default function KnowledgePage({
 
   const selectMatter = (matter) => {
     setExperience('');
-    setExperienceCategoryId(null);
+    setExperienceId(null);
     setProblem(matter.title);
     setMatterId(matter.id);
     go('filtered');
@@ -90,7 +90,7 @@ export default function KnowledgePage({
               {group.name}
               <span>{group.matters.length}件事</span>
             </h3>
-            <div>
+            <div className="tree-group-items">
               {group.matters.map((matter) => (
                 <button type="button" key={matter.id} onClick={() => selectMatter(matter)}>
                   {matter.title}
@@ -101,9 +101,7 @@ export default function KnowledgePage({
           </div>
         ))}
 
-        {!loading && groupedResults.length === 0 && (
-          <p className="discovery-empty">没有找到相关事情</p>
-        )}
+        {!loading && groupedResults.length === 0 && <p className="discovery-empty">暂无数据</p>}
       </section>
     </Page>
   );

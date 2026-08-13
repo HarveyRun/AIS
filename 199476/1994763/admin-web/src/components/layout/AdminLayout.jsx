@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -13,25 +13,61 @@ import {
   LogOut,
   Tags,
   BriefcaseBusiness,
+  Footprints,
+  ChevronDown,
+  Settings2,
+  Ellipsis,
+  ShieldCog,
 } from 'lucide-react';
 import { adminApi, token } from '../../api/adminApi.js';
 import './AdminLayout.css';
-const items = [
+const primaryItems = [
   ['/dashboard', '概览', LayoutDashboard],
   ['/users', '用户管理', Users],
-  ['/jobs', '岗位管理', BriefcaseBusiness],
   ['/certifications', '认证审核', ShieldCheck],
-  ['/discovery', '内容分类', Tags],
   ['/inquiries', '询问管理', MessagesSquare],
   ['/withdrawals', '提现处理', WalletCards],
-  ['/feedback', '投诉反馈', MessageSquareWarning],
-  ['/cooperations', '商务合作', Handshake],
   ['/customer-service', '在线客服', Headset],
-  ['/audit', '操作记录', ScrollText],
 ];
-export default function AdminLayout({ onLoggedOut }) {
+
+const secondaryGroups = [
+  {
+    id: 'business-settings',
+    label: '业务配置',
+    icon: Settings2,
+    items: [
+      ['/jobs', '岗位管理', BriefcaseBusiness],
+      ['/experiences', '经历管理', Footprints],
+      ['/discovery', '分类管理', Tags],
+    ],
+  },
+  {
+    id: 'other-business',
+    label: '其他业务',
+    icon: Ellipsis,
+    items: [
+      ['/feedback', '投诉反馈', MessageSquareWarning],
+      ['/cooperations', '商务合作', Handshake],
+    ],
+  },
+  {
+    id: 'system-management',
+    label: '系统管理',
+    icon: ShieldCog,
+    items: [['/audit', '操作记录', ScrollText]],
+  },
+];
+
+export default function AdminLayout({ onLoggedOut, customerServiceUnread = 0 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [adminName, setAdminName] = useState('管理员');
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    const activeGroup = secondaryGroups.find((group) =>
+      group.items.some(([to]) => location.pathname.startsWith(to)),
+    );
+    return activeGroup ? [activeGroup.id] : [];
+  });
   useEffect(() => {
     adminApi
       .me()
@@ -46,6 +82,13 @@ export default function AdminLayout({ onLoggedOut }) {
     onLoggedOut();
     navigate('/login', { replace: true });
   };
+
+  const toggleGroup = (groupId) => {
+    setExpandedGroups((current) =>
+      current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId],
+    );
+  };
+
   return (
     <div className="admin-shell">
       <aside>
@@ -57,12 +100,49 @@ export default function AdminLayout({ onLoggedOut }) {
           </div>
         </div>
         <nav>
-          {items.map(([to, label, Icon]) => (
+          {primaryItems.map(([to, label, Icon]) => (
             <NavLink key={to} to={to}>
               <Icon />
-              {label}
+              <span>{label}</span>
+              {to === '/customer-service' && customerServiceUnread > 0 && (
+                <em className="admin-nav-count">
+                  {customerServiceUnread > 99 ? '99+' : customerServiceUnread}
+                </em>
+              )}
             </NavLink>
           ))}
+          <div className="nav-divider">
+            <span>更多管理</span>
+          </div>
+          {secondaryGroups.map((group) => {
+            const GroupIcon = group.icon;
+            const expanded = expandedGroups.includes(group.id);
+            const active = group.items.some(([to]) => location.pathname.startsWith(to));
+            return (
+              <div className={`nav-group ${active ? 'active' : ''}`} key={group.id}>
+                <button
+                  type="button"
+                  className="nav-group-trigger"
+                  aria-expanded={expanded}
+                  onClick={() => toggleGroup(group.id)}
+                >
+                  <GroupIcon />
+                  <span>{group.label}</span>
+                  <ChevronDown className={expanded ? 'expanded' : ''} />
+                </button>
+                {expanded && (
+                  <div className="nav-group-items">
+                    {group.items.map(([to, label, Icon]) => (
+                      <NavLink key={to} to={to}>
+                        <Icon />
+                        <span>{label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
         <button className="logout" onClick={logout}>
           <LogOut />

@@ -50,7 +50,7 @@
   font-size: 12px;
 }
 
-.experience-groups > div > div {
+.experience-group-items {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
@@ -132,7 +132,7 @@
   font-weight: 400;
   margin-left: 7px;
 }
-.tree-group > div {
+.tree-group-items {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
@@ -208,61 +208,8 @@
   font-size: 11px;
 }
 
-.matter-result-hero {
-  margin: 4px 17px 16px;
-  padding: 19px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #3e3128, #745848);
-  color: #fff;
-  box-shadow: 0 12px 30px #3e312826;
-}
-
-.matter-result-hero > span {
-  display: inline-flex;
-  padding: 4px 8px;
-  border-radius: 20px;
-  background: #ffffff1f;
-  font-size: 9px;
-}
-
-.matter-result-hero h1 {
-  margin: 9px 0 8px;
-  font-size: 23px;
-}
-
-.matter-result-hero p {
-  margin: 0;
-  color: #f2eae4;
-  font-size: 11px;
-  line-height: 1.7;
-}
-
 .matter-participants-section {
   padding: 0 17px 24px;
-}
-
-.participant-type-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 5px;
-  padding: 4px;
-  margin-bottom: 12px;
-  border-radius: 13px;
-  background: #f2efec;
-}
-
-.participant-type-tabs button {
-  height: 34px;
-  border-radius: 10px;
-  color: #7e746e;
-  font-size: 10px;
-}
-
-.participant-type-tabs button.active {
-  background: #fff;
-  color: var(--primary-dark);
-  font-weight: 700;
-  box-shadow: 0 2px 8px #3b2c2212;
 }
 
 .matter-participant-list {
@@ -487,10 +434,18 @@
   margin-top: 12px;
 }
 
-.matter-job-summary span {
+.matter-job-summary button {
   padding: 7px 10px;
+  border: 1px solid transparent;
   border-radius: 7px;
   background: #f4f4f5;
   color: #5e6269;
   font-size: 12px;
+}
+
+.matter-job-summary button.active {
+  border-color: #d33a2c;
+  background: #fff;
+  color: #b92f24;
+  font-weight: 600;
 }

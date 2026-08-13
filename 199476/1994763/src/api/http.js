@@ -75,7 +75,6 @@ export const api = {
   discoveryMatter: (id) => request(`/public/discovery/matters/${id}`),
   sendCode: (phone) => request('/auth/verification-codes', { method: 'POST', body: JSON.stringify({ phone }) }),
   login: (phone, code) => request('/auth/login', { method: 'POST', body: JSON.stringify({ phone, code }) }),
-  register: (phone, code, nickname) => request('/auth/register', { method: 'POST', body: JSON.stringify({ phone, code, nickname }) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/users/me'),
   updateProfile: (body) => request('/users/me', { method: 'PUT', body: JSON.stringify(body) }),
@@ -86,6 +85,7 @@ export const api = {
   },
   deleteAccount: () => request('/users/me', { method: 'DELETE' }),
   setAcceptingInquiries: (accepting) => request('/users/me/accepting-inquiries', { method: 'PATCH', body: JSON.stringify({ accepting }) }),
+  answererEligibility: () => request('/users/me/answerer-eligibility'),
   certifications: () => request('/certifications/me'),
   submitBasicCertification: (type, title, files) => {
     const body = new FormData();
@@ -103,8 +103,8 @@ export const api = {
   },
   answerers: (page = 0, size = 10, keyword = '') => request(`/answerers?page=${page}&size=${size}&keyword=${encodeURIComponent(keyword)}`),
   answerersByMatter: (matterId) => request(`/answerers/by-matter/${matterId}`),
-  answerersByExperience: (categoryId, title, keyword = '') => request(`/answerers/by-experience?categoryId=${encodeURIComponent(categoryId)}&title=${encodeURIComponent(title)}&keyword=${encodeURIComponent(keyword)}`),
-  inquiries: () => request('/inquiries'),
+  answerersByExperience: (experienceId) => request(`/answerers/by-experience?experienceId=${encodeURIComponent(experienceId)}`),
+  inquiries: ({ silent = false } = {}) => request('/inquiries', { globalLoading: !silent }),
   inquiry: (id) => request(`/inquiries/${id}`),
   createInquiry: (body) => request('/inquiries', { method: 'POST', body: JSON.stringify(body) }),
   acceptInquiry: (id) => request(`/inquiries/${id}/accept`, { method: 'POST' }),
@@ -126,12 +126,24 @@ export const api = {
   wallet: () => request('/wallet'),
   walletTransactions: () => request('/wallet/transactions'),
   withdrawals: () => request('/wallet/withdrawals'),
-  notifications: () => request('/notifications'),
-  notificationUnreadCount: () => request('/notifications/unread-count'),
-  readNotification: (id) => request(`/notifications/${id}/read`, { method: 'PUT' }),
-  readAllNotifications: () => request('/notifications/read-all', { method: 'PUT' }),
-  markInquiryRead: (id) => request(`/inquiries/${id}/read`, { method: 'PUT' }),
-  realtimeTicket: () => request('/realtime/tickets', { method: 'POST' }),
+  notifications: ({ silent = false } = {}) => request('/notifications', { globalLoading: !silent }),
+  notificationUnreadCount: () => request('/notifications/unread-count', { globalLoading: false }),
+  readNotification: (id) => request(`/notifications/${id}/read`, {
+    method: 'PUT',
+    globalLoading: false,
+  }),
+  readAllNotifications: () => request('/notifications/read-all', {
+    method: 'PUT',
+    globalLoading: false,
+  }),
+  markInquiryRead: (id) => request(`/inquiries/${id}/read`, {
+    method: 'PUT',
+    globalLoading: false,
+  }),
+  realtimeTicket: () => request('/realtime/tickets', {
+    method: 'POST',
+    globalLoading: false,
+  }),
   bindBankCard: (body) => request('/wallet/bank-card', { method: 'PUT', body: JSON.stringify(body) }),
   bankCard: () => request('/wallet/bank-card'),
   withdraw: (amount) => request('/wallet/withdrawals', { method: 'POST', body: JSON.stringify({ amount }) }),
@@ -141,6 +153,21 @@ export const api = {
   submitFeedback: (body) => request('/support/feedback', { method: 'POST', body: JSON.stringify(body) }),
   feedbackRecords: () => request('/support/feedback'),
   submitBusinessCooperation: (body) => request('/support/business-cooperations', { method: 'POST', body: JSON.stringify(body) }),
-  customerServiceMessages: () => request('/support/customer-service/messages'),
-  sendCustomerServiceMessage: (content) => request('/support/customer-service/messages', { method: 'POST', body: JSON.stringify({ content }) }),
+  customerServiceMessages: ({ silent = false } = {}) => request(
+    '/support/customer-service/messages',
+    { globalLoading: !silent },
+  ),
+  sendCustomerServiceMessage: (content) => request('/support/customer-service/messages', {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+    globalLoading: false,
+  }),
+  customerServiceUnreadCount: () => request(
+    '/support/customer-service/unread-count',
+    { globalLoading: false },
+  ),
+  readCustomerServiceMessages: () => request('/support/customer-service/read', {
+    method: 'PUT',
+    globalLoading: false,
+  }),
 };

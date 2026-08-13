@@ -55,7 +55,6 @@ export default function UsersPage() {
         </select>
           <button onClick={() => { setPage(0); load(0); }}>查询</button>
       </div>
-      <Pagination page={page} size={size} total={data.total} onChange={(next) => { setPage(next); load(next); }} />
       <div className="table-card">
         <table>
           <thead>
@@ -97,6 +96,7 @@ export default function UsersPage() {
         </table>
         {!data.items.length && <Empty />}
       </div>
+      <Pagination page={page} size={size} total={data.total} onChange={(next) => { setPage(next); load(next); }} />
     </>
   );
 }

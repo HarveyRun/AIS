@@ -2,7 +2,7 @@ import './Pagination.css';
 
 export default function Pagination({ page, size, total, onChange }) {
   const pages = Math.max(1, Math.ceil(total / size));
-  if (total <= size) return null;
+
   return (
     <div className="pagination">
       <span>

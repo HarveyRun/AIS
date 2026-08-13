@@ -1,41 +1,66 @@
-import { useEffect, useState } from 'react';
-import { Send } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { LoaderCircle, Send } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import './CustomerServicePage.css';
 import { api } from '../../api/http.js';
 
-export default function CustomerServicePage({ go, notify }) {
+function customerServiceMessage(item) {
+  return {
+    id: item.id,
+    role: item.senderType === 'USER' ? 'user' : 'service',
+    content: item.content,
+    time: new Date(item.createdAt).toLocaleString(),
+  };
+}
+
+export default function CustomerServicePage({
+  go,
+  notify,
+  realtimeMessage,
+  onRead = () => {},
+}) {
   const [text, setText] = useState('');
   const [messages, setMessages] = useState([]);
+  const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     api.customerServiceMessages()
       .then((items) => {
-        setMessages(items.map((item) => ({
-          id: item.id,
-          role: item.senderType === 'USER' ? 'user' : 'service',
-          content: item.content,
-          time: new Date(item.createdAt).toLocaleString(),
-        })));
+        setMessages(items.map(customerServiceMessage));
+        onRead();
       })
       .catch((error) => notify(error.message, 'error'));
-  }, [notify]);
+  }, [notify, onRead]);
+
+  useEffect(() => {
+    if (!realtimeMessage?.id) return;
+    const incoming = customerServiceMessage(realtimeMessage);
+    setMessages((current) => (
+      current.some((item) => item.id === incoming.id)
+        ? current
+        : [...current, incoming]
+    ));
+    onRead();
+  }, [onRead, realtimeMessage]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: 'end' });
+  }, [messages]);
 
   const send = async () => {
     const content = text.trim();
-    if (!content) return;
+    if (!content || sending) return;
     try {
-      await api.sendCustomerServiceMessage(content);
-      const latest = await api.customerServiceMessages();
-      setMessages(latest.map((item) => ({
-        id: item.id,
-        role: item.senderType === 'USER' ? 'user' : 'service',
-        content: item.content,
-        time: new Date(item.createdAt).toLocaleString(),
-      })));
+      setSending(true);
       setText('');
+      const saved = await api.sendCustomerServiceMessage(content);
+      setMessages((current) => [...current, customerServiceMessage(saved)]);
     } catch (error) {
+      setText((current) => current || content);
       notify(error.message, 'error');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -48,6 +73,7 @@ export default function CustomerServicePage({ go, notify }) {
             <small>{message.time}</small>
           </article>
         ))}
+        <div ref={messagesEndRef} />
       </section>
       <footer className="service-composer">
         <input
@@ -58,8 +84,14 @@ export default function CustomerServicePage({ go, notify }) {
           }}
           placeholder="输入你想问的问题"
         />
-        <button type="button" disabled={!text.trim()} onClick={send} aria-label="发送">
-          <Send />
+        <button
+          className={sending ? 'sending' : ''}
+          type="button"
+          disabled={!text.trim() || sending}
+          onClick={send}
+          aria-label={sending ? '正在发送' : '发送'}
+        >
+          {sending ? <LoaderCircle /> : <Send />}
         </button>
       </footer>
     </Page>

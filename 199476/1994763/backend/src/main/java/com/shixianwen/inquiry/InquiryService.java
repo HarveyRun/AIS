@@ -4,6 +4,7 @@ import com.shixianwen.common.BusinessException;
 import com.shixianwen.notification.NotificationService;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
+import com.shixianwen.user.AnswererEligibilityService;
 import com.shixianwen.wallet.WalletService;
 import com.shixianwen.network.ClientNetworkInfo;
 import com.shixianwen.realtime.RealtimePublisher;
@@ -31,14 +32,14 @@ public class InquiryService {
     private final NotificationService notifications;
     private final RealtimePublisher realtime;
     private final FileStorage fileStorage;
+    private final AnswererEligibilityService answererEligibility;
 
     @Transactional
     public InquiryView create(Long questionerId, CreateCommand command, ClientNetworkInfo network) {
         if (questionerId.equals(command.answererId())) throw BusinessException.badRequest("不能向自己发起询问");
         User questioner = user(questionerId);
         User answerer = user(command.answererId());
-        if (!"APPROVED".equals(answerer.getAnswererStatus())) throw BusinessException.badRequest("对方尚未成为答主");
-        if (!answerer.isAcceptingInquiries()) throw BusinessException.badRequest("对方暂不接受询问");
+        answererEligibility.requireAvailable(answerer.getId());
         if (inquiries.existsByQuestionerIdAndAnswererIdAndStatusIn(questionerId, answerer.getId(), OPEN))
             throw BusinessException.badRequest("你们已有一条进行中的询问");
         Inquiry item = new Inquiry();
@@ -82,7 +83,7 @@ public class InquiryService {
     public InquiryView accept(Long userId, Long inquiryId) {
         Inquiry item = lockedParticipant(userId, inquiryId, true);
         requireStatus(item, "PENDING");
-        if (!item.getAnswerer().isAcceptingInquiries()) throw BusinessException.badRequest("你已暂停接受询问");
+        answererEligibility.requireCanAccept(userId);
         item.setAnswererUnreadCount(0);
         item.setStatus("ACTIVE"); item.setAcceptedAt(LocalDateTime.now()); item.setResponseDeadline(null);
         increaseUnread(item, item.getQuestioner().getId());

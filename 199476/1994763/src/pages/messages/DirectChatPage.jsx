@@ -74,9 +74,6 @@ export default function DirectChatPage({
   setConversations,
   setSelectedConversation,
   currentUser = { name: '', uid: '', avatar: '' },
-  canAnswer,
-  acceptingInquiries,
-  certifications,
   refreshWallet,
   notify,
 }) {
@@ -89,13 +86,6 @@ export default function DirectChatPage({
   const partnerLabel = partner.name?.trim() || (partner.uid ? `UID ${partner.uid}` : '对方');
   const inquiryStatus = conversation?.inquiryStatus || 'active';
   const isIncoming = conversation?.direction === 'incoming';
-  const certifiedText = certifications
-    .filter((item) => item.status === '已认证')
-    .map((item) => `${item.name || ''}${item.title || ''}${item.detail || ''}`)
-    .join('');
-  const requiredCapability = conversation?.capability || '';
-  const matchesCapability = !requiredCapability || certifiedText.includes(requiredCapability);
-  const allowedToAnswer = Boolean(canAnswer && acceptingInquiries && matchesCapability);
   const canChat = inquiryStatus === 'active';
   const [text, setText] = useState('');
   const [messages, setMessages] = useState(conversation?.messages || []);
@@ -187,21 +177,17 @@ export default function DirectChatPage({
     if (!conversation?.id) return;
     api
       .inquiry(conversation.id)
-      .then(async (detail) => {
+      .then((detail) => {
         applyInquiryDetail(detail);
-        await api.markInquiryRead(conversation.id);
         setConversations((current) => current.map((item) => (
           item.id === conversation.id ? { ...item, unread: 0 } : item
         )));
+        api.markInquiryRead(conversation.id).catch(() => {});
       })
       .catch((error) => notify(error.message, 'error'));
   }, [conversation?.id, currentUser.id, notify]);
 
   const respondToInquiry = async (accepted) => {
-    if (accepted && !allowedToAnswer) {
-      notify('当前无法接受这次询问', 'warning');
-      return;
-    }
     try {
       if (!accepted) {
         await api.rejectInquiry(conversation.id);
@@ -409,24 +395,11 @@ export default function DirectChatPage({
             </button>
             <button
               type="button"
-              disabled={!allowedToAnswer}
               onClick={() => respondToInquiry(true)}
             >
               接受询问
             </button>
           </footer>
-        )}
-
-        {inquiryStatus === 'pending' && isIncoming && !allowedToAnswer && (
-          <small className="answer-blocked">
-            {!acceptingInquiries ? '你已暂停接受询问' : '完成对应认证后才能接受这次询问'}
-            <button
-              type="button"
-              onClick={() => go(!acceptingInquiries ? 'certs' : 'certExperience')}
-            >
-              {!acceptingInquiries ? '去开启' : '去认证'}
-            </button>
-          </small>
         )}
 
         {inquiryStatus === 'pending' && !isIncoming && (

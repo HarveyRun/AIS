@@ -19,29 +19,37 @@ import java.util.concurrent.CopyOnWriteArraySet;
 @RequiredArgsConstructor
 public class RealtimeWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper;
-    private final Map<Long, Set<WebSocketSession>> sessions = new ConcurrentHashMap<>();
+    private final Map<Long, Set<WebSocketSession>> userSessions = new ConcurrentHashMap<>();
+    private final Map<Long, Set<WebSocketSession>> adminSessions = new ConcurrentHashMap<>();
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws IOException {
-        Long userId = userId(session);
-        sessions.computeIfAbsent(userId, ignored -> new CopyOnWriteArraySet<>()).add(session);
+        sessions(session).computeIfAbsent(subjectId(session), ignored -> new CopyOnWriteArraySet<>()).add(session);
         send(session, new RealtimeEvent("CONNECTED", Map.of(), Instant.now()));
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        Long userId = userId(session);
-        Set<WebSocketSession> userSessions = sessions.get(userId);
-        if (userSessions == null) return;
-        userSessions.remove(session);
-        if (userSessions.isEmpty()) sessions.remove(userId);
+        Map<Long, Set<WebSocketSession>> subjectSessions = sessions(session);
+        Long subjectId = subjectId(session);
+        Set<WebSocketSession> connectedSessions = subjectSessions.get(subjectId);
+        if (connectedSessions == null) return;
+        connectedSessions.remove(session);
+        if (connectedSessions.isEmpty()) subjectSessions.remove(subjectId);
     }
 
     public void send(Long userId, String type, Object payload) {
-        Set<WebSocketSession> userSessions = sessions.get(userId);
-        if (userSessions == null) return;
+        send(userSessions.get(userId), type, payload);
+    }
+
+    public void sendAdmins(String type, Object payload) {
+        adminSessions.values().forEach(connectedSessions -> send(connectedSessions, type, payload));
+    }
+
+    private void send(Set<WebSocketSession> connectedSessions, String type, Object payload) {
+        if (connectedSessions == null) return;
         RealtimeEvent event = new RealtimeEvent(type, payload, Instant.now());
-        userSessions.forEach(session -> {
+        connectedSessions.forEach(session -> {
             try {
                 send(session, event);
             } catch (IOException exception) {
@@ -60,8 +68,14 @@ public class RealtimeWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private static Long userId(WebSocketSession session) {
-        return (Long) session.getAttributes().get("userId");
+    private Map<Long, Set<WebSocketSession>> sessions(WebSocketSession session) {
+        return "ADMIN".equals(session.getAttributes().get("subjectType"))
+            ? adminSessions
+            : userSessions;
+    }
+
+    private static Long subjectId(WebSocketSession session) {
+        return (Long) session.getAttributes().get("subjectId");
     }
 
     public record RealtimeEvent(String type, Object payload, Instant sentAt) {}

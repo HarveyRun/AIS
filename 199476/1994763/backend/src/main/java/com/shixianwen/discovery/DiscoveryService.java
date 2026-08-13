@@ -14,12 +14,16 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class DiscoveryService {
+    private static final String QUALIFIED_USER =
+        "EXISTS (SELECT 1 FROM certifications ci WHERE ci.user_id=u.id AND ci.certification_type='IDENTITY' AND ci.status='APPROVED' AND ci.enabled=TRUE AND ci.deleted_at IS NULL) " +
+        "AND EXISTS (SELECT 1 FROM certifications cj WHERE cj.user_id=u.id AND cj.certification_type='MAIN_JOB' AND cj.status='APPROVED' AND cj.enabled=TRUE AND cj.deleted_at IS NULL) ";
     private static final Map<String, String> MAIN_CATEGORIES = Map.of(
+        "GENERAL", "通用",
         "LIFE", "生活",
         "WORK", "工作",
         "ENTERTAINMENT", "娱乐"
     );
-    private static final List<String> MAIN_ORDER = List.of("LIFE", "WORK", "ENTERTAINMENT");
+    private static final List<String> MAIN_ORDER = List.of("GENERAL", "LIFE", "WORK", "ENTERTAINMENT");
     private final JdbcTemplate jdbc;
 
     @Transactional(readOnly = true)
@@ -27,42 +31,22 @@ public class DiscoveryService {
         String selectedCode = mainCategory == null ? "" : mainCategory.trim().toUpperCase();
         if (!MAIN_CATEGORIES.containsKey(selectedCode)) throw BusinessException.badRequest("分类不存在");
         List<Map<String, Object>> categories = jdbc.queryForList(
-            "SELECT id,main_category AS mainCategory,name FROM discovery_categories WHERE active=TRUE AND main_category=? ORDER BY sort_order,id",
-            selectedCode
+            "SELECT id,main_category AS mainCategory,name FROM discovery_categories WHERE active=TRUE AND deleted_at IS NULL AND main_category=? AND content_scope IN ('BOTH',?) ORDER BY sort_order,id",
+            selectedCode, content.name()
         );
         List<Map<String, Object>> matters = content == ContentType.MATTERS ? jdbc.queryForList(
-            "SELECT m.id,m.category_id AS categoryId,m.title FROM discovery_matters m JOIN discovery_categories c ON c.id=m.category_id WHERE m.active=TRUE AND c.main_category=? ORDER BY m.sort_order,m.id",
+            "SELECT m.id,m.category_id AS categoryId,m.title FROM discovery_matters m JOIN discovery_categories c ON c.id=m.category_id WHERE m.active=TRUE AND m.deleted_at IS NULL AND c.deleted_at IS NULL AND c.main_category=? ORDER BY m.sort_order,m.id",
             selectedCode
         ) : List.of();
         List<Map<String, Object>> participants = List.of();
         List<Map<String, Object>> matterJobs = List.of();
-        /* 目录接口只返回标题，不再把所有事项的岗位和人员一起下发。 */
-        /*
-        participants = jdbc.queryForList(
-            "SELECT mj.matter_id AS matterId,u.uid," +
-                "CASE WHEN SUM(mj.participation_type='PRIMARY')>0 THEN 'PRIMARY' ELSE 'SUPPORTING' END AS type," +
-                "GROUP_CONCAT(DISTINCT j.name ORDER BY j.name SEPARATOR '、') AS jobNames " +
-                "FROM discovery_matter_jobs mj JOIN user_jobs uj ON uj.job_id=mj.job_id " +
-                "JOIN jobs j ON j.id=mj.job_id " +
-                "JOIN users u ON u.id=uj.user_id " +
-                "WHERE uj.verified=TRUE AND u.account_status='ACTIVE' AND u.answerer_status='APPROVED' AND u.accepting_inquiries=TRUE " +
-                "GROUP BY mj.matter_id,u.id,u.uid ORDER BY mj.matter_id,CASE type WHEN 'PRIMARY' THEN 0 ELSE 1 END,u.id"
-        );
-        matterJobs = jdbc.queryForList(
-            "SELECT mj.matter_id AS matterId,j.id AS jobId,j.name,mj.participation_type AS type," +
-                "COUNT(DISTINCT CASE WHEN uj.verified=TRUE AND u.account_status='ACTIVE' AND u.answerer_status='APPROVED' AND u.accepting_inquiries=TRUE THEN u.id END) AS answererCount " +
-                "FROM discovery_matter_jobs mj JOIN jobs j ON j.id=mj.job_id " +
-                "LEFT JOIN user_jobs uj ON uj.job_id=j.id LEFT JOIN users u ON u.id=uj.user_id " +
-                "WHERE j.active=TRUE GROUP BY mj.matter_id,j.id,j.name,mj.participation_type,mj.sort_order " +
-                "ORDER BY mj.matter_id,CASE mj.participation_type WHEN 'PRIMARY' THEN 0 ELSE 1 END,mj.sort_order,j.name"
-        ); */
         List<Map<String, Object>> experiences = content == ContentType.EXPERIENCES ? jdbc.queryForList(
-            "SELECT c.discovery_category_id AS categoryId,c.title,COUNT(*) AS answererCount " +
-                "FROM certifications c JOIN users u ON u.id=c.user_id " +
-                "WHERE c.category='EXPERIENCE' AND c.status='APPROVED' AND c.discovery_category_id IS NOT NULL " +
-                "AND u.account_status='ACTIVE' AND u.answerer_status='APPROVED' AND u.accepting_inquiries=TRUE " +
-            "AND EXISTS (SELECT 1 FROM discovery_categories dc WHERE dc.id=c.discovery_category_id AND dc.main_category=?) " +
-            "GROUP BY c.discovery_category_id,c.title ORDER BY c.title",
+            "SELECT e.id,e.category_id AS categoryId,e.name AS title,COUNT(DISTINCT u.id) AS answererCount " +
+                "FROM discovery_experiences e JOIN discovery_categories dc ON dc.id=e.category_id " +
+                "LEFT JOIN certifications c ON c.discovery_experience_id=e.id AND c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL " +
+                "LEFT JOIN users u ON u.id=c.user_id AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER +
+                "WHERE e.active=TRUE AND e.deleted_at IS NULL AND dc.active=TRUE AND dc.deleted_at IS NULL AND dc.main_category=? " +
+                "GROUP BY e.id,e.category_id,e.name HAVING COUNT(DISTINCT u.id)>0 ORDER BY e.name",
             selectedCode
         ) : List.of();
 
@@ -71,7 +55,6 @@ public class DiscoveryService {
             long matterId = ((Number) row.get("matterId")).longValue();
             participantMap.computeIfAbsent(matterId, ignored -> new ArrayList<>()).add(new ParticipantView(
                 String.valueOf(row.get("uid")),
-                String.valueOf(row.get("type")),
                 String.valueOf(row.get("jobNames"))
             ));
         }
@@ -80,7 +63,7 @@ public class DiscoveryService {
             long matterId = ((Number) row.get("matterId")).longValue();
             jobMap.computeIfAbsent(matterId, ignored -> new ArrayList<>()).add(new JobView(
                 ((Number) row.get("jobId")).longValue(), String.valueOf(row.get("name")),
-                String.valueOf(row.get("type")), ((Number) row.get("answererCount")).longValue()
+                ((Number) row.get("answererCount")).longValue()
             ));
         }
         Map<Long, List<MatterView>> matterMap = new LinkedHashMap<>();
@@ -94,7 +77,7 @@ public class DiscoveryService {
         for (Map<String, Object> row : experiences) {
             long categoryId = ((Number) row.get("categoryId")).longValue();
             experienceMap.computeIfAbsent(categoryId, ignored -> new ArrayList<>())
-                .add(new ExperienceView(String.valueOf(row.get("title")), ((Number) row.get("answererCount")).longValue()));
+                .add(new ExperienceView(((Number) row.get("id")).longValue(), String.valueOf(row.get("title")), ((Number) row.get("answererCount")).longValue()));
         }
 
         Map<String, List<SubcategoryView>> grouped = new LinkedHashMap<>();
@@ -118,24 +101,24 @@ public class DiscoveryService {
     @Transactional(readOnly = true)
     public MatterView matter(Long id) {
         Map<String, Object> row = jdbc.queryForList(
-            "SELECT id,title FROM discovery_matters WHERE id=? AND active=TRUE", id
+            "SELECT id,title FROM discovery_matters WHERE id=? AND active=TRUE AND deleted_at IS NULL", id
         ).stream().findFirst().orElseThrow(() -> BusinessException.notFound("事情不存在"));
         List<JobView> jobs = jdbc.query(
-            "SELECT j.id,j.name,mj.participation_type AS type," +
-                "COUNT(DISTINCT CASE WHEN uj.verified=TRUE AND u.account_status='ACTIVE' AND u.answerer_status='APPROVED' AND u.accepting_inquiries=TRUE THEN u.id END) AS answererCount " +
+            "SELECT j.id,j.name," +
+                "COUNT(DISTINCT CASE WHEN uj.verified=TRUE AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER + "THEN u.id END) AS answererCount " +
                 "FROM discovery_matter_jobs mj JOIN jobs j ON j.id=mj.job_id " +
-                "LEFT JOIN user_jobs uj ON uj.job_id=j.id LEFT JOIN users u ON u.id=uj.user_id " +
-                "WHERE mj.matter_id=? AND j.active=TRUE GROUP BY j.id,j.name,mj.participation_type,mj.sort_order " +
-                "ORDER BY CASE mj.participation_type WHEN 'PRIMARY' THEN 0 ELSE 1 END,mj.sort_order,j.name",
-            (rs, index) -> new JobView(rs.getLong("id"), rs.getString("name"), rs.getString("type"), rs.getLong("answererCount")), id
+                "LEFT JOIN user_jobs uj ON uj.job_id=j.id AND uj.deleted_at IS NULL LEFT JOIN users u ON u.id=uj.user_id " +
+                "WHERE mj.matter_id=? AND mj.active=TRUE AND mj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL GROUP BY j.id,j.name,mj.sort_order " +
+                "ORDER BY mj.sort_order,j.name",
+            (rs, index) -> new JobView(rs.getLong("id"), rs.getString("name"), rs.getLong("answererCount")), id
         );
         List<ParticipantView> participants = jdbc.query(
-            "SELECT u.uid,CASE WHEN SUM(mj.participation_type='PRIMARY')>0 THEN 'PRIMARY' ELSE 'SUPPORTING' END AS type," +
+            "SELECT u.uid," +
                 "GROUP_CONCAT(DISTINCT j.name ORDER BY j.name SEPARATOR '、') AS jobNames " +
                 "FROM discovery_matter_jobs mj JOIN user_jobs uj ON uj.job_id=mj.job_id JOIN jobs j ON j.id=mj.job_id JOIN users u ON u.id=uj.user_id " +
-                "WHERE mj.matter_id=? AND uj.verified=TRUE AND u.account_status='ACTIVE' AND u.answerer_status='APPROVED' AND u.accepting_inquiries=TRUE " +
-                "GROUP BY u.id,u.uid ORDER BY CASE type WHEN 'PRIMARY' THEN 0 ELSE 1 END,u.id",
-            (rs, index) -> new ParticipantView(rs.getString("uid"), rs.getString("type"), rs.getString("jobNames")), id
+                "WHERE mj.matter_id=? AND mj.active=TRUE AND mj.deleted_at IS NULL AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND uj.verified=TRUE AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER +
+                "GROUP BY u.id,u.uid ORDER BY u.id",
+            (rs, index) -> new ParticipantView(rs.getString("uid"), rs.getString("jobNames")), id
         );
         return new MatterView(id, String.valueOf(row.get("title")), jobs, participants);
     }
@@ -148,8 +131,8 @@ public class DiscoveryService {
             return jdbc.query(
                 "SELECT m.id,m.title,c.id AS categoryId,c.name AS categoryName FROM discovery_matters m " +
                     "JOIN discovery_categories c ON c.id=m.category_id " +
-                    "WHERE m.active=TRUE AND c.active=TRUE " +
-                    "ORDER BY FIELD(c.main_category,'LIFE','WORK','ENTERTAINMENT')," +
+                "WHERE m.active=TRUE AND m.deleted_at IS NULL AND c.active=TRUE AND c.deleted_at IS NULL " +
+                    "ORDER BY FIELD(c.main_category,'GENERAL','LIFE','WORK','ENTERTAINMENT')," +
                     "c.sort_order,c.id,m.sort_order,m.id",
                 (resultSet, rowNumber) -> new MatterSearchView(
                     resultSet.getLong("id"),
@@ -163,8 +146,8 @@ public class DiscoveryService {
         return jdbc.query(
             "SELECT m.id,m.title,c.id AS categoryId,c.name AS categoryName FROM discovery_matters m " +
                 "JOIN discovery_categories c ON c.id=m.category_id " +
-                "WHERE m.active=TRUE AND c.active=TRUE AND m.title LIKE CONCAT('%',?,'%') " +
-                "ORDER BY FIELD(c.main_category,'LIFE','WORK','ENTERTAINMENT')," +
+                "WHERE m.active=TRUE AND m.deleted_at IS NULL AND c.active=TRUE AND c.deleted_at IS NULL AND m.title LIKE CONCAT('%',?,'%') " +
+                "ORDER BY FIELD(c.main_category,'GENERAL','LIFE','WORK','ENTERTAINMENT')," +
                 "c.sort_order,c.id,m.sort_order,m.id LIMIT 50",
             (resultSet, rowNumber) -> new MatterSearchView(
                 resultSet.getLong("id"),
@@ -182,17 +165,16 @@ public class DiscoveryService {
 
         if (normalizedKeyword.isEmpty()) {
             return jdbc.query(
-                "SELECT c.discovery_category_id AS categoryId,dc.name AS categoryName,c.title,COUNT(*) AS answererCount " +
-                    "FROM certifications c JOIN users u ON u.id=c.user_id " +
-                    "JOIN discovery_categories dc ON dc.id=c.discovery_category_id " +
-                    "WHERE c.category='EXPERIENCE' AND c.status='APPROVED' " +
-                    "AND dc.active=TRUE AND u.account_status='ACTIVE' " +
-                    "AND u.answerer_status='APPROVED' AND u.accepting_inquiries=TRUE " +
-                    "GROUP BY c.discovery_category_id,dc.name,c.title " +
-                    "ORDER BY FIELD(dc.main_category,'LIFE','WORK','ENTERTAINMENT')," +
-                    "dc.sort_order,dc.id,c.title",
+                "SELECT e.id,e.category_id AS categoryId,dc.name AS categoryName,e.name AS title,COUNT(DISTINCT u.id) AS answererCount " +
+                    "FROM discovery_experiences e JOIN discovery_categories dc ON dc.id=e.category_id " +
+                    "LEFT JOIN certifications c ON c.discovery_experience_id=e.id AND c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL " +
+                    "LEFT JOIN users u ON u.id=c.user_id AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER +
+                    "WHERE e.active=TRUE AND e.deleted_at IS NULL AND dc.active=TRUE AND dc.deleted_at IS NULL " +
+                    "GROUP BY e.id,e.category_id,dc.name,e.name HAVING COUNT(DISTINCT u.id)>0 " +
+                    "ORDER BY FIELD(dc.main_category,'GENERAL','LIFE','WORK','ENTERTAINMENT')," +
+                    "dc.sort_order,dc.id,e.name",
                 (resultSet, rowNumber) -> new ExperienceSearchView(
-                    resultSet.getLong("categoryId"),
+                    resultSet.getLong("id"), resultSet.getLong("categoryId"),
                     resultSet.getString("categoryName"),
                     resultSet.getString("title"),
                     resultSet.getLong("answererCount")
@@ -201,18 +183,16 @@ public class DiscoveryService {
         }
 
         return jdbc.query(
-            "SELECT c.discovery_category_id AS categoryId,dc.name AS categoryName,c.title,COUNT(*) AS answererCount " +
-                "FROM certifications c JOIN users u ON u.id=c.user_id " +
-                "JOIN discovery_categories dc ON dc.id=c.discovery_category_id " +
-                "WHERE c.category='EXPERIENCE' AND c.status='APPROVED' " +
-                "AND dc.active=TRUE AND u.account_status='ACTIVE' " +
-                "AND u.answerer_status='APPROVED' AND u.accepting_inquiries=TRUE " +
-                "AND c.title LIKE CONCAT('%',?,'%') " +
-                "GROUP BY c.discovery_category_id,dc.name,c.title " +
-                "ORDER BY FIELD(dc.main_category,'LIFE','WORK','ENTERTAINMENT')," +
-                "dc.sort_order,dc.id,c.title LIMIT 50",
+            "SELECT e.id,e.category_id AS categoryId,dc.name AS categoryName,e.name AS title,COUNT(DISTINCT u.id) AS answererCount " +
+                "FROM discovery_experiences e JOIN discovery_categories dc ON dc.id=e.category_id " +
+                "LEFT JOIN certifications c ON c.discovery_experience_id=e.id AND c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL " +
+                "LEFT JOIN users u ON u.id=c.user_id AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER +
+                "WHERE e.active=TRUE AND e.deleted_at IS NULL AND dc.active=TRUE AND dc.deleted_at IS NULL AND e.name LIKE CONCAT('%',?,'%') " +
+                "GROUP BY e.id,e.category_id,dc.name,e.name HAVING COUNT(DISTINCT u.id)>0 " +
+                "ORDER BY FIELD(dc.main_category,'GENERAL','LIFE','WORK','ENTERTAINMENT')," +
+                "dc.sort_order,dc.id,e.name LIMIT 50",
             (resultSet, rowNumber) -> new ExperienceSearchView(
-                resultSet.getLong("categoryId"),
+                resultSet.getLong("id"), resultSet.getLong("categoryId"),
                 resultSet.getString("categoryName"),
                 resultSet.getString("title"),
                 resultSet.getLong("answererCount")
@@ -233,9 +213,9 @@ public class DiscoveryService {
     public record MainCategoryView(String code, String name, List<SubcategoryView> subcategories) {}
     public record SubcategoryView(Long id, String name, List<MatterView> matters, List<ExperienceView> experiences) {}
     public record MatterView(Long id, String title, List<JobView> jobs, List<ParticipantView> participants) {}
-    public record JobView(Long id, String name, String type, long answererCount) {}
-    public record ParticipantView(String uid, String type, String jobNames) {}
-    public record ExperienceView(String title, long answererCount) {}
+    public record JobView(Long id, String name, long answererCount) {}
+    public record ParticipantView(String uid, String jobNames) {}
+    public record ExperienceView(Long id, String title, long answererCount) {}
     public record MatterSearchView(Long id, String title, Long categoryId, String categoryName) {}
-    public record ExperienceSearchView(Long categoryId, String categoryName, String title, long answererCount) {}
+    public record ExperienceSearchView(Long id, Long categoryId, String categoryName, String title, long answererCount) {}
 }

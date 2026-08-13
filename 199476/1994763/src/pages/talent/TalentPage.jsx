@@ -22,10 +22,7 @@ export default function TalentPage({
   const [inquiryQuestion, setInquiryQuestion] = useState('');
   const [inquiryAmount, setInquiryAmount] = useState('');
   const inquiryContext = experience || problem || p.main;
-  const acceptsInquiries = p.acceptingInquiries !== false;
-  const openInquiry = () => {
-    if (!acceptsInquiries) return;
-
+  const openInquiry = async () => {
     const existingConversation = conversations.find(
       (item) =>
         item.direction === 'outgoing' &&
@@ -37,9 +34,17 @@ export default function TalentPage({
       existingConversation &&
       !['ended', 'rejected', 'cancelled'].includes(existingConversation.inquiryStatus)
     ) {
-      setSelectedConversation(existingConversation);
-      go('directChat');
-      return;
+      try {
+        const current = await api.inquiry(existingConversation.id);
+        if (['PENDING', 'ACTIVE', 'AWAITING_CONFIRMATION', 'DISPUTED'].includes(current.inquiry.status)) {
+          setSelectedConversation(existingConversation);
+          go('directChat');
+          return;
+        }
+      } catch (error) {
+        notify(error.message, 'error');
+        return;
+      }
     }
 
     setInquiryQuestion('');
@@ -59,11 +64,6 @@ export default function TalentPage({
       notify('请输入有效金额', 'warning');
       return;
     }
-    if (amount > balance) {
-      notify('余额不足，请先调整金额', 'warning');
-      return;
-    }
-
     if (!p.id) {
       notify('档案数据尚未加载完成，请稍后再试', 'warning');
       return;
@@ -151,11 +151,10 @@ export default function TalentPage({
       <button
         className="profile-inquiry-button"
         type="button"
-        disabled={!acceptsInquiries}
         onClick={openInquiry}
       >
         <MessageCircleMore />
-        {acceptsInquiries ? '询问' : '暂不接受询问'}
+        询问
       </button>
       {inquiryOpen && (
         <>

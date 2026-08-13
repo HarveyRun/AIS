@@ -12,19 +12,20 @@ function requestKey(path, options, accessToken) {
 }
 
 export function request(path, options = {}) {
+  const { globalLoading = true, ...requestOptions } = options;
   const accessToken = token.get();
-  const key = requestKey(path, options, accessToken);
+  const key = requestKey(path, requestOptions, accessToken);
   const existingRequest = inFlightRequests.get(key);
   if (existingRequest) return existingRequest;
 
   const activeRequest = (async () => {
-    beginRequest();
+    if (globalLoading) beginRequest();
     try {
-      const headers = new Headers(options.headers || {});
+      const headers = new Headers(requestOptions.headers || {});
       if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
-      if (options.body) headers.set('Content-Type', 'application/json');
+      if (requestOptions.body) headers.set('Content-Type', 'application/json');
 
-      const response = await fetch(`/api/admin${path}`, { ...options, headers });
+      const response = await fetch(`/api/admin${path}`, { ...requestOptions, headers });
       const payload = await response.json().catch(() => null);
       if (!response.ok || payload?.success === false) {
         if (response.status === 401) {
@@ -36,7 +37,7 @@ export function request(path, options = {}) {
       return payload.data;
     } finally {
       inFlightRequests.delete(key);
-      endRequest();
+      if (globalLoading) endRequest();
     }
   })();
 
@@ -49,10 +50,18 @@ export const adminApi = {
   login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   me: () => request('/auth/me'),
   logout: () => request('/auth/logout', { method: 'POST' }),
+  realtimeTicket: () => request('/auth/realtime-ticket', {
+    method: 'POST',
+    globalLoading: false,
+  }),
   dashboard: () => request('/dashboard'),
   users: (query) => request(`/users?${query}`),
-  jobs: () => request('/jobs'),
-  jobUsers: (jobId) => request(`/jobs/${jobId}/users`),
+  jobs: (jobName = '', page = 0, size = 20) =>
+    request(`/jobs?jobName=${encodeURIComponent(jobName)}&page=${page}&size=${size}`),
+  jobOptions: () => request('/job-options'),
+  experienceOptions: () => request('/experience-options'),
+  allJobUsers: (jobName = '', page = 0, size = 20, jobId = '') =>
+    request(`/job-users?jobName=${encodeURIComponent(jobName)}&jobId=${jobId}&page=${page}&size=${size}`),
   createJob: (body) => request('/jobs', { method: 'POST', body: JSON.stringify(body) }),
   updateJob: (id, body) => request(`/jobs/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteJob: (id) => request(`/jobs/${id}`, { method: 'DELETE' }),
@@ -60,6 +69,11 @@ export const adminApi = {
   materials: (id) => request(`/certifications/${id}/materials`),
   review: (id, body) =>
     request(`/certifications/${id}/review`, { method: 'POST', body: JSON.stringify(body) }),
+  setCertificationEnabled: (id, enabled) =>
+    request(`/certifications/${id}/enabled`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
+  updateCertification: (id, body) =>
+    request(`/certifications/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteCertification: (id) => request(`/certifications/${id}`, { method: 'DELETE' }),
   userStatus: (id, status) =>
     request(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   withdrawalStatus: (id, status) =>
@@ -67,8 +81,18 @@ export const adminApi = {
   recordStatus: (type, id, status) =>
     request(`/${type}/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   logs: (query = '') => request(`/audit-logs?${query}`),
-  customerServiceConversations: () => request('/customer-service/conversations'),
-  customerServiceMessages: (userId) => request(`/customer-service/users/${userId}/messages`),
+  customerServiceConversations: ({ silent = false } = {}) => request(
+    '/customer-service/conversations',
+    { globalLoading: !silent },
+  ),
+  customerServiceMessages: (userId, { silent = false } = {}) => request(
+    `/customer-service/users/${userId}/messages`,
+    { globalLoading: !silent },
+  ),
+  readCustomerServiceMessages: (userId) => request(
+    `/customer-service/users/${userId}/read`,
+    { method: 'PUT', globalLoading: false },
+  ),
   replyCustomerService: (userId, content) =>
     request(`/customer-service/users/${userId}/reply`, {
       method: 'POST',
@@ -85,9 +109,17 @@ export const adminApi = {
   updateDiscoveryMatter: (id, body) =>
     request(`/discovery/matters/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteDiscoveryMatter: (id) => request(`/discovery/matters/${id}`, { method: 'DELETE' }),
-  classifyExperience: (id, categoryId) =>
-    request(`/discovery/experiences/${id}/category`, {
+  createDiscoveryExperience: (body) =>
+    request('/discovery/experiences', { method: 'POST', body: JSON.stringify(body) }),
+  updateDiscoveryExperience: (id, body) =>
+    request(`/discovery/experiences/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteDiscoveryExperience: (id) =>
+    request(`/discovery/experiences/${id}`, { method: 'DELETE' }),
+  experienceUsers: (id, page = 0, size = 20) =>
+    request(`/discovery/experiences/${id}/users?page=${page}&size=${size}`),
+  classifyExperience: (id, experienceId) =>
+    request(`/discovery/certifications/${id}/experience`, {
       method: 'PATCH',
-      body: JSON.stringify({ categoryId }),
+      body: JSON.stringify({ experienceId }),
     }),
 };

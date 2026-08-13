@@ -1,12 +1,20 @@
-.customer-service-page {
-  padding-bottom: 134px;
+.page.customer-service-page {
+  display: grid;
+  height: 100dvh;
+  min-height: 0;
+  grid-template-rows: 64px minmax(0, 1fr) auto;
+  overflow: hidden;
+  padding-bottom: 0;
 }
 
 .service-chat-list {
   display: flex;
+  min-height: 0;
   flex-direction: column;
   gap: 18px;
   padding: 14px 17px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .service-chat-list article {
@@ -42,20 +50,15 @@
 }
 
 .service-composer {
-  position: fixed;
-  z-index: 35;
-  bottom: 76px;
-  left: 50%;
   display: grid;
-  width: min(100%, 430px);
-  height: 64px;
+  width: 100%;
+  min-height: calc(64px + env(safe-area-inset-bottom));
   grid-template-columns: 1fr 42px;
   align-items: center;
   gap: 9px;
-  padding: 9px 14px;
+  padding: 9px 14px calc(9px + env(safe-area-inset-bottom));
   border-top: 1px solid #eee9e5;
   background: #ffffff;
-  transform: translateX(-50%);
 }
 
 .service-composer input {
@@ -89,4 +92,14 @@
 
 .service-composer svg {
   width: 18px;
+}
+
+.service-composer button.sending svg {
+  animation: service-send-spin 0.8s linear infinite;
+}
+
+@keyframes service-send-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

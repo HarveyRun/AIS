@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import LoginPage from '../pages/auth/LoginPage.jsx';
-import RegisterPage from '../pages/auth/RegisterPage.jsx';
 import LegalPage from '../pages/auth/LegalPage.jsx';
 import HomePage from '../pages/home/HomePage.jsx';
 import KnowledgePage from '../pages/discovery/KnowledgePage.jsx';
@@ -37,16 +36,6 @@ export default function AppRoutes(props) {
             <Navigate to={ROUTES.home} replace />
           ) : (
             <LoginPage go={go} onLogin={props.login} notify={notify} />
-          )
-        }
-      />
-      <Route
-        path={ROUTES.register}
-        element={
-          props.isAuthenticated ? (
-            <Navigate to={ROUTES.home} replace />
-          ) : (
-            <RegisterPage go={go} onRegister={props.login} notify={notify} />
           )
         }
       />
@@ -95,7 +84,7 @@ export default function AppRoutes(props) {
             matterId={props.matterId}
             setMatterId={props.setMatterId}
             setExperience={props.setExperience}
-            setExperienceCategoryId={props.setExperienceCategoryId}
+            setExperienceId={props.setExperienceId}
             catalog={props.discoveryCatalog}
             refreshCatalog={props.refreshDiscoveryCatalog}
             notify={notify}
@@ -108,12 +97,12 @@ export default function AppRoutes(props) {
           <ExperiencePage
             go={go}
             experience={props.experience}
-            experienceCategoryId={props.experienceCategoryId}
+            experienceId={props.experienceId}
             setExperience={props.setExperience}
             setProblem={props.setProblem}
             category={props.category}
             setCategory={props.setCategory}
-            setExperienceCategoryId={props.setExperienceCategoryId}
+            setExperienceId={props.setExperienceId}
             catalog={props.discoveryCatalog}
             refreshCatalog={props.refreshDiscoveryCatalog}
             notify={notify}
@@ -128,7 +117,7 @@ export default function AppRoutes(props) {
             problem={props.problem}
             matterId={props.matterId}
             experience={props.experience}
-            experienceCategoryId={props.experienceCategoryId}
+            experienceId={props.experienceId}
             setTalent={props.setTalent}
             title={props.experience ? '按经历找人' : '按事情找人'}
             backScreen={props.experience ? 'experiences' : 'knowledge'}
@@ -157,9 +146,6 @@ export default function AppRoutes(props) {
             setConversations={props.setConversations}
             setSelectedConversation={props.setSelectedConversation}
             currentUser={props.userProfile}
-            canAnswer={props.canAnswer}
-            acceptingInquiries={props.acceptingInquiries}
-            certifications={props.certifications}
             addNotice={props.addNotice}
             refreshWallet={props.refreshWallet}
             notify={notify}
@@ -174,6 +160,7 @@ export default function AppRoutes(props) {
             certifications={props.certifications}
             logout={props.logout}
             userProfile={props.userProfile}
+            customerServiceUnreadCount={props.customerServiceUnreadCount}
           />,
         )}
       />
@@ -185,9 +172,6 @@ export default function AppRoutes(props) {
             notify={notify}
             userProfile={props.userProfile}
             setUserProfile={props.setUserProfile}
-            conversations={props.conversations}
-            balance={props.balance}
-            frozenAmount={props.frozenAmount}
             deleteAccount={props.deleteAccount}
           />,
         )}
@@ -238,6 +222,7 @@ export default function AppRoutes(props) {
             go={go}
             setCertType={props.setCertType}
             certifications={props.certifications}
+            notify={notify}
           />
         }
       />
@@ -286,7 +271,14 @@ export default function AppRoutes(props) {
       />
       <Route
         path={ROUTES.customerService}
-        element={protect(<CustomerServicePage go={go} notify={notify} />)}
+        element={protect(
+          <CustomerServicePage
+            go={go}
+            notify={notify}
+            realtimeMessage={props.customerServiceRealtimeMessage}
+            onRead={props.clearCustomerServiceUnread}
+          />,
+        )}
       />
       <Route
         path={ROUTES.notices}

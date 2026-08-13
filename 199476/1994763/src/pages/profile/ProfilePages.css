@@ -203,11 +203,28 @@
   box-shadow: none;
 }
 .profile-platform-section .menu button {
+  position: relative;
   height: 55px;
   padding: 0 3px;
   border: 0;
   border-radius: 14px;
   background: #fff;
+}
+
+.profile-platform-section .profile-menu-count {
+  position: absolute;
+  right: 29px;
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
 }
 .profile-platform-section .menu button:active {
   background: #fff;

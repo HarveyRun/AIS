@@ -359,3 +359,32 @@ button.primary {
 .review-job-options button small { display: block; }
 .review-job-options button small { margin-top: 3px; overflow: hidden; color: #858a93; text-overflow: ellipsis; white-space: nowrap; }
 .review-job-options p { margin: 0; padding: 16px 12px; color: #8a8f98; text-align: center; }
+.certification-edit-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 10px;
+  background: #f7f8f9;
+}
+.row-actions {
+  white-space: nowrap;
+}
+.row-actions button + button {
+  margin-left: 7px;
+}
+.row-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.certification-edit-panel h3 {
+  margin: 0;
+}
+
+.certification-management-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}

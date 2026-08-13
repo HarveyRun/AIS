@@ -62,7 +62,8 @@ function certificationFromApi(item) {
     description: item.description || '',
     detail: item.description || '',
     required: item.required,
-    status: CERTIFICATION_STATUS[item.status] || item.status,
+    status: item.enabled === false ? '已停用' : (CERTIFICATION_STATUS[item.status] || item.status),
+    enabled: item.enabled !== false,
     feedback: item.rejectionReason || '',
     materials: (item.materials || []).map((material) => ({
       kind: String(material.kind || '').toLowerCase(),
@@ -161,7 +162,7 @@ function App() {
   const [problem, setProblem] = useState('');
   const [matterId, setMatterId] = useState(null);
   const [experience, setExperience] = useState('');
-  const [experienceCategoryId, setExperienceCategoryId] = useState(null);
+  const [experienceId, setExperienceId] = useState(null);
   const [discoveryCatalog, setDiscoveryCatalog] = useState({
     categories: [
       { code: 'LIFE', name: '生活', subcategories: [] },
@@ -198,14 +199,21 @@ function App() {
   const [notices, setNotices] = useState([]);
   const [feedbackRecords, setFeedbackRecords] = useState([]);
   const [acceptingInquiries, setAcceptingInquiries] = useState(false);
+  const [customerServiceUnreadCount, setCustomerServiceUnreadCount] = useState(0);
+  const [customerServiceRealtimeMessage, setCustomerServiceRealtimeMessage] = useState(null);
+  const clearCustomerServiceUnread = useCallback(() => {
+    setCustomerServiceUnreadCount(0);
+  }, []);
 
   const synchronizeMessaging = useCallback(async () => {
-    const [inquiryItems, notificationItems] = await Promise.all([
-      api.inquiries(),
-      api.notifications(),
+    const [inquiryItems, notificationItems, customerServiceUnread] = await Promise.all([
+      api.inquiries({ silent: true }),
+      api.notifications({ silent: true }),
+      api.customerServiceUnreadCount(),
     ]);
     setConversations((current) => mergeInquiryItems(current, inquiryItems));
     setNotices(notificationItems.map(notificationFromApi));
+    setCustomerServiceUnreadCount(Number(customerServiceUnread || 0));
   }, []);
 
   const handleRealtimeEvent = useCallback(async (event) => {
@@ -231,7 +239,6 @@ function App() {
           notice,
           ...current.filter((item) => item.id !== notice.id),
         ]);
-        notify(payload.title, 'default');
         return;
       }
 
@@ -255,7 +262,7 @@ function App() {
       }
 
       if (event.type === 'INQUIRY_UPDATED') {
-        const inquiryItems = await api.inquiries();
+        const inquiryItems = await api.inquiries({ silent: true });
         setConversations((current) => mergeInquiryItems(current, inquiryItems));
         const selectedItem = inquiryItems.find((item) => item.id === selectedConversation?.id);
         if (selectedItem) {
@@ -266,6 +273,17 @@ function App() {
             messages: current?.messages || [],
             partner: { ...current?.partner, ...nextSelected.partner },
           }));
+        }
+        return;
+      }
+
+      if (event.type === 'CUSTOMER_SERVICE_MESSAGE') {
+        setCustomerServiceRealtimeMessage(payload);
+        if (screen === 'customerService') {
+          setCustomerServiceUnreadCount(0);
+          await api.readCustomerServiceMessages();
+        } else {
+          setCustomerServiceUnreadCount((current) => current + 1);
         }
         return;
       }
@@ -322,10 +340,10 @@ function App() {
           await api.markInquiryRead(payload.inquiryId);
         }
       }
-    } catch (error) {
-      notify(error.message, 'error');
+    } catch {
+      // 实时连接中的同步属于后台维护，不打断用户当前操作。
     }
-  }, [notify, screen, selectedConversation?.id, synchronizeMessaging]);
+  }, [screen, selectedConversation?.id, synchronizeMessaging]);
 
   useRealtimeConnection(isAuthenticated, handleRealtimeEvent);
 
@@ -380,7 +398,7 @@ function App() {
     setProblem('');
     setMatterId(null);
     setExperience('');
-    setExperienceCategoryId(null);
+    setExperienceId(null);
     setTalent(null);
     setCertType('');
     setUserProfile({
@@ -400,6 +418,8 @@ function App() {
     setNotices([]);
     setFeedbackRecords([]);
     setAcceptingInquiries(false);
+    setCustomerServiceUnreadCount(0);
+    setCustomerServiceRealtimeMessage(null);
     setAccessToken('');
     setIsAuthenticated(false);
     go('login');
@@ -543,20 +563,12 @@ function App() {
     refreshCurrentScreen().catch((error) => notify(error.message, 'error'));
     return undefined;
   }, [isAuthenticated, notify, refreshCurrentScreen, screen]);
-  const canAnswer = certifications
-    .filter((item) => item.required)
-    .every((item) => item.status === '已认证');
   const changeAcceptingInquiries = async (valueOrUpdater) => {
     const next = typeof valueOrUpdater === 'function'
       ? valueOrUpdater(acceptingInquiries)
       : Boolean(valueOrUpdater);
-    if (!canAnswer) {
-      notify('完成基础信息认证后才能接受询问', 'warning');
-      return;
-    }
     try {
-      await api.setAcceptingInquiries(next);
-      const user = await api.me();
+      const user = await api.setAcceptingInquiries(next);
       setAcceptingInquiries(user.acceptingInquiries);
     } catch (error) {
       notify(error.message, 'error');
@@ -564,14 +576,14 @@ function App() {
   };
   const unreadNoticeCount = notices.filter((notice) => !notice.read).length;
   useEffect(() => {
-    if (!isAuthenticated && !['login', 'register', 'terms', 'privacy'].includes(screen))
+    if (!isAuthenticated && !['login', 'terms', 'privacy'].includes(screen))
       go('login');
   }, [go, isAuthenticated, screen]);
   const nav = (id) => {
     go(id);
   };
   const showNav = isAuthenticated
-    && !['login', 'register', 'terms', 'privacy', 'directChat'].includes(screen);
+    && !['login', 'terms', 'privacy', 'directChat', 'customerService'].includes(screen);
   const routeProps = {
     go,
     notify,
@@ -583,8 +595,8 @@ function App() {
     setMatterId,
     experience,
     setExperience,
-    experienceCategoryId,
-    setExperienceCategoryId,
+    experienceId,
+    setExperienceId,
     discoveryCatalog,
     refreshDiscoveryCatalog,
     talent,
@@ -617,7 +629,6 @@ function App() {
     frozenAmount,
     refreshWallet,
     refreshCurrentScreen,
-    canAnswer,
     isAuthenticated,
     login,
     logout,
@@ -625,6 +636,9 @@ function App() {
     answerers,
     answerersHaveMore,
     loadMoreAnswerers,
+    customerServiceUnreadCount,
+    customerServiceRealtimeMessage,
+    clearCustomerServiceUnread,
   };
 
   return (
@@ -633,7 +647,7 @@ function App() {
         <AppRoutes {...routeProps} />
       </main>
       {showNav && <BottomNav active={tab} onChange={nav} inquiryUnreadCount={inquiryUnreadCount} />}
-      <Toast content={toast} />
+      <Toast toast={toast} />
       <GlobalLoading />
     </div>
   );

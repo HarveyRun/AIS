@@ -1,13 +1,16 @@
-import { Check } from 'lucide-react';
 import './Toast.css';
 
-export default function Toast({ content }) {
-  if (!content) return null;
+export default function Toast({ toast }) {
+  if (!toast) return null;
 
   return (
-    <div className="toast" role="status" aria-live="polite">
-      <Check size={16} aria-hidden="true" />
-      <span>{content}</span>
+    <div
+      key={toast.id}
+      className={`toast ${toast.type} ${toast.leaving ? 'leaving' : ''}`}
+      role="status"
+      aria-live="polite"
+    >
+      <span>{toast.content}</span>
     </div>
   );
 }

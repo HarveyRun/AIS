@@ -44,9 +44,14 @@
 }
 .admin-shell nav {
   display: grid;
+  align-content: start;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   gap: 5px;
 }
 .admin-shell nav a,
+.nav-group-trigger,
 .logout {
   display: flex;
   align-items: center;
@@ -59,12 +64,83 @@
   font-size: 14px;
 }
 .admin-shell nav svg,
+.nav-group-trigger svg,
 .logout svg {
   width: 18px;
+  flex: 0 0 auto;
 }
 .admin-shell nav a.active {
   background: #d33a2c;
   color: #fff;
+}
+
+.admin-shell nav .admin-nav-count {
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  margin-left: auto;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #d33a2c;
+  color: #ffffff;
+  font-size: 11px;
+  font-style: normal;
+}
+
+.admin-shell nav a.active .admin-nav-count {
+  background: #ffffff;
+  color: #d33a2c;
+}
+.nav-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 13px 5px;
+  color: #717680;
+  font-size: 11px;
+}
+.nav-divider::after {
+  height: 1px;
+  flex: 1;
+  background: #2a2d33;
+  content: '';
+}
+.nav-group-trigger {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.nav-group.active > .nav-group-trigger {
+  color: #fff;
+}
+.nav-group-trigger svg:last-child {
+  width: 15px;
+  margin-left: auto;
+  transition: transform 160ms ease;
+}
+.nav-group-trigger svg:last-child.expanded {
+  transform: rotate(180deg);
+}
+.nav-group-items {
+  display: grid;
+  gap: 3px;
+  padding: 2px 0 5px 17px;
+}
+.admin-shell nav .nav-group-items a {
+  height: 39px;
+  font-size: 13px;
+}
+.admin-shell nav .nav-group-items a::before {
+  width: 1px;
+  height: 18px;
+  margin-left: -4px;
+  background: #3b3e45;
+  content: '';
+}
+.admin-shell nav .nav-group-items a.active::before {
+  background: rgb(255 255 255 / 60%);
 }
 .logout {
   margin-top: auto;
@@ -110,12 +186,27 @@
     padding: 18px 10px;
   }
   .admin-brand div,
-  .admin-shell nav a:not(.active) {
+  .admin-shell nav a span,
+  .nav-group-trigger span,
+  .nav-divider {
     font-size: 0;
   }
   .admin-shell nav a {
     justify-content: center;
     padding: 0;
+  }
+  .nav-group-trigger {
+    justify-content: center;
+    padding: 0;
+  }
+  .nav-group-trigger svg:last-child {
+    display: none;
+  }
+  .nav-group-items {
+    padding-left: 0;
+  }
+  .admin-shell nav .nav-group-items a::before {
+    display: none;
   }
   .admin-brand {
     padding: 0 6px 20px;

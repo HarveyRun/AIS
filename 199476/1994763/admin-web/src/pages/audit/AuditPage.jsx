@@ -26,15 +26,6 @@ export default function AuditPage() {
         </div>
         <span>共 {data.total} 条</span>
       </div>
-      <Pagination
-        page={page}
-        size={size}
-        total={data.total}
-        onChange={(next) => {
-          setPage(next);
-          load(next);
-        }}
-      />
       <div className="table-card">
         <table>
           <thead>
@@ -64,6 +55,15 @@ export default function AuditPage() {
         </table>
         {!data.items.length && <Empty />}
       </div>
+      <Pagination
+        page={page}
+        size={size}
+        total={data.total}
+        onChange={(next) => {
+          setPage(next);
+          load(next);
+        }}
+      />
     </>
   );
 }

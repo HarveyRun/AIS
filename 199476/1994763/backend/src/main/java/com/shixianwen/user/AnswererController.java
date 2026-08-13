@@ -37,10 +37,8 @@ public class AnswererController {
 
     @GetMapping("/by-experience")
     public ApiResponse<List<AnswererService.AnswererView>> byExperience(
-        @RequestParam Long categoryId,
-        @RequestParam String title,
-        @RequestParam(required = false) String keyword
+        @RequestParam Long experienceId
     ) {
-        return ApiResponse.ok(answererService.forExperience(categoryId, title, keyword));
+        return ApiResponse.ok(answererService.forExperience(experienceId));
     }
 }

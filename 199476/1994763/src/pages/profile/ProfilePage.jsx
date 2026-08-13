@@ -12,7 +12,13 @@ import {
 import UserAvatar from '../../components/profile/UserAvatar.jsx';
 import './ProfilePages.css';
 
-export default function MyProfilePage({ go, certifications, logout, userProfile }) {
+export default function MyProfilePage({
+  go,
+  certifications,
+  logout,
+  userProfile,
+  customerServiceUnreadCount = 0,
+}) {
   const hasJoined = certifications
     .filter((item) => item.required)
     .every((item) => item.status === '已认证');
@@ -87,6 +93,11 @@ export default function MyProfilePage({ go, certifications, logout, userProfile 
               <Headphones />
               在线客服
             </span>
+            {customerServiceUnreadCount > 0 && (
+              <em className="profile-menu-count">
+                {customerServiceUnreadCount > 99 ? '99+' : customerServiceUnreadCount}
+              </em>
+            )}
             <ChevronRight />
           </button>
           <button type="button" onClick={() => go('feedback')}>

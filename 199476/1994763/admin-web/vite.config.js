@@ -4,7 +4,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': { target: 'http://127.0.0.1:8080', changeOrigin: true },
+      '/api': { target: 'http://127.0.0.1:8080', changeOrigin: true, ws: true },
       '/uploads': { target: 'http://127.0.0.1:8080', changeOrigin: true },
     },
   },

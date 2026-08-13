@@ -8,6 +8,12 @@ import java.util.Optional;
 public interface CertificationRepository extends JpaRepository<Certification, Long> {
     List<Certification> findByUserIdOrderByIdAsc(Long userId);
     List<Certification> findByUserIdAndStatusOrderByIdAsc(Long userId, String status);
+    List<Certification> findByUserIdAndStatusAndEnabledTrueOrderByIdAsc(Long userId, String status);
     Optional<Certification> findByIdAndUserId(Long id, Long userId);
     Optional<Certification> findFirstByUserIdAndCertificationTypeOrderByIdDesc(Long userId, String certificationType);
+    boolean existsByUserIdAndCertificationTypeAndStatusAndEnabledTrue(
+        Long userId,
+        String certificationType,
+        String status
+    );
 }

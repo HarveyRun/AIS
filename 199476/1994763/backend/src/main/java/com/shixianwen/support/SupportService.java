@@ -3,6 +3,7 @@ package com.shixianwen.support;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
+import com.shixianwen.realtime.RealtimePublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ public class SupportService {
     private final BusinessCooperationRepository cooperation;
     private final CustomerServiceMessageRepository customerService;
     private final UserRepository users;
+    private final RealtimePublisher realtime;
 
     @Transactional
     public FeedbackView feedback(Long userId, String type, String category, String content, Long targetUserId) {
@@ -35,9 +37,31 @@ public class SupportService {
     public CustomerServiceView customerService(Long userId, String content) {
         CustomerServiceMessage item = new CustomerServiceMessage(); item.setUser(user(userId));
         item.setSenderType("USER"); item.setContent(required(content));
-        return CustomerServiceView.of(customerService.save(item));
+        item = customerService.saveAndFlush(item);
+        CustomerServiceView view = CustomerServiceView.of(item);
+        realtime.afterCommitToAdmins(
+            "CUSTOMER_SERVICE_MESSAGE",
+            new AdminCustomerServiceEvent(userId, item.getUser().getUid(), item.getUser().getNickname(), item.getUser().getAvatarUrl(), view)
+        );
+        return view;
     }
-    public List<CustomerServiceView> customerServiceList(Long userId) { return customerService.findByUserIdOrderByCreatedAtAsc(userId).stream().map(CustomerServiceView::of).toList(); }
+    @Transactional
+    public List<CustomerServiceView> customerServiceList(Long userId) {
+        List<CustomerServiceMessage> items = customerService.findByUserIdOrderByCreatedAtAsc(userId);
+        items.stream()
+            .filter(item -> "SERVICE".equals(item.getSenderType()) && !item.isRead())
+            .forEach(item -> item.setRead(true));
+        return items.stream().map(CustomerServiceView::of).toList();
+    }
+    public long customerServiceUnreadCount(Long userId) {
+        return customerService.countByUserIdAndSenderTypeAndReadFalse(userId, "SERVICE");
+    }
+    @Transactional
+    public void readCustomerService(Long userId) {
+        customerService.findByUserIdOrderByCreatedAtAsc(userId).stream()
+            .filter(item -> "SERVICE".equals(item.getSenderType()) && !item.isRead())
+            .forEach(item -> item.setRead(true));
+    }
     private User user(Long id) { return users.findById(id).orElseThrow(() -> BusinessException.notFound("用户不存在")); }
     private String required(String value) { if (value == null || value.isBlank()) throw BusinessException.badRequest("内容不能为空"); return value.trim(); }
     public record FeedbackView(Long id, String type, String category, String content, String status, java.time.LocalDateTime createdAt) {
@@ -46,4 +70,5 @@ public class SupportService {
     public record CustomerServiceView(Long id, String senderType, String content, java.time.LocalDateTime createdAt) {
         static CustomerServiceView of(CustomerServiceMessage i) { return new CustomerServiceView(i.getId(), i.getSenderType(), i.getContent(), i.getCreatedAt()); }
     }
+    public record AdminCustomerServiceEvent(Long userId, String uid, String nickname, String avatarUrl, CustomerServiceView message) {}
 }

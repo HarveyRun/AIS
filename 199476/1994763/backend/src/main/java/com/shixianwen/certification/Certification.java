@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "certifications")
+@SQLRestriction("deleted_at IS NULL")
 public class Certification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,6 +33,9 @@ public class Certification {
 
     @Column(name = "discovery_category_id")
     private Long discoveryCategoryId;
+
+    @Column(name = "discovery_experience_id")
+    private Long discoveryExperienceId;
 
     @Column(name = "certification_type", nullable = false, length = 50)
     private String certificationType;
@@ -49,6 +54,9 @@ public class Certification {
     @Column(nullable = false, length = 30)
     private String status = "PENDING";
 
+    @Column(nullable = false)
+    private boolean enabled = true;
+
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
 
@@ -58,7 +66,10 @@ public class Certification {
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
-    @OneToMany(mappedBy = "certification", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @OneToMany(mappedBy = "certification", cascade = CascadeType.ALL)
     @OrderBy("id ASC")
     private List<CertificationMaterial> materials = new ArrayList<>();
 
