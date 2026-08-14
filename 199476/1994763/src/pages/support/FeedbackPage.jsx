@@ -12,7 +12,10 @@ export default function FeedbackPage({ go, notify, conversations, records, setRe
     new Map(
       conversations
         .filter((conversation) => conversation.partner?.id || conversation.partner?.uid)
-        .map((conversation) => [conversation.partner.id || conversation.partner.uid, conversation.partner]),
+        .map((conversation) => [
+          conversation.partner.id || conversation.partner.uid,
+          conversation.partner,
+        ]),
     ).values(),
   );
   const submit = async () => {
@@ -24,18 +27,20 @@ export default function FeedbackPage({ go, notify, conversations, records, setRe
         content: text.trim(),
         targetUserId: targetUser?.id || null,
       });
-    const serverRecords = await api.feedbackRecords();
-    setRecords(serverRecords.map((item) => ({
-      id: item.id,
-      type: item.type,
-      category: item.category,
-      content: item.content,
-      status: item.status,
-      time: new Date(item.createdAt).toLocaleString(),
-    })));
-    notify(type === 'complaint' ? '投诉已提交' : '反馈已提交', 'success');
-    setText('');
-    setTarget('');
+      const serverRecords = await api.feedbackRecords();
+      setRecords(
+        serverRecords.map((item) => ({
+          id: item.id,
+          type: item.type,
+          category: item.category,
+          content: item.content,
+          status: item.status,
+          time: new Date(item.createdAt).toLocaleString(),
+        })),
+      );
+      notify(type === 'complaint' ? '投诉已提交' : '反馈已提交', 'success');
+      setText('');
+      setTarget('');
     } catch (requestError) {
       notify(requestError.message, 'error');
     }
@@ -62,15 +67,6 @@ export default function FeedbackPage({ go, notify, conversations, records, setRe
       <section className="feedback-form">
         {type === 'complaint' && (
           <>
-            <label>投诉对象</label>
-            <select value={target} onChange={(event) => setTarget(event.target.value)}>
-              <option value="">请选择与你交流过的人</option>
-              {targets.map((item) => (
-                <option value={item.id || item.uid} key={item.id || item.uid}>
-                  {item.name?.trim() || `UID ${item.uid}`}（UID {item.uid}）
-                </option>
-              ))}
-            </select>
             <label>投诉类型</label>
             <select
               value={complaintType}
@@ -78,7 +74,6 @@ export default function FeedbackPage({ go, notify, conversations, records, setRe
             >
               <option>服务态度问题</option>
               <option>虚假能力信息</option>
-              <option>违规收费</option>
               <option>骚扰或不当言论</option>
               <option>其它</option>
             </select>
