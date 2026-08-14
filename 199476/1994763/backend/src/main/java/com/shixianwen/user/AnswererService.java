@@ -31,11 +31,9 @@ public class AnswererService {
         int safeSize = Math.max(1, Math.min(size, 50));
         List<Long> ids = jdbc.queryForList(
             "SELECT u.id FROM users u WHERE u.id<>? AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED +
-                "AND (?='' OR COALESCE(u.nickname,'') LIKE CONCAT('%',?,'%') " +
-                "OR EXISTS (SELECT 1 FROM user_jobs uj JOIN jobs j ON j.id=uj.job_id WHERE uj.user_id=u.id AND uj.verified=TRUE AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND j.name LIKE CONCAT('%',?,'%')) " +
-                "OR EXISTS (SELECT 1 FROM certifications c WHERE c.user_id=u.id AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL AND (c.title LIKE CONCAT('%',?,'%') OR COALESCE(c.description,'') LIKE CONCAT('%',?,'%')))) " +
+                "AND (?='' OR EXISTS (SELECT 1 FROM user_jobs uj JOIN jobs j ON j.id=uj.job_id WHERE uj.user_id=u.id AND uj.verified=TRUE AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND j.name LIKE CONCAT('%',?,'%'))) " +
                 "ORDER BY u.id DESC LIMIT ? OFFSET ?",
-            Long.class, currentUserId, normalizedKeyword, normalizedKeyword, normalizedKeyword, normalizedKeyword, normalizedKeyword,
+            Long.class, currentUserId, normalizedKeyword, normalizedKeyword,
             safeSize + 1, safePage * safeSize
         );
         boolean hasMore = ids.size() > safeSize;

@@ -172,9 +172,11 @@ function App() {
   });
   const [talent, setTalent] = useState(null);
   const [answerers, setAnswerers] = useState([]);
+  const [answererKeyword, setAnswererKeyword] = useState('');
   const [answererPage, setAnswererPage] = useState(0);
   const [answerersHaveMore, setAnswerersHaveMore] = useState(true);
   const loadingAnswerersRef = useRef(false);
+  const answererSearchRequestRef = useRef(0);
   const [certType, setCertType] = useState('');
   const [userProfile, setUserProfile] = useState({
     name: '',
@@ -484,6 +486,7 @@ function App() {
         api.answerers(0, 10), api.notifications(),
       ]);
       setAnswerers(answererResult.items.map(answererFromApi));
+      setAnswererKeyword('');
       setAnswererPage(0);
       setAnswerersHaveMore(answererResult.hasMore);
       setNotices(notificationItems.map(notificationFromApi));
@@ -541,12 +544,23 @@ function App() {
       setAcceptingInquiries(user.acceptingInquiries);
     }
   }, [screen]);
+  const searchAnswerers = useCallback(async (keyword) => {
+    const normalizedKeyword = keyword.trim();
+    const requestId = answererSearchRequestRef.current + 1;
+    answererSearchRequestRef.current = requestId;
+    const result = await api.answerers(0, 10, normalizedKeyword, { globalLoading: false });
+    if (requestId !== answererSearchRequestRef.current) return;
+    setAnswererKeyword(normalizedKeyword);
+    setAnswerers(result.items.map(answererFromApi));
+    setAnswererPage(0);
+    setAnswerersHaveMore(result.hasMore);
+  }, []);
   const loadMoreAnswerers = useCallback(async () => {
     if (!answerersHaveMore || loadingAnswerersRef.current) return;
     loadingAnswerersRef.current = true;
     const nextPage = answererPage + 1;
     try {
-      const result = await api.answerers(nextPage, 10);
+      const result = await api.answerers(nextPage, 10, answererKeyword, { globalLoading: false });
       setAnswerers((current) => {
         const known = new Set(current.map((item) => item.id));
         return [...current, ...result.items.filter((item) => !known.has(item.id)).map(answererFromApi)];
@@ -556,7 +570,7 @@ function App() {
     } finally {
       loadingAnswerersRef.current = false;
     }
-  }, [answererPage, answerersHaveMore]);
+  }, [answererKeyword, answererPage, answerersHaveMore]);
 
   useEffect(() => {
     if (!isAuthenticated) return undefined;
@@ -634,8 +648,10 @@ function App() {
     logout,
     deleteAccount,
     answerers,
+    answererKeyword,
     answerersHaveMore,
     loadMoreAnswerers,
+    searchAnswerers,
     customerServiceUnreadCount,
     customerServiceRealtimeMessage,
     clearCustomerServiceUnread,

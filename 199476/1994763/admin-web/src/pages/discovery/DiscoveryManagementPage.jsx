@@ -161,15 +161,17 @@ export default function DiscoveryManagementPage() {
         return success;
       },
     });
-  const toggleCategory = (item) => perform(
-    () => adminApi.updateDiscoveryCategory(item.id, {
-      mainCategory: item.mainCategory,
-      name: item.name,
-      sortOrder: item.sortOrder,
-      active: !item.active,
-    }),
-    item.active ? '分类已停用' : '分类已启用',
-  );
+  const toggleCategory = (item) =>
+    perform(
+      () =>
+        adminApi.updateDiscoveryCategory(item.id, {
+          mainCategory: item.mainCategory,
+          name: item.name,
+          sortOrder: item.sortOrder,
+          active: !item.active,
+        }),
+      item.active ? '分类已停用' : '分类已启用',
+    );
 
   const toggleJob = (jobId) =>
     setMatterDraft((current) => ({
@@ -231,16 +233,18 @@ export default function DiscoveryManagementPage() {
         return success;
       },
     });
-  const toggleMatter = (item) => perform(
-    () => adminApi.updateDiscoveryMatter(item.id, {
-      categoryId: item.categoryId,
-      title: item.title,
-      sortOrder: item.sortOrder,
-      active: !item.active,
-      jobs: jobsForMatter(item.id).map(({ jobId }) => ({ jobId })),
-    }),
-    item.active ? '事情已停用' : '事情已启用',
-  );
+  const toggleMatter = (item) =>
+    perform(
+      () =>
+        adminApi.updateDiscoveryMatter(item.id, {
+          categoryId: item.categoryId,
+          title: item.title,
+          sortOrder: item.sortOrder,
+          active: !item.active,
+          jobs: jobsForMatter(item.id).map(({ jobId }) => ({ jobId })),
+        }),
+      item.active ? '事情已停用' : '事情已启用',
+    );
   const confirmAction = async () => {
     if (!confirmation) return;
     setConfirming(true);

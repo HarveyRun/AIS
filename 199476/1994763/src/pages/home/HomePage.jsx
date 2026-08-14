@@ -1,11 +1,26 @@
-import { useEffect, useState } from 'react';
-import { Bell, ChevronRight, HeartHandshake, Search, Sparkles } from 'lucide-react';
-import CanvasLogo from '../../components/brand/CanvasLogo.jsx';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronRight, HeartHandshake, LoaderCircle, Mail, Search, Sparkles, X } from 'lucide-react';
+import UserAvatar from '../../components/profile/UserAvatar.jsx';
 import TalentCard from '../../components/talent/TalentCard.jsx';
 import './HomePage.css';
 
-export default function HomePage({ go, setTalent, unreadNoticeCount = 0, answerers = [], hasMore, loadMore }) {
+export default function HomePage({
+  go,
+  setTalent,
+  userProfile,
+  unreadNoticeCount = 0,
+  answerers = [],
+  answererKeyword = '',
+  hasMore,
+  loadMore,
+  searchAnswerers,
+  notify,
+}) {
   const [slide, setSlide] = useState(0);
+  const [keyword, setKeyword] = useState(answererKeyword);
+  const [searching, setSearching] = useState(false);
+  const searchReadyRef = useRef(false);
+  const searchRequestRef = useRef(0);
   const visiblePeople = answerers;
   const banners = [
     [
@@ -19,26 +34,67 @@ export default function HomePage({ go, setTalent, unreadNoticeCount = 0, answere
   useEffect(() => {
     const t = setInterval(() => setSlide((x) => (x + 1) % banners.length), 10000);
     const scroll = () => {
-      if (innerHeight + scrollY >= document.body.offsetHeight - 180) loadMore?.();
+      if (!searching && innerHeight + scrollY >= document.body.offsetHeight - 180) loadMore?.();
     };
     addEventListener('scroll', scroll);
     return () => {
       clearInterval(t);
       removeEventListener('scroll', scroll);
     };
-  }, [loadMore]);
+  }, [loadMore, searching]);
+
+  useEffect(() => {
+    if (!searchReadyRef.current) {
+      searchReadyRef.current = true;
+      return undefined;
+    }
+    const timer = window.setTimeout(async () => {
+      const requestId = searchRequestRef.current + 1;
+      searchRequestRef.current = requestId;
+      try {
+        setSearching(true);
+        await searchAnswerers(keyword);
+      } catch (error) {
+        if (requestId === searchRequestRef.current) {
+          notify?.(error.message, 'error');
+        }
+      } finally {
+        if (requestId === searchRequestRef.current) {
+          setSearching(false);
+        }
+      }
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [keyword, notify, searchAnswerers]);
+
   return (
     <>
       <header className="brand-top">
-        <div className="brand-logo">
-          <CanvasLogo size={39} />
+        <button className="home-profile-entry" type="button" onClick={() => go('profile')} aria-label="进入我的">
+          <UserAvatar
+            src={userProfile?.avatar}
+            uid={userProfile?.uid}
+            name={userProfile?.name}
+          />
+        </button>
+        <div className="home-job-search">
+          <Search />
+          <input
+            type="search"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            placeholder="搜索主职"
+            aria-label="搜索主职"
+          />
+          {searching && <LoaderCircle className="home-search-loading" />}
+          {!searching && keyword && (
+            <button type="button" onClick={() => setKeyword('')} aria-label="清除搜索">
+              <X />
+            </button>
+          )}
         </div>
-        <div className="brand-name">
-          <strong>事先问</strong>
-          <small>有事先问问过来人</small>
-        </div>
-        <button className="round" onClick={() => go('notices')}>
-          <Bell size={20} />
+        <button className="round" type="button" onClick={() => go('notices')} aria-label="消息">
+          <Mail size={20} />
           {unreadNoticeCount > 0 && (
             <i className="notice-count">
               {unreadNoticeCount > 99 ? '99+' : unreadNoticeCount}
@@ -101,10 +157,13 @@ export default function HomePage({ go, setTalent, unreadNoticeCount = 0, answere
               }}
             />
           ))}
+          {!searching && keyword && visiblePeople.length === 0 && (
+            <div className="home-search-empty">没有找到相关主职</div>
+          )}
         </div>
       </section>
       <div className="endline">
-        {hasMore ? '继续下滑，看看更多人' : '已经到底啦'}
+        {searching ? '正在查找' : hasMore ? '继续下滑，看看更多人' : '已经到底啦'}
       </div>
     </>
   );

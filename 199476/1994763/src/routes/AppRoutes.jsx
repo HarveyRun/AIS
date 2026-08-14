@@ -47,10 +47,14 @@ export default function AppRoutes(props) {
           <HomePage
             go={go}
             setTalent={props.setTalent}
+            userProfile={props.userProfile}
             unreadNoticeCount={props.unreadNoticeCount}
             answerers={props.answerers}
+            answererKeyword={props.answererKeyword}
             hasMore={props.answerersHaveMore}
             loadMore={props.loadMoreAnswerers}
+            searchAnswerers={props.searchAnswerers}
+            notify={notify}
           />,
         )}
       />
