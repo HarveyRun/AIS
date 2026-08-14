@@ -3,6 +3,12 @@ import Page from '../../components/layout/Page.jsx';
 import './SupportPages.css';
 import { api } from '../../api/http.js';
 
+const FEEDBACK_STATUS_LABELS = {
+  SUBMITTED: '待处理',
+  PROCESSING: '处理中',
+  RESOLVED: '已解决',
+};
+
 export default function FeedbackPage({ go, notify, conversations, records, setRecords }) {
   const [type, setType] = useState('feedback');
   const [target, setTarget] = useState('');
@@ -97,7 +103,7 @@ export default function FeedbackPage({ go, notify, conversations, records, setRe
                 <b>{record.category}</b>
                 <small>{record.target || record.content}</small>
               </div>
-              <span>{record.status}</span>
+              <span>{FEEDBACK_STATUS_LABELS[record.status] || record.status}</span>
             </article>
           ))}
         </section>

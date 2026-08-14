@@ -250,14 +250,14 @@ export default function JobsPage() {
 
       {editorOpen && (
         <>
-          <button className="modal-mask" type="button" aria-label="关闭" onClick={closeEditor} />
-          <section className="detail-modal job-editor-modal">
+          <div className="modal-mask" onClick={closeEditor} />
+          <section className="detail-modal job-editor-modal" role="dialog" aria-modal="true">
             <header>
               <div>
                 <h2>{editingId ? '编辑岗位' : '新增岗位'}</h2>
                 <p>维护岗位名称和介绍</p>
               </div>
-              <button type="button" onClick={closeEditor}>
+              <button type="button" aria-label="关闭" onClick={closeEditor}>
                 <X />
               </button>
             </header>
@@ -296,19 +296,17 @@ export default function JobsPage() {
 
       {peopleModal && (
         <>
-          <button
+          <div
             className="modal-mask"
-            type="button"
-            aria-label="关闭"
             onClick={closePeopleModal}
           />
-          <section className="detail-modal job-people-modal">
+          <section className="detail-modal job-people-modal" role="dialog" aria-modal="true">
             <header>
               <div>
                 <h2>{peopleModal.name} · 岗位人员</h2>
                 <p>共 {peopleModalTotal} 人</p>
               </div>
-              <button type="button" onClick={closePeopleModal}>
+              <button type="button" aria-label="关闭" onClick={closePeopleModal}>
                 <X />
               </button>
             </header>

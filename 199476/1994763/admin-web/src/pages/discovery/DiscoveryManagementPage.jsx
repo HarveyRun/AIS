@@ -555,19 +555,17 @@ export default function DiscoveryManagementPage() {
 
       {categoryEditorOpen && (
         <>
-          <button
+          <div
             className="modal-mask"
-            type="button"
-            aria-label="关闭"
             onClick={cancelCategoryEdit}
           />
-          <section className="detail-modal discovery-editor-modal">
+          <section className="detail-modal discovery-editor-modal" role="dialog" aria-modal="true">
             <header>
               <div>
                 <h2>{editingCategoryId ? '编辑分类' : '新增分类'}</h2>
                 <p>维护通用分类</p>
               </div>
-              <button type="button" onClick={cancelCategoryEdit}>
+              <button type="button" aria-label="关闭" onClick={cancelCategoryEdit}>
                 <X />
               </button>
             </header>
@@ -629,19 +627,17 @@ export default function DiscoveryManagementPage() {
 
       {matterEditorOpen && (
         <>
-          <button
+          <div
             className="modal-mask"
-            type="button"
-            aria-label="关闭"
             onClick={cancelMatterEdit}
           />
-          <section className="detail-modal discovery-editor-modal matter-editor-modal">
+          <section className="detail-modal discovery-editor-modal matter-editor-modal" role="dialog" aria-modal="true">
             <header>
               <div>
                 <h2>{editingMatterId ? '编辑事情' : '新增事情'}</h2>
                 <p>填写事情并配置对应岗位</p>
               </div>
-              <button type="button" onClick={cancelMatterEdit}>
+              <button type="button" aria-label="关闭" onClick={cancelMatterEdit}>
                 <X />
               </button>
             </header>

@@ -5,7 +5,9 @@ import {
   Headphones,
   LogOut,
   MessageSquareWarning,
+  Moon,
   Settings,
+  Sun,
   UserRoundPlus,
   WalletCards,
 } from 'lucide-react';
@@ -18,6 +20,8 @@ export default function MyProfilePage({
   logout,
   userProfile,
   customerServiceUnreadCount = 0,
+  isDarkTheme = false,
+  toggleTheme,
 }) {
   const hasJoined = certifications
     .filter((item) => item.required)
@@ -30,6 +34,15 @@ export default function MyProfilePage({
       <section className="profile-hero">
         <header>
           <h1>我的</h1>
+          <button
+            className="profile-theme-button"
+            type="button"
+            onClick={toggleTheme}
+            aria-label={isDarkTheme ? '切换为明亮主题' : '切换为黑暗主题'}
+            title={isDarkTheme ? '切换为明亮主题' : '切换为黑暗主题'}
+          >
+            {isDarkTheme ? <Sun /> : <Moon />}
+          </button>
         </header>
 
         <div className="profile-overview">

@@ -285,14 +285,14 @@ export default function RecordsPage({ type }) {
       />
       {selected && (
         <>
-          <button className="modal-mask" onClick={() => setSelected(null)} />
-          <section className="detail-modal">
+          <div className="modal-mask" onClick={() => setSelected(null)} />
+          <section className="detail-modal" role="dialog" aria-modal="true" aria-labelledby="record-detail-title">
             <header>
               <div>
-                <h2>{modalTitle(type, modalMode)}</h2>
+                <h2 id="record-detail-title">{modalTitle(type, modalMode)}</h2>
                 <p>编号 #{selected.id}</p>
               </div>
-              <button onClick={() => setSelected(null)}>
+              <button type="button" aria-label="关闭" onClick={() => setSelected(null)}>
                 <X />
               </button>
             </header>
@@ -303,9 +303,7 @@ export default function RecordsPage({ type }) {
                   <div key={k}>
                     <span>{labels[k] || k}</span>
                     <b>
-                      {k.toLowerCase().includes('time') || k.endsWith('At')
-                        ? date(v)
-                        : String(v ?? '—')}
+                      {formatDetailValue(k, v, type)}
                     </b>
                   </div>
                 ))}
@@ -622,7 +620,16 @@ function cells(type, r) {
   );
 }
 function modalTitle(type, mode) {
-  if (type !== 'certifications') return mode === 'process' ? `${meta[type][0]}处理` : `${meta[type][0]}详情`;
+  if (type !== 'certifications') {
+    if (mode === 'process') {
+      return {
+        withdrawals: '处理提现',
+        feedback: '处理投诉反馈',
+        cooperations: '处理商务合作',
+      }[type] || `处理${meta[type][0]}`;
+    }
+    return `${meta[type][0]}详情`;
+  }
   if (mode === 'review') return '审核认证';
   if (mode === 'edit') return '编辑认证';
   return '认证详情';
@@ -634,4 +641,39 @@ function certificationTitle(record) {
 }
 function certificationTypeName(type) {
   return { IDENTITY: '基础信息 · 身份', MAIN_JOB: '基础信息 · 岗位', EXPERIENCE: '亲身经历' }[type] || type;
+}
+
+const DETAIL_VALUE_LABELS = {
+  BASIC: '基础信息',
+  EXPERIENCE: '亲身经历',
+  IDENTITY: '实名认证',
+  MAIN_JOB: '岗位认证',
+  PRODUCT: '产品反馈',
+  COMPLAINT: '投诉',
+  PENDING: '待处理',
+  ACTIVE: '交流中',
+  AWAITING_CONFIRMATION: '待确认结束',
+  APPROVED: '已通过',
+  REJECTED: '已驳回',
+  CANCELLED: '已撤销',
+  EXPIRED: '已过期',
+  REFUNDED: '已退款',
+  PROCESSING: '处理中',
+  COMPLETED: '已完成',
+  FAILED: '失败',
+  SUBMITTED: '待处理',
+  RESOLVED: '已解决',
+  CLOSED: '已关闭',
+  FROZEN: '已冻结',
+  SETTLED: '已结算',
+  UNSETTLED: '未结算',
+};
+
+function formatDetailValue(key, value, recordType) {
+  if (value == null || value === '') return '—';
+  if (key.toLowerCase().includes('time') || key.endsWith('At')) return date(value);
+  if (key === 'enabled') return value ? '已启用' : '已停用';
+  if (typeof value === 'boolean') return value ? '是' : '否';
+  if (key === 'status' && recordType === 'certifications' && value === 'PENDING') return '待审核';
+  return DETAIL_VALUE_LABELS[String(value)] || String(value);
 }

@@ -19,6 +19,27 @@
   margin: 0;
   font-size: 25px;
 }
+.profile-theme-button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  padding: 0;
+  border-radius: 13px;
+  background: var(--surface-soft);
+  color: var(--primary-dark);
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+.profile-theme-button:active {
+  transform: scale(0.94);
+}
+.profile-theme-button svg {
+  width: 19px;
+  height: 19px;
+}
 .profile-hero .round {
   background: var(--surface-soft);
   color: var(--primary-dark);
@@ -1035,6 +1056,10 @@
   background: #edf6ef;
   color: #609274;
 }
+.ledger-list > article > i.frozen {
+  background: #f1f3f5;
+  color: #6f7782;
+}
 .ledger-list article div {
   display: flex;
   flex-direction: column;
@@ -1053,6 +1078,9 @@
 }
 .ledger-list article > strong.income {
   color: #5d956f;
+}
+.ledger-list article > strong.frozen {
+  color: #6f7782;
 }
 .withdraw-list article {
   min-height: 62px;

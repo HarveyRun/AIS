@@ -165,6 +165,8 @@ export default function AppRoutes(props) {
             logout={props.logout}
             userProfile={props.userProfile}
             customerServiceUnreadCount={props.customerServiceUnreadCount}
+            isDarkTheme={props.isDarkTheme}
+            toggleTheme={props.toggleTheme}
           />,
         )}
       />
@@ -286,13 +288,7 @@ export default function AppRoutes(props) {
       />
       <Route
         path={ROUTES.notices}
-        element={
-          <NoticesPage
-            go={go}
-            notices={props.notices}
-            setNotices={props.setNotices}
-          />
-        }
+        element={<NoticesPage go={go} notices={props.notices} setNotices={props.setNotices} />}
       />
       <Route
         path="*"

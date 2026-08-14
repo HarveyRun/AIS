@@ -52,8 +52,12 @@ public class AuthController {
     }
 
     public record LoginRequest(
-        @NotBlank @Pattern(regexp = "^1\\d{10}$", message = "请输入正确的手机号") String phone,
-        @NotBlank(message = "请输入验证码") String code
+        @NotBlank
+        @Pattern(regexp = "^1\\d{10}$", message = "请输入正确的手机号")
+        String phone,
+        @NotBlank(message = "请输入验证码")
+        @Pattern(regexp = "^\\d{4}$", message = "请输入4位验证码")
+        String code
     ) {
     }
 

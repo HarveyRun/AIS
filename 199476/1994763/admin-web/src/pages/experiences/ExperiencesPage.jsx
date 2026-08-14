@@ -229,9 +229,9 @@ export default function ExperiencesPage() {
 
       {editorOpen && (
         <>
-          <button className="modal-mask" type="button" aria-label="关闭" onClick={closeEditor} />
-          <section className="detail-modal discovery-editor-modal">
-            <header><div><h2>{editingId ? '编辑经历' : '新增经历'}</h2><p>维护平台统一经历库</p></div><button type="button" onClick={closeEditor}><X /></button></header>
+          <div className="modal-mask" onClick={closeEditor} />
+          <section className="detail-modal discovery-editor-modal" role="dialog" aria-modal="true">
+            <header><div><h2>{editingId ? '编辑经历' : '新增经历'}</h2><p>维护平台统一经历库</p></div><button type="button" aria-label="关闭" onClick={closeEditor}><X /></button></header>
             <form className="editor-form" onSubmit={submit}>
               <label><span>所属分类</span><select required value={draft.categoryId} onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}><option value="">请选择</option>{experienceCategories.map((item) => <option key={item.id} value={item.id}>{MAIN_NAMES[item.mainCategory]} / {item.name}</option>)}</select></label>
               <label><span>经历名称</span><input required maxLength="100" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="例如：经历过国外留学" /></label>
@@ -243,11 +243,11 @@ export default function ExperiencesPage() {
 
       {usersModal && (
         <>
-          <button className="modal-mask" type="button" aria-label="关闭" onClick={closeExperienceUsers} />
-          <section className="detail-modal experience-users-modal">
+          <div className="modal-mask" onClick={closeExperienceUsers} />
+          <section className="detail-modal experience-users-modal" role="dialog" aria-modal="true">
             <header>
               <div><h2>{usersModal.name} · 关联用户</h2><p>共 {usersModalTotal} 人</p></div>
-              <button type="button" onClick={closeExperienceUsers}><X /></button>
+              <button type="button" aria-label="关闭" onClick={closeExperienceUsers}><X /></button>
             </header>
             <div className="experience-users-modal-body">
               <table>

@@ -42,11 +42,11 @@ export default function AuditPage() {
             {data.items.map((x) => (
               <tr key={x.id}>
                 <td>{x.adminName}</td>
-                <td>{x.action}</td>
+                <td>{auditActionLabel(x.action)}</td>
                 <td>
-                  {x.targetType} #{x.targetId}
+                  {auditTargetLabel(x.targetType)} #{x.targetId}
                 </td>
-                <td>{x.detail}</td>
+                <td>{auditDetailLabel(x.action, x.detail)}</td>
                 <td>{x.ipAddress}</td>
                 <td>{date(x.createdAt)}</td>
               </tr>
@@ -66,4 +66,73 @@ export default function AuditPage() {
       />
     </>
   );
+}
+
+const ACTION_LABELS = {
+  REVIEW_CERTIFICATION: '审核认证',
+  CHANGE_CERTIFICATION_ENABLED: '变更认证状态',
+  DELETE_CERTIFICATION: '删除认证',
+  EDIT_CERTIFICATION: '编辑认证',
+  CHANGE_USER_STATUS: '变更用户状态',
+  CREATE_JOB: '新增岗位',
+  UPDATE_JOB: '编辑岗位',
+  DELETE_JOB: '删除岗位',
+  PROCESS_WITHDRAWAL: '处理提现',
+  UPDATE_FEEDBACK: '处理投诉反馈',
+  UPDATE_COOPERATIONS: '处理商务合作',
+  REPLY_CUSTOMER_SERVICE: '回复在线客服',
+  CREATE_DISCOVERY_CATEGORY: '新增分类',
+  UPDATE_DISCOVERY_CATEGORY: '编辑分类',
+  DELETE_DISCOVERY_CATEGORY: '删除分类',
+  CREATE_DISCOVERY_MATTER: '新增事情',
+  UPDATE_DISCOVERY_MATTER: '编辑事情',
+  DELETE_DISCOVERY_MATTER: '删除事情',
+  CREATE_DISCOVERY_EXPERIENCE: '新增经历',
+  UPDATE_DISCOVERY_EXPERIENCE: '编辑经历',
+  DELETE_DISCOVERY_EXPERIENCE: '删除经历',
+  CLASSIFY_EXPERIENCE: '调整经历关联',
+};
+
+const TARGET_LABELS = {
+  CERTIFICATION: '认证',
+  USER: '用户',
+  JOB: '岗位',
+  WITHDRAWAL: '提现',
+  FEEDBACK: '投诉反馈',
+  COOPERATIONS: '商务合作',
+  DISCOVERY_CATEGORY: '分类',
+  DISCOVERY_MATTER: '事情',
+  DISCOVERY_EXPERIENCE: '经历',
+};
+
+const DETAIL_LABELS = {
+  true: '通过',
+  false: '驳回',
+  ACTIVE: '正常',
+  DISABLED: '停用',
+  PROCESSING: '处理中',
+  COMPLETED: '已完成',
+  FAILED: '失败',
+  SUBMITTED: '待处理',
+  RESOLVED: '已解决',
+  CLOSED: '已关闭',
+  SOFT_DELETE: '逻辑删除',
+  BASIC: '基础信息',
+  EXPERIENCE: '亲身经历',
+  IDENTITY: '实名认证',
+  MAIN_JOB: '岗位认证',
+};
+
+function auditActionLabel(value) {
+  return ACTION_LABELS[value] || value;
+}
+
+function auditTargetLabel(value) {
+  return TARGET_LABELS[value] || value;
+}
+
+function auditDetailLabel(action, value) {
+  if (value == null || value === '') return '—';
+  if (action === 'CHANGE_CERTIFICATION_ENABLED') return String(value) === 'true' ? '启用' : '停用';
+  return DETAIL_LABELS[String(value)] || value;
 }

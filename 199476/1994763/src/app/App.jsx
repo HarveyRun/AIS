@@ -5,8 +5,10 @@ import Toast from '../components/feedback/Toast.jsx';
 import useAppNavigation from '../hooks/useAppNavigation.js';
 import useToast from '../hooks/useToast.js';
 import useRealtimeConnection from '../hooks/useRealtimeConnection.js';
+import useTheme from '../hooks/useTheme.js';
 import AppRoutes from '../routes/AppRoutes.jsx';
 import { api, getAccessToken, setAccessToken } from '../api/http.js';
+import { walletTransactionFromApi, withdrawalFromApi } from '../utils/walletView.js';
 import '../styles/index.css';
 
 const FIXED_BASIC_CERTIFICATIONS = [
@@ -52,17 +54,23 @@ function certificationFromApi(item) {
   return {
     id: item.type === 'IDENTITY' ? 'identity' : item.type === 'MAIN_JOB' ? 'main-job' : item.id,
     serverId: item.id,
-    type: item.type === 'IDENTITY' ? '实名认证' : item.type === 'MAIN_JOB' ? '岗位认证' : '其它经历认证',
-    title: item.type === 'IDENTITY'
-      ? '身份信息'
-      : item.type === 'MAIN_JOB' && item.status !== 'APPROVED'
-        ? '我的岗位'
-        : item.title,
+    type:
+      item.type === 'IDENTITY'
+        ? '实名认证'
+        : item.type === 'MAIN_JOB'
+          ? '岗位认证'
+          : '其它经历认证',
+    title:
+      item.type === 'IDENTITY'
+        ? '身份信息'
+        : item.type === 'MAIN_JOB' && item.status !== 'APPROVED'
+          ? '我的岗位'
+          : item.title,
     name: item.title,
     description: item.description || '',
     detail: item.description || '',
     required: item.required,
-    status: item.enabled === false ? '已停用' : (CERTIFICATION_STATUS[item.status] || item.status),
+    status: item.enabled === false ? '已停用' : CERTIFICATION_STATUS[item.status] || item.status,
     enabled: item.enabled !== false,
     feedback: item.rejectionReason || '',
     materials: (item.materials || []).map((material) => ({
@@ -90,12 +98,14 @@ function inquiryFromApi(item) {
     confirmationDeadline: item.confirmationDeadline,
     unread: Number(item.unreadCount || 0),
     lastMessageAt: latestTime,
-    time: latestTime ? new Date(latestTime).toLocaleString('zh-CN', {
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }) : '尚未聊天',
+    time: latestTime
+      ? new Date(latestTime).toLocaleString('zh-CN', {
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '尚未聊天',
     partner: { id: item.otherUserId, name: item.otherName, avatar: item.otherAvatar },
     messages: [],
   };
@@ -149,12 +159,14 @@ function answererFromApi(item) {
 Object.keys(localStorage)
   .filter(
     (key) =>
-      (key.startsWith('shixianwen-') && key !== 'shixianwen-access-token') ||
+      (key.startsWith('shixianwen-') &&
+        !['shixianwen-access-token', 'shixianwen-theme'].includes(key)) ||
       key.startsWith('guangyi-'),
   )
   .forEach((key) => localStorage.removeItem(key));
 
 function App() {
+  const { theme, isDarkTheme, toggleTheme } = useTheme();
   const { tab, screen, go } = useAppNavigation('login', 'home');
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getAccessToken()));
   const [category, setCategory] = useState('生活');
@@ -218,134 +230,142 @@ function App() {
     setCustomerServiceUnreadCount(Number(customerServiceUnread || 0));
   }, []);
 
-  const handleRealtimeEvent = useCallback(async (event) => {
-    const payload = event?.payload || {};
-    try {
-      if (event.type === 'CONNECTED') {
-        await synchronizeMessaging();
-        return;
-      }
-
-      if (event.type === 'NOTIFICATION_CREATED') {
-        const inquiryMatch = String(payload.targetPath || '').match(/^\/inquiries\/(\d+)$/);
-        const notice = {
-          id: payload.id,
-          title: payload.title,
-          content: payload.content,
-          time: '刚刚',
-          screen: inquiryMatch ? 'inquiries' : payload.targetPath || 'inquiries',
-          inquiryId: inquiryMatch ? Number(inquiryMatch[1]) : null,
-          read: false,
-        };
-        setNotices((current) => [
-          notice,
-          ...current.filter((item) => item.id !== notice.id),
-        ]);
-        return;
-      }
-
-      if (event.type === 'NOTIFICATION_READ') {
-        setNotices((current) => current.map((item) => (
-          item.id === payload.id ? { ...item, read: true } : item
-        )));
-        return;
-      }
-
-      if (event.type === 'NOTIFICATIONS_READ_ALL') {
-        setNotices((current) => current.map((item) => ({ ...item, read: true })));
-        return;
-      }
-
-      if (event.type === 'INQUIRY_READ') {
-        setConversations((current) => current.map((item) => (
-          item.id === payload.inquiryId ? { ...item, unread: 0 } : item
-        )));
-        return;
-      }
-
-      if (event.type === 'INQUIRY_UPDATED') {
-        const inquiryItems = await api.inquiries({ silent: true });
-        setConversations((current) => mergeInquiryItems(current, inquiryItems));
-        const selectedItem = inquiryItems.find((item) => item.id === selectedConversation?.id);
-        if (selectedItem) {
-          const nextSelected = inquiryFromApi(selectedItem);
-          setSelectedConversation((current) => ({
-            ...current,
-            ...nextSelected,
-            messages: current?.messages || [],
-            partner: { ...current?.partner, ...nextSelected.partner },
-          }));
+  const handleRealtimeEvent = useCallback(
+    async (event) => {
+      const payload = event?.payload || {};
+      try {
+        if (event.type === 'CONNECTED') {
+          await synchronizeMessaging();
+          return;
         }
-        return;
-      }
 
-      if (event.type === 'CUSTOMER_SERVICE_MESSAGE') {
-        setCustomerServiceRealtimeMessage(payload);
-        if (screen === 'customerService') {
-          setCustomerServiceUnreadCount(0);
-          await api.readCustomerServiceMessages();
-        } else {
-          setCustomerServiceUnreadCount((current) => current + 1);
-        }
-        return;
-      }
-
-      if (event.type === 'INQUIRY_MESSAGE') {
-        const incomingMessage = {
-          id: payload.message.id,
-          name: payload.message.senderName,
-          text: payload.message.content,
-          avatar: payload.message.senderAvatar,
-          me: false,
-          createdAt: payload.message.createdAt,
-          time: payload.message.createdAt
-            ? new Date(payload.message.createdAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })
-            : '刚刚',
-          attachment: payload.message.attachmentUrl ? {
-            url: payload.message.attachmentUrl,
-            name: payload.message.attachmentName || '照片',
-            type: payload.message.type === 'IMAGE' ? 'image/*' : '',
-          } : null,
-        };
-        const isOpenConversation = screen === 'directChat'
-          && selectedConversation?.id === payload.inquiryId;
-
-        setConversations((current) => current.map((item) => {
-          if (item.id !== payload.inquiryId) return item;
-          const messageExists = (item.messages || []).some((entry) => entry.id === incomingMessage.id);
-          return {
-            ...item,
+        if (event.type === 'NOTIFICATION_CREATED') {
+          const inquiryMatch = String(payload.targetPath || '').match(/^\/inquiries\/(\d+)$/);
+          const notice = {
+            id: payload.id,
+            title: payload.title,
+            content: payload.content,
             time: '刚刚',
-            lastMessageAt: payload.message.createdAt,
-            unread: isOpenConversation ? 0 : Number(payload.unreadCount || 0),
-            messages: messageExists
-              ? item.messages
-              : [...(item.messages || []), incomingMessage],
+            screen: inquiryMatch ? 'inquiries' : payload.targetPath || 'inquiries',
+            inquiryId: inquiryMatch ? Number(inquiryMatch[1]) : null,
+            read: false,
           };
-        }));
-        setSelectedConversation((current) => {
-          if (current?.id !== payload.inquiryId) return current;
-          const messageExists = (current.messages || []).some((entry) => entry.id === incomingMessage.id);
-          return {
-            ...current,
-            unread: isOpenConversation ? 0 : Number(payload.unreadCount || 0),
-            messages: messageExists
-              ? current.messages
-              : [...(current.messages || []), incomingMessage],
-          };
-        });
-
-        if (isOpenConversation) {
-          await api.markInquiryRead(payload.inquiryId);
+          setNotices((current) => [notice, ...current.filter((item) => item.id !== notice.id)]);
+          return;
         }
+
+        if (event.type === 'NOTIFICATION_READ') {
+          setNotices((current) =>
+            current.map((item) => (item.id === payload.id ? { ...item, read: true } : item)),
+          );
+          return;
+        }
+
+        if (event.type === 'NOTIFICATIONS_READ_ALL') {
+          setNotices((current) => current.map((item) => ({ ...item, read: true })));
+          return;
+        }
+
+        if (event.type === 'INQUIRY_READ') {
+          setConversations((current) =>
+            current.map((item) => (item.id === payload.inquiryId ? { ...item, unread: 0 } : item)),
+          );
+          return;
+        }
+
+        if (event.type === 'INQUIRY_UPDATED') {
+          const inquiryItems = await api.inquiries({ silent: true });
+          setConversations((current) => mergeInquiryItems(current, inquiryItems));
+          const selectedItem = inquiryItems.find((item) => item.id === selectedConversation?.id);
+          if (selectedItem) {
+            const nextSelected = inquiryFromApi(selectedItem);
+            setSelectedConversation((current) => ({
+              ...current,
+              ...nextSelected,
+              messages: current?.messages || [],
+              partner: { ...current?.partner, ...nextSelected.partner },
+            }));
+          }
+          return;
+        }
+
+        if (event.type === 'CUSTOMER_SERVICE_MESSAGE') {
+          setCustomerServiceRealtimeMessage(payload);
+          if (screen === 'customerService') {
+            setCustomerServiceUnreadCount(0);
+            await api.readCustomerServiceMessages();
+          } else {
+            setCustomerServiceUnreadCount((current) => current + 1);
+          }
+          return;
+        }
+
+        if (event.type === 'INQUIRY_MESSAGE') {
+          const incomingMessage = {
+            id: payload.message.id,
+            name: payload.message.senderName,
+            text: payload.message.content,
+            avatar: payload.message.senderAvatar,
+            me: false,
+            createdAt: payload.message.createdAt,
+            time: payload.message.createdAt
+              ? new Date(payload.message.createdAt).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : '刚刚',
+            attachment: payload.message.attachmentUrl
+              ? {
+                  url: payload.message.attachmentUrl,
+                  name: payload.message.attachmentName || '照片',
+                  type: payload.message.type === 'IMAGE' ? 'image/*' : '',
+                }
+              : null,
+          };
+          const isOpenConversation =
+            screen === 'directChat' && selectedConversation?.id === payload.inquiryId;
+
+          setConversations((current) =>
+            current.map((item) => {
+              if (item.id !== payload.inquiryId) return item;
+              const messageExists = (item.messages || []).some(
+                (entry) => entry.id === incomingMessage.id,
+              );
+              return {
+                ...item,
+                time: '刚刚',
+                lastMessageAt: payload.message.createdAt,
+                unread: isOpenConversation ? 0 : Number(payload.unreadCount || 0),
+                messages: messageExists
+                  ? item.messages
+                  : [...(item.messages || []), incomingMessage],
+              };
+            }),
+          );
+          setSelectedConversation((current) => {
+            if (current?.id !== payload.inquiryId) return current;
+            const messageExists = (current.messages || []).some(
+              (entry) => entry.id === incomingMessage.id,
+            );
+            return {
+              ...current,
+              unread: isOpenConversation ? 0 : Number(payload.unreadCount || 0),
+              messages: messageExists
+                ? current.messages
+                : [...(current.messages || []), incomingMessage],
+            };
+          });
+
+          if (isOpenConversation) {
+            await api.markInquiryRead(payload.inquiryId);
+          }
+        }
+      } catch {
+        // 实时连接中的同步属于后台维护，不打断用户当前操作。
       }
-    } catch {
-      // 实时连接中的同步属于后台维护，不打断用户当前操作。
-    }
-  }, [screen, selectedConversation?.id, synchronizeMessaging]);
+    },
+    [screen, selectedConversation?.id, synchronizeMessaging],
+  );
 
   useRealtimeConnection(isAuthenticated, handleRealtimeEvent);
 
@@ -427,38 +447,49 @@ function App() {
     go('login');
   };
 
-  const refreshDiscoveryCatalog = useCallback(async (mainCategory, content) => {
-    if (!mainCategory || !content) return null;
-    try {
-      setDiscoveryCatalog((current) => ({
-        categories: current.categories.map((item) =>
-          item.code === mainCategory ? { ...item, subcategories: [] } : item,
-        ),
-      }));
-      const loadedCategory = content === 'MATTERS'
-        ? await api.matterCategories(mainCategory)
-        : await api.experienceCategories(mainCategory);
-      if (loadedCategory) {
+  const refreshDiscoveryCatalog = useCallback(
+    async (mainCategory, content) => {
+      if (!mainCategory || !content) return null;
+      try {
         setDiscoveryCatalog((current) => ({
           categories: current.categories.map((item) =>
-            item.code === loadedCategory.code ? loadedCategory : item,
+            item.code === mainCategory ? { ...item, subcategories: [] } : item,
           ),
         }));
+        const loadedCategory =
+          content === 'MATTERS'
+            ? await api.matterCategories(mainCategory)
+            : await api.experienceCategories(mainCategory);
+        if (loadedCategory) {
+          setDiscoveryCatalog((current) => ({
+            categories: current.categories.map((item) =>
+              item.code === loadedCategory.code ? loadedCategory : item,
+            ),
+          }));
+        }
+        return loadedCategory;
+      } catch (error) {
+        notify(error.message, 'error');
+        return null;
       }
-      return loadedCategory;
-    } catch (error) {
-      notify(error.message, 'error');
-      return null;
-    }
-  }, [notify]);
+    },
+    [notify],
+  );
 
   useEffect(() => {
     if (!isAuthenticated) return undefined;
     let active = true;
-    api.me()
+    api
+      .me()
       .then((user) => {
         if (!active) return;
-        setUserProfile({ id: user.id, name: user.nickname || '', uid: user.uid, phone: user.phone, avatar: user.avatarUrl || '' });
+        setUserProfile({
+          id: user.id,
+          name: user.nickname || '',
+          uid: user.uid,
+          phone: user.phone,
+          avatar: user.avatarUrl || '',
+        });
         setAcceptingInquiries(user.acceptingInquiries);
       })
       .catch((error) => {
@@ -468,7 +499,9 @@ function App() {
           go('login');
         } else notify(error.message, 'error');
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [isAuthenticated]);
   const refreshWallet = useCallback(async () => {
     const wallet = await api.wallet();
@@ -483,7 +516,8 @@ function App() {
     if (!getAccessToken()) return;
     if (screen === 'home') {
       const [answererResult, notificationItems] = await Promise.all([
-        api.answerers(0, 10), api.notifications(),
+        api.answerers(0, 10),
+        api.notifications(),
       ]);
       setAnswerers(answererResult.items.map(answererFromApi));
       setAnswererKeyword('');
@@ -492,20 +526,36 @@ function App() {
       setNotices(notificationItems.map(notificationFromApi));
       return;
     }
-    if (['certs', 'certWork', 'certExperience', 'certBasicApply', 'certExperienceApply'].includes(screen)) {
+    if (
+      ['certs', 'certWork', 'certExperience', 'certBasicApply', 'certExperienceApply'].includes(
+        screen,
+      )
+    ) {
       const items = await api.certifications();
       setCertifications(restoreFixedBasicCertifications(items.map(certificationFromApi)));
       return;
     }
     if (screen === 'wallet') {
       const [wallet, transactions, withdrawalItems, bankCard] = await Promise.all([
-        api.wallet(), api.walletTransactions(), api.withdrawals(), api.bankCard(),
+        api.wallet(),
+        api.walletTransactions(),
+        api.withdrawals(),
+        api.bankCard(),
       ]);
       setBalance(Number(wallet.availableBalance));
       setFrozenAmount(Number(wallet.frozenBalance));
-      setAccountStats({ totalWithdrawn: Number(wallet.totalWithdrawn), bankCard: bankCard ? { holderName: bankCard.holderName, bankName: bankCard.bankName, cardNumber: bankCard.lastFour } : null });
-      setLedger(transactions.map((item) => [item.direction === 'IN' ? '收入' : '支出', item.description, `${item.direction === 'IN' ? '+' : '-'}¥${item.amount}`, new Date(item.createdAt).toLocaleString()]));
-      setWithdrawals(withdrawalItems.map((item) => [`¥${item.amount}`, item.status === 'COMPLETED' ? '已到账' : '处理中', new Date(item.createdAt).toLocaleString()]));
+      setAccountStats({
+        totalWithdrawn: Number(wallet.totalWithdrawn),
+        bankCard: bankCard
+          ? {
+              holderName: bankCard.holderName,
+              bankName: bankCard.bankName,
+              cardNumber: bankCard.lastFour,
+            }
+          : null,
+      });
+      setLedger(transactions.map(walletTransactionFromApi));
+      setWithdrawals(withdrawalItems.map(withdrawalFromApi));
       return;
     }
     if (screen === 'inquiries') {
@@ -520,8 +570,20 @@ function App() {
       return;
     }
     if (screen === 'feedback') {
-      const [feedbackItems, inquiryItems] = await Promise.all([api.feedbackRecords(), api.inquiries()]);
-      setFeedbackRecords(feedbackItems.map((item) => ({ id: item.id, type: item.type, category: item.category, content: item.content, status: item.status, time: new Date(item.createdAt).toLocaleString() })));
+      const [feedbackItems, inquiryItems] = await Promise.all([
+        api.feedbackRecords(),
+        api.inquiries(),
+      ]);
+      setFeedbackRecords(
+        feedbackItems.map((item) => ({
+          id: item.id,
+          type: item.type,
+          category: item.category,
+          content: item.content,
+          status: item.status,
+          time: new Date(item.createdAt).toLocaleString(),
+        })),
+      );
       setConversations(inquiryItems.map(inquiryFromApi));
       return;
     }
@@ -530,8 +592,18 @@ function App() {
       return;
     }
     if (screen === 'accountSettings') {
-      const [user, wallet, inquiryItems] = await Promise.all([api.me(), api.wallet(), api.inquiries()]);
-      setUserProfile({ id: user.id, name: user.nickname || '', uid: user.uid, phone: user.phone, avatar: user.avatarUrl || '' });
+      const [user, wallet, inquiryItems] = await Promise.all([
+        api.me(),
+        api.wallet(),
+        api.inquiries(),
+      ]);
+      setUserProfile({
+        id: user.id,
+        name: user.nickname || '',
+        uid: user.uid,
+        phone: user.phone,
+        avatar: user.avatarUrl || '',
+      });
       setAcceptingInquiries(user.acceptingInquiries);
       setBalance(Number(wallet.availableBalance));
       setFrozenAmount(Number(wallet.frozenBalance));
@@ -540,7 +612,13 @@ function App() {
     }
     if (screen === 'profile') {
       const user = await api.me();
-      setUserProfile({ id: user.id, name: user.nickname || '', uid: user.uid, phone: user.phone, avatar: user.avatarUrl || '' });
+      setUserProfile({
+        id: user.id,
+        name: user.nickname || '',
+        uid: user.uid,
+        phone: user.phone,
+        avatar: user.avatarUrl || '',
+      });
       setAcceptingInquiries(user.acceptingInquiries);
     }
   }, [screen]);
@@ -563,7 +641,10 @@ function App() {
       const result = await api.answerers(nextPage, 10, answererKeyword, { globalLoading: false });
       setAnswerers((current) => {
         const known = new Set(current.map((item) => item.id));
-        return [...current, ...result.items.filter((item) => !known.has(item.id)).map(answererFromApi)];
+        return [
+          ...current,
+          ...result.items.filter((item) => !known.has(item.id)).map(answererFromApi),
+        ];
       });
       setAnswererPage(nextPage);
       setAnswerersHaveMore(result.hasMore);
@@ -578,9 +659,10 @@ function App() {
     return undefined;
   }, [isAuthenticated, notify, refreshCurrentScreen, screen]);
   const changeAcceptingInquiries = async (valueOrUpdater) => {
-    const next = typeof valueOrUpdater === 'function'
-      ? valueOrUpdater(acceptingInquiries)
-      : Boolean(valueOrUpdater);
+    const next =
+      typeof valueOrUpdater === 'function'
+        ? valueOrUpdater(acceptingInquiries)
+        : Boolean(valueOrUpdater);
     try {
       const user = await api.setAcceptingInquiries(next);
       setAcceptingInquiries(user.acceptingInquiries);
@@ -590,14 +672,14 @@ function App() {
   };
   const unreadNoticeCount = notices.filter((notice) => !notice.read).length;
   useEffect(() => {
-    if (!isAuthenticated && !['login', 'terms', 'privacy'].includes(screen))
-      go('login');
+    if (!isAuthenticated && !['login', 'terms', 'privacy'].includes(screen)) go('login');
   }, [go, isAuthenticated, screen]);
   const nav = (id) => {
     go(id);
   };
-  const showNav = isAuthenticated
-    && !['login', 'terms', 'privacy', 'directChat', 'customerService'].includes(screen);
+  const showNav =
+    isAuthenticated &&
+    !['login', 'terms', 'privacy', 'directChat', 'customerService'].includes(screen);
   const routeProps = {
     go,
     notify,
@@ -655,10 +737,13 @@ function App() {
     customerServiceUnreadCount,
     customerServiceRealtimeMessage,
     clearCustomerServiceUnread,
+    theme,
+    isDarkTheme,
+    toggleTheme,
   };
 
   return (
-    <div className={`app ${showNav ? 'has-bottom-nav' : ''}`}>
+    <div className={`app ${showNav ? 'has-bottom-nav' : ''}`} data-theme={theme}>
       <main>
         <AppRoutes {...routeProps} />
       </main>

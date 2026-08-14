@@ -16,5 +16,9 @@ public class AdminAuthController {
     @GetMapping("/me") public ApiResponse<AdminAuthService.AdminView> me(@CurrentAdmin AdminUser u){ return ApiResponse.ok(AdminAuthService.AdminView.of(u)); }
     @PostMapping("/realtime-ticket") public ApiResponse<RealtimeTicketService.TicketView> realtimeTicket(@CurrentAdmin AdminUser u){ return ApiResponse.ok(realtimeTickets.issueAdmin(u.getId())); }
     @PostMapping("/logout") public ApiResponse<Void> logout(@RequestHeader("Authorization") String h){ service.logout(h.replaceFirst("^Bearer\\s+","")); return ApiResponse.ok(); }
-    public record Credentials(@NotBlank @Pattern(regexp="^1\\d{10}$",message="请输入正确的手机号") String phone,@NotBlank @Size(min=10) String password,@Size(max=60) String displayName){}
+    public record Credentials(
+        @NotBlank @Pattern(regexp="^1\\d{10}$", message="请输入正确的手机号") String phone,
+        @NotBlank @Size(min=10, message="密码至少10位") String password,
+        @Size(max=60, message="显示名称最多60个字") String displayName
+    ) {}
 }

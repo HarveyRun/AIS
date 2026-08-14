@@ -36,7 +36,7 @@ app:
     root: ${STORAGE_ROOT:./uploads}
   auth:
     token-valid-days: 30
-    demo-verification-code: ${DEMO_VERIFICATION_CODE:123456}
+    demo-verification-code: ${DEMO_VERIFICATION_CODE:1234}
   network:
     trusted-proxies: ${TRUSTED_PROXIES:127.0.0.1,0:0:0:0:0:0:0:1,::1}
   ip-location:

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Camera, Trash2, X } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import UserAvatar from '../../components/profile/UserAvatar.jsx';
@@ -17,6 +17,12 @@ export default function AccountSettingsPage({
   const [avatarFile, setAvatarFile] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
+
+  useEffect(() => {
+    setName(userProfile.name?.trim() || '');
+    setAvatar(userProfile.avatar || '');
+    setAvatarFile(null);
+  }, [userProfile.name, userProfile.avatar]);
 
   const selectAvatar = (file) => {
     if (!file) return;

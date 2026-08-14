@@ -2,9 +2,17 @@ import { beginRequest, endRequest } from './requestActivity.js';
 
 const TOKEN_KEY = 'shixianwen-admin-token';
 const inFlightRequests = new Map();
+let unauthorizedEventSent = false;
 export const token = {
   get: () => localStorage.getItem(TOKEN_KEY) || '',
-  set: (v) => (v ? localStorage.setItem(TOKEN_KEY, v) : localStorage.removeItem(TOKEN_KEY)),
+  set: (value) => {
+    if (value) {
+      localStorage.setItem(TOKEN_KEY, value);
+      unauthorizedEventSent = false;
+      return;
+    }
+    localStorage.removeItem(TOKEN_KEY);
+  },
 };
 function requestKey(path, options, accessToken) {
   const method = String(options.method || 'GET').toUpperCase();
@@ -30,7 +38,10 @@ export function request(path, options = {}) {
       if (!response.ok || payload?.success === false) {
         if (response.status === 401) {
           token.set('');
-          window.dispatchEvent(new Event('shixianwen-admin-unauthorized'));
+          if (!unauthorizedEventSent) {
+            unauthorizedEventSent = true;
+            window.dispatchEvent(new Event('shixianwen-admin-unauthorized'));
+          }
         }
         throw new Error(payload?.message || '请求失败');
       }

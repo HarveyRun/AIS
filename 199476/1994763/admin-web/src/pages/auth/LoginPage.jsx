@@ -16,6 +16,14 @@ export default function LoginPage({ onAuthenticated }) {
   }, []);
   const submit = async (e) => {
     e.preventDefault();
+    if (!/^1\d{10}$/.test(form.phone)) {
+      message.warning('请输入正确的手机号');
+      return;
+    }
+    if (form.password.length < 10) {
+      message.warning('密码至少10位');
+      return;
+    }
     setLoading(true);
     try {
       const result = setup ? await adminApi.setup(form) : await adminApi.login(form);

@@ -3,6 +3,7 @@ import { ChevronRight, Landmark, X } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import './ProfilePages.css';
 import { api } from '../../api/http.js';
+import { walletTransactionFromApi, withdrawalFromApi } from '../../utils/walletView.js';
 
 export default function WalletPage({
   go,
@@ -48,12 +49,7 @@ export default function WalletPage({
         ...current,
         totalWithdrawn: Number(wallet.totalWithdrawn),
       }));
-      setRecords(transactionItems.map((item) => [
-        item.direction === 'IN' ? '收入' : '支出',
-        item.description,
-        `${item.direction === 'IN' ? '+' : '-'}¥${item.amount}`,
-        new Date(item.createdAt).toLocaleString(),
-      ]));
+      setRecords(transactionItems.map(walletTransactionFromApi));
       notify(
         order.status === 'PAID' ? '充值成功' : '支付结果确认中',
         order.status === 'PAID' ? 'success' : 'default',
@@ -68,6 +64,16 @@ export default function WalletPage({
     try {
       const capability = await api.rechargeCapability();
       if (!capability.available) notify(capability.message, 'warning');
+    } catch (requestError) {
+      notify(requestError.message, 'error');
+    }
+  };
+
+  const openWithdrawalHistory = async () => {
+    setMode('history');
+    try {
+      const withdrawalItems = await api.withdrawals();
+      setWithdrawals(withdrawalItems.map(withdrawalFromApi));
     } catch (requestError) {
       notify(requestError.message, 'error');
     }
@@ -154,17 +160,8 @@ export default function WalletPage({
           ...current,
           totalWithdrawn: Number(wallet.totalWithdrawn),
         }));
-        setRecords(transactionItems.map((item) => [
-          item.direction === 'IN' ? '收入' : '支出',
-          item.description,
-          `${item.direction === 'IN' ? '+' : '-'}¥${item.amount}`,
-          new Date(item.createdAt).toLocaleString(),
-        ]));
-        setWithdrawals(withdrawalItems.map((item) => [
-          `¥${item.amount}`,
-          item.status === 'COMPLETED' ? '已到账' : '处理中',
-          new Date(item.createdAt).toLocaleString(),
-        ]));
+        setRecords(transactionItems.map(walletTransactionFromApi));
+        setWithdrawals(withdrawalItems.map(withdrawalFromApi));
         notify(
           commission > 0 ? `提现已提交，手续费 ¥${commission.toFixed(2)}` : '提现申请已经提交',
           'success',
@@ -199,7 +196,7 @@ export default function WalletPage({
         <button className={mode === 'ledger' ? 'active' : ''} onClick={() => setMode('ledger')}>
           收支明细
         </button>
-        <button className={mode === 'history' ? 'active' : ''} onClick={() => setMode('history')}>
+        <button className={mode === 'history' ? 'active' : ''} onClick={openWithdrawalHistory}>
           提现记录
         </button>
         <button className={mode === 'recharge' ? 'active' : ''} onClick={openRecharge}>
@@ -213,14 +210,14 @@ export default function WalletPage({
         <section className="ledger-list">
           {records.map((r, i) => (
             <article key={i}>
-              <i className={r[0] === '收入' ? 'income' : 'expense'}>
-                {r[0] === '收入' ? '收' : '支'}
+              <i className={r[0] === '收入' ? 'income' : r[0] === '冻结' || r[0] === '解冻' ? 'frozen' : 'expense'}>
+                {r[0] === '收入' ? '收' : r[0] === '冻结' ? '冻' : r[0] === '解冻' ? '解' : '支'}
               </i>
               <div>
                 <b>{r[1]}</b>
                 <small>{r[3]}</small>
               </div>
-              <strong className={r[0] === '收入' ? 'income' : ''}>{r[2]}</strong>
+              <strong className={r[0] === '收入' ? 'income' : r[0] === '冻结' || r[0] === '解冻' ? 'frozen' : ''}>{r[2]}</strong>
             </article>
           ))}
         </section>
@@ -230,7 +227,7 @@ export default function WalletPage({
           {withdrawals.map((r, i) => (
             <article key={i}>
               <div>
-                <b>提现至{r[4] || '招商银行（2816）'}</b>
+                <b>提现至{r[4]}</b>
                 <small>{r[2]}</small>
                 {r[3] && <small>{r[3]}</small>}
               </div>
