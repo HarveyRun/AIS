@@ -88,6 +88,7 @@ class _ExperienceCertificationPageState
             onRefresh: _load,
             child: _items.isEmpty
                 ? ListView(
+                    padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
                     children: [
                       const SizedBox(height: 150),
                       const Icon(Icons.route_outlined, size: 44),

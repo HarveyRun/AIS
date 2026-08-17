@@ -234,7 +234,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
+                padding: const EdgeInsets.fromLTRB(17, 28, 17, 12),
                 sliver: SliverToBoxAdapter(
                   child: Text(
                     '可以帮你的人',
@@ -256,7 +256,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 )
               else
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                  padding: const EdgeInsets.fromLTRB(17, 0, 17, 20),
                   sliver: SliverList.separated(
                     itemCount: _items.length,
                     itemBuilder: (context, index) => AnswererCard(
@@ -316,7 +316,7 @@ class _Banner extends StatelessWidget {
             itemBuilder: (context, index) {
               final item = banners[index];
               return Container(
-                margin: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+                margin: const EdgeInsets.fromLTRB(17, 14, 17, 4),
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
@@ -418,7 +418,7 @@ class _DiscoveryHub extends StatelessWidget {
     return Material(
       color: const Color(0xFFFCFBFA),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 17),
         child: Row(
           children: [
             Expanded(

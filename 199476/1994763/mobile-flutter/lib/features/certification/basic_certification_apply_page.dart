@@ -99,8 +99,10 @@ class _BasicCertificationApplyPageState
       body: ListView(
         padding: const EdgeInsets.fromLTRB(17, 8, 17, 110),
         children: [
-          if (record != null) _Status(record: record),
-          const SizedBox(height: 12),
+          if (record != null) ...[
+            _Status(record: record),
+            const SizedBox(height: 12),
+          ],
           Card(
             child: Padding(
               padding: const EdgeInsets.all(17),

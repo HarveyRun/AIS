@@ -153,8 +153,10 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
         : ListView(
             padding: const EdgeInsets.fromLTRB(17, 8, 17, 110),
             children: [
-              if (_record != null) _ExperienceStatus(record: _record!),
-              const SizedBox(height: 12),
+              if (_record != null) ...[
+                _ExperienceStatus(record: _record!),
+                const SizedBox(height: 12),
+              ],
               TextField(
                 controller: _title,
                 enabled: _editable,

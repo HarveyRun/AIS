@@ -81,6 +81,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             onRefresh: _load,
             child: _items.isEmpty
                 ? ListView(
+                    padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
                     children: const [
                       SizedBox(height: 180),
                       Icon(Icons.notifications_none_rounded, size: 44),

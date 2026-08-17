@@ -205,35 +205,58 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                     ),
                     const SizedBox(height: 14),
                     if (_tab == WalletTab.recharge)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHighest,
-                          foregroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
-                          child: const Text('支'),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        title: const Text('支付宝'),
-                        subtitle: const Text('仅支持支付宝充值'),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 13,
+                          ),
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            child: const Text('支'),
+                          ),
+                          title: const Text('支付宝'),
+                          subtitle: const Text('仅支持支付宝充值'),
+                        ),
                       ),
                     if (_tab == WalletTab.withdraw) ...[
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.account_balance_outlined),
-                        title: const Text('到账银行卡'),
-                        subtitle: Text(
-                          _bankCard == null
-                              ? '尚未绑定，点击添加'
-                              : '${_bankCard!.bankName}（${_bankCard!.lastFour}）',
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        trailing: TextButton(
-                          onPressed: _bindCard,
-                          child: Text(_bankCard == null ? '添加' : '修改'),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 13,
+                          ),
+                          leading: const Icon(Icons.account_balance_outlined),
+                          title: const Text('到账银行卡'),
+                          subtitle: Text(
+                            _bankCard == null
+                                ? '尚未绑定，点击添加'
+                                : '${_bankCard!.bankName}（${_bankCard!.lastFour}）',
+                          ),
+                          trailing: TextButton(
+                            onPressed: _bindCard,
+                            child: Text(_bankCard == null ? '添加' : '修改'),
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 10),
                       Text(
                         '本次手续费 ¥${fee.toStringAsFixed(2)}，预计到账 ¥${(amount - fee).clamp(0, double.infinity).toStringAsFixed(2)}。累计提现10,000元以内免费，超出部分收取20%。',
                         style: Theme.of(context).textTheme.bodySmall,
@@ -418,25 +441,35 @@ class _WithdrawalList extends StatelessWidget {
     return Column(
       children: items
           .map(
-            (item) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text('提现至${item.bankName}（${item.lastFour}）'),
-              subtitle: Text(
-                '手续费 ¥${item.fee.toStringAsFixed(2)}  ·  ${item.createdAt == null ? '' : DateFormat('yyyy-MM-dd HH:mm').format(item.createdAt!)}',
+            (item) => Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+                borderRadius: BorderRadius.circular(13),
               ),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '¥${item.amount.toStringAsFixed(2)}',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  Text(
-                    item.status,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                title: Text('提现至${item.bankName}（${item.lastFour}）'),
+                subtitle: Text(
+                  '手续费 ¥${item.fee.toStringAsFixed(2)}  ·  ${item.createdAt == null ? '' : DateFormat('yyyy-MM-dd HH:mm').format(item.createdAt!)}',
+                ),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '¥${item.amount.toStringAsFixed(2)}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      item.status,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
             ),
           )

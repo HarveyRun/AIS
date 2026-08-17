@@ -102,7 +102,8 @@ class _BasicRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(_status(record), style: Theme.of(context).textTheme.bodySmall),
-        const Icon(Icons.chevron_right_rounded),
+        const SizedBox(width: 6),
+        const Icon(Icons.chevron_right_rounded, size: 19),
       ],
     ),
     onTap: onTap,

@@ -137,6 +137,10 @@ class _CertificationHomePageState extends ConsumerState<CertificationHomePage> {
                       children: [
                         if (_joined) ...[
                           SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 7,
+                            ),
                             secondary: const Icon(
                               Icons.chat_bubble_outline_rounded,
                             ),
@@ -150,6 +154,10 @@ class _CertificationHomePageState extends ConsumerState<CertificationHomePage> {
                           const Divider(height: 1, indent: 56),
                         ],
                         ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 7,
+                          ),
                           leading: const Icon(Icons.badge_outlined),
                           title: const Text('基础信息'),
                           subtitle: const Text('身份信息和我的岗位'),
@@ -159,6 +167,10 @@ class _CertificationHomePageState extends ConsumerState<CertificationHomePage> {
                         ),
                         const Divider(height: 1, indent: 56),
                         ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 7,
+                          ),
                           leading: const Icon(Icons.route_outlined),
                           title: const Text('亲身经历'),
                           subtitle: const Text('亲自经历过的事情'),

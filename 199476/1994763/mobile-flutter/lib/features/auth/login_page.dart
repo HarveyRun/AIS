@@ -223,7 +223,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             onChanged: (value) =>
                                 setState(() => _agreed = value),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 28),
                         ],
                       ),
                     ),

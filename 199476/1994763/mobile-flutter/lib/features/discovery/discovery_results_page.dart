@@ -111,7 +111,7 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                   if (!_experience && (_matter?.jobs.isNotEmpty ?? false)) ...[
                     const SizedBox(height: 18),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 17),
                       child: Text(
                         '可能会问到',
                         style: Theme.of(context).textTheme.titleMedium,
@@ -119,7 +119,7 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                     ),
                     const SizedBox(height: 8),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 17),
                       child: Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -141,7 +141,7 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                   ],
                   const SizedBox(height: 20),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 17),
                     child: Row(
                       children: [
                         Expanded(
@@ -159,16 +159,19 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                   ),
                   const SizedBox(height: 9),
                   for (var index = 0; index < people.length; index++) ...[
-                    AnswererCard(
-                      answerer: people[index],
-                      onTap: () =>
-                          context.push('/answerers/${people[index].uid}'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 17),
+                      child: AnswererCard(
+                        answerer: people[index],
+                        onTap: () =>
+                            context.push('/answerers/${people[index].uid}'),
+                      ),
                     ),
                     if (index != people.length - 1) const SizedBox(height: 12),
                   ],
                   if (people.isEmpty)
                     const Padding(
-                      padding: EdgeInsets.only(top: 60),
+                      padding: EdgeInsets.fromLTRB(17, 56, 17, 24),
                       child: Center(child: Text('暂无可交流的人')),
                     ),
                 ],

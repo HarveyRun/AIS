@@ -99,67 +99,117 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(18),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppAvatar(
-                    url: user.avatarUrl,
-                    name: user.displayName,
-                    radius: 32,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.displayName,
-                          style: Theme.of(context).textTheme.titleMedium,
+                  Row(
+                    children: [
+                      AppAvatar(
+                        url: user.avatarUrl,
+                        name: user.displayName,
+                        radius: 31,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.displayName,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'UID ${user.uid}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'UID ${user.uid}',
-                          style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      TextButton.icon(
+                        onPressed: _changeAvatar,
+                        icon: const Icon(Icons.photo_camera_outlined, size: 15),
+                        label: const Text('修改头像'),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainer,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: _changeAvatar,
-                    child: const Text('修改头像'),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 17),
+                    child: Divider(height: 1),
+                  ),
+                  Text('昵称', style: Theme.of(context).textTheme.labelMedium),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nickname,
+                    maxLength: 12,
+                    decoration: const InputDecoration(hintText: '未设置时显示 UID'),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: _saving ? null : _save,
+                    child: _saving
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('保存'),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 18),
-          TextField(
-            controller: _nickname,
-            maxLength: 12,
-            decoration: const InputDecoration(
-              labelText: '昵称',
-              hintText: '未设置时显示 UID',
+          Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+              borderRadius: BorderRadius.circular(16),
             ),
-          ),
-          const SizedBox(height: 10),
-          FilledButton(
-            onPressed: _saving ? null : _save,
-            child: _saving
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text('保存'),
-          ),
-          const SizedBox(height: 28),
-          OutlinedButton(
-            onPressed: _deleteAccount,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: const Icon(Icons.person_off_outlined, size: 17),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '注销账号',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '账号注销后无法恢复',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(onPressed: _deleteAccount, child: const Text('注销')),
+              ],
             ),
-            child: const Text('注销账号'),
           ),
         ],
       ),

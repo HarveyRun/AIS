@@ -92,82 +92,106 @@ class _CustomerServicePageState extends ConsumerState<CustomerServicePage> {
                   color: Theme.of(context).brightness == Brightness.dark
                       ? const Color(0xFF151619)
                       : const Color(0xFFF2F2F2),
-                  child: ListView.builder(
-                    controller: _scroll,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final item = _messages[index];
-                      return Align(
-                        alignment: item.isMine
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: Column(
-                            crossAxisAlignment: item.isMine
-                                ? CrossAxisAlignment.end
-                                : CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.isMine ? '我' : '客服',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                constraints: BoxConstraints(
-                                  maxWidth:
-                                      MediaQuery.sizeOf(context).width * .72,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 13,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: item.isMine
-                                      ? const Color(0xFFDFE9F2)
-                                      : Theme.of(context).colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(13),
-                                ),
-                                child: Text(item.content),
-                              ),
-                              if (item.createdAt != null) ...[
-                                const SizedBox(height: 3),
-                                Text(
-                                  DateFormat(
-                                    'M/d HH:mm',
-                                  ).format(item.createdAt!),
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                            ],
+                  child: _messages.isEmpty
+                      ? Center(
+                          child: Text(
+                            '暂无客服消息',
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
+                        )
+                      : ListView.builder(
+                          controller: _scroll,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final item = _messages[index];
+                            return Align(
+                              alignment: item.isMine
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 14),
+                                child: Column(
+                                  crossAxisAlignment: item.isMine
+                                      ? CrossAxisAlignment.end
+                                      : CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.isMine ? '我' : '客服',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      constraints: BoxConstraints(
+                                        maxWidth:
+                                            MediaQuery.sizeOf(context).width *
+                                            .72,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 13,
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: item.isMine
+                                            ? const Color(0xFFDFE9F2)
+                                            : Theme.of(
+                                                context,
+                                              ).colorScheme.surface,
+                                        borderRadius: BorderRadius.circular(13),
+                                      ),
+                                      child: Text(item.content),
+                                    ),
+                                    if (item.createdAt != null) ...[
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        DateFormat(
+                                          'M/d HH:mm',
+                                        ).format(item.createdAt!),
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
         ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _send(),
-                    decoration: const InputDecoration(hintText: '输入消息'),
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(
+              top: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _send(),
+                      decoration: const InputDecoration(hintText: '输入消息'),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  onPressed: _sending ? null : _send,
-                  icon: const Icon(Icons.send_rounded),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    onPressed: _sending ? null : _send,
+                    icon: const Icon(Icons.send_rounded),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
