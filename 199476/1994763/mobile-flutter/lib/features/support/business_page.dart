@@ -44,7 +44,7 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('商务合作')),
     body: ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
       children: [
         TextField(
           controller: _contact,

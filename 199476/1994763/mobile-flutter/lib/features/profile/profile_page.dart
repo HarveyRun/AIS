@@ -55,7 +55,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           onRefresh: _refresh,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
+            padding: const EdgeInsets.fromLTRB(17, 8, 17, 30),
             children: [
               Row(
                 children: [
@@ -87,11 +87,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 onAnswerer: () => context.push('/profile/certifications'),
                 onWallet: () => context.push('/profile/wallet'),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
               Text('更多服务', style: Theme.of(context).textTheme.labelMedium),
               const SizedBox(height: 9),
               Material(
-                color: Theme.of(context).colorScheme.surfaceContainer,
+                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(16),
                 clipBehavior: Clip.antiAlias,
                 child: Column(
@@ -167,9 +167,15 @@ class _ProfileOverview extends StatelessWidget {
   Widget build(BuildContext context) {
     const gold = Color(0xFFE7C88F);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(24),
       child: DecoratedBox(
-        decoration: const BoxDecoration(color: Color(0xFF292526)),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF3A3030), Color(0xFF241F20)],
+          ),
+        ),
         child: Stack(
           children: [
             Positioned(
@@ -330,7 +336,15 @@ class _MenuItem extends StatelessWidget {
   Widget build(BuildContext context) => ListTile(
     minTileHeight: 52,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-    leading: Icon(icon, size: 21, color: Theme.of(context).colorScheme.primary),
+    leading: Container(
+      width: 31,
+      height: 31,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(icon, size: 17, color: Theme.of(context).colorScheme.primary),
+    ),
     title: Text(title, style: Theme.of(context).textTheme.bodyLarge),
     trailing: Row(
       mainAxisSize: MainAxisSize.min,

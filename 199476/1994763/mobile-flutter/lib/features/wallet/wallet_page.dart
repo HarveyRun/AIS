@@ -133,13 +133,17 @@ class _WalletPageState extends ConsumerState<WalletPage> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
+                padding: const EdgeInsets.fromLTRB(17, 8, 17, 30),
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(23),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(18),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF4A3835), Color(0xFF261E1D)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,41 +274,40 @@ class _WalletTabs extends StatelessWidget {
       (WalletTab.recharge, '充值'),
       (WalletTab.withdraw, '提现'),
     ];
-    return SizedBox(
-      height: 44,
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(13),
+      ),
       child: Row(
         children: tabs.map((tab) {
           final active = selected == tab.$1;
           return Expanded(
             child: InkWell(
               onTap: () => onChanged(tab.$1),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 160),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: active
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                          color: active
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).textTheme.bodySmall?.color,
-                        ),
-                        child: Text(tab.$2),
-                      ),
-                    ),
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 160),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    color: active
+                        ? Colors.white
+                        : Theme.of(context).textTheme.bodySmall?.color,
                   ),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    width: active ? 24 : 0,
-                    height: 2,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ],
+                  child: Text(tab.$2),
+                ),
               ),
             ),
           );
@@ -355,32 +358,42 @@ class _TransactionList extends StatelessWidget {
     return Column(
       children: items.map((item) {
         final income = item.direction.toUpperCase() == 'INCOME';
-        return ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: CircleAvatar(
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest,
-            foregroundColor: Theme.of(context).colorScheme.primary,
-            child: Text(
-              income
-                  ? '收'
-                  : item.direction.toUpperCase() == 'FREEZE'
-                  ? '冻'
-                  : '支',
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
             ),
+            borderRadius: BorderRadius.circular(13),
           ),
-          title: Text(item.description),
-          subtitle: Text(
-            item.createdAt == null
-                ? ''
-                : DateFormat('yyyy-MM-dd HH:mm').format(item.createdAt!),
-          ),
-          trailing: Text(
-            '${income ? '+' : '-'}¥${item.amount.toStringAsFixed(2)}',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: income ? const Color(0xFF26865C) : null,
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+            leading: CircleAvatar(
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
+              foregroundColor: Theme.of(context).colorScheme.primary,
+              child: Text(
+                income
+                    ? '收'
+                    : item.direction.toUpperCase() == 'FREEZE'
+                    ? '冻'
+                    : '支',
+              ),
+            ),
+            title: Text(item.description),
+            subtitle: Text(
+              item.createdAt == null
+                  ? ''
+                  : DateFormat('yyyy-MM-dd HH:mm').format(item.createdAt!),
+            ),
+            trailing: Text(
+              '${income ? '+' : '-'}¥${item.amount.toStringAsFixed(2)}',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: income ? const Color(0xFF26865C) : null,
+              ),
             ),
           ),
         );

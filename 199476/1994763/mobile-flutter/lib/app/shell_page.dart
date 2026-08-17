@@ -44,7 +44,12 @@ class _AppBottomNavigation extends StatelessWidget {
     final dark = theme.brightness == Brightness.dark;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF191A1D) : Colors.white,
+        color: dark ? const Color(0xFF121315) : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: dark ? const Color(0xFF303238) : const Color(0xFFF0E8E1),
+          ),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -123,7 +128,7 @@ class _NavigationItem extends StatelessWidget {
                 ),
                 child: Icon(
                   selected ? selectedIcon : icon,
-                  size: 22,
+                  size: 21,
                   color: color,
                 ),
               ),
@@ -131,7 +136,7 @@ class _NavigationItem extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 9,
                   height: 1,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                   color: color,

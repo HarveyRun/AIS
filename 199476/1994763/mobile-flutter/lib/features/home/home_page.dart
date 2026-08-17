@@ -125,140 +125,166 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).user!;
     final noticeCount = ref.watch(notificationCountProvider);
-    return SafeArea(
-      bottom: false,
-      child: RefreshIndicator(
-        onRefresh: () async {
-          await Future.wait([_load(reset: true), _refreshNoticeCount()]);
-        },
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverAppBar(
-              pinned: true,
-              toolbarHeight: 60,
-              titleSpacing: 16,
-              automaticallyImplyLeading: false,
-              title: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => context.go('/profile'),
-                    child: AppAvatar(
-                      url: user.avatarUrl,
-                      name: user.displayName,
-                      radius: 19,
+    return ColoredBox(
+      color: const Color(0xFFFCFBFA),
+      child: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await Future.wait([_load(reset: true), _refreshNoticeCount()]);
+          },
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                toolbarHeight: 66,
+                titleSpacing: 16,
+                backgroundColor: const Color(0xFFFCFBFA),
+                automaticallyImplyLeading: false,
+                title: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.go('/profile'),
+                      child: AppAvatar(
+                        url: user.avatarUrl,
+                        name: user.displayName,
+                        radius: 19,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: SizedBox(
-                      height: 38,
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: _search,
-                        textInputAction: TextInputAction.search,
-                        decoration: InputDecoration(
-                          hintText: '搜索主职',
-                          prefixIcon: const Icon(
-                            Icons.search_rounded,
-                            size: 20,
-                          ),
-                          suffixIcon: _searchController.text.isEmpty
-                              ? null
-                              : IconButton(
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    _load(reset: true);
-                                    setState(() {});
-                                  },
-                                  icon: const Icon(
-                                    Icons.close_rounded,
-                                    size: 18,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: SizedBox(
+                        height: 38,
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: _search,
+                          textInputAction: TextInputAction.search,
+                          decoration: InputDecoration(
+                            hintText: '搜索主职',
+                            filled: true,
+                            fillColor: const Color(0xFFF3F2F0),
+                            contentPadding: EdgeInsets.zero,
+                            prefixIcon: const Icon(
+                              Icons.search_rounded,
+                              size: 19,
+                            ),
+                            suffixIcon: _searchController.text.isEmpty
+                                ? null
+                                : IconButton(
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      _load(reset: true);
+                                      setState(() {});
+                                    },
+                                    icon: const Icon(
+                                      Icons.close_rounded,
+                                      size: 18,
+                                    ),
                                   ),
-                                ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE4E0DC),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE4E0DC),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFD5CFCA),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    onPressed: () => context.push('/notices'),
-                    icon: Badge(
-                      isLabelVisible: noticeCount > 0,
-                      label: Text(noticeCount > 99 ? '99+' : '$noticeCount'),
-                      child: const Icon(Icons.mail_outline_rounded),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      onPressed: () => context.push('/notices'),
+                      icon: Badge(
+                        isLabelVisible: noticeCount > 0,
+                        label: Text(noticeCount > 99 ? '99+' : '$noticeCount'),
+                        child: const Icon(Icons.mail_outline_rounded),
+                      ),
                     ),
+                  ],
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _Banner(
+                  controller: _pageController,
+                  banners: _banners,
+                  active: _banner,
+                  onChanged: (value) => setState(() => _banner = value),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: _DiscoveryHub(
+                    onMatters: () => context.push('/discover/matters'),
+                    onExperiences: () => context.push('/discover/experiences'),
                   ),
-                ],
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: _Banner(
-                controller: _pageController,
-                banners: _banners,
-                active: _banner,
-                onChanged: (value) => setState(() => _banner = value),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: _DiscoveryHub(
-                  onMatters: () => context.push('/discover/matters'),
-                  onExperiences: () => context.push('/discover/experiences'),
                 ),
               ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-              sliver: SliverToBoxAdapter(
-                child: Text(
-                  '可以帮你的人',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-            ),
-            if (_loading)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-              )
-            else if (_items.isEmpty)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: Text('没有找到相关的人')),
-              )
-            else
               SliverPadding(
-                padding: const EdgeInsets.only(bottom: 20),
-                sliver: SliverList.separated(
-                  itemCount: _items.length,
-                  itemBuilder: (context, index) => AnswererCard(
-                    answerer: _items[index],
-                    onTap: () =>
-                        context.push('/answerers/${_items[index].uid}'),
+                padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
+                sliver: SliverToBoxAdapter(
+                  child: Text(
+                    '可以帮你的人',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  separatorBuilder: (_, _) =>
-                      const Divider(height: 1, indent: 77),
                 ),
               ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: Center(
-                  child: _loadingMore
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          _hasMore ? '继续下滑，看看更多人' : '已经到底啦',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
+              if (_loading)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              else if (_items.isEmpty)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: Text('没有找到相关的人')),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                  sliver: SliverList.separated(
+                    itemCount: _items.length,
+                    itemBuilder: (context, index) => AnswererCard(
+                      answerer: _items[index],
+                      onTap: () =>
+                          context.push('/answerers/${_items[index].uid}'),
+                    ),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  ),
+                ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Center(
+                    child: _loadingMore
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            _hasMore ? '继续下滑，看看更多人' : '已经到底啦',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -280,7 +306,7 @@ class _Banner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 138,
+      height: 174,
       child: Stack(
         children: [
           PageView.builder(
@@ -290,58 +316,59 @@ class _Banner extends StatelessWidget {
             itemBuilder: (context, index) {
               final item = banners[index];
               return Container(
-                margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                padding: const EdgeInsets.fromLTRB(18, 15, 18, 15),
+                margin: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  borderRadius: BorderRadius.circular(16),
+                  color: const Color(0xFFFFFEFD),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE9E3DE)),
                 ),
                 child: Stack(
                   children: [
-                    Positioned(
-                      right: -4,
-                      top: -22,
-                      child: Text(
-                        '问',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: .09),
-                          fontSize: 104,
-                          height: 1,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
+                    const Positioned.fill(
+                      child: CustomPaint(painter: _BannerDecorationPainter()),
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          item.$1,
-                          style: const TextStyle(
-                            color: Color(0xE6FFFFFF),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: .5,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFB86F5D),
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Text(
+                            '✣  ${item.$1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 7),
+                        const SizedBox(height: 12),
                         Text(
                           item.$2,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
-                                color: Colors.white,
-                                fontSize: 17,
-                                height: 1.25,
+                                color: const Color(0xFF1B1A19),
+                                fontSize: 20,
+                                height: 1.32,
                                 fontWeight: FontWeight.w800,
                               ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 7),
                         Text(
                           item.$3,
                           style: const TextStyle(
-                            color: Color(0xD9FFFFFF),
-                            fontSize: 11,
+                            color: Color(0xFF8F8984),
+                            fontSize: 10,
                             height: 1.35,
                           ),
                           maxLines: 2,
@@ -354,8 +381,8 @@ class _Banner extends StatelessWidget {
             },
           ),
           Positioned(
-            left: 36,
-            bottom: 13,
+            left: 35,
+            bottom: 16,
             child: Row(
               children: List.generate(
                 banners.length,
@@ -366,8 +393,8 @@ class _Banner extends StatelessWidget {
                   margin: const EdgeInsets.only(right: 5),
                   decoration: BoxDecoration(
                     color: active == index
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: .35),
+                        ? const Color(0xFFD7473E)
+                        : const Color(0xFFD5D1CD),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -389,16 +416,18 @@ class _DiscoveryHub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Theme.of(context).colorScheme.surface,
+      color: const Color(0xFFFCFBFA),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
             Expanded(
               child: _DiscoveryEntry(
                 icon: Icons.search_rounded,
                 title: '按事情',
-                subtitle: '看看应该问谁',
+                subtitle: '先看看应该问哪些人',
+                borderColor: const Color(0xFFE8D2CA),
+                iconColor: const Color(0xFFD9473E),
                 onTap: onMatters,
               ),
             ),
@@ -408,6 +437,8 @@ class _DiscoveryHub extends StatelessWidget {
                 icon: Icons.route_outlined,
                 title: '按经历',
                 subtitle: '找经历过的人',
+                borderColor: const Color(0xFFCEE2D8),
+                iconColor: const Color(0xFF4E8E70),
                 onTap: onExperiences,
               ),
             ),
@@ -423,41 +454,80 @@ class _DiscoveryEntry extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.borderColor,
+    required this.iconColor,
     required this.onTap,
   });
   final IconData icon;
   final String title;
   final String subtitle;
+  final Color borderColor;
+  final Color iconColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
-        child: Row(
-          children: [
-            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 23),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+    return Material(
+      color: const Color(0xFFFFFEFD),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+        side: BorderSide(color: borderColor),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+          child: Row(
+            children: [
+              Icon(icon, color: iconColor, size: 20),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 17,
+                color: Color(0xFF9D9792),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class _BannerDecorationPainter extends CustomPainter {
+  const _BannerDecorationPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFF5E9E7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 18;
+    canvas.drawCircle(Offset(size.width - 18, 42), 83, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -73,8 +73,60 @@ class _CertificationHomePageState extends ConsumerState<CertificationHomePage> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
+                padding: const EdgeInsets.fromLTRB(17, 8, 17, 30),
                 children: [
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF3A3030), Color(0xFF241F20)],
+                      ),
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: .08),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.record_voice_over_outlined,
+                            color: Color(0xFFE7C88F),
+                          ),
+                        ),
+                        const SizedBox(width: 13),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _joined ? '管理你的答主信息' : '完成认证，帮助别人',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                _joined ? '设置是否接受新的询问' : '认证真实身份和工作信息',
+                                style: const TextStyle(
+                                  color: Color(0xFFBEB7B4),
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                   Text(
                     _joined ? '答主设置' : '完成以下认证',
                     style: Theme.of(context).textTheme.titleMedium,

@@ -151,7 +151,7 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
     body: _loading
         ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
         : ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+            padding: const EdgeInsets.fromLTRB(17, 8, 17, 110),
             children: [
               if (_record != null) _ExperienceStatus(record: _record!),
               const SizedBox(height: 12),
@@ -284,7 +284,7 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
     bottomNavigationBar: !_editable
         ? null
         : SafeArea(
-            minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            minimum: const EdgeInsets.fromLTRB(17, 8, 17, 12),
             child: FilledButton(
               onPressed: _submitting ? null : _submit,
               child: _submitting

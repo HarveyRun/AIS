@@ -74,10 +74,14 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
               child: ListView(
                 padding: const EdgeInsets.only(bottom: 32),
                 children: [
-                  Material(
-                    color: Theme.of(context).colorScheme.surface,
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(17, 4, 17, 0),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
+                      padding: const EdgeInsets.all(18),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -153,15 +157,14 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 9),
                   for (var index = 0; index < people.length; index++) ...[
                     AnswererCard(
                       answerer: people[index],
                       onTap: () =>
                           context.push('/answerers/${people[index].uid}'),
                     ),
-                    if (index != people.length - 1)
-                      const Divider(height: 1, indent: 77),
+                    if (index != people.length - 1) const SizedBox(height: 12),
                   ],
                   if (people.isEmpty)
                     const Padding(

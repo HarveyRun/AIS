@@ -79,14 +79,14 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 92),
-                children: [_AnswererOverview(answerer: _answerer!)],
+                padding: const EdgeInsets.fromLTRB(17, 8, 17, 92),
+                children: [_WebAnswererOverview(answerer: _answerer!)],
               ),
             ),
       bottomNavigationBar: _answerer == null
           ? null
           : SafeArea(
-              minimum: const EdgeInsets.fromLTRB(16, 7, 16, 9),
+              minimum: const EdgeInsets.fromLTRB(17, 7, 17, 9),
               child: FilledButton.icon(
                 onPressed: _answerer!.acceptingInquiries ? _ask : null,
                 icon: const Icon(Icons.chat_bubble_outline_rounded),
@@ -97,6 +97,8 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
   }
 }
 
+// Kept temporarily while the Web-matched profile layout is rolled out.
+// ignore: unused_element
 class _AnswererOverview extends StatelessWidget {
   const _AnswererOverview({required this.answerer});
 
@@ -232,6 +234,155 @@ class _AnswererOverview extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _WebAnswererOverview extends StatelessWidget {
+  const _WebAnswererOverview({required this.answerer});
+
+  final Answerer answerer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 16, 8, 22),
+          child: Column(
+            children: [
+              AppAvatar(
+                url: answerer.avatarUrl,
+                name: answerer.displayName,
+                radius: 36,
+                verified: true,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                answerer.displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'UID ${answerer.uid} · 信息已经核实',
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        _ProfileFactBox(
+          title: '做过的工作',
+          icon: Icons.verified_user_outlined,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 60,
+                child: Text(
+                  '主职',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  answerer.mainJob,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Text(
+                '${answerer.mainJobYears}年经验',
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _ProfileFactBox(
+          title: '亲身经历过的事',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: answerer.experiences.isEmpty
+                    ? const [_ExperienceLabel(text: '暂未填写亲身经历')]
+                    : answerer.experiences
+                          .map((item) => _ExperienceLabel(text: item.title))
+                          .toList(),
+              ),
+              const SizedBox(height: 10),
+              Text('这些经历的基础材料已经核实。', style: theme.textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileFactBox extends StatelessWidget {
+  const _ProfileFactBox({required this.title, required this.child, this.icon});
+
+  final String title;
+  final Widget child;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(19),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 19, color: const Color(0xFF639579)),
+                const SizedBox(width: 7),
+              ],
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _ExperienceLabel extends StatelessWidget {
+  const _ExperienceLabel({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F1EB),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(text, style: Theme.of(context).textTheme.bodySmall),
     );
   }
 }

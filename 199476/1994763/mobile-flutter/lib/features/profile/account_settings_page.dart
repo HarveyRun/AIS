@@ -94,7 +94,7 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('账号设置')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
         children: [
           Card(
             child: Padding(

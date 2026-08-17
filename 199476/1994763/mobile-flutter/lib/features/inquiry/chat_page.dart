@@ -211,7 +211,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   child: Container(
                     color: Theme.of(context).brightness == Brightness.dark
                         ? const Color(0xFF151619)
-                        : const Color(0xFFF5F5F6),
+                        : const Color(0xFFF2F2F2),
                     child: ListView.builder(
                       controller: _scrollController,
                       padding: const EdgeInsets.fromLTRB(14, 18, 14, 18),
@@ -479,11 +479,21 @@ class _MessageBubble extends ConsumerWidget {
                                 ),
                           decoration: BoxDecoration(
                             color: me
-                                ? Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withValues(alpha: .16)
+                                ? const Color(0xFFDFE9F2)
                                 : Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(13),
+                            borderRadius: me
+                                ? const BorderRadius.only(
+                                    topLeft: Radius.circular(14),
+                                    bottomLeft: Radius.circular(14),
+                                    bottomRight: Radius.circular(14),
+                                    topRight: Radius.circular(4),
+                                  )
+                                : const BorderRadius.only(
+                                    topLeft: Radius.circular(4),
+                                    topRight: Radius.circular(14),
+                                    bottomLeft: Radius.circular(14),
+                                    bottomRight: Radius.circular(14),
+                                  ),
                           ),
                           child:
                               message.type.toUpperCase() == 'IMAGE' &&

@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppColors {
-  static const primary = Color(0xFFE23D34);
-  static const primaryPressed = Color(0xFFC92F28);
-  static const primarySoft = Color(0xFFF2F3F5);
-  static const page = Color(0xFFF6F7F9);
+  static const primary = Color(0xFFC23B32);
+  static const primaryPressed = Color(0xFF8F2924);
+  static const primarySoft = Color(0xFFF5F3F0);
+  static const page = Color(0xFFFFFFFF);
   static const surface = Color(0xFFFFFFFF);
-  static const surfaceSubtle = Color(0xFFF0F1F3);
-  static const border = Color(0xFFE7E8EB);
-  static const text = Color(0xFF202124);
-  static const textSecondary = Color(0xFF777A80);
-  static const success = Color(0xFF26865C);
+  static const surfaceSubtle = Color(0xFFF5F3F0);
+  static const border = Color(0xFFE5DDD5);
+  static const text = Color(0xFF312C28);
+  static const textSecondary = Color(0xFF8F847C);
+  static const success = Color(0xFF65A27A);
   static const warning = Color(0xFFB36B18);
-  static const darkPage = Color(0xFF111214);
-  static const darkSurface = Color(0xFF1B1C20);
-  static const darkSurfaceSubtle = Color(0xFF24252A);
-  static const darkBorder = Color(0xFF303138);
+  static const darkPage = Color(0xFF121315);
+  static const darkSurface = Color(0xFF1A1B1F);
+  static const darkSurfaceSubtle = Color(0xFF26272D);
+  static const darkBorder = Color(0xFF303238);
 }
 
 abstract final class AppTheme {
@@ -35,19 +35,21 @@ abstract final class AppTheme {
     final border = dark ? AppColors.darkBorder : AppColors.border;
     final scheme = baseScheme.copyWith(
       surface: dark ? AppColors.darkSurface : AppColors.page,
-      surfaceDim: dark ? AppColors.darkPage : const Color(0xFFF3F3F2),
+      surfaceDim: dark ? AppColors.darkPage : const Color(0xFFF5F3F0),
       surfaceBright: dark ? AppColors.darkSurfaceSubtle : AppColors.surface,
       surfaceContainerLowest: dark ? AppColors.darkPage : AppColors.surface,
       surfaceContainerLow: dark
           ? const Color(0xFF17181B)
-          : const Color(0xFFFAFAFB),
-      surfaceContainer: dark ? AppColors.darkSurface : AppColors.surface,
+          : const Color(0xFFFFFDF9),
+      surfaceContainer: dark
+          ? AppColors.darkSurfaceSubtle
+          : AppColors.surfaceSubtle,
       surfaceContainerHigh: dark
           ? const Color(0xFF212226)
-          : const Color(0xFFF2F2F1),
+          : const Color(0xFFF5F3F0),
       surfaceContainerHighest: dark
           ? AppColors.darkSurfaceSubtle
-          : const Color(0xFFEDEDEC),
+          : const Color(0xFFE9E4DE),
       onSurface: textColor,
       onPrimary: Colors.white,
       outline: border,
@@ -72,40 +74,40 @@ abstract final class AppTheme {
       ),
       textTheme: TextTheme(
         displaySmall: TextStyle(
-          fontSize: 30,
+          fontSize: 26,
           fontWeight: FontWeight.w700,
           color: textColor,
         ),
         headlineLarge: TextStyle(
-          fontSize: 23,
+          fontSize: 21,
           fontWeight: FontWeight.w700,
           color: textColor,
         ),
         headlineMedium: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: textColor,
-        ),
-        titleLarge: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: textColor,
         ),
-        titleMedium: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
+        titleLarge: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
           color: textColor,
         ),
-        bodyLarge: TextStyle(fontSize: 15, height: 1.42, color: textColor),
-        bodyMedium: TextStyle(fontSize: 13, height: 1.42, color: textColor),
-        bodySmall: TextStyle(fontSize: 11, height: 1.38, color: secondary),
-        labelLarge: TextStyle(
+        titleMedium: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
           color: textColor,
         ),
-        labelMedium: TextStyle(
+        bodyLarge: TextStyle(fontSize: 13, height: 1.42, color: textColor),
+        bodyMedium: TextStyle(fontSize: 11, height: 1.42, color: textColor),
+        bodySmall: TextStyle(fontSize: 9, height: 1.38, color: secondary),
+        labelLarge: TextStyle(
           fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 10,
           fontWeight: FontWeight.w500,
           color: secondary,
         ),
@@ -113,13 +115,13 @@ abstract final class AppTheme {
       appBarTheme: AppBarTheme(
         elevation: 0,
         scrolledUnderElevation: 0,
-        toolbarHeight: 52,
+        toolbarHeight: 64,
         centerTitle: true,
         backgroundColor: dark ? AppColors.darkPage : AppColors.page,
         surfaceTintColor: Colors.transparent,
         foregroundColor: textColor,
         titleTextStyle: TextStyle(
-          fontSize: 17,
+          fontSize: 14,
           fontWeight: FontWeight.w700,
           color: textColor,
         ),
@@ -135,15 +137,15 @@ abstract final class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.1),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -159,7 +161,7 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -176,7 +178,7 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(13),
           ),
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -187,16 +189,16 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(13),
           ),
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ),
       tabBarTheme: TabBarThemeData(
         dividerColor: Colors.transparent,
         labelColor: AppColors.primary,
         unselectedLabelColor: secondary,
-        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         unselectedLabelStyle: const TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
         indicatorColor: AppColors.primary,
@@ -207,12 +209,12 @@ abstract final class AppTheme {
         minVerticalPadding: 6,
         iconColor: secondary,
         titleTextStyle: TextStyle(
-          fontSize: 14,
+          fontSize: 11,
           fontWeight: FontWeight.w500,
           color: textColor,
         ),
         subtitleTextStyle: TextStyle(
-          fontSize: 11,
+          fontSize: 9,
           height: 1.4,
           color: secondary,
         ),
@@ -229,9 +231,9 @@ abstract final class AppTheme {
             : AppColors.surfaceSubtle,
         side: BorderSide(color: border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-        labelStyle: TextStyle(fontSize: 12, color: textColor),
+        labelStyle: TextStyle(fontSize: 10, color: textColor),
         secondaryLabelStyle: const TextStyle(
-          fontSize: 12,
+          fontSize: 10,
           color: AppColors.primary,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0),
@@ -247,12 +249,15 @@ abstract final class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         color: dark ? AppColors.darkSurface : AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: border),
+          borderRadius: BorderRadius.circular(18),
+        ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: dark ? AppColors.darkSurface : AppColors.page,
         modalBackgroundColor: dark ? AppColors.darkSurface : AppColors.page,
-        showDragHandle: true,
+        showDragHandle: false,
         dragHandleColor: secondary.withValues(alpha: .45),
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(

@@ -104,14 +104,20 @@ class _ExperienceCertificationPageState
                     ],
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
                     itemCount: _items.length,
-                    separatorBuilder: (_, _) =>
-                        const Divider(height: 1, indent: 56),
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final item = _items[index];
                       return Material(
                         color: Theme.of(context).colorScheme.surface,
+                        shape: RoundedRectangleBorder(
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        clipBehavior: Clip.antiAlias,
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,

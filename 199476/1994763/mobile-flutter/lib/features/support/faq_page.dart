@@ -15,7 +15,7 @@ class FaqPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('常见问题')),
     body: ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
       itemCount: _items.length,
       separatorBuilder: (_, _) => const SizedBox(height: 9),
       itemBuilder: (context, index) => Card(

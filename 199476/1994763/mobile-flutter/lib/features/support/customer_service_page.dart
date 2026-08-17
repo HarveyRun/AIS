@@ -91,7 +91,7 @@ class _CustomerServicePageState extends ConsumerState<CustomerServicePage> {
               : Container(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? const Color(0xFF151619)
-                      : const Color(0xFFF5F5F6),
+                      : const Color(0xFFF2F2F2),
                   child: ListView.builder(
                     controller: _scroll,
                     padding: const EdgeInsets.all(16),
@@ -125,8 +125,7 @@ class _CustomerServicePageState extends ConsumerState<CustomerServicePage> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: item.isMine
-                                      ? Theme.of(context).colorScheme.primary
-                                            .withValues(alpha: .16)
+                                      ? const Color(0xFFDFE9F2)
                                       : Theme.of(context).colorScheme.surface,
                                   borderRadius: BorderRadius.circular(13),
                                 ),

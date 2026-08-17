@@ -8,6 +8,7 @@ import '../../data/models/discovery_models.dart';
 
 class DiscoveryListPage extends ConsumerStatefulWidget {
   const DiscoveryListPage({super.key, required this.type});
+
   final String type;
 
   @override
@@ -64,60 +65,88 @@ class _DiscoveryListPageState extends ConsumerState<DiscoveryListPage> {
     for (final item in visible) {
       groups.putIfAbsent(item.categoryId, () => []).add(item);
     }
+
     return Scaffold(
-      appBar: AppBar(title: Text(_experiences ? '按经历找人' : '按事情找人')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(_experiences ? '按经历找人' : '按事情找人'),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(17, 8, 17, 32),
                 children: [
                   TextField(
                     controller: _searchController,
                     onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search_rounded),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF5F2EF),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        size: 19,
+                        color: Color(0xFF8D8884),
+                      ),
                       hintText: '搜索关键词',
+                      hintStyle: const TextStyle(
+                        color: Color(0xFF8D8884),
+                        fontSize: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
                   for (final entry in groups.entries) ...[
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 9),
+                      padding: const EdgeInsets.only(left: 2, bottom: 9),
                       child: Text(
                         entry.value.first.categoryName,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                     ),
-                    Material(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      clipBehavior: Clip.antiAlias,
-                      child: Column(
-                        children: [
-                          for (
-                            var index = 0;
-                            index < entry.value.length;
-                            index++
-                          ) ...[
-                            _DiscoveryRow(
-                              title: entry.value[index].title,
-                              onPressed: () => context.push(
-                                '/discover/${widget.type}/${entry.value[index].id}/results?title=${Uri.encodeQueryComponent(entry.value[index].title)}',
-                              ),
-                            ),
-                            if (index != entry.value.length - 1)
-                              const Divider(
-                                height: 1,
-                                indent: 14,
-                                endIndent: 14,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const spacing = 10.0;
+                        final itemWidth = (constraints.maxWidth - spacing) / 2;
+                        return Wrap(
+                          spacing: spacing,
+                          runSpacing: 10,
+                          children: [
+                            for (final item in entry.value)
+                              SizedBox(
+                                width: itemWidth,
+                                child: _DiscoveryRow(
+                                  title: item.title,
+                                  onPressed: () => context.push(
+                                    '/discover/${widget.type}/${item.id}/results?title=${Uri.encodeQueryComponent(item.title)}',
+                                  ),
+                                ),
                               ),
                           ],
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 22),
                   ],
                   if (groups.isEmpty)
                     const Padding(
@@ -139,16 +168,34 @@ class _DiscoveryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      minTileHeight: 48,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-      title: Text(title, style: Theme.of(context).textTheme.bodyLarge),
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        size: 19,
-        color: Theme.of(context).textTheme.bodySmall?.color,
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(13),
+        side: const BorderSide(color: Color(0xFFE7D9D1)),
       ),
-      onTap: onPressed,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: SizedBox(
+          height: 44,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF675C56),
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

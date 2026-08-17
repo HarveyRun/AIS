@@ -73,16 +73,34 @@ class _InquiriesPageState extends ConsumerState<InquiriesPage>
         backgroundColor: Theme.of(context).colorScheme.surface,
         automaticallyImplyLeading: false,
         title: const Text('我的询问'),
-        bottom: TabBar(
-          controller: _tabs,
-          tabs: [
-            Tab(
-              child: _TabLabel(text: '我发起的', unread: outgoingUnread),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(58),
+          child: Container(
+            height: 46,
+            margin: const EdgeInsets.fromLTRB(17, 0, 17, 12),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(13),
             ),
-            Tab(
-              child: _TabLabel(text: '我收到的', unread: incomingUnread),
+            child: TabBar(
+              controller: _tabs,
+              dividerColor: Colors.transparent,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              tabs: [
+                Tab(
+                  child: _TabLabel(text: '我发起的', unread: outgoingUnread),
+                ),
+                Tab(
+                  child: _TabLabel(text: '我收到的', unread: incomingUnread),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
       body: _loading
@@ -151,7 +169,7 @@ class _InquiryList extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+        padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
         itemCount: items.length,
         separatorBuilder: (_, _) => const Divider(height: 1, indent: 56),
         itemBuilder: (context, index) {

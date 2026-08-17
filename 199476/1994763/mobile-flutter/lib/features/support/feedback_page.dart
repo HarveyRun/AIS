@@ -75,7 +75,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('投诉与反馈')),
     body: ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
       children: [
         _FeedbackTabs(
           selected: _type,
@@ -190,20 +190,28 @@ class _FeedbackTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _FeedbackTab(
-          label: '产品反馈',
-          selected: selected == 'PRODUCT',
-          onTap: () => onChanged('PRODUCT'),
-        ),
-        const SizedBox(width: 10),
-        _FeedbackTab(
-          label: '投诉',
-          selected: selected == 'COMPLAINT',
-          onTap: () => onChanged('COMPLAINT'),
-        ),
-      ],
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Row(
+        children: [
+          _FeedbackTab(
+            label: '产品反馈',
+            selected: selected == 'PRODUCT',
+            onTap: () => onChanged('PRODUCT'),
+          ),
+          const SizedBox(width: 5),
+          _FeedbackTab(
+            label: '投诉',
+            selected: selected == 'COMPLAINT',
+            onTap: () => onChanged('COMPLAINT'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -226,17 +234,13 @@ class _FeedbackTab extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          height: 42,
+          height: 38,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: selected
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.transparent,
-                width: 2,
-              ),
-            ),
+            color: selected
+                ? Theme.of(context).colorScheme.surface
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
             label,

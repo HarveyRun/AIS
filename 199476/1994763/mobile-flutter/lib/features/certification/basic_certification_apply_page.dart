@@ -97,7 +97,7 @@ class _BasicCertificationApplyPageState
     return Scaffold(
       appBar: AppBar(title: Text(_identity ? '实名认证' : '我的岗位')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+        padding: const EdgeInsets.fromLTRB(17, 8, 17, 110),
         children: [
           if (record != null) _Status(record: record),
           const SizedBox(height: 12),
@@ -213,7 +213,7 @@ class _BasicCertificationApplyPageState
       bottomNavigationBar: !_editable
           ? null
           : SafeArea(
-              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              minimum: const EdgeInsets.fromLTRB(17, 8, 17, 12),
               child: FilledButton(
                 onPressed: _submitting ? null : _submit,
                 child: _submitting

@@ -114,7 +114,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 104),
+                          const SizedBox(height: 110),
                           Center(
                             child: Text(
                               '事先问',
@@ -123,35 +123,77 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.primary,
-                                    fontSize: 29,
-                                    letterSpacing: 2,
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 3,
                                   ),
                             ),
                           ),
-                          const SizedBox(height: 54),
-                          TextField(
-                            controller: _phoneController,
-                            focusNode: _phoneFocus,
-                            keyboardType: TextInputType.phone,
-                            textInputAction: TextInputAction.done,
-                            inputFormatters: const [_PhoneFormatter()],
-                            onChanged: (_) => setState(() {}),
-                            onSubmitted: (_) => readyPhone ? _sendCode() : null,
-                            decoration: const InputDecoration(
-                              prefixText: '+86  ',
-                              hintText: '请输入手机号',
+                          const SizedBox(height: 52),
+                          SizedBox(
+                            height: 58,
+                            child: TextField(
+                              controller: _phoneController,
+                              focusNode: _phoneFocus,
+                              keyboardType: TextInputType.phone,
+                              textInputAction: TextInputAction.done,
+                              inputFormatters: const [_PhoneFormatter()],
+                              onChanged: (_) => setState(() {}),
+                              onSubmitted: (_) =>
+                                  readyPhone ? _sendCode() : null,
+                              style: const TextStyle(fontSize: 16),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0xFFF6F6F6),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 22,
+                                ),
+                                prefixIcon: const Padding(
+                                  padding: EdgeInsets.only(left: 22, right: 12),
+                                  child: Center(
+                                    widthFactor: 1,
+                                    child: Text(
+                                      '+86',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Color(0xFF9A9DA2),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                prefixIconConstraints: const BoxConstraints(
+                                  minWidth: 0,
+                                  minHeight: 0,
+                                ),
+                                hintText: '请输入手机号',
+                                hintStyle: const TextStyle(
+                                  color: Color(0xFFB3B5B8),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(29),
+                                  borderSide: BorderSide.none,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(29),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(29),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 11),
+                          const SizedBox(height: 13),
                           Text(
                             '未注册的手机号验证后自动创建账户',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
-                          const SizedBox(height: 30),
+                          const SizedBox(height: 40),
                           Center(
                             child: SizedBox(
-                              width: 52,
-                              height: 52,
+                              width: 64,
+                              height: 64,
                               child: FilledButton(
                                 style: FilledButton.styleFrom(
                                   padding: EdgeInsets.zero,
@@ -170,7 +212,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                       )
                                     : const Icon(
                                         Icons.arrow_forward_rounded,
-                                        size: 23,
+                                        size: 27,
                                       ),
                               ),
                             ),
@@ -204,14 +246,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             onPressed: () => setState(() => _codeStep = false),
             icon: const Icon(Icons.arrow_back_rounded),
           ),
-          const SizedBox(height: 48),
-          Text('输入验证码', style: Theme.of(context).textTheme.headlineLarge),
-          const SizedBox(height: 10),
+          const SizedBox(height: 52),
+          Text(
+            '输入验证码',
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+              fontSize: 26,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 18),
           Text(
             '验证码已发送至 +86 ${_phoneController.text}',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
-          const SizedBox(height: 38),
+          const SizedBox(height: 52),
           Stack(
             children: [
               Positioned.fill(
@@ -245,18 +293,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         : '';
                     return Expanded(
                       child: Container(
-                        height: 48,
-                        margin: EdgeInsets.only(right: index == 3 ? 0 : 14),
+                        height: 44,
+                        margin: EdgeInsets.only(right: index == 3 ? 0 : 28),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
                               color: index == _codeController.text.length
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).dividerColor,
-                              width: index == _codeController.text.length
-                                  ? 2
-                                  : 1,
+                                  ? const Color(0xFF303136)
+                                  : const Color(0xFFC8C9CC),
+                              width: 2,
                             ),
                           ),
                         ),
@@ -271,7 +317,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 38),
           TextButton(
             style: TextButton.styleFrom(
               padding: EdgeInsets.zero,
@@ -299,11 +345,13 @@ class _Agreement extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         SizedBox(
-          width: 28,
-          height: 28,
+          width: 20,
+          height: 20,
           child: Checkbox(
             value: checked,
             onChanged: (value) => onChanged(value ?? false),
+            shape: const CircleBorder(),
+            side: const BorderSide(color: Color(0xFFC8CACF)),
           ),
         ),
         Flexible(

@@ -56,7 +56,7 @@ class _BasicCertificationPageState
     body: _loading
         ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
         : ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
             children: [
               Card(
                 child: Column(
