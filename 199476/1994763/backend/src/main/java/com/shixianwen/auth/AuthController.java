@@ -24,9 +24,14 @@ public class AuthController {
     @PostMapping("/verification-codes")
     public ApiResponse<Map<String, Object>> sendCode(
         @Valid @RequestBody PhoneRequest request,
-        @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform
+        @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform,
+        HttpServletRequest servletRequest
     ) {
-        authService.sendVerificationCode(request.phone(), isAppClient(clientPlatform));
+        authService.sendVerificationCode(
+            request.phone(),
+            clientNetworkService.resolve(servletRequest).ipAddress(),
+            isAppClient(clientPlatform)
+        );
         return ApiResponse.ok(Map.of("sent", true, "expiresIn", 300));
     }
 

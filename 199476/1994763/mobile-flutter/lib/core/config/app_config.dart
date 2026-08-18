@@ -14,9 +14,12 @@ abstract final class AppConfig {
       return parsed;
     }
     final apiUri = Uri.parse(apiBaseUrl);
+    final relative = Uri.parse(value);
     return apiUri.replace(
-      path: value.startsWith('/') ? value : '/$value',
-      query: null,
+      path: relative.path.startsWith('/')
+          ? relative.path
+          : '/${relative.path}',
+      query: relative.hasQuery ? relative.query : null,
     );
   }
 

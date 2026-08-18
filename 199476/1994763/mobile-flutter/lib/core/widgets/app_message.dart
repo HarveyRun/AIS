@@ -15,10 +15,7 @@ class AppMessage {
           color: Colors.black,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Text(
-          text.trim(),
-          style: const TextStyle(color: Colors.white),
-        ),
+        child: Text(text.trim(), style: const TextStyle(color: Colors.white)),
       ),
     );
   }

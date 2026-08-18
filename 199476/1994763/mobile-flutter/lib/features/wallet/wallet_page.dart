@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:tobias/tobias.dart' as tobias;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/providers.dart';
 import '../../core/formatters/money_formatter.dart';
+import '../../core/config/app_config.dart';
 import '../../core/theme/app_status_style.dart';
 import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/app_message.dart';
@@ -97,14 +99,26 @@ class _WalletPageState extends ConsumerState<WalletPage> {
         final order = await ref
             .read(repositoryProvider)
             .createRecharge(amount.toDouble());
-        final paymentUrl = order['paymentUrl']?.toString() ?? '';
-        if (paymentUrl.isNotEmpty) {
+        final paymentPayload = order['paymentPayload']?.toString() ?? '';
+        final paymentMode = capability['paymentMode']?.toString() ?? '';
+        if (paymentPayload.isEmpty) {
+          throw Exception('支付信息生成失败');
+        }
+        final mockPayment =
+            paymentMode == 'MOCK_WEB' ||
+            paymentPayload.startsWith('/api/recharges/mock-cashier');
+        final alipayAppPayment =
+            paymentMode == 'ALIPAY_APP' ||
+            _looksLikeAlipayAppOrder(paymentPayload);
+        if (alipayAppPayment) {
+          await _payWithAlipayApp(order, paymentPayload);
+        } else if (mockPayment) {
           await launchUrl(
-            Uri.parse(paymentUrl),
+            AppConfig.resolveResource(paymentPayload),
             mode: LaunchMode.externalApplication,
           );
-        } else if (mounted) {
-          AppMessage.show(context, '充值订单已创建，请完成支付宝支付');
+        } else {
+          throw Exception('支付方式返回异常，请稍后重试');
         }
       } else {
         if (_bankCard == null) {
@@ -121,6 +135,39 @@ class _WalletPageState extends ConsumerState<WalletPage> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  Future<void> _payWithAlipayApp(
+    Map<String, dynamic> order,
+    String paymentPayload,
+  ) async {
+    if (!await tobias.Tobias().isAliPayInstalled) {
+      if (mounted) AppMessage.show(context, '请先安装支付宝');
+      return;
+    }
+    final result = await tobias.Tobias().pay(paymentPayload);
+    final resultStatus = result['resultStatus']?.toString() ?? '';
+    if (resultStatus == '6001') {
+      if (mounted) AppMessage.show(context, '支付已取消');
+      return;
+    }
+    if (resultStatus != '9000') {
+      if (mounted) AppMessage.show(context, '支付未完成');
+      return;
+    }
+    final orderNo = order['orderNo']?.toString() ?? '';
+    final latest = await ref.read(repositoryProvider).recharge(orderNo);
+    if (!mounted) return;
+    if (latest['status'] == 'PAID') {
+      AppMessage.show(context, '充值成功');
+    } else {
+      AppMessage.show(context, '支付结果确认中，请稍后刷新');
+    }
+  }
+
+  bool _looksLikeAlipayAppOrder(String payload) {
+    return payload.contains('app_id=') &&
+        payload.contains('method=alipay.trade.app.pay');
   }
 
   @override

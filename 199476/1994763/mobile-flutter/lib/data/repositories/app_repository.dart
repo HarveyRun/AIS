@@ -277,6 +277,10 @@ class AppRepository {
     );
   }
 
+  Future<Map<String, dynamic>> recharge(String orderNo) {
+    return _api.get<Map<String, dynamic>>('/recharges/$orderNo');
+  }
+
   Future<List<CertificationRecord>> certifications() async {
     final data = await _api.get<List<dynamic>>('/certifications/me');
     return data

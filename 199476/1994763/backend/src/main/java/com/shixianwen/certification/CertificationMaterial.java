@@ -33,6 +33,9 @@ public class CertificationMaterial {
     @Column(name = "storage_key", nullable = false, length = 500)
     private String storageKey;
 
+    @Column(name = "public_url", length = 1000)
+    private String publicUrl;
+
     @Column(name = "content_type", length = 100)
     private String contentType;
 

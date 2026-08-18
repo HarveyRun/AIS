@@ -13,13 +13,19 @@ public interface PaymentGateway {
 
     PaymentNotification verifyNotification(String payload, Map<String, String> headers);
 
-    record PaymentCapability(String channel, String name, boolean available, String message) {}
+    record PaymentCapability(
+        String channel,
+        String name,
+        boolean available,
+        String message,
+        String paymentMode
+    ) {}
 
     record PaymentOrder(
         String orderNo,
         String channel,
         String providerTradeNo,
-        String paymentUrl,
+        String paymentPayload,
         String status
     ) {}
 

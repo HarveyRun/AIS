@@ -3,14 +3,15 @@ package com.shixianwen.wallet;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.DefaultAlipayClient;
+import com.alipay.api.domain.AlipayTradeAppPayModel;
 import com.alipay.api.domain.AlipayTradeQueryModel;
-import com.alipay.api.domain.AlipayTradeWapPayModel;
 import com.alipay.api.internal.util.AlipaySignature;
+import com.alipay.api.request.AlipayTradeAppPayRequest;
 import com.alipay.api.request.AlipayTradeQueryRequest;
-import com.alipay.api.request.AlipayTradeWapPayRequest;
+import com.alipay.api.response.AlipayTradeAppPayResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.shixianwen.common.BusinessException;
-import org.springframework.beans.factory.annotation.Value;
+import com.shixianwen.integration.ThirdPartySettings;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -30,23 +31,19 @@ public class AlipayPaymentGateway implements PaymentGateway {
     private static final DateTimeFormatter ALIPAY_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final String appId;
+    private final String privateKey;
     private final String publicKey;
     private final String notifyUrl;
-    private final String returnUrl;
     private final AlipayClient client;
 
-    public AlipayPaymentGateway(
-        @Value("${app.payment.alipay.gateway-url}") String gatewayUrl,
-        @Value("${app.payment.alipay.app-id}") String appId,
-        @Value("${app.payment.alipay.private-key}") String privateKey,
-        @Value("${app.payment.alipay.public-key}") String publicKey,
-        @Value("${app.payment.alipay.notify-url}") String notifyUrl,
-        @Value("${app.payment.alipay.return-url}") String returnUrl
-    ) {
-        this.appId = appId;
-        this.publicKey = publicKey;
-        this.notifyUrl = notifyUrl;
-        this.returnUrl = returnUrl;
+    public AlipayPaymentGateway(ThirdPartySettings settings) {
+        String gatewayUrl = settings.value("app.payment.alipay.gateway-url", "alipay.server-url");
+        this.appId = settings.value("app.payment.alipay.app-id", "alipay.app-id");
+        this.privateKey = settings.value("app.payment.alipay.private-key");
+        this.publicKey = settings.value("app.payment.alipay.public-key");
+        this.notifyUrl = normalizeLegacyNotifyUrl(
+            settings.value("app.payment.alipay.notify-url", "alipay.notify-url")
+        );
         this.client = new DefaultAlipayClient(
             gatewayUrl, appId, privateKey, "json", CHARSET, publicKey, SIGN_TYPE
         );
@@ -54,31 +51,42 @@ public class AlipayPaymentGateway implements PaymentGateway {
 
     @Override
     public PaymentCapability capability() {
-        boolean configured = hasText(appId) && hasText(publicKey) && hasText(notifyUrl);
+        boolean configured = hasText(appId) && hasText(privateKey) && hasText(publicKey);
         return new PaymentCapability(
             "ALIPAY",
             "支付宝",
             configured,
-            configured ? "可用" : "支付宝参数未配置完整"
+            configured ? "可用" : "支付宝参数未配置完整",
+            "ALIPAY_APP"
         );
     }
 
     @Override
     public PaymentOrder createOrder(String orderNo, BigDecimal amount, String subject) {
         ensureConfigured();
-        AlipayTradeWapPayModel model = new AlipayTradeWapPayModel();
+        AlipayTradeAppPayModel model = new AlipayTradeAppPayModel();
         model.setOutTradeNo(orderNo);
         model.setTotalAmount(amount.toPlainString());
         model.setSubject(subject);
-        model.setProductCode("QUICK_WAP_WAY");
+        model.setProductCode("QUICK_MSECURITY_PAY");
 
-        AlipayTradeWapPayRequest request = new AlipayTradeWapPayRequest();
+        AlipayTradeAppPayRequest request = new AlipayTradeAppPayRequest();
         request.setBizModel(model);
-        request.setNotifyUrl(notifyUrl);
-        if (hasText(returnUrl)) request.setReturnUrl(returnUrl);
+        if (hasText(notifyUrl)) {
+            request.setNotifyUrl(notifyUrl);
+        }
         try {
-            String paymentUrl = client.pageExecute(request, "GET").getBody();
-            return new PaymentOrder(orderNo, "ALIPAY", null, paymentUrl, "WAITING_FOR_PAYMENT");
+            AlipayTradeAppPayResponse response = client.sdkExecute(request);
+            if (!response.isSuccess() || !hasText(response.getBody())) {
+                throw BusinessException.serviceUnavailable("支付宝支付单创建失败");
+            }
+            return new PaymentOrder(
+                orderNo,
+                "ALIPAY",
+                null,
+                response.getBody(),
+                "WAITING_FOR_PAYMENT"
+            );
         } catch (AlipayApiException exception) {
             throw BusinessException.serviceUnavailable("支付宝支付单创建失败");
         }
@@ -155,6 +163,11 @@ public class AlipayPaymentGateway implements PaymentGateway {
             values.put(name, value);
         }
         return values;
+    }
+
+    private static String normalizeLegacyNotifyUrl(String value) {
+        if (value == null) return "";
+        return value.replace("/pay/ali/callback", "/api/recharges/payment-callback");
     }
 
     private static BigDecimal decimal(String value) {

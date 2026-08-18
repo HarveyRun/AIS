@@ -45,7 +45,7 @@ public class RechargeService {
         item.setOrderNo("SXW" + UUID.randomUUID().toString().replace("-", "").toUpperCase()); item.setStatus("PENDING");
         item = recharges.save(item);
         PaymentGateway.PaymentOrder order = gateway.createOrder(item.getOrderNo(), amount, "事先问账户充值");
-        return RechargeView.of(item, order.paymentUrl());
+        return RechargeView.of(item, order.paymentPayload());
     }
 
     public List<RechargeView> list(Long userId) { return recharges.findByUserIdOrderByCreatedAtDesc(userId).stream().map(i -> RechargeView.of(i, null)).toList(); }
@@ -58,7 +58,7 @@ public class RechargeService {
         if ("PENDING".equals(item.getStatus()) && !(gateway instanceof MockAlipayGateway)) {
             PaymentGateway.PaymentStatus status = gateway.queryOrder(orderNo);
             if ("PAID".equals(status.status())) {
-                applyPaid(item, status.paidAmount(), status.paidAt());
+                applyPaid(item, status.providerTradeNo(), status.paidAmount(), status.paidAt());
             }
         }
         return RechargeView.of(item, null);
@@ -76,7 +76,7 @@ public class RechargeService {
         ensureMockGateway();
         Recharge item = recharges.findByOrderNo(orderNo)
             .orElseThrow(() -> BusinessException.notFound("充值订单不存在"));
-        applyPaid(item, item.getAmount(), LocalDateTime.now());
+        applyPaid(item, null, item.getAmount(), LocalDateTime.now());
     }
 
     @Transactional
@@ -85,16 +85,27 @@ public class RechargeService {
         if (!"PAID".equals(notification.status())) return;
         Recharge item = recharges.findByOrderNo(notification.orderNo())
             .orElseThrow(() -> BusinessException.notFound("充值订单不存在"));
-        applyPaid(item, notification.paidAmount(), notification.paidAt());
+        applyPaid(
+            item,
+            notification.providerTradeNo(),
+            notification.paidAmount(),
+            notification.paidAt()
+        );
     }
 
-    private void applyPaid(Recharge item, BigDecimal paidAmount, LocalDateTime paidAt) {
+    private void applyPaid(
+        Recharge item,
+        String providerTradeNo,
+        BigDecimal paidAmount,
+        LocalDateTime paidAt
+    ) {
         if ("PAID".equals(item.getStatus())) return;
         if (!"PENDING".equals(item.getStatus())) throw BusinessException.badRequest("订单状态异常");
         if (paidAmount == null || item.getAmount().compareTo(paidAmount) != 0) {
             throw BusinessException.badRequest("支付金额与充值订单不一致");
         }
         item.setStatus("PAID");
+        item.setProviderTradeNo(providerTradeNo);
         item.setPaidAt(paidAt == null ? LocalDateTime.now() : paidAt);
         wallet.creditRecharge(item.getUser().getId(), item.getAmount(), item.getId());
     }
@@ -105,8 +116,14 @@ public class RechargeService {
         }
     }
 
-    public record RechargeView(Long id, String orderNo, String channel, BigDecimal amount, String status,
-                               String paymentUrl, LocalDateTime paidAt, LocalDateTime createdAt) {
-        static RechargeView of(Recharge i, String url) { return new RechargeView(i.getId(), i.getOrderNo(), i.getChannel(), i.getAmount(), i.getStatus(), url, i.getPaidAt(), i.getCreatedAt()); }
+    public record RechargeView(Long id, String orderNo, String providerTradeNo, String channel,
+                               BigDecimal amount, String status, String paymentPayload,
+                               LocalDateTime paidAt, LocalDateTime createdAt) {
+        static RechargeView of(Recharge i, String payload) {
+            return new RechargeView(
+                i.getId(), i.getOrderNo(), i.getProviderTradeNo(), i.getChannel(), i.getAmount(),
+                i.getStatus(), payload, i.getPaidAt(), i.getCreatedAt()
+            );
+        }
     }
 }

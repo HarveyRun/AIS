@@ -9,7 +9,7 @@ import java.util.Map;
 public class MockAlipayGateway implements PaymentGateway {
     @Override
     public PaymentCapability capability() {
-        return new PaymentCapability("ALIPAY", "支付宝", true, "开发环境模拟支付");
+        return new PaymentCapability("ALIPAY", "支付宝", true, "开发环境模拟支付", "MOCK_WEB");
     }
 
     @Override

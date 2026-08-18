@@ -11,27 +11,27 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AuthServiceTest {
     private AppTestLoginAccountService testAccountService;
-    private VerificationCodeSender verificationCodeSender;
+    private VerificationCodeService verificationCodeService;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         testAccountService = mock(AppTestLoginAccountService.class);
-        verificationCodeSender = mock(VerificationCodeSender.class);
+        verificationCodeService = mock(VerificationCodeService.class);
         authService = new AuthService(
             mock(UserRepository.class),
             mock(AuthSessionRepository.class),
             mock(WalletAccountRepository.class),
             mock(UserLoginRecordRepository.class),
             testAccountService,
-            verificationCodeSender,
-            "1234",
+            verificationCodeService,
             30
         );
     }
@@ -41,9 +41,9 @@ class AuthServiceTest {
         when(testAccountService.activeVerificationCode("19900000000"))
             .thenReturn(Optional.of("5678"));
 
-        authService.sendVerificationCode("19900000000", true);
+        authService.sendVerificationCode("19900000000", "127.0.0.1", true);
 
-        verify(verificationCodeSender, never()).send("19900000000");
+        verify(verificationCodeService, never()).send("19900000000", "127.0.0.1");
     }
 
     @Test
@@ -51,9 +51,9 @@ class AuthServiceTest {
         when(testAccountService.activeVerificationCode("18800000000"))
             .thenReturn(Optional.empty());
 
-        authService.sendVerificationCode("18800000000", true);
+        authService.sendVerificationCode("18800000000", "127.0.0.1", true);
 
-        verify(verificationCodeSender).send("18800000000");
+        verify(verificationCodeService).send("18800000000", "127.0.0.1");
     }
 
     @Test
@@ -72,6 +72,8 @@ class AuthServiceTest {
     void regularPhoneKeepsNormalVerificationRule() {
         when(testAccountService.activeVerificationCode("18800000000"))
             .thenReturn(Optional.empty());
+        doThrow(BusinessException.badRequest("验证码不正确"))
+            .when(verificationCodeService).verify("18800000000", "5678");
 
         assertDoesNotThrow(() -> authService.validateCode("18800000000", "1234", true));
         assertThrows(
@@ -82,6 +84,8 @@ class AuthServiceTest {
 
     @Test
     void webClientCannotUseAppTestAccountCode() {
+        doThrow(BusinessException.badRequest("验证码不正确"))
+            .when(verificationCodeService).verify("19900000000", "5678");
         assertDoesNotThrow(() -> authService.validateCode("19900000000", "1234", false));
         assertThrows(
             BusinessException.class,
@@ -92,9 +96,9 @@ class AuthServiceTest {
 
     @Test
     void webClientDoesNotBypassSmsSender() {
-        authService.sendVerificationCode("19900000000", false);
+        authService.sendVerificationCode("19900000000", "127.0.0.1", false);
 
-        verify(verificationCodeSender).send("19900000000");
+        verify(verificationCodeService).send("19900000000", "127.0.0.1");
         verify(testAccountService, never()).activeVerificationCode("19900000000");
     }
 }

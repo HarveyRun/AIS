@@ -165,6 +165,7 @@ public class CertificationService {
             material.setMaterialKind(kindOf(file));
             material.setOriginalName(file.getOriginalFilename() == null ? "材料" : file.getOriginalFilename());
             material.setStorageKey(stored.storageKey());
+            material.setPublicUrl(stored.publicUrl());
             material.setContentType(stored.contentType());
             material.setFileSize(stored.size());
             certification.getMaterials().add(material);
@@ -249,7 +250,10 @@ public class CertificationService {
         static MaterialView from(CertificationMaterial material) {
             return new MaterialView(
                     material.getId(), material.getMaterialKind(), material.getOriginalName(),
-                    "/uploads/" + material.getStorageKey(), material.getFileSize(), material.getContentType());
+                    material.getPublicUrl() == null || material.getPublicUrl().isBlank()
+                            ? "/uploads/" + material.getStorageKey()
+                            : material.getPublicUrl(),
+                    material.getFileSize(), material.getContentType());
         }
     }
 

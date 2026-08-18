@@ -36,7 +36,7 @@ class RechargeServiceTest {
 
         RechargeService.RechargeView created = service.create(1L, new BigDecimal("12"));
         assertEquals("PENDING", created.status());
-        assertTrue(created.paymentUrl().startsWith("/api/recharges/mock-cashier?orderNo="));
+        assertTrue(created.paymentPayload().startsWith("/api/recharges/mock-cashier?orderNo="));
 
         Recharge stored = new Recharge();
         stored.setUser(user);

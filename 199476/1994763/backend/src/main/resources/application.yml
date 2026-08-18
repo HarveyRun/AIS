@@ -34,11 +34,29 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174}
   storage:
     root: ${STORAGE_ROOT:./uploads}
+    provider: ${STORAGE_PROVIDER:oss}
+    oss:
+      endpoint: ${OSS_ENDPOINT:}
+      access-key-id: ${OSS_ACCESS_KEY_ID:}
+      access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+      bucket: ${OSS_BUCKET:}
+      public-domain: ${OSS_PUBLIC_DOMAIN:}
   content:
     sensitive-words-file: ${SENSITIVE_WORDS_FILE:./sensitiveWords.txt}
   auth:
     token-valid-days: 30
     demo-verification-code: ${DEMO_VERIFICATION_CODE:1234}
+    verification-code-pepper: ${VERIFICATION_CODE_PEPPER:shixianwen-local-change-me}
+  integrations:
+    legacy-properties-file: ${LEGACY_THIRD_PARTY_PROPERTIES:D:/Harvey/elephant/src/main/resources/application.properties}
+  sms:
+    provider: ${SMS_PROVIDER:aliyun}
+    aliyun:
+      access-key-id: ${ALIBABA_CLOUD_ACCESS_KEY_ID:}
+      access-key-secret: ${ALIBABA_CLOUD_ACCESS_KEY_SECRET:}
+      endpoint: ${ALIYUN_SMS_ENDPOINT:dysmsapi.aliyuncs.com}
+      sign-name: ${ALIYUN_SMS_SIGN_NAME:北京小脚丫科技}
+      template-code: ${ALIYUN_SMS_TEMPLATE_CODE:SMS_496030223}
   network:
     trusted-proxies: ${TRUSTED_PROXIES:127.0.0.1,0:0:0:0:0:0:0:1,::1}
   ip-location:

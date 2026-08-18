@@ -25,9 +25,8 @@ public class AuthService {
     private final WalletAccountRepository walletAccountRepository;
     private final UserLoginRecordRepository loginRecordRepository;
     private final AppTestLoginAccountService appTestLoginAccountService;
-    private final VerificationCodeSender verificationCodeSender;
+    private final VerificationCodeService verificationCodeService;
     private final SecureRandom secureRandom = new SecureRandom();
-    private final String verificationCode;
     private final int tokenValidDays;
 
     public AuthService(
@@ -36,8 +35,7 @@ public class AuthService {
         WalletAccountRepository walletAccountRepository,
         UserLoginRecordRepository loginRecordRepository,
         AppTestLoginAccountService appTestLoginAccountService,
-        VerificationCodeSender verificationCodeSender,
-        @Value("${app.auth.demo-verification-code}") String verificationCode,
+        VerificationCodeService verificationCodeService,
         @Value("${app.auth.token-valid-days}") int tokenValidDays
     ) {
         this.userRepository = userRepository;
@@ -45,25 +43,28 @@ public class AuthService {
         this.walletAccountRepository = walletAccountRepository;
         this.loginRecordRepository = loginRecordRepository;
         this.appTestLoginAccountService = appTestLoginAccountService;
-        this.verificationCodeSender = verificationCodeSender;
-        this.verificationCode = verificationCode;
+        this.verificationCodeService = verificationCodeService;
         this.tokenValidDays = tokenValidDays;
     }
 
-    public void sendVerificationCode(String phone, boolean appClient) {
+    public void sendVerificationCode(String phone, String requestIp, boolean appClient) {
         if (appClient && appTestLoginAccountService.activeVerificationCode(phone).isPresent()) {
             return;
         }
-        verificationCodeSender.send(phone);
+        verificationCodeService.send(phone, requestIp);
     }
 
     public void validateCode(String phone, String code, boolean appClient) {
-        String expectedCode = appClient
-            ? appTestLoginAccountService.activeVerificationCode(phone).orElse(verificationCode)
-            : verificationCode;
-        if (!expectedCode.equals(code)) {
-            throw BusinessException.badRequest("验证码不正确");
+        if (appClient) {
+            var appTestCode = appTestLoginAccountService.activeVerificationCode(phone);
+            if (appTestCode.isPresent()) {
+                if (!appTestCode.get().equals(code)) {
+                    throw BusinessException.badRequest("验证码不正确");
+                }
+                return;
+            }
         }
+        verificationCodeService.verify(phone, code);
     }
 
     @Transactional

@@ -53,7 +53,7 @@ public class AdminManagementService {
         return new PageResult(rows,total,page,size);
     }
     public List<Map<String,Object>> certificationMaterials(Long id) {
-        return jdbc.queryForList("SELECT id,material_kind AS kind,original_name AS name,CONCAT('/uploads/',storage_key) AS url,content_type AS contentType,file_size AS size FROM certification_materials WHERE certification_id=? AND deleted_at IS NULL ORDER BY id",id);
+        return jdbc.queryForList("SELECT id,material_kind AS kind,original_name AS name,COALESCE(NULLIF(public_url,''),CONCAT('/uploads/',storage_key)) AS url,content_type AS contentType,file_size AS size FROM certification_materials WHERE certification_id=? AND deleted_at IS NULL ORDER BY id",id);
     }
     @Transactional public void reviewCertification(AdminUser admin,Long id,boolean approved,String reason,Long jobId,Integer years,Long experienceId,String ip) {
         if(!approved && (reason==null||reason.isBlank())) throw BusinessException.badRequest("驳回时请填写原因");
