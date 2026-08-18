@@ -25,5 +25,5 @@ public class WalletController {
     @GetMapping("/withdrawals") public ApiResponse<List<WalletService.WithdrawalView>> withdrawals(@CurrentUser User u) { return ApiResponse.ok(service.withdrawals(u.getId())); }
 
     public record BankCardRequest(@NotBlank String holderName, @NotBlank String bankName, @NotBlank String cardNumber) {}
-    public record AmountRequest(@NotNull @DecimalMin("0.01") @Digits(integer = 12, fraction = 2) BigDecimal amount) {}
+    public record AmountRequest(@NotNull @DecimalMin("1") @DecimalMax("9999") @Digits(integer = 4, fraction = 0) BigDecimal amount) {}
 }

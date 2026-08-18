@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../app/providers.dart';
+import '../../core/theme/app_status_style.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/certification_models.dart';
 import '../../data/repositories/app_repository.dart';
@@ -97,7 +98,7 @@ class _BasicCertificationApplyPageState
     return Scaffold(
       appBar: AppBar(title: Text(_identity ? '实名认证' : '我的岗位')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(17, 8, 17, 110),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 110),
         children: [
           if (record != null) ...[
             _Status(record: record),
@@ -105,7 +106,7 @@ class _BasicCertificationApplyPageState
           ],
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(17),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -215,7 +216,7 @@ class _BasicCertificationApplyPageState
       bottomNavigationBar: !_editable
           ? null
           : SafeArea(
-              minimum: const EdgeInsets.fromLTRB(17, 8, 17, 12),
+              minimum: const EdgeInsets.fromLTRB(10, 8, 10, 12),
               child: FilledButton(
                 onPressed: _submitting ? null : _submit,
                 child: _submitting
@@ -239,10 +240,11 @@ class _Status extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = record.status.toUpperCase();
+    final style = appStatusStyle(context, status);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: style.background,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -253,6 +255,7 @@ class _Status extends StatelessWidget {
                 : status == 'REJECTED'
                 ? Icons.error_outline_rounded
                 : Icons.schedule_rounded,
+            color: style.foreground,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -264,6 +267,10 @@ class _Status extends StatelessWidget {
                         ? '请修改后重新提交'
                         : record.rejectionReason)
                   : '正在审核',
+              style: TextStyle(
+                color: style.foreground,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

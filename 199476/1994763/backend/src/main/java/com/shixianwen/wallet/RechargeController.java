@@ -5,6 +5,8 @@ import com.shixianwen.common.ApiResponse;
 import com.shixianwen.user.User;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +42,7 @@ public class RechargeController {
             "<title>支付宝模拟收银台</title><style>body{margin:0;background:#f5f5f5;font-family:sans-serif;color:#222}" +
             ".card{max-width:420px;margin:60px auto;background:#fff;padding:28px;border-radius:18px;box-shadow:0 8px 30px #0001}" +
             "h1{font-size:20px}strong{display:block;font-size:34px;margin:28px 0;color:#1677ff}button{width:100%;border:0;border-radius:12px;padding:14px;background:#1677ff;color:#fff;font-size:16px}</style>" +
-            "<div class=\"card\"><h1>支付宝模拟收银台</h1><p>订单号：" + order.orderNo() + "</p><strong>¥" + order.amount() + "</strong>" +
+            "<div class=\"card\"><h1>支付宝模拟收银台</h1><p>订单号：" + order.orderNo() + "</p><strong>¥" + order.amount().stripTrailingZeros().toPlainString() + "</strong>" +
             "<form method=\"post\" action=\"/api/recharges/mock-payment\"><input type=\"hidden\" name=\"orderNo\" value=\"" + order.orderNo() + "\">" +
             "<button type=\"submit\">确认支付</button></form></div></html>";
     }
@@ -51,5 +53,5 @@ public class RechargeController {
             .location(URI.create(mockReturnUrl + "?recharge=success&orderNo=" + orderNo))
             .build();
     }
-    public record Request(@NotNull @DecimalMin("0.01") BigDecimal amount) {}
+    public record Request(@NotNull @DecimalMin("1") @DecimalMax("9999") @Digits(integer=4, fraction=0) BigDecimal amount) {}
 }

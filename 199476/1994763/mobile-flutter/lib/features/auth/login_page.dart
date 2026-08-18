@@ -95,6 +95,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final readyPhone = RegExp(r'^1\d{10}$').hasMatch(_phone);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.dark
           ? const Color(0xFF111214)
@@ -105,7 +106,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ? _buildCodeStep(context)
             : LayoutBuilder(
                 builder: (context, constraints) => SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: constraints.maxHeight,
@@ -144,19 +145,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               style: const TextStyle(fontSize: 16),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: const Color(0xFFF6F6F6),
+                                fillColor: dark
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHigh
+                                    : const Color(0xFFF6F6F6),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 22,
                                 ),
-                                prefixIcon: const Padding(
-                                  padding: EdgeInsets.only(left: 22, right: 12),
+                                prefixIcon: Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 22,
+                                    right: 12,
+                                  ),
                                   child: Center(
                                     widthFactor: 1,
                                     child: Text(
                                       '+86',
                                       style: TextStyle(
                                         fontSize: 14,
-                                        color: Color(0xFF9A9DA2),
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ),
@@ -166,8 +176,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   minHeight: 0,
                                 ),
                                 hintText: '请输入手机号',
-                                hintStyle: const TextStyle(
-                                  color: Color(0xFFB3B5B8),
+                                hintStyle: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(29),
@@ -187,7 +199,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           const SizedBox(height: 13),
                           Text(
                             '未注册的手机号验证后自动创建账户',
-                            style: Theme.of(context).textTheme.bodySmall,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  fontSize: 12,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                           const SizedBox(height: 40),
                           Center(
@@ -236,7 +254,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Widget _buildCodeStep(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -300,8 +318,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           border: Border(
                             bottom: BorderSide(
                               color: index == _codeController.text.length
-                                  ? const Color(0xFF303136)
-                                  : const Color(0xFFC8C9CC),
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
                               width: 2,
                             ),
                           ),
@@ -351,9 +371,12 @@ class _Agreement extends StatelessWidget {
             value: checked,
             onChanged: (value) => onChanged(value ?? false),
             shape: const CircleBorder(),
-            side: const BorderSide(color: Color(0xFFC8CACF)),
+            side: BorderSide(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
+        const SizedBox(width: 8),
         Flexible(
           child: Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,

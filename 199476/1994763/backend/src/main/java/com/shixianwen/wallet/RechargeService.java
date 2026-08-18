@@ -30,8 +30,16 @@ public class RechargeService {
         if (!gateway.capability().available()) {
             throw BusinessException.serviceUnavailable(gateway.capability().message());
         }
-        BigDecimal amount = rawAmount.setScale(2, RoundingMode.HALF_UP);
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) throw BusinessException.badRequest("充值金额必须大于0");
+        if (rawAmount == null) throw BusinessException.badRequest("请输入充值金额");
+        try {
+            rawAmount.setScale(0, RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException exception) {
+            throw BusinessException.badRequest("充值金额只支持整数");
+        }
+        if (rawAmount.compareTo(BigDecimal.ONE) < 0 || rawAmount.compareTo(new BigDecimal("9999")) > 0) {
+            throw BusinessException.badRequest("充值金额必须在1至9999之间");
+        }
+        BigDecimal amount = rawAmount.setScale(2, RoundingMode.UNNECESSARY);
         User user = users.findById(userId).orElseThrow(() -> BusinessException.notFound("用户不存在"));
         Recharge item = new Recharge(); item.setUser(user); item.setAmount(amount);
         item.setOrderNo("SXW" + UUID.randomUUID().toString().replace("-", "").toUpperCase()); item.setStatus("PENDING");

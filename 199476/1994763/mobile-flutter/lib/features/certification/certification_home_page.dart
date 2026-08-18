@@ -73,10 +73,10 @@ class _CertificationHomePageState extends ConsumerState<CertificationHomePage> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(17, 8, 17, 30),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 30),
                 children: [
                   Container(
-                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
@@ -126,12 +126,12 @@ class _CertificationHomePageState extends ConsumerState<CertificationHomePage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 20),
                   Text(
                     _joined ? '答主设置' : '完成以下认证',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Card(
                     child: Column(
                       children: [
@@ -151,7 +151,7 @@ class _CertificationHomePageState extends ConsumerState<CertificationHomePage> {
                             value: accepting,
                             onChanged: _toggleAccepting,
                           ),
-                          const Divider(height: 1, indent: 56),
+                          const SizedBox(height: 4),
                         ],
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(
@@ -165,7 +165,7 @@ class _CertificationHomePageState extends ConsumerState<CertificationHomePage> {
                           onTap: () =>
                               context.push('/profile/certifications/basic'),
                         ),
-                        const Divider(height: 1, indent: 56),
+                        const SizedBox(height: 4),
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,

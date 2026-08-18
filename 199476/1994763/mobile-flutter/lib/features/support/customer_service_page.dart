@@ -2,12 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/providers.dart';
+import '../../core/config/app_config.dart';
+import '../../core/input/app_input_formatters.dart';
 import '../../core/network/realtime_service.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/support_models.dart';
+import '../../data/repositories/app_repository.dart';
 
 class CustomerServicePage extends ConsumerStatefulWidget {
   const CustomerServicePage({super.key});
@@ -19,6 +24,7 @@ class CustomerServicePage extends ConsumerStatefulWidget {
 class _CustomerServicePageState extends ConsumerState<CustomerServicePage> {
   final _controller = TextEditingController();
   final _scroll = ScrollController();
+  final _picker = ImagePicker();
   StreamSubscription<RealtimeEvent>? _subscription;
   List<CustomerServiceMessage> _messages = const [];
   bool _loading = true;
@@ -72,12 +78,51 @@ class _CustomerServicePageState extends ConsumerState<CustomerServicePage> {
       final saved = await ref
           .read(repositoryProvider)
           .sendCustomerServiceMessage(content);
-      if (mounted) setState(() => _messages = [..._messages, saved]);
+      if (mounted) {
+        setState(() => _messages = [..._messages, saved]);
+        _scrollToEnd();
+      }
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     } finally {
       if (mounted) setState(() => _sending = false);
     }
+  }
+
+  Future<void> _sendImage() async {
+    if (_sending) return;
+    final image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 88,
+      maxWidth: 2048,
+    );
+    if (image == null || !mounted) return;
+    setState(() => _sending = true);
+    try {
+      final saved = await ref
+          .read(repositoryProvider)
+          .sendCustomerServiceImage(
+            UploadFile(path: image.path, name: image.name),
+          );
+      if (!mounted) return;
+      setState(() => _messages = [..._messages, saved]);
+      _scrollToEnd();
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  void _scrollToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   @override
@@ -101,7 +146,7 @@ class _CustomerServicePageState extends ConsumerState<CustomerServicePage> {
                         )
                       : ListView.builder(
                           controller: _scroll,
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.fromLTRB(10, 16, 10, 16),
                           itemCount: _messages.length,
                           itemBuilder: (context, index) {
                             final item = _messages[index];
@@ -135,13 +180,49 @@ class _CustomerServicePageState extends ConsumerState<CustomerServicePage> {
                                       ),
                                       decoration: BoxDecoration(
                                         color: item.isMine
-                                            ? const Color(0xFFDFE9F2)
+                                            ? Theme.of(context).brightness ==
+                                                      Brightness.dark
+                                                  ? const Color(0xFF263746)
+                                                  : const Color(0xFFDFE9F2)
                                             : Theme.of(
                                                 context,
                                               ).colorScheme.surface,
                                         borderRadius: BorderRadius.circular(13),
                                       ),
-                                      child: Text(item.content),
+                                      child: item.isImage
+                                          ? ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              child: CachedNetworkImage(
+                                                imageUrl:
+                                                    AppConfig.resolveResource(
+                                                      item.attachmentUrl,
+                                                    ).toString(),
+                                                width: 180,
+                                                fit: BoxFit.cover,
+                                                placeholder: (_, _) =>
+                                                    const SizedBox(
+                                                      width: 180,
+                                                      height: 120,
+                                                      child: Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                errorWidget: (_, _, _) =>
+                                                    const SizedBox(
+                                                      width: 180,
+                                                      height: 100,
+                                                      child: Icon(
+                                                        Icons
+                                                            .broken_image_outlined,
+                                                      ),
+                                                    ),
+                                              ),
+                                            )
+                                          : Text(item.content),
                                     ),
                                     if (item.createdAt != null) ...[
                                       const SizedBox(height: 3),
@@ -174,12 +255,18 @@ class _CustomerServicePageState extends ConsumerState<CustomerServicePage> {
           child: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
               child: Row(
                 children: [
+                  IconButton(
+                    onPressed: _sending ? null : _sendImage,
+                    icon: const Icon(Icons.photo_outlined),
+                    tooltip: '发送图片',
+                  ),
                   Expanded(
                     child: TextField(
                       controller: _controller,
+                      inputFormatters: AppInputFormatters.description(500),
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
                       decoration: const InputDecoration(hintText: '输入消息'),

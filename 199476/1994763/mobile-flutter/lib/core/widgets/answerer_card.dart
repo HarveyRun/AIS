@@ -4,34 +4,41 @@ import '../../data/models/answerer_models.dart';
 import 'app_avatar.dart';
 
 class AnswererCard extends StatelessWidget {
-  const AnswererCard({super.key, required this.answerer, required this.onTap});
+  const AnswererCard({
+    super.key,
+    required this.answerer,
+    required this.onTap,
+    this.flat = false,
+  });
 
   final Answerer answerer;
   final VoidCallback onTap;
+  final bool flat;
 
   @override
   Widget build(BuildContext context) {
     final experience = answerer.experiences.isEmpty
-        ? '暂未填写亲身经历'
+        ? '暂无经历'
         : answerer.experiences.map((item) => item.title).take(1).join();
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
-    final border = dark ? theme.colorScheme.outline : const Color(0xFFE7E1DC);
-    final background = dark
-        ? theme.colorScheme.surface
-        : const Color(0xFFFFFEFD);
+    final background = theme.colorScheme.surface;
 
     return Material(
       color: background,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: border),
+        borderRadius: BorderRadius.circular(flat ? 18 : 20),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
+          padding: EdgeInsets.fromLTRB(
+            flat ? 18 : 16,
+            flat ? 18 : 15,
+            flat ? 18 : 16,
+            flat ? 18 : 16,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -62,16 +69,16 @@ class AnswererCard extends StatelessWidget {
                           'UID ${answerer.uid}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontSize: 10,
-                            color: const Color(0xFF918C87),
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right_rounded,
                     size: 20,
-                    color: Color(0xFF9D9792),
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ],
               ),
@@ -109,10 +116,16 @@ class AnswererCard extends StatelessWidget {
                     ),
                 ],
               ),
-              const Padding(
-                padding: EdgeInsets.only(left: 48, top: 10, bottom: 11),
-                child: Divider(height: 1, color: Color(0xFFEAE5E1)),
-              ),
+              if (flat)
+                const SizedBox(height: 15)
+              else
+                Padding(
+                  padding: const EdgeInsets.only(left: 48, top: 10, bottom: 11),
+                  child: Divider(
+                    height: 1,
+                    color: theme.colorScheme.outlineVariant,
+                  ),
+                ),
               Row(
                 children: [
                   SizedBox(
@@ -120,7 +133,7 @@ class AnswererCard extends StatelessWidget {
                     child: Text(
                       '亲身经历',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF827B75),
+                        color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 10,
                       ),
                     ),
@@ -143,7 +156,9 @@ class AnswererCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontSize: 10,
-                          color: const Color(0xFF60766B),
+                          color: dark
+                              ? const Color(0xFFA7C2B3)
+                              : const Color(0xFF60766B),
                         ),
                       ),
                     ),

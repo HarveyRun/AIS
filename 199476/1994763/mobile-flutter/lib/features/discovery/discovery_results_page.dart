@@ -75,13 +75,13 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                 padding: const EdgeInsets.only(bottom: 32),
                 children: [
                   Container(
-                    margin: const EdgeInsets.fromLTRB(17, 4, 17, 0),
+                    margin: const EdgeInsets.fromLTRB(10, 8, 10, 0),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainer,
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -111,7 +111,7 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                   if (!_experience && (_matter?.jobs.isNotEmpty ?? false)) ...[
                     const SizedBox(height: 18),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 17),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
                         '可能会问到',
                         style: Theme.of(context).textTheme.titleMedium,
@@ -119,7 +119,7 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                     ),
                     const SizedBox(height: 8),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 17),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -128,6 +128,19 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                               (job) => FilterChip(
                                 label: Text(job.name),
                                 selected: _selectedJob == job.name,
+                                showCheckmark: false,
+                                side: BorderSide.none,
+                                selectedColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.surface,
+                                labelStyle: TextStyle(
+                                  color: _selectedJob == job.name
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : Theme.of(context).colorScheme.onSurface,
+                                ),
                                 onSelected: (_) => setState(
                                   () => _selectedJob == job.name
                                       ? _selectedJob = ''
@@ -141,7 +154,7 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                   ],
                   const SizedBox(height: 20),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 17),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Row(
                       children: [
                         Expanded(
@@ -160,9 +173,10 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                   const SizedBox(height: 9),
                   for (var index = 0; index < people.length; index++) ...[
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 17),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: AnswererCard(
                         answerer: people[index],
+                        flat: true,
                         onTap: () =>
                             context.push('/answerers/${people[index].uid}'),
                       ),
@@ -171,7 +185,7 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                   ],
                   if (people.isEmpty)
                     const Padding(
-                      padding: EdgeInsets.fromLTRB(17, 56, 17, 24),
+                      padding: EdgeInsets.fromLTRB(10, 56, 10, 24),
                       child: Center(child: Text('暂无可交流的人')),
                     ),
                 ],

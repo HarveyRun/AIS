@@ -1,6 +1,7 @@
 package com.shixianwen.inquiry;
 
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.notification.NotificationService;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
@@ -33,6 +34,7 @@ public class InquiryService {
     private final RealtimePublisher realtime;
     private final FileStorage fileStorage;
     private final AnswererEligibilityService answererEligibility;
+    private final SensitiveWordService sensitiveWords;
 
     @Transactional
     public InquiryView create(Long questionerId, CreateCommand command, ClientNetworkInfo network) {
@@ -43,9 +45,9 @@ public class InquiryService {
         if (inquiries.existsByQuestionerIdAndAnswererIdAndStatusIn(questionerId, answerer.getId(), OPEN))
             throw BusinessException.badRequest("你们已有一条进行中的询问");
         Inquiry item = new Inquiry();
-        item.setQuestioner(questioner); item.setAnswerer(answerer); item.setTopic(clean(command.topic(), 120));
+        item.setQuestioner(questioner); item.setAnswerer(answerer); item.setTopic(sensitiveWords.mask(clean(command.topic(), 120)));
         item.setSourceType(command.sourceType() == null ? "PROFILE" : command.sourceType());
-        item.setQuestion(required(command.question(), "请填写想问的事情", 1000));
+        item.setQuestion(sensitiveWords.mask(required(command.question(), "请填写想问的事情", 300)));
         item.setRequestIp(network.ipAddress());
         item.setRequestLocation(network.location());
         item.setAmount(command.amount()); item.setStatus("PENDING"); item.setFundsStatus("FROZEN");
@@ -124,7 +126,7 @@ public class InquiryService {
         else item.setAnswererUnreadCount(0);
         InquiryMessage message = new InquiryMessage();
         message.setInquiry(item); message.setSender(user(userId));
-        message.setContent(required(content, "消息不能为空", 2000));
+        message.setContent(sensitiveWords.mask(required(content, "消息不能为空", 500)));
         message = messages.saveAndFlush(message);
         item.setLastMessageAt(message.getCreatedAt());
         Long recipientId = item.getQuestioner().getId().equals(userId)

@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
+import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/answerer_card.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
@@ -18,6 +20,7 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
+  final _random = Random();
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   final _pageController = PageController();
@@ -31,9 +34,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   int _banner = 0;
 
   static const _banners = [
-    ('大多数人都会遇到', '买房、装修，是生活里绕不开的一环', '先问问做过和经历过的人，别稀里糊涂花钱'),
-    ('上班总会遇到点糟心事', '离职、裁员，遇到容易慌？', '找经历过的人聊聊，心里就有底了'),
-    ('家庭的担子', '照顾老人、孩子成长，没人天生就会', '问问过来人，听听日常里管用的经验'),
+    ('买房装修', '大多数人都绕不开', '先问过来人，别稀里糊涂花钱'),
+    ('职场变动', '谁都可能碰上', '先听听别人怎么走过来的，心里就有底了'),
+    ('家庭照顾', '没人天生就会照顾', '听听过来人的经验'),
   ];
 
   @override
@@ -121,12 +124,19 @@ class _HomePageState extends ConsumerState<HomePage> {
     setState(() {});
   }
 
+  void _openRandomDiscovery() {
+    context.push(
+      _random.nextBool() ? '/discover/matters' : '/discover/experiences',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).user!;
     final noticeCount = ref.watch(notificationCountProvider);
+    final theme = Theme.of(context);
     return ColoredBox(
-      color: const Color(0xFFFCFBFA),
+      color: theme.scaffoldBackgroundColor,
       child: SafeArea(
         bottom: false,
         child: RefreshIndicator(
@@ -139,8 +149,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               SliverAppBar(
                 pinned: true,
                 toolbarHeight: 66,
-                titleSpacing: 16,
-                backgroundColor: const Color(0xFFFCFBFA),
+                titleSpacing: 10,
+                backgroundColor: theme.colorScheme.surface,
                 automaticallyImplyLeading: false,
                 title: Row(
                   children: [
@@ -159,11 +169,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                         child: TextField(
                           controller: _searchController,
                           onChanged: _search,
+                          inputFormatters: AppInputFormatters.search,
                           textInputAction: TextInputAction.search,
                           decoration: InputDecoration(
                             hintText: '搜索主职',
                             filled: true,
-                            fillColor: const Color(0xFFF3F2F0),
+                            fillColor: theme.colorScheme.surfaceContainer,
                             contentPadding: EdgeInsets.zero,
                             prefixIcon: const Icon(
                               Icons.search_rounded,
@@ -184,21 +195,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE4E0DC),
-                              ),
+                              borderSide: BorderSide.none,
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE4E0DC),
-                              ),
+                              borderSide: BorderSide.none,
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFD5CFCA),
-                              ),
+                              borderSide: BorderSide.none,
                             ),
                           ),
                         ),
@@ -222,6 +227,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   banners: _banners,
                   active: _banner,
                   onChanged: (value) => setState(() => _banner = value),
+                  onTap: _openRandomDiscovery,
                 ),
               ),
               SliverToBoxAdapter(
@@ -234,7 +240,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(17, 28, 17, 12),
+                padding: const EdgeInsets.fromLTRB(10, 24, 10, 10),
                 sliver: SliverToBoxAdapter(
                   child: Text(
                     '可以帮你的人',
@@ -256,11 +262,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                 )
               else
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(17, 0, 17, 20),
+                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 20),
                   sliver: SliverList.separated(
                     itemCount: _items.length,
                     itemBuilder: (context, index) => AnswererCard(
                       answerer: _items[index],
+                      flat: true,
                       onTap: () =>
                           context.push('/answerers/${_items[index].uid}'),
                     ),
@@ -297,14 +304,18 @@ class _Banner extends StatelessWidget {
     required this.banners,
     required this.active,
     required this.onChanged,
+    required this.onTap,
   });
   final PageController controller;
   final List<(String, String, String)> banners;
   final int active;
   final ValueChanged<int> onChanged;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
     return SizedBox(
       height: 174,
       child: Stack(
@@ -315,67 +326,82 @@ class _Banner extends StatelessWidget {
             itemCount: banners.length,
             itemBuilder: (context, index) {
               final item = banners[index];
-              return Container(
-                margin: const EdgeInsets.fromLTRB(17, 14, 17, 4),
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFEFD),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE9E3DE)),
-                ),
-                child: Stack(
-                  children: [
-                    const Positioned.fill(
-                      child: CustomPaint(painter: _BannerDecorationPainter()),
+              return Semantics(
+                button: true,
+                label: '随机查看按事情或按经历找人',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onTap,
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(10, 14, 10, 4),
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Stack(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFB86F5D),
-                            borderRadius: BorderRadius.circular(7),
-                          ),
-                          child: Text(
-                            '✣  ${item.$1}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _BannerDecorationPainter(
+                              color: dark
+                                  ? theme.colorScheme.primary.withValues(
+                                      alpha: .13,
+                                    )
+                                  : const Color(0xFFF5E9E7),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          item.$2,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: const Color(0xFF1B1A19),
-                                fontSize: 20,
-                                height: 1.32,
-                                fontWeight: FontWeight.w800,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 5,
                               ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 7),
-                        Text(
-                          item.$3,
-                          style: const TextStyle(
-                            color: Color(0xFF8F8984),
-                            fontSize: 10,
-                            height: 1.35,
-                          ),
-                          maxLines: 2,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFB86F5D),
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                              child: Text(
+                                '✣  ${item.$1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              item.$2,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: theme.colorScheme.onSurface,
+                                    fontSize: 20,
+                                    height: 1.32,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              item.$3,
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontSize: 10,
+                                height: 1.35,
+                              ),
+                              maxLines: 2,
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               );
             },
@@ -394,7 +420,7 @@ class _Banner extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: active == index
                         ? const Color(0xFFD7473E)
-                        : const Color(0xFFD5D1CD),
+                        : theme.colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -415,35 +441,32 @@ class _DiscoveryHub extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFFCFBFA),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 17),
-        child: Row(
-          children: [
-            Expanded(
-              child: _DiscoveryEntry(
-                icon: Icons.search_rounded,
-                title: '按事情',
-                subtitle: '先看看应该问哪些人',
-                borderColor: const Color(0xFFE8D2CA),
-                iconColor: const Color(0xFFD9473E),
-                onTap: onMatters,
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: _DiscoveryEntry(
+              icon: Icons.search_rounded,
+              title: '按事情',
+              subtitle: '先看看应该问哪些人',
+              borderColor: const Color(0xFFE8D2CA),
+              iconColor: const Color(0xFFD9473E),
+              onTap: onMatters,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _DiscoveryEntry(
-                icon: Icons.route_outlined,
-                title: '按经历',
-                subtitle: '找经历过的人',
-                borderColor: const Color(0xFFCEE2D8),
-                iconColor: const Color(0xFF4E8E70),
-                onTap: onExperiences,
-              ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _DiscoveryEntry(
+              icon: Icons.route_outlined,
+              title: '按经历',
+              subtitle: '找经历过的人',
+              borderColor: const Color(0xFFCEE2D8),
+              iconColor: const Color(0xFF4E8E70),
+              onTap: onExperiences,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -467,12 +490,13 @@ class _DiscoveryEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
     return Material(
-      color: const Color(0xFFFFFEFD),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: borderColor),
-      ),
+      color: dark
+          ? iconColor.withValues(alpha: .12)
+          : borderColor.withValues(alpha: .22),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -503,10 +527,10 @@ class _DiscoveryEntry extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 17,
-                color: Color(0xFF9D9792),
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ],
           ),
@@ -517,17 +541,20 @@ class _DiscoveryEntry extends StatelessWidget {
 }
 
 class _BannerDecorationPainter extends CustomPainter {
-  const _BannerDecorationPainter();
+  const _BannerDecorationPainter({required this.color});
+
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFF5E9E7)
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 18;
     canvas.drawCircle(Offset(size.width - 18, 42), 83, paint);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _BannerDecorationPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

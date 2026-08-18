@@ -15,11 +15,20 @@ class FaqPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('常见问题')),
     body: ListView.separated(
-      padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
       itemCount: _items.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 9),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, index) => Card(
         child: ExpansionTile(
+          initiallyExpanded: index == 0,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(18)),
+            side: BorderSide.none,
+          ),
+          collapsedShape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(18)),
+            side: BorderSide.none,
+          ),
           tilePadding: const EdgeInsets.symmetric(horizontal: 15),
           childrenPadding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
           title: Text(

@@ -8,7 +8,10 @@ import 'package:intl/intl.dart';
 
 import '../../app/providers.dart';
 import '../../core/config/app_config.dart';
+import '../../core/formatters/money_formatter.dart';
+import '../../core/input/app_input_formatters.dart';
 import '../../core/network/realtime_service.dart';
+import '../../core/theme/app_status_style.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/inquiry_models.dart';
@@ -22,8 +25,10 @@ class ChatPage extends ConsumerStatefulWidget {
   ConsumerState<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends ConsumerState<ChatPage> {
+class _ChatPageState extends ConsumerState<ChatPage>
+    with WidgetsBindingObserver {
   final _textController = TextEditingController();
+  final _composerFocusNode = FocusNode();
   final _scrollController = ScrollController();
   final _picker = ImagePicker();
   StreamSubscription<RealtimeEvent>? _subscription;
@@ -54,6 +59,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
     _subscription = ref.read(realtimeProvider).events.listen((event) {
       final inquiryId = int.tryParse(
@@ -68,10 +74,17 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
     _textController.dispose();
+    _composerFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    _scheduleScrollToEnd(animate: false);
   }
 
   Future<void> _load({bool silent = false}) async {
@@ -80,7 +93,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       final detail = await ref.read(repositoryProvider).inquiry(widget.id);
       if (!mounted) return;
       setState(() => _detail = detail);
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
+      _scheduleScrollToEnd(animate: false);
       await ref.read(repositoryProvider).markInquiryRead(widget.id);
     } catch (error) {
       if (!silent && mounted) AppMessage.show(context, '$error');
@@ -89,13 +102,33 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     }
   }
 
-  void _scrollToEnd() {
+  void _scrollToEnd({bool animate = true}) {
     if (!_scrollController.hasClients) return;
-    _scrollController.animateTo(
-      _scrollController.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOut,
-    );
+    final target = _scrollController.position.maxScrollExtent;
+    if (animate) {
+      _scrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _scrollController.jumpTo(target);
+    }
+  }
+
+  void _scheduleScrollToEnd({bool animate = true}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollToEnd(animate: animate);
+      Future<void>.delayed(const Duration(milliseconds: 120), () {
+        if (!mounted) return;
+        _scrollToEnd(animate: animate);
+      });
+      Future<void>.delayed(const Duration(milliseconds: 360), () {
+        if (!mounted) return;
+        _scrollToEnd(animate: false);
+      });
+    });
   }
 
   Future<void> _sendText() async {
@@ -122,17 +155,20 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         messages: [..._detail!.messages, pending],
       ),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
+    _composerFocusNode.requestFocus();
+    _scheduleScrollToEnd();
     try {
       final saved = await ref
           .read(repositoryProvider)
           .sendInquiryMessage(widget.id, content);
       if (!mounted) return;
-      setState(() => _replaceMessage(pending.id, saved));
+      setState(() => _detail = _replaceMessage(pending.id, saved));
+      _composerFocusNode.requestFocus();
+      _scheduleScrollToEnd();
     } catch (error) {
       if (!mounted) return;
       setState(
-        () => _replaceMessage(
+        () => _detail = _replaceMessage(
           pending.id,
           pending.copyWith(sending: false, failed: true),
         ),
@@ -142,18 +178,51 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   }
 
   InquiryDetail _replaceMessage(String id, ChatMessage replacement) {
-    return InquiryDetail(
-      inquiry: _detail!.inquiry,
-      messages: _detail!.messages
-          .map((item) => item.id == id ? replacement : item)
-          .toList(),
-    );
+    final messages = <ChatMessage>[];
+    var replaced = false;
+    for (final item in _detail!.messages) {
+      if (item.id == id) {
+        if (!messages.any((message) => message.id == replacement.id)) {
+          messages.add(replacement);
+        }
+        replaced = true;
+      } else if (item.id != replacement.id) {
+        messages.add(item);
+      }
+    }
+    if (!replaced && !messages.any((item) => item.id == replacement.id)) {
+      messages.add(replacement);
+    }
+    return InquiryDetail(inquiry: _detail!.inquiry, messages: messages);
   }
 
-  Future<void> _sendPhoto() async {
+  Future<void> _retryMessage(ChatMessage failedMessage) async {
+    if (failedMessage.sending || !(_detail?.inquiry.canChat ?? false)) return;
+    final sending = failedMessage.copyWith(sending: true, failed: false);
+    setState(() => _detail = _replaceMessage(failedMessage.id, sending));
+    _scheduleScrollToEnd();
+    try {
+      final saved = await ref
+          .read(repositoryProvider)
+          .sendInquiryMessage(widget.id, failedMessage.content);
+      if (!mounted) return;
+      setState(() => _detail = _replaceMessage(failedMessage.id, saved));
+    } catch (error) {
+      if (!mounted) return;
+      setState(
+        () => _detail = _replaceMessage(
+          failedMessage.id,
+          failedMessage.copyWith(sending: false, failed: true),
+        ),
+      );
+      AppMessage.show(context, '$error');
+    }
+  }
+
+  Future<void> _sendPhoto(ImageSource source) async {
     setState(() => _moreOpen = false);
     final image = await _picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 88,
       maxWidth: 2048,
     );
@@ -206,7 +275,13 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           ? const Center(child: Text('询问不存在'))
           : Column(
               children: [
-                _ChatStatus(inquiry: inquiry!, onAction: _action),
+                Container(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF151619)
+                      : const Color(0xFFF2F2F2),
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                  child: _ChatStatus(inquiry: inquiry!, onAction: _action),
+                ),
                 Expanded(
                   child: Container(
                     color: Theme.of(context).brightness == Brightness.dark
@@ -214,7 +289,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                         : const Color(0xFFF2F2F2),
                     child: ListView.builder(
                       controller: _scrollController,
-                      padding: const EdgeInsets.fromLTRB(14, 18, 14, 18),
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: const EdgeInsets.fromLTRB(10, 18, 10, 18),
                       itemCount: detail.messages.length,
                       itemBuilder: (context, index) {
                         final message = detail.messages[index];
@@ -232,6 +309,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                         return _MessageBubble(
                           message: message,
                           showTime: showTime,
+                          onRetry: message.failed
+                              ? () => _retryMessage(message)
+                              : null,
                         );
                       },
                     ),
@@ -239,6 +319,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 ),
                 _Composer(
                   controller: _textController,
+                  focusNode: _composerFocusNode,
                   enabled: canChat,
                   emojiOpen: _emojiOpen,
                   moreOpen: _moreOpen,
@@ -264,7 +345,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   ),
                 if (_moreOpen && canChat)
                   _MorePanel(
-                    onPhoto: _sendPhoto,
+                    onPhoto: () => _sendPhoto(ImageSource.gallery),
+                    onCamera: () => _sendPhoto(ImageSource.camera),
                     onEnd: () {
                       setState(() => _moreOpen = false);
                       final repository = ref.read(repositoryProvider);
@@ -311,6 +393,7 @@ class _ChatStatus extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final repository = ref.read(repositoryProvider);
     final status = inquiry.status.toUpperCase();
+    final statusStyle = appStatusStyle(context, status);
     final text = switch (status) {
       'PENDING' => inquiry.isIncoming ? '等待你的决定' : '等待对方接受',
       'ACTIVE' => '交流进行中',
@@ -323,6 +406,8 @@ class _ChatStatus extends ConsumerWidget {
     };
     return Material(
       color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
         child: Column(
@@ -330,21 +415,29 @@ class _ChatStatus extends ConsumerWidget {
             Row(
               children: [
                 Icon(
-                  status == 'ACTIVE'
-                      ? Icons.chat_bubble_outline_rounded
-                      : Icons.schedule_rounded,
+                  switch (status) {
+                    'ACTIVE' => Icons.chat_bubble_outline_rounded,
+                    'COMPLETED' ||
+                    'ENDED' => Icons.check_circle_outline_rounded,
+                    'REJECTED' ||
+                    'CANCELLED' ||
+                    'EXPIRED' => Icons.error_outline_rounded,
+                    _ => Icons.schedule_rounded,
+                  },
                   size: 18,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: statusStyle.foreground,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     text,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: statusStyle.foreground,
+                    ),
                   ),
                 ),
                 Text(
-                  '¥${inquiry.amount.toStringAsFixed(2)}',
+                  '¥${formatMoney(inquiry.amount)}',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: Theme.of(context).colorScheme.primary,
@@ -415,9 +508,14 @@ class _ChatStatus extends ConsumerWidget {
 }
 
 class _MessageBubble extends ConsumerWidget {
-  const _MessageBubble({required this.message, required this.showTime});
+  const _MessageBubble({
+    required this.message,
+    required this.showTime,
+    this.onRetry,
+  });
   final ChatMessage message;
   final bool showTime;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -462,10 +560,32 @@ class _MessageBubble extends ConsumerWidget {
                         const SizedBox(width: 6),
                       ],
                       if (me && message.failed) ...[
-                        Icon(
-                          Icons.error_rounded,
-                          size: 17,
-                          color: Theme.of(context).colorScheme.error,
+                        InkWell(
+                          onTap: onRetry,
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.error_rounded,
+                                  size: 17,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '发送失败',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.error,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                         const SizedBox(width: 6),
                       ],
@@ -479,7 +599,10 @@ class _MessageBubble extends ConsumerWidget {
                                 ),
                           decoration: BoxDecoration(
                             color: me
-                                ? const Color(0xFFDFE9F2)
+                                ? Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? const Color(0xFF263746)
+                                      : const Color(0xFFDFE9F2)
                                 : Theme.of(context).colorScheme.surface,
                             borderRadius: me
                                 ? const BorderRadius.only(
@@ -500,12 +623,32 @@ class _MessageBubble extends ConsumerWidget {
                                   message.attachmentUrl.isNotEmpty
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
-                                  child: Image.network(
-                                    AppConfig.resolveResource(
-                                      message.attachmentUrl,
-                                    ).toString(),
-                                    width: 180,
-                                    fit: BoxFit.cover,
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => _ChatImageViewer(
+                                          imageUrl: AppConfig.resolveResource(
+                                            message.attachmentUrl,
+                                          ).toString(),
+                                        ),
+                                      ),
+                                    ),
+                                    child: Image.network(
+                                      AppConfig.resolveResource(
+                                        message.attachmentUrl,
+                                      ).toString(),
+                                      width: 180,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => const SizedBox(
+                                        width: 180,
+                                        height: 120,
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.broken_image_outlined,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 )
                               : Text(message.content),
@@ -528,9 +671,60 @@ class _MessageBubble extends ConsumerWidget {
   }
 }
 
+class _ChatImageViewer extends StatelessWidget {
+  const _ChatImageViewer({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: const Text('图片'),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 1,
+          maxScale: 5,
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return const SizedBox.square(
+                dimension: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              );
+            },
+            errorBuilder: (_, _, _) => const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.broken_image_outlined,
+                  color: Colors.white70,
+                  size: 38,
+                ),
+                SizedBox(height: 10),
+                Text('图片加载失败', style: TextStyle(color: Colors.white70)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Composer extends StatelessWidget {
   const _Composer({
     required this.controller,
+    required this.focusNode,
     required this.enabled,
     required this.emojiOpen,
     required this.moreOpen,
@@ -539,6 +733,7 @@ class _Composer extends StatelessWidget {
     required this.onMore,
   });
   final TextEditingController controller;
+  final FocusNode focusNode;
   final bool enabled;
   final bool emojiOpen;
   final bool moreOpen;
@@ -556,11 +751,14 @@ class _Composer extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
+              focusNode: focusNode,
               enabled: enabled,
               minLines: 1,
               maxLines: 4,
               textInputAction: TextInputAction.send,
+              onEditingComplete: () {},
               onSubmitted: (_) => onSubmitted(),
+              inputFormatters: AppInputFormatters.description(500),
               decoration: InputDecoration(
                 hintText: enabled ? '说点什么…' : '本次交流暂不能聊天',
                 contentPadding: const EdgeInsets.symmetric(
@@ -616,8 +814,13 @@ class _EmojiPanel extends StatelessWidget {
 }
 
 class _MorePanel extends StatelessWidget {
-  const _MorePanel({required this.onPhoto, required this.onEnd});
+  const _MorePanel({
+    required this.onPhoto,
+    required this.onCamera,
+    required this.onEnd,
+  });
   final VoidCallback onPhoto;
+  final VoidCallback onCamera;
   final VoidCallback onEnd;
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -626,6 +829,11 @@ class _MorePanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _MoreItem(icon: Icons.photo_outlined, label: '照片', onTap: onPhoto),
+        _MoreItem(
+          icon: Icons.photo_camera_outlined,
+          label: '拍照',
+          onTap: onCamera,
+        ),
         _MoreItem(icon: Icons.payments_outlined, label: '结束并结算', onTap: onEnd),
       ],
     ),

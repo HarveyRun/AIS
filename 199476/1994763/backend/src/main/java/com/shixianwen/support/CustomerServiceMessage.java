@@ -23,8 +23,16 @@ public class CustomerServiceMessage {
     private User user;
     @Column(name = "sender_type", nullable = false, length = 20)
     private String senderType;
+    @Column(name = "message_type", nullable = false, length = 20)
+    private String messageType = "TEXT";
     @Column(nullable = false, length = 2000)
     private String content;
+    @Column(name = "attachment_url", length = 500)
+    private String attachmentUrl;
+    @Column(name = "attachment_name", length = 255)
+    private String attachmentName;
+    @Column(name = "attachment_size")
+    private Long attachmentSize;
     @Column(name = "read_flag", nullable = false)
     private boolean read;
     @CreationTimestamp

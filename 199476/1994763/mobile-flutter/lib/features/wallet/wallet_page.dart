@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/providers.dart';
+import '../../core/formatters/money_formatter.dart';
+import '../../core/theme/app_status_style.dart';
+import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/wallet_models.dart';
 
@@ -71,9 +75,9 @@ class _WalletPageState extends ConsumerState<WalletPage> {
   }
 
   Future<void> _submit() async {
-    final amount = double.tryParse(_amount.text);
-    if (amount == null || amount <= 0) {
-      AppMessage.show(context, '请输入有效金额');
+    final amount = int.tryParse(_amount.text);
+    if (amount == null || amount <= 0 || amount > 9999) {
+      AppMessage.show(context, '请输入1—9999的整数金额');
       return;
     }
     setState(() => _submitting = true);
@@ -90,7 +94,9 @@ class _WalletPageState extends ConsumerState<WalletPage> {
           );
           return;
         }
-        final order = await ref.read(repositoryProvider).createRecharge(amount);
+        final order = await ref
+            .read(repositoryProvider)
+            .createRecharge(amount.toDouble());
         final paymentUrl = order['paymentUrl']?.toString() ?? '';
         if (paymentUrl.isNotEmpty) {
           await launchUrl(
@@ -105,7 +111,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
           await _bindCard();
           if (_bankCard == null) return;
         }
-        await ref.read(repositoryProvider).withdraw(amount);
+        await ref.read(repositoryProvider).withdraw(amount.toDouble());
         if (mounted) AppMessage.show(context, '提现申请已经提交');
       }
       _amount.clear();
@@ -133,10 +139,10 @@ class _WalletPageState extends ConsumerState<WalletPage> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(17, 8, 17, 30),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 30),
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(23),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
@@ -166,7 +172,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          '累计已提现 ¥${(wallet?.totalWithdrawn ?? 0).toStringAsFixed(2)}  ·  剩余免费提现额度 ¥${remainingFree.toStringAsFixed(2)}',
+                          '累计已提现 ¥${formatMoney(wallet?.totalWithdrawn ?? 0)}',
                           style: const TextStyle(
                             color: Color(0xE6FFFFFF),
                             fontSize: 12,
@@ -180,51 +186,45 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                     selected: _tab,
                     onChanged: (value) => setState(() => _tab = value),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
                   if (_tab == WalletTab.transactions)
                     _TransactionList(items: _transactions),
                   if (_tab == WalletTab.withdrawals)
                     _WithdrawalList(items: _withdrawals),
                   if (_tab == WalletTab.recharge ||
                       _tab == WalletTab.withdraw) ...[
-                    TextField(
+                    _WalletAmountField(
                       controller: _amount,
+                      label: _tab == WalletTab.recharge ? '充值金额' : '提现金额',
+                      maxAmount: 9999,
                       onChanged: (_) => setState(() {}),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d{0,2}'),
-                        ),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: _tab == WalletTab.recharge ? '充值金额' : '提现金额',
-                        prefixText: '¥ ',
-                      ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     if (_tab == WalletTab.recharge)
                       Container(
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                          ),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 13,
+                            horizontal: 16,
                           ),
-                          leading: CircleAvatar(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                            foregroundColor: Theme.of(
-                              context,
-                            ).colorScheme.primary,
-                            child: const Text('支'),
+                          leading: Container(
+                            width: 42,
+                            height: 42,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF1677FF,
+                              ).withValues(alpha: .10),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const FaIcon(
+                              FontAwesomeIcons.alipay,
+                              color: Color(0xFF1677FF),
+                              size: 25,
+                            ),
                           ),
                           title: const Text('支付宝'),
                           subtitle: const Text('仅支持支付宝充值'),
@@ -234,14 +234,11 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                       Container(
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                          ),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 13,
+                            horizontal: 16,
                           ),
                           leading: const Icon(Icons.account_balance_outlined),
                           title: const Text('到账银行卡'),
@@ -258,11 +255,11 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        '本次手续费 ¥${fee.toStringAsFixed(2)}，预计到账 ¥${(amount - fee).clamp(0, double.infinity).toStringAsFixed(2)}。累计提现10,000元以内免费，超出部分收取20%。',
+                        '本次手续费 ¥${formatMoney(fee)}，预计到账 ¥${formatMoney((amount - fee).clamp(0, double.infinity))}。累计提现10,000元以内免费，超出部分收取20%。',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     FilledButton(
                       onPressed: amount > 0 && !_submitting ? _submit : null,
                       child: _submitting
@@ -279,6 +276,76 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+class _WalletAmountField extends StatelessWidget {
+  const _WalletAmountField({
+    required this.controller,
+    required this.label,
+    required this.maxAmount,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final int maxAmount;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.labelLarge),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                '¥',
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  onChanged: onChanged,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: AppInputFormatters.positiveInteger(
+                    max: maxAmount,
+                  ),
+                  style: theme.textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '0',
+                    filled: false,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 7),
+                    hintStyle: theme.textTheme.displaySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: .55,
+                      ),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -354,7 +421,7 @@ class _Balance extends StatelessWidget {
       ),
       const SizedBox(height: 6),
       Text(
-        '¥${value.toStringAsFixed(2)}',
+        '¥${formatMoney(value)}',
         style: const TextStyle(
           color: Colors.white,
           fontSize: 24,
@@ -385,9 +452,6 @@ class _TransactionList extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
             borderRadius: BorderRadius.circular(13),
           ),
           child: ListTile(
@@ -412,7 +476,7 @@ class _TransactionList extends StatelessWidget {
                   : DateFormat('yyyy-MM-dd HH:mm').format(item.createdAt!),
             ),
             trailing: Text(
-              '${income ? '+' : '-'}¥${item.amount.toStringAsFixed(2)}',
+              '${income ? '+' : '-'}¥${formatMoney(item.amount)}',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: income ? const Color(0xFF26865C) : null,
@@ -439,41 +503,40 @@ class _WithdrawalList extends StatelessWidget {
       );
     }
     return Column(
-      children: items
-          .map(
-            (item) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-                borderRadius: BorderRadius.circular(13),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                title: Text('提现至${item.bankName}（${item.lastFour}）'),
-                subtitle: Text(
-                  '手续费 ¥${item.fee.toStringAsFixed(2)}  ·  ${item.createdAt == null ? '' : DateFormat('yyyy-MM-dd HH:mm').format(item.createdAt!)}',
-                ),
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '¥${item.amount.toStringAsFixed(2)}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    Text(
-                      item.status,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
+      children: items.map((item) {
+        final statusStyle = appStatusStyle(context, item.status);
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+            title: Text('提现至${item.bankName}（${item.lastFour}）'),
+            subtitle: Text(
+              '手续费 ¥${formatMoney(item.fee)}  ·  ${item.createdAt == null ? '' : DateFormat('yyyy-MM-dd HH:mm').format(item.createdAt!)}',
             ),
-          )
-          .toList(),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '¥${formatMoney(item.amount)}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  item.status,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: statusStyle.foreground,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
@@ -557,20 +620,26 @@ class _BankCardSheetState extends ConsumerState<_BankCardSheet> {
         const SizedBox(height: 4),
         Text('仅可绑定一张银行卡', style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 18),
+        Text('持卡人', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 7),
         TextField(
           controller: _holder,
-          decoration: const InputDecoration(labelText: '持卡人'),
+          decoration: const InputDecoration(hintText: '请填写持卡人姓名'),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
+        Text('开户银行', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 7),
         DropdownButtonFormField<String>(
           value: _bank.isEmpty ? null : _bank,
           items: _banks
               .map((bank) => DropdownMenuItem(value: bank, child: Text(bank)))
               .toList(),
           onChanged: (value) => setState(() => _bank = value ?? ''),
-          decoration: const InputDecoration(labelText: '开户银行'),
+          decoration: const InputDecoration(hintText: '请选择开户银行'),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
+        Text('银行卡号', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 7),
         TextField(
           controller: _number,
           keyboardType: TextInputType.number,
@@ -578,7 +647,7 @@ class _BankCardSheetState extends ConsumerState<_BankCardSheet> {
             FilteringTextInputFormatter.digitsOnly,
             LengthLimitingTextInputFormatter(19),
           ],
-          decoration: const InputDecoration(labelText: '银行卡号'),
+          decoration: const InputDecoration(hintText: '请填写银行卡号'),
         ),
         const SizedBox(height: 18),
         FilledButton(

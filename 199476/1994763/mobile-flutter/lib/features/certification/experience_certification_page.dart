@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
+import '../../core/theme/app_status_style.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/certification_models.dart';
 
@@ -50,9 +51,9 @@ class _ExperienceCertificationPageState
           .read(repositoryProvider)
           .answererEligibility();
       final eligible =
-          eligibility['eligible'] == true ||
+          eligibility['basicInformationApproved'] == true ||
           (eligibility['identityApproved'] == true &&
-              eligibility['mainJobApproved'] == true);
+              eligibility['jobApproved'] == true);
       if (!eligible) {
         if (mounted) {
           AppMessage.show(
@@ -88,7 +89,7 @@ class _ExperienceCertificationPageState
             onRefresh: _load,
             child: _items.isEmpty
                 ? ListView(
-                    padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
                     children: [
                       const SizedBox(height: 150),
                       const Icon(Icons.route_outlined, size: 44),
@@ -105,26 +106,38 @@ class _ExperienceCertificationPageState
                     ],
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
                     itemCount: _items.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final item = _items[index];
+                      final statusStyle = appStatusStyle(context, item.status);
                       return Material(
                         color: Theme.of(context).colorScheme.surface,
                         shape: RoundedRectangleBorder(
-                          side: BorderSide(
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                          ),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 8,
+                            vertical: 10,
                           ),
-                          leading: const Icon(Icons.route_outlined),
+                          leading: Container(
+                            width: 42,
+                            height: 42,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.route_outlined,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
                           title: Text(item.title),
                           subtitle: Text(
                             item.description,
@@ -136,7 +149,11 @@ class _ExperienceCertificationPageState
                             children: [
                               Text(
                                 _status(item),
-                                style: Theme.of(context).textTheme.bodySmall,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: statusStyle.foreground,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                               ),
                               const Icon(Icons.chevron_right_rounded),
                             ],

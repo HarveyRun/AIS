@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
+import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/discovery_models.dart';
 
@@ -67,10 +68,10 @@ class _DiscoveryListPageState extends ConsumerState<DiscoveryListPage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(_experiences ? '按经历找人' : '按事情找人'),
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         surfaceTintColor: Colors.transparent,
       ),
       body: _loading
@@ -79,22 +80,23 @@ class _DiscoveryListPageState extends ConsumerState<DiscoveryListPage> {
               onRefresh: _load,
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(17, 8, 17, 32),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 32),
                 children: [
                   TextField(
                     controller: _searchController,
                     onChanged: (_) => setState(() {}),
+                    inputFormatters: AppInputFormatters.search,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: const Color(0xFFF5F2EF),
-                      prefixIcon: const Icon(
+                      fillColor: Theme.of(context).colorScheme.surface,
+                      prefixIcon: Icon(
                         Icons.search_rounded,
                         size: 19,
-                        color: Color(0xFF8D8884),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       hintText: '搜索关键词',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFF8D8884),
+                      hintStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 12,
                       ),
                       border: OutlineInputBorder(
@@ -146,7 +148,7 @@ class _DiscoveryListPageState extends ConsumerState<DiscoveryListPage> {
                         );
                       },
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 20),
                   ],
                   if (groups.isEmpty)
                     const Padding(
@@ -169,11 +171,8 @@ class _DiscoveryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(13),
-        side: const BorderSide(color: Color(0xFFE7D9D1)),
-      ),
+      color: Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onPressed,
@@ -187,10 +186,9 @@ class _DiscoveryRow extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF675C56),
-                  fontSize: 12,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontSize: 12),
               ),
             ),
           ),

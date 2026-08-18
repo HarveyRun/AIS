@@ -2,6 +2,7 @@ package com.shixianwen.admin;
 
 import com.shixianwen.certification.CertificationService;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.content.SensitiveWordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ public class AdminManagementService {
     private final CertificationService certifications;
     private final AdminAuditLogRepository audits;
     private final RealtimePublisher realtime;
+    private final SensitiveWordService sensitiveWords;
 
     public Map<String,Object> dashboard() {
         Map<String,Object> result=new LinkedHashMap<>();
@@ -203,23 +205,23 @@ public class AdminManagementService {
         return new PageResult(rows,total,page,size);
     }
     public List<Map<String,Object>> customerServiceConversations() {
-        return jdbc.queryForList("SELECT u.id AS userId,u.uid,u.nickname,u.avatar_url AS avatarUrl,MAX(m.created_at) AS lastMessageAt,SUBSTRING_INDEX(GROUP_CONCAT(m.content ORDER BY m.id DESC SEPARATOR '\\n'),'\\n',1) AS lastMessage,SUM(CASE WHEN m.sender_type='USER' AND m.read_flag=FALSE THEN 1 ELSE 0 END) AS unread FROM customer_service_messages m JOIN users u ON u.id=m.user_id GROUP BY u.id,u.uid,u.nickname,u.avatar_url ORDER BY lastMessageAt DESC");
+        return jdbc.queryForList("SELECT u.id AS userId,u.uid,u.nickname,u.avatar_url AS avatarUrl,MAX(m.created_at) AS lastMessageAt,SUBSTRING_INDEX(GROUP_CONCAT(CASE WHEN m.message_type='IMAGE' THEN '[图片]' ELSE m.content END ORDER BY m.id DESC SEPARATOR '\\n'),'\\n',1) AS lastMessage,SUM(CASE WHEN m.sender_type='USER' AND m.read_flag=FALSE THEN 1 ELSE 0 END) AS unread FROM customer_service_messages m JOIN users u ON u.id=m.user_id GROUP BY u.id,u.uid,u.nickname,u.avatar_url ORDER BY lastMessageAt DESC");
     }
     @Transactional public List<Map<String,Object>> customerServiceMessages(Long userId) {
         jdbc.update("UPDATE customer_service_messages SET read_flag=TRUE WHERE user_id=? AND sender_type='USER'",userId);
-        return jdbc.queryForList("SELECT id,sender_type AS senderType,content,created_at AS createdAt FROM customer_service_messages WHERE user_id=? ORDER BY id",userId);
+        return jdbc.queryForList("SELECT id,sender_type AS senderType,message_type AS messageType,content,attachment_url AS attachmentUrl,attachment_name AS attachmentName,attachment_size AS attachmentSize,created_at AS createdAt FROM customer_service_messages WHERE user_id=? ORDER BY id",userId);
     }
     @Transactional public void readCustomerServiceMessages(Long userId) {
         jdbc.update("UPDATE customer_service_messages SET read_flag=TRUE WHERE user_id=? AND sender_type='USER'",userId);
     }
     @Transactional public Map<String,Object> replyCustomerService(AdminUser admin,Long userId,String content,String ip) {
-        if(content==null||content.isBlank()) throw BusinessException.badRequest("回复内容不能为空");
+        String value=required(content,"回复内容不能为空");
         if(count("users","id="+userId)==0) throw BusinessException.notFound("用户不存在");
-        jdbc.update("INSERT INTO customer_service_messages(user_id,sender_type,content,read_flag) VALUES (?,'SERVICE',?,FALSE)",userId,content.trim());
+        jdbc.update("INSERT INTO customer_service_messages(user_id,sender_type,message_type,content,read_flag) VALUES (?,'SERVICE','TEXT',?,FALSE)",userId,value);
         Long messageId=jdbc.queryForObject("SELECT LAST_INSERT_ID()",Long.class);
-        Map<String,Object> saved=jdbc.queryForMap("SELECT id,sender_type AS senderType,content,created_at AS createdAt FROM customer_service_messages WHERE id=?",messageId);
+        Map<String,Object> saved=jdbc.queryForMap("SELECT id,sender_type AS senderType,message_type AS messageType,content,attachment_url AS attachmentUrl,attachment_name AS attachmentName,attachment_size AS attachmentSize,created_at AS createdAt FROM customer_service_messages WHERE id=?",messageId);
         realtime.afterCommit(userId,"CUSTOMER_SERVICE_MESSAGE",saved);
-        audit(admin,"REPLY_CUSTOMER_SERVICE","USER",userId,content.trim(),ip);
+        audit(admin,"REPLY_CUSTOMER_SERVICE","USER",userId,value,ip);
         return saved;
     }
     public Map<String,Object> discovery() {
@@ -359,9 +361,9 @@ public class AdminManagementService {
         if(order==1) throw BusinessException.badRequest("每件事情至少设置一个岗位");
     }
     private void ensureJobName(String name,Long excludedId){Long total=excludedId==null?jdbc.queryForObject("SELECT COUNT(*) FROM jobs WHERE name=?",Long.class,name):jdbc.queryForObject("SELECT COUNT(*) FROM jobs WHERE name=? AND id<>?",Long.class,name,excludedId);if(total!=null&&total>0)throw BusinessException.badRequest("岗位名称已存在");}
-    private String cleanDescription(String value){if(value==null||value.isBlank())return null;String result=value.trim();if(result.length()>240)throw BusinessException.badRequest("介绍不能超过240个字");return result;}
+    private String cleanDescription(String value){if(value==null||value.isBlank())return null;String result=sensitiveWords.mask(value.trim());if(result.length()>240)throw BusinessException.badRequest("介绍不能超过240个字");return result;}
     private String mainCategory(String value){String result=value==null?"":value.trim().toUpperCase(Locale.ROOT);if(!List.of("GENERAL","LIFE","WORK","ENTERTAINMENT").contains(result)) throw BusinessException.badRequest("主分类不正确");return result;}
-    private String required(String value,String message){if(value==null||value.isBlank()) throw BusinessException.badRequest(message);return value.trim();}
+    private String required(String value,String message){if(value==null||value.isBlank()) throw BusinessException.badRequest(message);return sensitiveWords.mask(value.trim());}
     private void reorderCategories(String main,Long movingId,int requestedPosition){
         List<Long> ids=jdbc.queryForList("SELECT id FROM discovery_categories WHERE main_category=? AND deleted_at IS NULL AND id<>? ORDER BY sort_order,id",Long.class,main,movingId);
         ids.add(Math.max(0,Math.min(requestedPosition-1,ids.size())),movingId);

@@ -3,6 +3,7 @@ package com.shixianwen.user;
 import com.shixianwen.auth.AuthSessionRepository;
 import com.shixianwen.auth.AuthService;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.inquiry.InquiryRepository;
 import com.shixianwen.wallet.WalletAccount;
 import com.shixianwen.wallet.WalletAccountRepository;
@@ -25,6 +26,7 @@ public class UserService {
     private final AuthSessionRepository authSessionRepository;
     private final FileStorage fileStorage;
     private final AnswererEligibilityService answererEligibility;
+    private final SensitiveWordService sensitiveWords;
 
     public UserService(
         UserRepository userRepository,
@@ -32,7 +34,8 @@ public class UserService {
         InquiryRepository inquiryRepository,
         AuthSessionRepository authSessionRepository,
         FileStorage fileStorage,
-        AnswererEligibilityService answererEligibility
+        AnswererEligibilityService answererEligibility,
+        SensitiveWordService sensitiveWords
     ) {
         this.userRepository = userRepository;
         this.walletAccountRepository = walletAccountRepository;
@@ -40,6 +43,7 @@ public class UserService {
         this.authSessionRepository = authSessionRepository;
         this.fileStorage = fileStorage;
         this.answererEligibility = answererEligibility;
+        this.sensitiveWords = sensitiveWords;
     }
 
     @Transactional
@@ -53,7 +57,7 @@ public class UserService {
 
     @Transactional
     public AuthService.UserView updateProfile(User user, String nickname, String avatarUrl) {
-        user.setNickname(nickname == null || nickname.isBlank() ? null : nickname.trim());
+        user.setNickname(nickname == null || nickname.isBlank() ? null : sensitiveWords.mask(nickname.trim()));
         user.setAvatarUrl(avatarUrl == null || avatarUrl.isBlank() ? null : avatarUrl.trim());
         return AuthService.UserView.from(userRepository.save(user));
     }

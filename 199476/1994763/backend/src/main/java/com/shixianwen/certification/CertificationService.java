@@ -1,6 +1,7 @@
 package com.shixianwen.certification;
 
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StoredFile;
 import com.shixianwen.user.User;
@@ -21,14 +22,17 @@ public class CertificationService {
     private final CertificationRepository certificationRepository;
     private final UserRepository userRepository;
     private final FileStorage fileStorage;
+    private final SensitiveWordService sensitiveWords;
 
     public CertificationService(
             CertificationRepository certificationRepository,
             UserRepository userRepository,
-            FileStorage fileStorage) {
+            FileStorage fileStorage,
+            SensitiveWordService sensitiveWords) {
         this.certificationRepository = certificationRepository;
         this.userRepository = userRepository;
         this.fileStorage = fileStorage;
+        this.sensitiveWords = sensitiveWords;
     }
 
     @Transactional(readOnly = true)
@@ -103,23 +107,27 @@ public class CertificationService {
         }
         if (title == null || title.isBlank())
             throw BusinessException.badRequest("请填写经历标题");
+        if (title.trim().length() > 50)
+            throw BusinessException.badRequest("经历标题最多50个字");
         if (description == null || description.isBlank())
             throw BusinessException.badRequest("请填写经历简述");
+        if (description.trim().length() > 300)
+            throw BusinessException.badRequest("经历简述最多300个字");
         validateExperienceFiles(files);
         Certification certification;
         if (existingId == null) {
-            certification = baseCertification(user, "EXPERIENCE", "EXPERIENCE", title.trim(), false);
+            certification = baseCertification(user, "EXPERIENCE", "EXPERIENCE", sensitiveWords.mask(title.trim()), false);
         } else {
             certification = certificationRepository.findByIdAndUserId(existingId, user.getId())
                     .filter(item -> "EXPERIENCE".equals(item.getCategory()) && "REJECTED".equals(item.getStatus()))
                     .orElseThrow(() -> BusinessException.badRequest("该经历不能重新提交"));
             retireMaterials(certification);
-            certification.setTitle(title.trim());
+            certification.setTitle(sensitiveWords.mask(title.trim()));
             certification.setStatus("PENDING");
             certification.setRejectionReason(null);
             certification.setSubmittedAt(LocalDateTime.now());
         }
-        certification.setDescription(description == null ? null : description.trim());
+        certification.setDescription(description == null ? null : sensitiveWords.mask(description.trim()));
         certification.setYears(years);
         attachFiles(certification, files);
         return CertificationView.from(certificationRepository.save(certification));

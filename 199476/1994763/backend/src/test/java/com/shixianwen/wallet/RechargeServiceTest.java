@@ -2,12 +2,14 @@ package com.shixianwen.wallet;
 
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
+import com.shixianwen.common.BusinessException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -32,7 +34,7 @@ class RechargeServiceTest {
         when(users.findById(1L)).thenReturn(Optional.of(user));
         when(recharges.save(any(Recharge.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        RechargeService.RechargeView created = service.create(1L, new BigDecimal("12.34"));
+        RechargeService.RechargeView created = service.create(1L, new BigDecimal("12"));
         assertEquals("PENDING", created.status());
         assertTrue(created.paymentUrl().startsWith("/api/recharges/mock-cashier?orderNo="));
 
@@ -47,6 +49,19 @@ class RechargeServiceTest {
         service.completeMockPayment(created.orderNo());
 
         assertEquals("PAID", stored.getStatus());
-        verify(wallet, times(1)).creditRecharge(null, new BigDecimal("12.34"), null);
+        verify(wallet, times(1)).creditRecharge(null, new BigDecimal("12.00"), null);
+    }
+
+    @Test
+    void rechargeRejectsDecimalsAndAmountsOverTheLimit() {
+        RechargeService service = new RechargeService(
+            mock(RechargeRepository.class),
+            mock(UserRepository.class),
+            mock(WalletService.class),
+            new MockAlipayGateway()
+        );
+
+        assertThrows(BusinessException.class, () -> service.create(1L, new BigDecimal("12.34")));
+        assertThrows(BusinessException.class, () -> service.create(1L, new BigDecimal("10000")));
     }
 }

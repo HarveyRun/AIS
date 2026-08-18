@@ -55,7 +55,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           onRefresh: _refresh,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(17, 8, 17, 30),
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 30),
             children: [
               Row(
                 children: [
@@ -89,10 +89,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
               const SizedBox(height: 20),
               Text('更多服务', style: Theme.of(context).textTheme.labelMedium),
-              const SizedBox(height: 9),
+              const SizedBox(height: 8),
               Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(18),
                 clipBehavior: Clip.antiAlias,
                 child: Column(
                   children: [

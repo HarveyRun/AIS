@@ -60,7 +60,9 @@ class CustomerServiceMessage {
   const CustomerServiceMessage({
     required this.id,
     required this.senderType,
+    required this.messageType,
     required this.content,
+    required this.attachmentUrl,
     required this.createdAt,
   });
 
@@ -68,17 +70,22 @@ class CustomerServiceMessage {
     return CustomerServiceMessage(
       id: _int(json['id']),
       senderType: json['senderType']?.toString() ?? '',
+      messageType: json['messageType']?.toString() ?? 'TEXT',
       content: json['content']?.toString() ?? '',
+      attachmentUrl: json['attachmentUrl']?.toString() ?? '',
       createdAt: _date(json['createdAt']),
     );
   }
 
   final int id;
   final String senderType;
+  final String messageType;
   final String content;
+  final String attachmentUrl;
   final DateTime? createdAt;
 
   bool get isMine => senderType.toUpperCase() == 'USER';
+  bool get isImage => messageType.toUpperCase() == 'IMAGE';
 }
 
 int _int(Object? value) =>

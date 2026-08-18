@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/providers.dart';
+import '../../core/input/app_input_formatters.dart';
+import '../../core/theme/app_status_style.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/support_models.dart';
 
@@ -75,17 +77,21 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('投诉与反馈')),
     body: ListView(
-      padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
       children: [
         _FeedbackTabs(
           selected: _type,
           onChanged: (value) => setState(() => _type = value),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         if (_type == 'COMPLAINT') ...[
+          Text('投诉类型', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 7),
           DropdownButtonFormField<String>(
             value: _complaintCategory,
-            decoration: const InputDecoration(labelText: '投诉类型'),
+            decoration: InputDecoration(
+              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
             items: _complaintCategories
                 .map((item) => DropdownMenuItem(value: item, child: Text(item)))
                 .toList(),
@@ -93,23 +99,30 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
               if (value != null) setState(() => _complaintCategory = value);
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 18),
         ],
+        Text(
+          _type == 'PRODUCT' ? '反馈内容' : '投诉内容',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 7),
         TextField(
           controller: _content,
           maxLength: 500,
+          inputFormatters: AppInputFormatters.description(500),
           minLines: 5,
           maxLines: 9,
           decoration: InputDecoration(
             hintText: _type == 'PRODUCT' ? '说说你希望事先问改进什么' : '请说明发生的时间、经过和诉求',
+            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         FilledButton(
           onPressed: _sending ? null : _submit,
           child: Text(_type == 'PRODUCT' ? '提交反馈' : '提交投诉'),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         if (_loadingRecords)
           const Center(
             child: Padding(
@@ -119,7 +132,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
           )
         else if (_records.isNotEmpty) ...[
           Text('我的提交', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 9),
+          const SizedBox(height: 8),
           Card(
             child: Column(
               children: _records.take(5).map((record) {
@@ -128,8 +141,8 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 13,
+                        horizontal: 16,
+                        vertical: 14,
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,7 +183,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                         ],
                       ),
                     ),
-                    if (!last) const Divider(height: 1),
+                    if (!last) const SizedBox(height: 4),
                   ],
                 );
               }).toList(),
@@ -264,15 +277,19 @@ class _FeedbackStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const labels = {'SUBMITTED': '待处理', 'PROCESSING': '处理中', 'RESOLVED': '已解决'};
+    final style = appStatusStyle(context, status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: style.background,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         labels[status] ?? status,
-        style: Theme.of(context).textTheme.bodySmall,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: style.foreground,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

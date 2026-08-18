@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/providers.dart';
+import '../../core/formatters/money_formatter.dart';
+import '../../core/theme/app_status_style.dart';
 import '../../core/network/realtime_service.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
@@ -68,7 +70,7 @@ class _InquiriesPageState extends ConsumerState<InquiriesPage>
       (item) => item.isIncoming && item.unreadCount > 0,
     );
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.surface,
         automaticallyImplyLeading: false,
@@ -77,7 +79,7 @@ class _InquiriesPageState extends ConsumerState<InquiriesPage>
           preferredSize: const Size.fromHeight(58),
           child: Container(
             height: 46,
-            margin: const EdgeInsets.fromLTRB(17, 0, 17, 12),
+            margin: const EdgeInsets.fromLTRB(10, 0, 10, 12),
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainer,
@@ -169,17 +171,22 @@ class _InquiryList extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
         itemCount: items.length,
-        separatorBuilder: (_, _) => const Divider(height: 1, indent: 56),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           final item = items[index];
           return Material(
             color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: () => context.push('/chat/${item.id}'),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -224,7 +231,7 @@ class _InquiryList extends StatelessWidget {
                           Row(
                             children: [
                               Text(
-                                '¥${item.amount.toStringAsFixed(2)}',
+                                '¥${formatMoney(item.amount)}',
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.primary,
                                   fontSize: 13,
@@ -282,7 +289,7 @@ class _StatusChip extends StatelessWidget {
       'EXPIRED' => '已超时',
       _ => '查看',
     };
-    final color = _inquiryStatusColor(context, status);
+    final color = appStatusStyle(context, status).foreground;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -296,14 +303,4 @@ class _StatusChip extends StatelessWidget {
       ],
     );
   }
-}
-
-Color _inquiryStatusColor(BuildContext context, String rawStatus) {
-  return switch (rawStatus.toUpperCase()) {
-    'PENDING' => const Color(0xFFB96B16),
-    'ACTIVE' => const Color(0xFF26865C),
-    'AWAITING_CONFIRMATION' => Theme.of(context).colorScheme.primary,
-    'REJECTED' || 'CANCELLED' || 'EXPIRED' => const Color(0xFF9A625E),
-    _ => Theme.of(context).hintColor,
-  };
 }

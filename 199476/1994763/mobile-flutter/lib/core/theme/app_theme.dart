@@ -51,6 +51,7 @@ abstract final class AppTheme {
           ? AppColors.darkSurfaceSubtle
           : const Color(0xFFE9E4DE),
       onSurface: textColor,
+      onSurfaceVariant: secondary,
       onPrimary: Colors.white,
       outline: border,
       outlineVariant: border,
@@ -60,7 +61,9 @@ abstract final class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: scheme,
-      scaffoldBackgroundColor: dark ? AppColors.darkPage : AppColors.page,
+      scaffoldBackgroundColor: dark
+          ? AppColors.darkPage
+          : const Color(0xFFF6F6F6),
       dividerColor: border,
       splashFactory: InkRipple.splashFactory,
       pageTransitionsTheme: const PageTransitionsTheme(
@@ -128,7 +131,7 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: dark ? AppColors.darkSurfaceSubtle : AppColors.surfaceSubtle,
+        fillColor: dark ? AppColors.darkSurfaceSubtle : const Color(0xFFEDEBE8),
         hintStyle: TextStyle(color: secondary),
         labelStyle: TextStyle(color: secondary),
         contentPadding: const EdgeInsets.symmetric(
@@ -137,15 +140,27 @@ abstract final class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: border),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: border),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1),
+          borderSide: BorderSide.none,
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -249,10 +264,7 @@ abstract final class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         color: dark ? AppColors.darkSurface : AppColors.surface,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(color: border),
-          borderRadius: BorderRadius.circular(18),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: dark ? AppColors.darkSurface : AppColors.page,

@@ -37,25 +37,27 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   Future<void> _read(AppNotification item) async {
     if (!item.read) {
       await ref.read(repositoryProvider).readNotification(item.id);
-      await _load();
+      if (!mounted) return;
+      setState(() {
+        _items = _items
+            .map(
+              (entry) => entry.id == item.id
+                  ? AppNotification(
+                      id: entry.id,
+                      title: entry.title,
+                      content: entry.content,
+                      targetPath: entry.targetPath,
+                      read: true,
+                      createdAt: entry.createdAt,
+                    )
+                  : entry,
+            )
+            .toList(growable: false);
+      });
       ref.read(notificationCountProvider.notifier).state = _items
           .where((entry) => !entry.read)
           .length;
     }
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(item.title),
-        content: Text(item.content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('知道了'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _readAll() async {
@@ -66,7 +68,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Theme.of(context).colorScheme.surface,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
     appBar: AppBar(
       backgroundColor: Theme.of(context).colorScheme.surface,
       title: const Text('通知'),
@@ -81,7 +83,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             onRefresh: _load,
             child: _items.isEmpty
                 ? ListView(
-                    padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
                     children: const [
                       SizedBox(height: 180),
                       Icon(Icons.notifications_none_rounded, size: 44),
@@ -90,7 +92,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                     ],
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
                     itemCount: _items.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
@@ -98,15 +100,12 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                       return Container(
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                          ),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 13,
-                            vertical: 8,
+                            horizontal: 16,
+                            vertical: 12,
                           ),
                           leading: Container(
                             width: 40,

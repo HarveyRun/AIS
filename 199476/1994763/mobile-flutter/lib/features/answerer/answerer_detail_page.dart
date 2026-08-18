@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
+import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/answerer_models.dart';
@@ -71,7 +71,7 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('个人档案')),
+      appBar: AppBar(title: const Text('个人信息')),
       body: _loading
           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
           : _answerer == null
@@ -79,14 +79,14 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(17, 8, 17, 92),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 92),
                 children: [_WebAnswererOverview(answerer: _answerer!)],
               ),
             ),
       bottomNavigationBar: _answerer == null
           ? null
           : SafeArea(
-              minimum: const EdgeInsets.fromLTRB(17, 7, 17, 9),
+              minimum: const EdgeInsets.fromLTRB(10, 7, 10, 9),
               child: FilledButton.icon(
                 onPressed: _answerer!.acceptingInquiries ? _ask : null,
                 icon: const Icon(Icons.chat_bubble_outline_rounded),
@@ -196,10 +196,7 @@ class _AnswererOverview extends StatelessWidget {
                 Text('亲身经历', style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 10),
                 if (answerer.experiences.isEmpty)
-                  Text(
-                    '暂未填写亲身经历',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  )
+                  Text('暂无经历', style: Theme.of(context).textTheme.bodyMedium)
                 else
                   ...answerer.experiences.map(
                     (item) => Padding(
@@ -249,8 +246,12 @@ class _WebAnswererOverview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 16, 8, 22),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Column(
             children: [
               AppAvatar(
@@ -271,34 +272,41 @@ class _WebAnswererOverview extends StatelessWidget {
                 'UID ${answerer.uid} · 信息已经核实',
                 style: theme.textTheme.bodySmall,
               ),
-            ],
-          ),
-        ),
-        _ProfileFactBox(
-          title: '做过的工作',
-          icon: Icons.verified_user_outlined,
-          child: Row(
-            children: [
-              SizedBox(
-                width: 60,
-                child: Text(
-                  '主职',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 13,
                 ),
-              ),
-              Expanded(
-                child: Text(
-                  answerer.mainJob,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-              ),
-              Text(
-                '${answerer.mainJobYears}年经验',
-                style: theme.textTheme.bodySmall,
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 60,
+                      child: Text(
+                        '主职',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        answerer.mainJob,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${answerer.mainJobYears}年经验',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -313,7 +321,7 @@ class _WebAnswererOverview extends StatelessWidget {
                 spacing: 6,
                 runSpacing: 6,
                 children: answerer.experiences.isEmpty
-                    ? const [_ExperienceLabel(text: '暂未填写亲身经历')]
+                    ? const [_ExperienceLabel(text: '暂无经历')]
                     : answerer.experiences
                           .map((item) => _ExperienceLabel(text: item.title))
                           .toList(),
@@ -329,37 +337,27 @@ class _WebAnswererOverview extends StatelessWidget {
 }
 
 class _ProfileFactBox extends StatelessWidget {
-  const _ProfileFactBox({required this.title, required this.child, this.icon});
+  const _ProfileFactBox({required this.title, required this.child});
 
   final String title;
   final Widget child;
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(19),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 19, color: const Color(0xFF639579)),
-                const SizedBox(width: 7),
-              ],
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ],
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),
           child,
@@ -379,7 +377,7 @@ class _ExperienceLabel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F1EB),
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(text, style: Theme.of(context).textTheme.bodySmall),
@@ -473,25 +471,25 @@ class _InquirySheetState extends ConsumerState<_InquirySheet> {
             ],
           ),
           const SizedBox(height: 18),
+          Text('你想问什么', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 7),
           TextField(
             controller: _question,
             autofocus: true,
-            maxLength: 120,
+            maxLength: 300,
+            inputFormatters: AppInputFormatters.description(300),
             maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: '你想问什么',
-              hintText: '把想了解的事情简单说清楚',
-            ),
+            decoration: const InputDecoration(hintText: '把想了解的事情简单说清楚'),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
+          Text('你打算给多少钱', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 7),
           TextField(
             controller: _amount,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-            ],
+            keyboardType: TextInputType.number,
+            inputFormatters: AppInputFormatters.positiveInteger(max: 999),
             decoration: const InputDecoration(
-              labelText: '你打算给多少钱',
+              hintText: '请输入1—999',
               prefixText: '¥ ',
             ),
           ),

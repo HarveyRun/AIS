@@ -173,7 +173,7 @@ class AppRepository {
         'topic': topic,
         'sourceType': sourceType,
         'question': question,
-        'amount': amount,
+        'amount': amount.toInt(),
       },
     );
     return InquirySummary.fromJson(data);
@@ -260,7 +260,10 @@ class AppRepository {
   }
 
   Future<void> withdraw(double amount) {
-    return _api.post<Object?>('/wallet/withdrawals', data: {'amount': amount});
+    return _api.post<Object?>(
+      '/wallet/withdrawals',
+      data: {'amount': amount.toInt()},
+    );
   }
 
   Future<Map<String, dynamic>> rechargeCapability() {
@@ -270,7 +273,7 @@ class AppRepository {
   Future<Map<String, dynamic>> createRecharge(double amount) {
     return _api.post<Map<String, dynamic>>(
       '/recharges',
-      data: {'amount': amount},
+      data: {'amount': amount.toInt()},
     );
   }
 
@@ -386,6 +389,18 @@ class AppRepository {
     final data = await _api.post<Map<String, dynamic>>(
       '/support/customer-service/messages',
       data: {'content': content},
+    );
+    return CustomerServiceMessage.fromJson(data);
+  }
+
+  Future<CustomerServiceMessage> sendCustomerServiceImage(
+    UploadFile file,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/support/customer-service/images',
+      data: FormData.fromMap({
+        'image': await MultipartFile.fromFile(file.path, filename: file.name),
+      }),
     );
     return CustomerServiceMessage.fromJson(data);
   }

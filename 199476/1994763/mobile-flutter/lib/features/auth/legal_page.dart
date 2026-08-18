@@ -13,7 +13,7 @@ class LegalPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(terms ? '服务协议' : '隐私政策')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(17, 8, 17, 80),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 80),
         children: [
           Text(
             terms ? '事先问服务协议' : '事先问隐私政策',

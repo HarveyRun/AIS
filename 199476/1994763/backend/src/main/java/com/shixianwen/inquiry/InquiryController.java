@@ -41,7 +41,7 @@ public class InquiryController {
     @PostMapping("/{id}/confirm-end") public ApiResponse<InquiryService.InquiryView> confirmEnd(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.confirmEnd(u.getId(), id)); }
 
     public record CreateRequest(@NotNull Long answererId, @Size(max=120) String topic, @Size(max=30) String sourceType,
-                                @NotBlank @Size(max=1000) String question,
-                                @NotNull @DecimalMin("0.01") @Digits(integer=12, fraction=2) BigDecimal amount) {}
-    public record MessageRequest(@NotBlank @Size(max=2000) String content) {}
+                                @NotBlank @Size(max=300) String question,
+                                @NotNull @DecimalMin("1") @DecimalMax("999") @Digits(integer=3, fraction=0) BigDecimal amount) {}
+    public record MessageRequest(@NotBlank @Size(max=500) String content) {}
 }

@@ -204,7 +204,18 @@ export default function CustomerServicePage({ realtimeEvent, onUnreadChange }) {
                     className={message.senderType === 'SERVICE' ? 'service' : 'user'}
                     key={message.id}
                   >
-                    <p>{message.content}</p>
+                    {message.messageType === 'IMAGE' ? (
+                      <a
+                        className="service-image"
+                        href={message.attachmentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <img src={message.attachmentUrl} alt={message.attachmentName || '客服图片'} />
+                      </a>
+                    ) : (
+                      <p>{message.content}</p>
+                    )}
                     <small>{date(message.createdAt)}</small>
                   </article>
                 ))}

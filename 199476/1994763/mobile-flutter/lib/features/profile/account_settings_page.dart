@@ -94,11 +94,11 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('账号设置')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(17, 8, 17, 28),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
         children: [
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -109,7 +109,7 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
                         name: user.displayName,
                         radius: 31,
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,7 +140,7 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
                     ],
                   ),
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 17),
+                    padding: EdgeInsets.symmetric(vertical: 16),
                     child: Divider(height: 1),
                   ),
                   Text('昵称', style: Theme.of(context).textTheme.labelMedium),
@@ -167,14 +167,11 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(

@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../app/providers.dart';
+import '../../core/theme/app_status_style.dart';
+import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/certification_models.dart';
 import '../../data/repositories/app_repository.dart';
@@ -151,37 +153,54 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
     body: _loading
         ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
         : ListView(
-            padding: const EdgeInsets.fromLTRB(17, 8, 17, 110),
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 110),
             children: [
               if (_record != null) ...[
                 _ExperienceStatus(record: _record!),
                 const SizedBox(height: 12),
               ],
-              TextField(
-                controller: _title,
-                enabled: _editable,
-                maxLength: 50,
-                decoration: const InputDecoration(
-                  labelText: '经历标题',
-                  hintText: '例如：经历过劳动仲裁',
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '经历标题',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 7),
+                    TextField(
+                      controller: _title,
+                      enabled: _editable,
+                      maxLength: 50,
+                      inputFormatters: AppInputFormatters.description(50),
+                      decoration: const InputDecoration(hintText: '例如：经历过劳动仲裁'),
+                    ),
+                    const SizedBox(height: 14),
+                    Text('简述', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 7),
+                    TextField(
+                      controller: _description,
+                      enabled: _editable,
+                      maxLength: 300,
+                      inputFormatters: AppInputFormatters.description(300),
+                      minLines: 4,
+                      maxLines: 7,
+                      decoration: const InputDecoration(
+                        hintText: '简单说明事情发生和处理的经过',
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _description,
-                enabled: _editable,
-                maxLength: 300,
-                minLines: 4,
-                maxLines: 7,
-                decoration: const InputDecoration(
-                  labelText: '简述',
-                  hintText: '简单说明事情发生和处理的经过',
-                ),
-              ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(17),
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -286,7 +305,7 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
     bottomNavigationBar: !_editable
         ? null
         : SafeArea(
-            minimum: const EdgeInsets.fromLTRB(17, 8, 17, 12),
+            minimum: const EdgeInsets.fromLTRB(10, 8, 10, 12),
             child: FilledButton(
               onPressed: _submitting ? null : _submit,
               child: _submitting
@@ -315,10 +334,11 @@ class _ExperienceStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = record.status.toUpperCase();
+    final style = appStatusStyle(context, status);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: style.background,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
@@ -329,6 +349,7 @@ class _ExperienceStatus extends StatelessWidget {
                   ? '请修改后重新提交'
                   : record.rejectionReason)
             : '正在审核',
+        style: TextStyle(color: style.foreground, fontWeight: FontWeight.w600),
       ),
     );
   }
