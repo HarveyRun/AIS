@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
+import '../../core/legal/legal_links.dart';
 import '../../core/widgets/app_message.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -57,10 +57,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       AppMessage.show(context, '请输入正确的手机号');
       return;
     }
-    if (!_agreed) {
-      AppMessage.show(context, '请先阅读并同意服务协议和隐私政策');
-      return;
-    }
+    if (!_requireAgreement()) return;
     setState(() => _sending = true);
     try {
       await ref.read(authControllerProvider).sendCode(_phone);
@@ -79,16 +76,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _login() async {
     if (_codeController.text.length != 4) return;
-    if (!_agreed) {
-      AppMessage.show(context, '请先阅读并同意服务协议和隐私政策');
-      return;
-    }
+    if (!_requireAgreement()) return;
     try {
       await ref
           .read(authControllerProvider)
           .login(_phone, _codeController.text);
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
+    }
+  }
+
+  bool _requireAgreement() {
+    if (_agreed) return true;
+    AppMessage.show(context, '请先阅读并同意服务协议和隐私政策');
+    return false;
+  }
+
+  Future<void> _openLegalLink(Future<bool> Function() open) async {
+    try {
+      final opened = await open();
+      if (!opened && mounted) {
+        AppMessage.show(context, '暂时无法打开协议页面');
+      }
+    } catch (_) {
+      if (mounted) AppMessage.show(context, '暂时无法打开协议页面');
     }
   }
 
@@ -240,6 +251,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             checked: _agreed,
                             onChanged: (value) =>
                                 setState(() => _agreed = value),
+                            onOpenUserAgreement: () =>
+                                _openLegalLink(LegalLinks.openUserAgreement),
+                            onOpenPrivacyPolicy: () =>
+                                _openLegalLink(LegalLinks.openPrivacyPolicy),
                           ),
                           const SizedBox(height: 28),
                         ],
@@ -354,10 +369,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 }
 
 class _Agreement extends StatelessWidget {
-  const _Agreement({required this.checked, required this.onChanged});
+  const _Agreement({
+    required this.checked,
+    required this.onChanged,
+    required this.onOpenUserAgreement,
+    required this.onOpenPrivacyPolicy,
+  });
 
   final bool checked;
   final ValueChanged<bool> onChanged;
+  final VoidCallback onOpenUserAgreement;
+  final VoidCallback onOpenPrivacyPolicy;
 
   @override
   Widget build(BuildContext context) {
@@ -389,7 +411,7 @@ class _Agreement extends StatelessWidget {
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                onPressed: () => context.push('/terms'),
+                onPressed: onOpenUserAgreement,
                 child: const Text('《服务协议》'),
               ),
               Text('和', style: Theme.of(context).textTheme.bodySmall),
@@ -399,7 +421,7 @@ class _Agreement extends StatelessWidget {
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                onPressed: () => context.push('/privacy'),
+                onPressed: onOpenPrivacyPolicy,
                 child: const Text('《隐私政策》'),
               ),
             ],

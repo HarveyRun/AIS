@@ -24,6 +24,8 @@ public class AuthService {
     private final AuthSessionRepository authSessionRepository;
     private final WalletAccountRepository walletAccountRepository;
     private final UserLoginRecordRepository loginRecordRepository;
+    private final AppTestLoginAccountService appTestLoginAccountService;
+    private final VerificationCodeSender verificationCodeSender;
     private final SecureRandom secureRandom = new SecureRandom();
     private final String verificationCode;
     private final int tokenValidDays;
@@ -33,6 +35,8 @@ public class AuthService {
         AuthSessionRepository authSessionRepository,
         WalletAccountRepository walletAccountRepository,
         UserLoginRecordRepository loginRecordRepository,
+        AppTestLoginAccountService appTestLoginAccountService,
+        VerificationCodeSender verificationCodeSender,
         @Value("${app.auth.demo-verification-code}") String verificationCode,
         @Value("${app.auth.token-valid-days}") int tokenValidDays
     ) {
@@ -40,19 +44,31 @@ public class AuthService {
         this.authSessionRepository = authSessionRepository;
         this.walletAccountRepository = walletAccountRepository;
         this.loginRecordRepository = loginRecordRepository;
+        this.appTestLoginAccountService = appTestLoginAccountService;
+        this.verificationCodeSender = verificationCodeSender;
         this.verificationCode = verificationCode;
         this.tokenValidDays = tokenValidDays;
     }
 
-    public void validateCode(String code) {
-        if (!verificationCode.equals(code)) {
+    public void sendVerificationCode(String phone, boolean appClient) {
+        if (appClient && appTestLoginAccountService.activeVerificationCode(phone).isPresent()) {
+            return;
+        }
+        verificationCodeSender.send(phone);
+    }
+
+    public void validateCode(String phone, String code, boolean appClient) {
+        String expectedCode = appClient
+            ? appTestLoginAccountService.activeVerificationCode(phone).orElse(verificationCode)
+            : verificationCode;
+        if (!expectedCode.equals(code)) {
             throw BusinessException.badRequest("验证码不正确");
         }
     }
 
     @Transactional
-    public LoginResult login(String phone, String code, ClientNetworkInfo network) {
-        validateCode(code);
+    public LoginResult login(String phone, String code, ClientNetworkInfo network, boolean appClient) {
+        validateCode(phone, code, appClient);
         User user = userRepository.findByPhone(phone).orElseGet(() -> createUser(phone, network));
         if (!"ACTIVE".equals(user.getAccountStatus())) {
             throw BusinessException.forbidden("该账号当前无法登录");

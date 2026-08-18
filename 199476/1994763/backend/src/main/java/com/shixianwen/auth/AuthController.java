@@ -22,20 +22,30 @@ public class AuthController {
     }
 
     @PostMapping("/verification-codes")
-    public ApiResponse<Map<String, Object>> sendCode(@Valid @RequestBody PhoneRequest request) {
+    public ApiResponse<Map<String, Object>> sendCode(
+        @Valid @RequestBody PhoneRequest request,
+        @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform
+    ) {
+        authService.sendVerificationCode(request.phone(), isAppClient(clientPlatform));
         return ApiResponse.ok(Map.of("sent", true, "expiresIn", 300));
     }
 
     @PostMapping("/login")
     public ApiResponse<AuthService.LoginResult> login(
         @Valid @RequestBody LoginRequest request,
+        @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform,
         HttpServletRequest servletRequest
     ) {
         return ApiResponse.ok(authService.login(
             request.phone(),
             request.code(),
-            clientNetworkService.resolve(servletRequest)
+            clientNetworkService.resolve(servletRequest),
+            isAppClient(clientPlatform)
         ));
+    }
+
+    private boolean isAppClient(String clientPlatform) {
+        return "app".equalsIgnoreCase(clientPlatform);
     }
 
     @PostMapping("/logout")

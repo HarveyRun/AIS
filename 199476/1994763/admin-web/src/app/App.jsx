@@ -11,6 +11,7 @@ import CustomerServicePage from '../pages/customerService/CustomerServicePage.js
 import DiscoveryManagementPage from '../pages/discovery/DiscoveryManagementPage.jsx';
 import JobsPage from '../pages/jobs/JobsPage.jsx';
 import ExperiencesPage from '../pages/experiences/ExperiencesPage.jsx';
+import AppTestAccountPage from '../pages/appTestAccount/AppTestAccountPage.jsx';
 import GlobalLoading from '../components/feedback/GlobalLoading.jsx';
 import useAdminRealtimeConnection from '../hooks/useAdminRealtimeConnection.js';
 export default function App() {
@@ -85,6 +86,7 @@ export default function App() {
           }
         />
         <Route path="/audit" element={<AuditPage />} />
+        <Route path="/app-test-account" element={<AppTestAccountPage />} />
       </Route>
       <Route path="*" element={<Navigate to={authed ? '/dashboard' : '/login'} replace />} />
       </Routes>

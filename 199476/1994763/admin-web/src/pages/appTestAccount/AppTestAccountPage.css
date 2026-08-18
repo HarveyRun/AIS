@@ -1,0 +1,315 @@
+.app-test-account-title > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.app-test-account-title > button svg {
+  width: 17px;
+}
+
+.app-test-account-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 18px;
+  align-items: start;
+}
+
+.app-test-account-card,
+.app-test-account-notes {
+  background: #fff;
+  border: 1px solid #e5e7ea;
+  border-radius: 13px;
+}
+
+.app-test-account-card {
+  min-width: 0;
+  padding: 22px;
+}
+
+.app-test-account-card > header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding-bottom: 18px;
+}
+
+.app-test-account-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  background: #fff0ee;
+  color: #d33a2c;
+}
+
+.app-test-account-icon svg {
+  width: 20px;
+}
+
+.app-test-account-card h2,
+.app-test-account-card p,
+.app-test-account-notes h2,
+.app-test-account-notes p {
+  margin: 0;
+}
+
+.app-test-account-card h2,
+.app-test-account-notes h2 {
+  font-size: 16px;
+}
+
+.app-test-account-card header p {
+  margin-top: 4px;
+  color: #858a92;
+  font-size: 13px;
+}
+
+.app-test-account-table-wrap {
+  overflow-x: auto;
+}
+
+.app-test-account-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.app-test-account-table-wrap th,
+.app-test-account-table-wrap td {
+  padding: 13px 12px;
+  border-top: 1px solid #eceef0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.app-test-account-table-wrap th {
+  color: #7d828a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.app-test-account-table-wrap td {
+  color: #363a40;
+  font-size: 13px;
+}
+
+.app-test-account-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #34383e;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-test-account-copy svg {
+  width: 14px;
+  color: #8d929a;
+}
+
+.app-test-account-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: #f0f1f3;
+  color: #747981;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.app-test-account-status.enabled {
+  background: #eaf7ef;
+  color: #287a49;
+}
+
+.app-test-account-updated {
+  display: grid;
+  gap: 3px;
+}
+
+.app-test-account-updated small {
+  color: #92969d;
+  font-size: 11px;
+}
+
+.app-test-account-table-wrap .table-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.app-test-account-table-wrap .table-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.app-test-account-table-wrap .table-actions svg {
+  width: 13px;
+}
+
+.app-test-account-notes {
+  padding: 21px;
+}
+
+.app-test-account-notes ul {
+  display: grid;
+  gap: 18px;
+  margin: 20px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-test-account-notes li {
+  display: flex;
+  gap: 11px;
+}
+
+.app-test-account-notes li > svg {
+  width: 18px;
+  flex: 0 0 auto;
+  color: #d33a2c;
+}
+
+.app-test-account-notes li div {
+  display: grid;
+  gap: 4px;
+}
+
+.app-test-account-notes li b {
+  font-size: 13px;
+}
+
+.app-test-account-notes li span,
+.app-test-account-notes > p {
+  color: #858a93;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.app-test-account-notes > p {
+  padding-top: 17px;
+  border-top: 1px solid #eceef0;
+}
+
+.app-test-account-editor {
+  width: min(500px, 90vw);
+}
+
+.app-test-account-editor form {
+  display: grid;
+  gap: 20px;
+  padding-top: 24px;
+}
+
+.app-test-account-editor form > label > span {
+  display: block;
+  margin-bottom: 8px;
+  color: #555a62;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-test-account-input {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #dfe1e5;
+  border-radius: 9px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.app-test-account-input:focus-within {
+  border-color: #d33a2c;
+  box-shadow: 0 0 0 3px rgba(211, 58, 44, 0.09);
+}
+
+.app-test-account-input > svg {
+  width: 17px;
+  margin-left: 12px;
+  color: #9297a0;
+}
+
+.app-test-account-input input {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  padding: 0 10px;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  letter-spacing: 0.5px;
+}
+
+.app-test-account-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 16px;
+  border-radius: 10px;
+  background: #f7f8f9;
+}
+
+.app-test-account-switch-row div {
+  display: grid;
+  gap: 5px;
+}
+
+.app-test-account-switch-row b {
+  font-size: 13px;
+}
+
+.app-test-account-switch-row span {
+  color: #838891;
+  font-size: 12px;
+}
+
+.app-test-account-switch {
+  width: 44px;
+  height: 24px;
+  flex: 0 0 auto;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: #c7cbd1;
+  cursor: pointer;
+}
+
+.app-test-account-switch i {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 160ms ease;
+}
+
+.app-test-account-switch.enabled {
+  background: #d33a2c;
+}
+
+.app-test-account-switch.enabled i {
+  transform: translateX(20px);
+}
+
+.app-test-account-editor form > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 4px;
+}
+
+@media (max-width: 1000px) {
+  .app-test-account-layout {
+    grid-template-columns: 1fr;
+  }
+}

@@ -66,6 +66,19 @@ export const adminApi = {
     globalLoading: false,
   }),
   dashboard: () => request('/dashboard'),
+  appTestAccounts: (page = 0, size = 20) =>
+    request(`/app-test-accounts?page=${page}&size=${size}`),
+  createAppTestAccount: (body) => request('/app-test-accounts', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
+  updateAppTestAccount: (id, body) => request(`/app-test-accounts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  }),
+  deleteAppTestAccount: (id) => request(`/app-test-accounts/${id}`, {
+    method: 'DELETE',
+  }),
   users: (query) => request(`/users?${query}`),
   jobs: (jobName = '', page = 0, size = 20) =>
     request(`/jobs?jobName=${encodeURIComponent(jobName)}&page=${page}&size=${size}`),

@@ -1,7 +1,6 @@
 import 'package:go_router/go_router.dart';
 
 import '../features/answerer/answerer_detail_page.dart';
-import '../features/auth/legal_page.dart';
 import '../features/auth/login_page.dart';
 import '../features/certification/basic_certification_page.dart';
 import '../features/certification/basic_certification_apply_page.dart';
@@ -30,24 +29,13 @@ GoRouter createAppRouter(AuthController auth) {
     initialLocation: '/home',
     refreshListenable: auth,
     redirect: (context, state) {
-      final publicPath =
-          state.matchedLocation == '/login' ||
-          state.matchedLocation == '/terms' ||
-          state.matchedLocation == '/privacy';
+      final publicPath = state.matchedLocation == '/login';
       if (!auth.signedIn && !publicPath) return '/login';
       if (auth.signedIn && state.matchedLocation == '/login') return '/home';
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-      GoRoute(
-        path: '/terms',
-        builder: (context, state) => const LegalPage(type: LegalType.terms),
-      ),
-      GoRoute(
-        path: '/privacy',
-        builder: (context, state) => const LegalPage(type: LegalType.privacy),
-      ),
       ShellRoute(
         builder: (context, state, child) =>
             AppShellPage(location: state.uri.path, child: child),

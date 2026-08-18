@@ -14,7 +14,10 @@ class ApiClient {
           connectTimeout: const Duration(seconds: 12),
           receiveTimeout: const Duration(seconds: 30),
           sendTimeout: const Duration(seconds: 30),
-          headers: const {'Accept': 'application/json'},
+          headers: const {
+            'Accept': 'application/json',
+            'X-Client-Platform': 'app',
+          },
         ),
       ) {
     _dio.interceptors.add(

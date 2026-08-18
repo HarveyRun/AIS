@@ -18,6 +18,7 @@ import {
   Settings2,
   Ellipsis,
   ShieldCog,
+  Smartphone,
 } from 'lucide-react';
 import { adminApi, token } from '../../api/adminApi.js';
 import './AdminLayout.css';
@@ -54,7 +55,10 @@ const secondaryGroups = [
     id: 'system-management',
     label: '系统管理',
     icon: ShieldCog,
-    items: [['/audit', '操作记录', ScrollText]],
+    items: [
+      ['/app-test-account', 'App超级账号', Smartphone],
+      ['/audit', '操作记录', ScrollText],
+    ],
   },
 ];
 
