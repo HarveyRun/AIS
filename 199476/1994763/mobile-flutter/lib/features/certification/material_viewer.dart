@@ -61,7 +61,7 @@ class _MaterialViewerPageState extends State<MaterialViewerPage> {
       child: _video == null
           ? InteractiveViewer(
               child: Image.network(
-                AppConfig.resolveResource(widget.material.url).toString(),
+                AppConfig.resolveImage(widget.material.url).toString(),
                 fit: BoxFit.contain,
               ),
             )

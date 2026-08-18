@@ -19,7 +19,7 @@ class AppAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolved = AppConfig.resolveResource(url);
+    final resolved = AppConfig.resolveImage(url);
     return Stack(
       clipBehavior: Clip.none,
       children: [

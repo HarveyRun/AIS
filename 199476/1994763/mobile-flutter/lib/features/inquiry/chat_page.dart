@@ -627,14 +627,14 @@ class _MessageBubble extends ConsumerWidget {
                                     onTap: () => Navigator.of(context).push(
                                       MaterialPageRoute<void>(
                                         builder: (_) => _ChatImageViewer(
-                                          imageUrl: AppConfig.resolveResource(
+                                          imageUrl: AppConfig.resolveImage(
                                             message.attachmentUrl,
                                           ).toString(),
                                         ),
                                       ),
                                     ),
                                     child: Image.network(
-                                      AppConfig.resolveResource(
+                                      AppConfig.resolveImage(
                                         message.attachmentUrl,
                                       ).toString(),
                                       width: 180,

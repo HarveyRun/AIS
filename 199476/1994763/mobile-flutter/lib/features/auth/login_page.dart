@@ -113,6 +113,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           : Colors.white,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
+        minimum: const EdgeInsets.only(bottom: 16),
         child: _codeStep
             ? _buildCodeStep(context)
             : LayoutBuilder(

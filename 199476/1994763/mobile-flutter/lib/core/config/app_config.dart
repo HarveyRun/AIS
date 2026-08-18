@@ -16,11 +16,27 @@ abstract final class AppConfig {
     final apiUri = Uri.parse(apiBaseUrl);
     final relative = Uri.parse(value);
     return apiUri.replace(
-      path: relative.path.startsWith('/')
-          ? relative.path
-          : '/${relative.path}',
+      path: relative.path.startsWith('/') ? relative.path : '/${relative.path}',
       query: relative.hasQuery ? relative.query : null,
     );
+  }
+
+  static Uri resolveImage(String? path) {
+    final resource = resolveResource(path);
+    if (!resource.hasScheme || !_isExternalResource(resource)) {
+      return resource;
+    }
+    final apiUri = Uri.parse(apiBaseUrl);
+    return apiUri.replace(
+      path: '${apiUri.path}/public/media/image',
+      queryParameters: {'url': resource.toString()},
+    );
+  }
+
+  static bool _isExternalResource(Uri resource) {
+    final apiUri = Uri.parse(apiBaseUrl);
+    return resource.host.toLowerCase() != apiUri.host.toLowerCase() ||
+        resource.port != apiUri.port;
   }
 
   static Uri realtimeUri(String ticket) {

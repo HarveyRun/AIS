@@ -195,7 +195,7 @@ class _CustomerServicePageState extends ConsumerState<CustomerServicePage> {
                                                   BorderRadius.circular(10),
                                               child: CachedNetworkImage(
                                                 imageUrl:
-                                                    AppConfig.resolveResource(
+                                                    AppConfig.resolveImage(
                                                       item.attachmentUrl,
                                                     ).toString(),
                                                 width: 180,

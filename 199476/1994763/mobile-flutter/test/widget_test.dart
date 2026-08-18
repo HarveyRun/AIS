@@ -17,4 +17,16 @@ void main() {
       'https://agreement.inlightus.com/',
     );
   });
+
+  test('外部图片通过自己的后端加载', () {
+    final resolved = AppConfig.resolveImage(
+      'https://example.oss-cn-beijing.aliyuncs.com/a.png',
+    );
+
+    expect(resolved.path, '/api/public/media/image');
+    expect(
+      resolved.queryParameters['url'],
+      'https://example.oss-cn-beijing.aliyuncs.com/a.png',
+    );
+  });
 }

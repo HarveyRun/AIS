@@ -28,7 +28,7 @@ public class OssFileStorage implements FileStorage {
         String accessKeyId = settings.value("app.storage.oss.access-key-id", "oss.accessKeyId");
         String accessKeySecret = settings.value("app.storage.oss.access-key-secret", "oss.accessKeySecret");
         this.bucket = settings.value("app.storage.oss.bucket", "oss.bucket");
-        this.publicDomain = trimTrailingSlash(
+        this.publicDomain = normalizePublicDomain(
             settings.value("app.storage.oss.public-domain", "oss.domain")
         );
         if (!hasText(endpoint) || !hasText(accessKeyId) || !hasText(accessKeySecret)
@@ -77,6 +77,14 @@ public class OssFileStorage implements FileStorage {
     private static String trimTrailingSlash(String value) {
         if (value == null) return "";
         return value.replaceAll("/+$", "");
+    }
+
+    private static String normalizePublicDomain(String value) {
+        String normalized = trimTrailingSlash(value);
+        if (normalized.startsWith("http://")) {
+            return "https://" + normalized.substring("http://".length());
+        }
+        return normalized;
     }
 
     private static boolean hasText(String value) {

@@ -43,10 +43,11 @@ public class DiscoveryService {
         List<Map<String, Object>> experiences = content == ContentType.EXPERIENCES ? jdbc.queryForList(
             "SELECT e.id,e.category_id AS categoryId,e.name AS title,COUNT(DISTINCT u.id) AS answererCount " +
                 "FROM discovery_experiences e JOIN discovery_categories dc ON dc.id=e.category_id " +
-                "LEFT JOIN certifications c ON c.discovery_experience_id=e.id AND c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL " +
-                "LEFT JOIN users u ON u.id=c.user_id AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER +
+                "JOIN certifications c ON c.discovery_experience_id=e.id AND c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL " +
+                "JOIN users u ON u.id=c.user_id " +
                 "WHERE e.active=TRUE AND e.deleted_at IS NULL AND dc.active=TRUE AND dc.deleted_at IS NULL AND dc.main_category=? " +
-                "GROUP BY e.id,e.category_id,e.name HAVING COUNT(DISTINCT u.id)>0 ORDER BY e.name",
+                "AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER +
+                "GROUP BY e.id,e.category_id,e.name ORDER BY e.name",
             selectedCode
         ) : List.of();
 
@@ -167,10 +168,11 @@ public class DiscoveryService {
             return jdbc.query(
                 "SELECT e.id,e.category_id AS categoryId,dc.name AS categoryName,e.name AS title,COUNT(DISTINCT u.id) AS answererCount " +
                     "FROM discovery_experiences e JOIN discovery_categories dc ON dc.id=e.category_id " +
-                    "LEFT JOIN certifications c ON c.discovery_experience_id=e.id AND c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL " +
-                    "LEFT JOIN users u ON u.id=c.user_id AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER +
+                    "JOIN certifications c ON c.discovery_experience_id=e.id AND c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL " +
+                    "JOIN users u ON u.id=c.user_id " +
                     "WHERE e.active=TRUE AND e.deleted_at IS NULL AND dc.active=TRUE AND dc.deleted_at IS NULL " +
-                    "GROUP BY e.id,e.category_id,dc.name,e.name HAVING COUNT(DISTINCT u.id)>0 " +
+                    "AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER +
+                    "GROUP BY e.id,e.category_id,dc.name,e.name " +
                     "ORDER BY FIELD(dc.main_category,'GENERAL','LIFE','WORK','ENTERTAINMENT')," +
                     "dc.sort_order,dc.id,e.name",
                 (resultSet, rowNumber) -> new ExperienceSearchView(
@@ -185,10 +187,11 @@ public class DiscoveryService {
         return jdbc.query(
             "SELECT e.id,e.category_id AS categoryId,dc.name AS categoryName,e.name AS title,COUNT(DISTINCT u.id) AS answererCount " +
                 "FROM discovery_experiences e JOIN discovery_categories dc ON dc.id=e.category_id " +
-                "LEFT JOIN certifications c ON c.discovery_experience_id=e.id AND c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL " +
-                "LEFT JOIN users u ON u.id=c.user_id AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER +
+                "JOIN certifications c ON c.discovery_experience_id=e.id AND c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL " +
+                "JOIN users u ON u.id=c.user_id " +
                 "WHERE e.active=TRUE AND e.deleted_at IS NULL AND dc.active=TRUE AND dc.deleted_at IS NULL AND e.name LIKE CONCAT('%',?,'%') " +
-                "GROUP BY e.id,e.category_id,dc.name,e.name HAVING COUNT(DISTINCT u.id)>0 " +
+                "AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER +
+                "GROUP BY e.id,e.category_id,dc.name,e.name " +
                 "ORDER BY FIELD(dc.main_category,'GENERAL','LIFE','WORK','ENTERTAINMENT')," +
                 "dc.sort_order,dc.id,e.name LIMIT 50",
             (resultSet, rowNumber) -> new ExperienceSearchView(
