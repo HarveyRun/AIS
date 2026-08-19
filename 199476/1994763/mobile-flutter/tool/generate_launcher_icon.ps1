@@ -31,8 +31,8 @@ try {
                 [System.Drawing.Rectangle]::new(0, 0, $entry.Value, $entry.Value),
                 0,
                 0,
-                192,
-                192,
+                $master.Width,
+                $master.Height,
                 [System.Drawing.GraphicsUnit]::Pixel
             )
             $targetPath = Join-Path $resourceRoot "$($entry.Key)\ic_launcher.png"

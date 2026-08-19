@@ -11,6 +11,7 @@ import com.shixianwen.network.ClientNetworkInfo;
 import com.shixianwen.realtime.RealtimePublisher;
 import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StoredFile;
+import com.shixianwen.storage.StorageVisibility;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -70,7 +71,7 @@ public class InquiryService {
     public InquiryDetail detail(Long userId, Long inquiryId) {
         Inquiry item = accessible(userId, inquiryId);
         return new InquiryDetail(view(item, userId), messages.findByInquiryIdOrderByCreatedAtAsc(inquiryId).stream()
-                .map(MessageView::of).toList());
+                .map(this::messageView).toList());
     }
 
     @Transactional
@@ -133,7 +134,7 @@ public class InquiryService {
             ? item.getAnswerer().getId()
             : item.getQuestioner().getId();
         increaseUnread(item, recipientId);
-        MessageView view = MessageView.of(message);
+        MessageView view = messageView(message);
         realtime.afterCommit(recipientId, "INQUIRY_MESSAGE", new MessageEvent(
             inquiryId, unreadFor(item, recipientId), view
         ));
@@ -148,13 +149,18 @@ public class InquiryService {
         if (item.getQuestioner().getId().equals(userId)) item.setQuestionerUnreadCount(0);
         else item.setAnswererUnreadCount(0);
 
-        StoredFile stored = fileStorage.store(image, "inquiries/" + inquiryId);
+        StoredFile stored = fileStorage.store(
+            image,
+            "inquiries/" + inquiryId,
+            StorageVisibility.PRIVATE
+        );
         InquiryMessage message = new InquiryMessage();
         message.setInquiry(item);
         message.setSender(user(userId));
         message.setMessageType("IMAGE");
         message.setContent("");
-        message.setAttachmentUrl(stored.publicUrl());
+        message.setAttachmentKey(stored.storageKey());
+        message.setAttachmentUrl(null);
         message.setAttachmentName(clean(image.getOriginalFilename(), 255));
         message.setAttachmentSize(stored.size());
         message = messages.saveAndFlush(message);
@@ -164,7 +170,7 @@ public class InquiryService {
             ? item.getAnswerer().getId()
             : item.getQuestioner().getId();
         increaseUnread(item, recipientId);
-        MessageView view = MessageView.of(message);
+        MessageView view = messageView(message);
         realtime.afterCommit(recipientId, "INQUIRY_MESSAGE", new MessageEvent(
             inquiryId, unreadFor(item, recipientId), view
         ));
@@ -300,6 +306,10 @@ public class InquiryService {
         return question.length() <= 36 ? question : question.substring(0, 36) + "…";
     }
 
+    private MessageView messageView(InquiryMessage message) {
+        return MessageView.of(message, fileStorage);
+    }
+
     private InquiryView view(Inquiry i, Long me) {
         User other = i.getQuestioner().getId().equals(me) ? i.getAnswerer() : i.getQuestioner();
         return new InquiryView(i.getId(), i.getQuestioner().getId().equals(me) ? "QUESTIONER" : "ANSWERER",
@@ -316,7 +326,26 @@ public class InquiryService {
     public record MessageView(Long id, Long senderId, String senderName, String senderAvatar, String type, String content,
                               String attachmentUrl, String attachmentName, Long attachmentSize,
                               LocalDateTime createdAt) {
-        static MessageView of(InquiryMessage m) { User s = m.getSender(); return new MessageView(m.getId(), s.getId(), s.getNickname() == null || s.getNickname().isBlank() ? s.getUid() : s.getNickname(), s.getAvatarUrl(), m.getMessageType(), m.getContent(), m.getAttachmentUrl(), m.getAttachmentName(), m.getAttachmentSize(), m.getCreatedAt()); }
+        static MessageView of(InquiryMessage m, FileStorage fileStorage) {
+            User sender = m.getSender();
+            String attachmentUrl = m.getAttachmentKey() == null || m.getAttachmentKey().isBlank()
+                ? m.getAttachmentUrl()
+                : fileStorage.accessUrl(m.getAttachmentKey(), StorageVisibility.PRIVATE);
+            return new MessageView(
+                m.getId(),
+                sender.getId(),
+                sender.getNickname() == null || sender.getNickname().isBlank()
+                    ? sender.getUid()
+                    : sender.getNickname(),
+                sender.getAvatarUrl(),
+                m.getMessageType(),
+                m.getContent(),
+                attachmentUrl,
+                m.getAttachmentName(),
+                m.getAttachmentSize(),
+                m.getCreatedAt()
+            );
+        }
     }
     public record InquiryDetail(InquiryView inquiry, List<MessageView> messages) {}
     public record InquiryChangedEvent(Long inquiryId, String status, String fundsStatus, int unreadCount) {}

@@ -555,10 +555,7 @@ export default function DiscoveryManagementPage() {
 
       {categoryEditorOpen && (
         <>
-          <div
-            className="modal-mask"
-            onClick={cancelCategoryEdit}
-          />
+          <div className="modal-mask" onClick={cancelCategoryEdit} />
           <section className="detail-modal discovery-editor-modal" role="dialog" aria-modal="true">
             <header>
               <div>
@@ -627,11 +624,12 @@ export default function DiscoveryManagementPage() {
 
       {matterEditorOpen && (
         <>
-          <div
-            className="modal-mask"
-            onClick={cancelMatterEdit}
-          />
-          <section className="detail-modal discovery-editor-modal matter-editor-modal" role="dialog" aria-modal="true">
+          <div className="modal-mask" onClick={cancelMatterEdit} />
+          <section
+            className="detail-modal discovery-editor-modal matter-editor-modal"
+            role="dialog"
+            aria-modal="true"
+          >
             <header>
               <div>
                 <h2>{editingMatterId ? '编辑事情' : '新增事情'}</h2>

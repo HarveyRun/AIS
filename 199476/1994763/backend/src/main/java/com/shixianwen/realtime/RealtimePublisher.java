@@ -20,6 +20,11 @@ public class RealtimePublisher {
         afterCommit(publish);
     }
 
+    public void afterCommitToAllUsers(String type, Object payload) {
+        Runnable publish = () -> handler.sendAllUsers(type, payload);
+        afterCommit(publish);
+    }
+
     private void afterCommit(Runnable publish) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
             publish.run();

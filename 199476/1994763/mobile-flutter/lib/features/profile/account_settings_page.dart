@@ -90,7 +90,8 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authControllerProvider).user!;
+    final user = ref.watch(authControllerProvider).user;
+    if (user == null) return const SizedBox.shrink();
     return Scaffold(
       appBar: AppBar(title: const Text('账号设置')),
       body: ListView(

@@ -161,7 +161,11 @@ class _InquiryList extends StatelessWidget {
         child: ListView(
           children: const [
             SizedBox(height: 150),
-            Icon(Icons.chat_bubble_outline_rounded, size: 42),
+            Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 32,
+              color: Color(0xFF9A9A9A),
+            ),
             SizedBox(height: 12),
             Center(child: Text('这里还没有询问')),
           ],

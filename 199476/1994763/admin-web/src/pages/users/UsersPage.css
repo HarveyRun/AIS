@@ -1,0 +1,214 @@
+.user-table-card {
+  min-height: 360px;
+}
+
+.user-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.user-action svg {
+  width: 15px;
+  height: 15px;
+}
+
+.user-penalty-status {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+
+.user-penalty-status small {
+  max-width: 180px;
+}
+
+.user-penalty-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.user-penalty-mask {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(20, 22, 25, 0.48);
+}
+
+.user-penalty-dialog {
+  position: relative;
+  width: min(500px, calc(100vw - 40px));
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(21, 24, 29, 0.2);
+  overflow: hidden;
+}
+
+.user-penalty-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 0;
+}
+
+.user-penalty-dialog > header > button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #f3f4f6;
+  cursor: pointer;
+}
+
+.user-penalty-dialog > header > button svg {
+  width: 17px;
+}
+
+.user-penalty-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff0ee;
+  color: #c83a30;
+}
+
+.user-penalty-icon svg {
+  width: 21px;
+}
+
+.user-penalty-heading {
+  padding: 15px 24px 20px;
+  border-bottom: 1px solid #eff0f2;
+}
+
+.user-penalty-heading h2,
+.user-penalty-heading p {
+  margin: 0;
+}
+
+.user-penalty-heading h2 {
+  font-size: 20px;
+}
+
+.user-penalty-heading p {
+  display: flex;
+  gap: 10px;
+  margin-top: 7px;
+  color: #626872;
+  font-size: 13px;
+}
+
+.user-penalty-heading p span {
+  color: #9a9fa7;
+}
+
+.user-penalty-dialog form {
+  display: grid;
+  gap: 20px;
+  padding: 22px 24px 24px;
+}
+
+.user-penalty-dialog fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.user-penalty-dialog legend,
+.user-penalty-dialog label > span {
+  display: block;
+  margin-bottom: 9px;
+  color: #555b64;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.user-penalty-durations {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.user-penalty-durations button {
+  height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #555b64;
+  cursor: pointer;
+}
+
+.user-penalty-durations button.selected {
+  background: #d33a2c;
+  color: #fff;
+  font-weight: 600;
+}
+
+.user-penalty-dialog label {
+  position: relative;
+}
+
+.user-penalty-dialog textarea {
+  width: 100%;
+  min-height: 116px;
+  padding: 12px;
+  border: 1px solid #dfe1e5;
+  border-radius: 9px;
+  outline: 0;
+  resize: vertical;
+  font: inherit;
+  line-height: 1.6;
+}
+
+.user-penalty-dialog textarea:focus {
+  border-color: #d33a2c;
+  box-shadow: 0 0 0 3px rgba(211, 58, 44, 0.08);
+}
+
+.user-penalty-dialog label > small {
+  position: absolute;
+  right: 9px;
+  bottom: 8px;
+  color: #a0a4ab;
+  font-size: 11px;
+}
+
+.user-penalty-notice {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #8c5a16;
+  font-size: 12px;
+}
+
+.user-penalty-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.user-penalty-dialog .danger-confirm {
+  min-width: 94px;
+  border: 0;
+  border-radius: 7px;
+  background: #d33a2c;
+  color: #fff;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .user-penalty-durations {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -1,5 +1,6 @@
 package com.shixianwen.user;
 
+import com.shixianwen.admin.AdminUser;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,6 +43,19 @@ public class User {
 
     @Column(name = "account_status", nullable = false, length = 30)
     private String accountStatus = "ACTIVE";
+
+    @Column(name = "ban_reason", length = 300)
+    private String banReason;
+
+    @Column(name = "banned_at")
+    private LocalDateTime bannedAt;
+
+    @Column(name = "ban_until")
+    private LocalDateTime banUntil;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "banned_by_admin_id")
+    private AdminUser bannedByAdmin;
 
     @Column(name = "register_ip", length = 45, updatable = false)
     private String registerIp;

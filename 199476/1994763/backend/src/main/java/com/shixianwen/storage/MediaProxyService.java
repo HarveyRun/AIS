@@ -12,22 +12,22 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Service
 public class MediaProxyService {
     private static final int MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
     private final HttpClient httpClient;
-    private final String allowedHost;
+    private final Set<String> allowedHosts;
 
     public MediaProxyService(ThirdPartySettings settings) {
         this.httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(8))
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
-        this.allowedHost = hostOf(
-            settings.value("app.storage.oss.public-domain", "oss.domain")
-        );
+        this.allowedHosts = allowedHosts(settings);
     }
 
     public ProxiedImage loadImage(String rawUrl) {
@@ -70,7 +70,7 @@ public class MediaProxyService {
     }
 
     private URI validate(String rawUrl) {
-        if (rawUrl == null || rawUrl.isBlank() || allowedHost.isBlank()) {
+        if (rawUrl == null || rawUrl.isBlank() || allowedHosts.isEmpty()) {
             throw BusinessException.badRequest("图片地址无效");
         }
         final URI parsed;
@@ -86,7 +86,7 @@ public class MediaProxyService {
             ? ""
             : parsed.getHost().toLowerCase(Locale.ROOT);
         if (!("http".equals(scheme) || "https".equals(scheme))
-            || !allowedHost.equals(host)
+            || !allowedHosts.contains(host)
             || parsed.getUserInfo() != null
             || (parsed.getPort() != -1 && parsed.getPort() != 80 && parsed.getPort() != 443)) {
             throw BusinessException.badRequest("图片地址无效");
@@ -118,6 +118,31 @@ public class MediaProxyService {
             return host == null ? "" : host.toLowerCase(Locale.ROOT);
         } catch (IllegalArgumentException exception) {
             return "";
+        }
+    }
+
+    private static Set<String> allowedHosts(ThirdPartySettings settings) {
+        Set<String> hosts = new LinkedHashSet<>();
+        addHost(hosts, settings.value("app.storage.oss.public-domain", "oss.domain"));
+
+        String endpointHost = hostOf(settings.value("app.storage.oss.endpoint", "oss.endpoint"));
+        if (!endpointHost.isBlank()) {
+            hosts.add(endpointHost);
+            addBucketHost(hosts, settings.value("app.storage.oss.public-bucket"), endpointHost);
+            addBucketHost(hosts, settings.value("app.storage.oss.bucket", "oss.bucket"), endpointHost);
+            addBucketHost(hosts, settings.value("app.storage.oss.private-bucket"), endpointHost);
+        }
+        return Set.copyOf(hosts);
+    }
+
+    private static void addHost(Set<String> hosts, String value) {
+        String host = hostOf(value);
+        if (!host.isBlank()) hosts.add(host);
+    }
+
+    private static void addBucketHost(Set<String> hosts, String bucket, String endpointHost) {
+        if (bucket != null && !bucket.isBlank()) {
+            hosts.add(bucket.trim().toLowerCase(Locale.ROOT) + "." + endpointHost);
         }
     }
 

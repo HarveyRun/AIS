@@ -79,6 +79,44 @@ export const adminApi = {
   deleteAppTestAccount: (id) => request(`/app-test-accounts/${id}`, {
     method: 'DELETE',
   }),
+  appVersions: (page = 0, size = 20) =>
+    request(`/app-versions?page=${page}&size=${size}`),
+  createAppVersion: (body) => request('/app-versions', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
+  updateAppVersion: (id, body) => request(`/app-versions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  }),
+  publishAppVersion: (id) => request(`/app-versions/${id}/publish`, {
+    method: 'POST',
+  }),
+  unpublishAppVersion: (id) => request(`/app-versions/${id}/unpublish`, {
+    method: 'POST',
+  }),
+  deleteAppVersion: (id) => request(`/app-versions/${id}`, {
+    method: 'DELETE',
+  }),
+  announcements: (page = 0, size = 20) =>
+    request(`/announcements?page=${page}&size=${size}`),
+  createAnnouncement: (body) => request('/announcements', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
+  updateAnnouncement: (id, body) => request(`/announcements/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  }),
+  publishAnnouncement: (id) => request(`/announcements/${id}/publish`, {
+    method: 'POST',
+  }),
+  withdrawAnnouncement: (id) => request(`/announcements/${id}/withdraw`, {
+    method: 'POST',
+  }),
+  deleteAnnouncement: (id) => request(`/announcements/${id}`, {
+    method: 'DELETE',
+  }),
   users: (query) => request(`/users?${query}`),
   jobs: (jobName = '', page = 0, size = 20) =>
     request(`/jobs?jobName=${encodeURIComponent(jobName)}&page=${page}&size=${size}`),
@@ -98,8 +136,8 @@ export const adminApi = {
   updateCertification: (id, body) =>
     request(`/certifications/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteCertification: (id) => request(`/certifications/${id}`, { method: 'DELETE' }),
-  userStatus: (id, status) =>
-    request(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  userStatus: (id, body) =>
+    request(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify(body) }),
   withdrawalStatus: (id, status) =>
     request(`/withdrawals/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   recordStatus: (type, id, status) =>

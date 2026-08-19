@@ -71,9 +71,7 @@ public class AuthService {
     public LoginResult login(String phone, String code, ClientNetworkInfo network, boolean appClient) {
         validateCode(phone, code, appClient);
         User user = userRepository.findByPhone(phone).orElseGet(() -> createUser(phone, network));
-        if (!"ACTIVE".equals(user.getAccountStatus())) {
-            throw BusinessException.forbidden("该账号当前无法登录");
-        }
+        ensureAccountAvailable(user);
         user.setLastLoginIp(network.ipAddress());
         user.setLastLoginLocation(network.location());
         user.setLastLoginAt(LocalDateTime.now());
@@ -99,12 +97,17 @@ public class AuthService {
         return user;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public User authenticate(String rawToken) {
-        return authSessionRepository.findByTokenHashAndExpiresAtAfter(hash(rawToken), LocalDateTime.now())
-            .map(AuthSession::getUser)
-            .filter(user -> "ACTIVE".equals(user.getAccountStatus()))
-            .orElseThrow(() -> new BusinessException(HttpStatus.UNAUTHORIZED, "登录已失效，请重新登录"));
+        AuthSession session = authSessionRepository
+            .findByTokenHashAndExpiresAtAfter(hash(rawToken), LocalDateTime.now())
+            .orElseThrow(() -> new BusinessException(
+                HttpStatus.UNAUTHORIZED,
+                "登录已失效，请重新登录"
+            ));
+        User user = session.getUser();
+        ensureAccountAvailable(user);
+        return user;
     }
 
     @Transactional
@@ -125,6 +128,25 @@ public class AuthService {
         session.setExpiresAt(LocalDateTime.now().plusDays(tokenValidDays));
         authSessionRepository.save(session);
         return new LoginResult(token, UserView.from(user));
+    }
+
+    private void ensureAccountAvailable(User user) {
+        if ("ACTIVE".equals(user.getAccountStatus())) return;
+
+        LocalDateTime now = LocalDateTime.now();
+        if (user.getBanUntil() != null && !user.getBanUntil().isAfter(now)) {
+            user.setAccountStatus("ACTIVE");
+            user.setBanReason(null);
+            user.setBannedAt(null);
+            user.setBanUntil(null);
+            user.setBannedByAdmin(null);
+            userRepository.save(user);
+            return;
+        }
+
+        String reason = user.getBanReason();
+        if (reason == null || reason.isBlank()) reason = "违反平台规则";
+        throw new AccountPenaltyException(reason, user.getBanUntil());
     }
 
     private String generateUid() {

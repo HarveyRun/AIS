@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import com.shixianwen.storage.FileStorage;
+import com.shixianwen.storage.StorageVisibility;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -51,14 +52,20 @@ public class UserService {
         if (avatar == null || avatar.isEmpty() || avatar.getContentType() == null || !avatar.getContentType().startsWith("image/"))
             throw BusinessException.badRequest("请选择图片文件");
         if (avatar.getSize() > 2L * 1024 * 1024) throw BusinessException.badRequest("头像图片不能超过2MB");
-        user.setAvatarUrl(fileStorage.store(avatar, "avatars/" + user.getId()).publicUrl());
+        user.setAvatarUrl(fileStorage.store(
+            avatar,
+            "avatars/" + user.getId(),
+            StorageVisibility.PUBLIC
+        ).publicUrl());
         return AuthService.UserView.from(userRepository.save(user));
     }
 
     @Transactional
     public AuthService.UserView updateProfile(User user, String nickname, String avatarUrl) {
         user.setNickname(nickname == null || nickname.isBlank() ? null : sensitiveWords.mask(nickname.trim()));
-        user.setAvatarUrl(avatarUrl == null || avatarUrl.isBlank() ? null : avatarUrl.trim());
+        if (avatarUrl != null) {
+            user.setAvatarUrl(avatarUrl.isBlank() ? null : avatarUrl.trim());
+        }
         return AuthService.UserView.from(userRepository.save(user));
     }
 

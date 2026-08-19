@@ -134,7 +134,8 @@ class _ChatPageState extends ConsumerState<ChatPage>
   Future<void> _sendText() async {
     final content = _textController.text.trim();
     if (content.isEmpty || !(_detail?.inquiry.canChat ?? false)) return;
-    final user = ref.read(authControllerProvider).user!;
+    final user = ref.read(authControllerProvider).user;
+    if (user == null) return;
     final pending = ChatMessage(
       id: 'sending-${DateTime.now().microsecondsSinceEpoch}',
       senderId: user.id,

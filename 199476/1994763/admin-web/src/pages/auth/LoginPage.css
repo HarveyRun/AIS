@@ -19,17 +19,12 @@
   gap: 13px;
   margin-bottom: 34px;
 }
-.login-brand i {
+.login-brand img {
   width: 45px;
   height: 45px;
-  background: #d33a2c;
-  color: #fff;
   border-radius: 13px;
-  display: grid;
-  place-items: center;
-  font-style: normal;
-  font-size: 21px;
-  font-weight: 800;
+  display: block;
+  object-fit: cover;
 }
 .login-brand h1,
 .login-brand p {

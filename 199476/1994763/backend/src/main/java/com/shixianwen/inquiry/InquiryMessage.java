@@ -36,6 +36,9 @@ public class InquiryMessage {
     @Column(name = "attachment_url", length = 500)
     private String attachmentUrl;
 
+    @Column(name = "attachment_key", length = 500)
+    private String attachmentKey;
+
     @Column(name = "attachment_name")
     private String attachmentName;
 

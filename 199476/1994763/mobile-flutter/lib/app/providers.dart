@@ -46,8 +46,25 @@ final themeControllerProvider = ChangeNotifierProvider<ThemeController>((ref) {
 });
 
 final notificationCountProvider = StateProvider<int>((ref) => 0);
+final notificationPagePresenceProvider = Provider(
+  (ref) => NotificationPagePresence(),
+);
 final inquiryUnreadCountProvider = StateProvider<int>((ref) => 0);
 final customerServiceUnreadProvider = StateProvider<int>((ref) => 0);
+
+class NotificationPagePresence {
+  bool _visible = false;
+
+  bool get visible => _visible;
+
+  void enter() {
+    _visible = true;
+  }
+
+  void leave() {
+    _visible = false;
+  }
+}
 
 class AuthController extends ChangeNotifier {
   AuthController({
@@ -65,8 +82,11 @@ class AuthController extends ChangeNotifier {
   final ApiClient _apiClient;
   final RealtimeService _realtime;
   StreamSubscription<void>? _unauthorizedSubscription;
+  StreamSubscription<AccountPenaltyNotice>? _penaltySubscription;
+  StreamSubscription<RealtimeEvent>? _realtimeSubscription;
 
   AppUser? user;
+  AccountPenaltyNotice? penaltyNotice;
   bool initialized = false;
   bool busy = false;
 
@@ -77,6 +97,13 @@ class AuthController extends ChangeNotifier {
       user = null;
       _realtime.disconnect();
       notifyListeners();
+    });
+    _penaltySubscription = _apiClient.accountPenaltyEvents.listen((notice) {
+      unawaited(_applyPenalty(notice));
+    });
+    _realtimeSubscription = _realtime.events.listen((event) {
+      if (event.type != 'ACCOUNT_PENALTY') return;
+      unawaited(_applyPenalty(AccountPenaltyNotice.fromJson(event.payload)));
     });
     final token = await _storage.readToken();
     if (token != null && token.isNotEmpty) {
@@ -100,6 +127,7 @@ class AuthController extends ChangeNotifier {
     try {
       final result = await _repository.login(phone, code);
       await _storage.writeToken(result.token);
+      penaltyNotice = null;
       user = result.user;
       await _realtime.connect();
     } finally {
@@ -123,6 +151,8 @@ class AuthController extends ChangeNotifier {
   Future<void> logout() async {
     try {
       await _repository.logout();
+    } catch (_) {
+      // 退出登录以清除本地登录态为准，服务端暂时不可用时也应正常退出。
     } finally {
       await _storage.deleteToken();
       await _realtime.disconnect();
@@ -139,9 +169,24 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void acknowledgePenalty() {
+    penaltyNotice = null;
+    notifyListeners();
+  }
+
+  Future<void> _applyPenalty(AccountPenaltyNotice notice) async {
+    penaltyNotice = notice;
+    user = null;
+    notifyListeners();
+    await _storage.deleteToken();
+    await _realtime.disconnect();
+  }
+
   @override
   void dispose() {
     _unauthorizedSubscription?.cancel();
+    _penaltySubscription?.cancel();
+    _realtimeSubscription?.cancel();
     super.dispose();
   }
 }

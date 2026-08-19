@@ -5,6 +5,9 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/app_theme.dart';
+import '../core/widgets/account_penalty_gate.dart';
+import '../core/widgets/app_update_gate.dart';
+import '../core/widgets/notification_realtime_gate.dart';
 import '../features/auth/pre_privacy_page.dart';
 import 'providers.dart';
 import 'router.dart';
@@ -90,7 +93,18 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
       darkTheme: AppTheme.dark(),
       themeMode: theme.dark ? ThemeMode.dark : ThemeMode.light,
       routerConfig: _router,
-      builder: FlutterSmartDialog.init(builder: _systemChromeBuilder),
+      builder: FlutterSmartDialog.init(
+        builder: (context, child) => _systemChromeBuilder(
+          context,
+          AppUpdateGate(
+            child: NotificationRealtimeGate(
+              child: AccountPenaltyGate(
+                child: child ?? const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

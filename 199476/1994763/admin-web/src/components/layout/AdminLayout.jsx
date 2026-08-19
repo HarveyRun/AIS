@@ -19,12 +19,15 @@ import {
   Ellipsis,
   ShieldCog,
   Smartphone,
+  RefreshCw,
+  BellRing,
 } from 'lucide-react';
 import { adminApi, token } from '../../api/adminApi.js';
 import './AdminLayout.css';
 const primaryItems = [
   ['/dashboard', '概览', LayoutDashboard],
   ['/users', '用户管理', Users],
+  ['/announcements', '通知管理', BellRing],
   ['/certifications', '认证审核', ShieldCheck],
   ['/inquiries', '询问管理', MessagesSquare],
   ['/withdrawals', '提现处理', WalletCards],
@@ -56,6 +59,7 @@ const secondaryGroups = [
     label: '系统管理',
     icon: ShieldCog,
     items: [
+      ['/app-versions', 'App版本管理', RefreshCw],
       ['/app-test-account', 'App超级账号', Smartphone],
       ['/audit', '操作记录', ScrollText],
     ],
@@ -97,7 +101,7 @@ export default function AdminLayout({ onLoggedOut, customerServiceUnread = 0 }) 
     <div className="admin-shell">
       <aside>
         <div className="admin-brand">
-          <i>问</i>
+          <img src="/brand/app-icon.png" alt="事先问" />
           <div>
             <b>事先问</b>
             <span>管理后台</span>

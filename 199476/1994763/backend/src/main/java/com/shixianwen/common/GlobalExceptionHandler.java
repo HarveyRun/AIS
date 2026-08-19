@@ -1,5 +1,6 @@
 package com.shixianwen.common;
 
+import com.shixianwen.auth.AccountPenaltyException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,21 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(AccountPenaltyException.class)
+    public ResponseEntity<ApiResponse<AccountPenaltyView>> handleAccountPenalty(
+        AccountPenaltyException exception
+    ) {
+        AccountPenaltyView detail = new AccountPenaltyView(
+            "ACCOUNT_PENALTY",
+            exception.getReason(),
+            exception.getBanUntil(),
+            exception.isPermanent()
+        );
+        return ResponseEntity
+            .status(exception.getStatus())
+            .body(new ApiResponse<>(false, detail, exception.getMessage()));
+    }
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException exception) {
         return ResponseEntity.status(exception.getStatus()).body(ApiResponse.error(exception.getMessage()));
@@ -39,5 +55,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleUnknown(Exception exception) {
         log.error("Unhandled request error", exception);
         return ResponseEntity.internalServerError().body(ApiResponse.error("服务暂时不可用，请稍后重试"));
+    }
+
+    public record AccountPenaltyView(
+        String type,
+        String reason,
+        java.time.LocalDateTime banUntil,
+        boolean permanent
+    ) {
     }
 }

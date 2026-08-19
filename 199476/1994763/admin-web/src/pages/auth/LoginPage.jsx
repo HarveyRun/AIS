@@ -41,7 +41,7 @@ export default function LoginPage({ onAuthenticated }) {
     <div className="admin-login">
       <section>
         <div className="login-brand">
-          <i>问</i>
+          <img src="/brand/app-icon.png" alt="事先问" />
           <div>
             <h1>事先问</h1>
             <p>管理后台</p>

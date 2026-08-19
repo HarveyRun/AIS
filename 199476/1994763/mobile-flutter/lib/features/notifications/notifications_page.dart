@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/providers.dart';
+import '../../core/network/realtime_service.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/support_models.dart';
 
@@ -15,28 +18,48 @@ class NotificationsPage extends ConsumerStatefulWidget {
 class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   List<AppNotification> _items = const [];
   bool _loading = true;
+  StreamSubscription<RealtimeEvent>? _subscription;
 
   @override
   void initState() {
     super.initState();
+    ref.read(notificationPagePresenceProvider).enter();
+    _subscription = ref.read(realtimeProvider).events.listen((event) {
+      if (event.type == 'NOTIFICATION_CREATED' ||
+          event.type == 'ANNOUNCEMENT_WITHDRAWN') {
+        _load(showLoading: false);
+      }
+    });
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    ref.read(notificationPagePresenceProvider).leave();
+    super.dispose();
+  }
+
+  Future<void> _load({bool showLoading = true}) async {
+    if (showLoading) setState(() => _loading = true);
     try {
       final items = await ref.read(repositoryProvider).notifications();
-      if (mounted) setState(() => _items = items);
+      if (mounted) {
+        setState(() => _items = items);
+        ref.read(notificationCountProvider.notifier).state = items
+            .where((item) => !item.read)
+            .length;
+      }
     } catch (error) {
-      if (mounted) AppMessage.show(context, '$error');
+      if (showLoading && mounted) AppMessage.show(context, '$error');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (showLoading && mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _read(AppNotification item) async {
     if (!item.read) {
-      await ref.read(repositoryProvider).readNotification(item.id);
+      await ref.read(repositoryProvider).readNotification(item);
       if (!mounted) return;
       setState(() {
         _items = _items
@@ -44,6 +67,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
               (entry) => entry.id == item.id
                   ? AppNotification(
                       id: entry.id,
+                      sourceType: entry.sourceType,
                       title: entry.title,
                       content: entry.content,
                       targetPath: entry.targetPath,
@@ -86,7 +110,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                     padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
                     children: const [
                       SizedBox(height: 180),
-                      Icon(Icons.notifications_none_rounded, size: 44),
+                      Icon(
+                        Icons.notifications_none_rounded,
+                        size: 32,
+                        color: Color(0xFF9A9A9A),
+                      ),
                       SizedBox(height: 12),
                       Center(child: Text('暂无消息')),
                     ],
@@ -117,7 +145,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              Icons.notifications_none_rounded,
+                              item.isAnnouncement
+                                  ? Icons.campaign_outlined
+                                  : Icons.notifications_none_rounded,
                               color: Theme.of(context).colorScheme.primary,
                             ),
                           ),

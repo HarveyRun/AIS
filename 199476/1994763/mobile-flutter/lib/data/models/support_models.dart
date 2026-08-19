@@ -1,6 +1,7 @@
 class AppNotification {
   const AppNotification({
     required this.id,
+    required this.sourceType,
     required this.title,
     required this.content,
     required this.targetPath,
@@ -11,6 +12,7 @@ class AppNotification {
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
       id: _int(json['id']),
+      sourceType: json['sourceType']?.toString() ?? 'PERSONAL',
       title: json['title']?.toString() ?? '',
       content: json['content']?.toString() ?? '',
       targetPath: json['targetPath']?.toString() ?? '',
@@ -20,11 +22,14 @@ class AppNotification {
   }
 
   final int id;
+  final String sourceType;
   final String title;
   final String content;
   final String targetPath;
   final bool read;
   final DateTime? createdAt;
+
+  bool get isAnnouncement => sourceType.toUpperCase() == 'ANNOUNCEMENT';
 }
 
 class FeedbackRecord {

@@ -24,9 +24,22 @@ public class NotificationController {
         return ApiResponse.ok(service.unreadCount(user.getId()));
     }
 
+    @PutMapping("/{sourceType}/{id}/read")
+    public ApiResponse<Void> read(
+        @CurrentUser User user,
+        @PathVariable String sourceType,
+        @PathVariable Long id
+    ) {
+        service.read(user.getId(), sourceType, id);
+        return ApiResponse.ok();
+    }
+
     @PutMapping("/{id}/read")
-    public ApiResponse<Void> read(@CurrentUser User user, @PathVariable Long id) {
-        service.read(user.getId(), id);
+    public ApiResponse<Void> readPersonal(
+        @CurrentUser User user,
+        @PathVariable Long id
+    ) {
+        service.read(user.getId(), "PERSONAL", id);
         return ApiResponse.ok();
     }
 

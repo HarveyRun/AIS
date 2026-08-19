@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../core/network/api_client.dart';
 import '../models/answerer_models.dart';
+import '../models/app_version_models.dart';
 import '../models/certification_models.dart';
 import '../models/discovery_models.dart';
 import '../models/inquiry_models.dart';
@@ -20,6 +21,14 @@ class AppRepository {
   const AppRepository(this._api);
 
   final ApiClient _api;
+
+  Future<AppUpdateInfo> checkAppVersion(int currentVersionCode) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/public/app-version',
+      query: {'platform': 'ANDROID', 'currentVersionCode': currentVersionCode},
+    );
+    return AppUpdateInfo.fromJson(data);
+  }
 
   Future<void> sendVerificationCode(String phone) {
     return _api.post<Object?>(
@@ -346,8 +355,10 @@ class AppRepository {
     return _int(data);
   }
 
-  Future<void> readNotification(int id) =>
-      _api.put<Object?>('/notifications/$id/read');
+  Future<void> readNotification(AppNotification notification) =>
+      _api.put<Object?>(
+        '/notifications/${notification.sourceType}/${notification.id}/read',
+      );
   Future<void> readAllNotifications() =>
       _api.put<Object?>('/notifications/read-all');
 

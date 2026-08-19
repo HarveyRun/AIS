@@ -4,6 +4,7 @@ import com.shixianwen.common.BusinessException;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StoredFile;
+import com.shixianwen.storage.StorageVisibility;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,7 @@ public class CertificationService {
     @Transactional(readOnly = true)
     public List<CertificationView> list(User user) {
         return certificationRepository.findByUserIdOrderByIdAsc(user.getId()).stream()
-                .map(CertificationView::from)
+                .map(this::view)
                 .toList();
     }
 
@@ -81,7 +82,7 @@ public class CertificationService {
         retireMaterials(certification);
         certification.setYears(years);
         attachFiles(certification, files);
-        return CertificationView.from(certificationRepository.save(certification));
+        return view(certificationRepository.save(certification));
     }
 
     @Transactional
@@ -97,13 +98,8 @@ public class CertificationService {
                         user.getId(),
                         "IDENTITY",
                         "APPROVED");
-        boolean jobVerified = certificationRepository
-                .existsByUserIdAndCertificationTypeAndStatusAndEnabledTrue(
-                        user.getId(),
-                        "MAIN_JOB",
-                        "APPROVED");
-        if (!identityVerified || !jobVerified) {
-            throw BusinessException.badRequest("完成基础信息认证后才能添加亲身经历");
+        if (!identityVerified) {
+            throw BusinessException.badRequest("完成实名认证后才能添加亲身经历");
         }
         if (title == null || title.isBlank())
             throw BusinessException.badRequest("请填写经历标题");
@@ -130,7 +126,7 @@ public class CertificationService {
         certification.setDescription(description == null ? null : sensitiveWords.mask(description.trim()));
         certification.setYears(years);
         attachFiles(certification, files);
-        return CertificationView.from(certificationRepository.save(certification));
+        return view(certificationRepository.save(certification));
     }
 
     @Transactional
@@ -142,7 +138,7 @@ public class CertificationService {
         certification.setReviewedAt(LocalDateTime.now());
         certification = certificationRepository.save(certification);
         refreshAnswererStatus(certification.getUser(), certification.getCertificationType());
-        return CertificationView.from(certification);
+        return view(certification);
     }
 
     private Certification baseCertification(User user, String category, String type, String title, boolean required) {
@@ -159,17 +155,25 @@ public class CertificationService {
 
     private void attachFiles(Certification certification, List<MultipartFile> files) {
         for (MultipartFile file : files) {
-            StoredFile stored = fileStorage.store(file, "certifications/" + certification.getUser().getUid());
+            StoredFile stored = fileStorage.store(
+                file,
+                "certifications/" + certification.getUser().getUid(),
+                StorageVisibility.PRIVATE
+            );
             CertificationMaterial material = new CertificationMaterial();
             material.setCertification(certification);
             material.setMaterialKind(kindOf(file));
             material.setOriginalName(file.getOriginalFilename() == null ? "材料" : file.getOriginalFilename());
             material.setStorageKey(stored.storageKey());
-            material.setPublicUrl(stored.publicUrl());
+            material.setPublicUrl(null);
             material.setContentType(stored.contentType());
             material.setFileSize(stored.size());
             certification.getMaterials().add(material);
         }
+    }
+
+    private CertificationView view(Certification certification) {
+        return CertificationView.from(certification, fileStorage);
     }
 
     private void retireMaterials(Certification certification) {
@@ -247,12 +251,14 @@ public class CertificationService {
     }
 
     public record MaterialView(Long id, String kind, String name, String url, long size, String contentType) {
-        static MaterialView from(CertificationMaterial material) {
+        static MaterialView from(CertificationMaterial material, FileStorage fileStorage) {
+            String legacyUrl = material.getPublicUrl();
+            String url = legacyUrl == null || legacyUrl.isBlank()
+                ? fileStorage.accessUrl(material.getStorageKey(), StorageVisibility.PRIVATE)
+                : legacyUrl;
             return new MaterialView(
                     material.getId(), material.getMaterialKind(), material.getOriginalName(),
-                    material.getPublicUrl() == null || material.getPublicUrl().isBlank()
-                            ? "/uploads/" + material.getStorageKey()
-                            : material.getPublicUrl(),
+                    url,
                     material.getFileSize(), material.getContentType());
         }
     }
@@ -269,14 +275,14 @@ public class CertificationService {
             boolean enabled,
             String rejectionReason,
             List<MaterialView> materials) {
-        static CertificationView from(Certification certification) {
+        static CertificationView from(Certification certification, FileStorage fileStorage) {
             return new CertificationView(
                     certification.getId(), certification.getCategory(), certification.getCertificationType(),
                     certification.getTitle(), certification.getDescription(), certification.getYears(),
                     certification.isRequiredItem(), certification.getStatus(), certification.isEnabled(),
                     certification.getRejectionReason(),
                     certification.getMaterials().stream().filter(material -> material.getDeletedAt() == null)
-                            .map(MaterialView::from).toList());
+                            .map(material -> MaterialView.from(material, fileStorage)).toList());
         }
     }
 }

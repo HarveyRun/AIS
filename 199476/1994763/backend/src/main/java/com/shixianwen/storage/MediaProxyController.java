@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/public/media")
@@ -22,7 +21,7 @@ public class MediaProxyController {
         MediaProxyService.ProxiedImage image = mediaProxyService.loadImage(url);
         return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType(image.contentType()))
-            .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS).cachePublic())
+            .cacheControl(CacheControl.noStore())
             .body(image.content());
     }
 }

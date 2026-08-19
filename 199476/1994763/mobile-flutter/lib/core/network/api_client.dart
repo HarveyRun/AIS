@@ -30,7 +30,22 @@ class ApiClient {
           handler.next(options);
         },
         onError: (error, handler) async {
-          if (error.response?.statusCode == 401) {
+          final responseBody = error.response?.data;
+          final responseData = responseBody is Map
+              ? responseBody['data']
+              : null;
+          final isAccountPenalty =
+              error.response?.statusCode == 403 &&
+              responseData is Map &&
+              responseData['type'] == 'ACCOUNT_PENALTY';
+          if (isAccountPenalty) {
+            await _storage.deleteToken();
+            _accountPenaltyController.add(
+              AccountPenaltyNotice.fromJson(
+                Map<String, dynamic>.from(responseData),
+              ),
+            );
+          } else if (error.response?.statusCode == 401) {
             await _storage.deleteToken();
             _unauthorizedController.add(null);
           }
@@ -44,9 +59,14 @@ class ApiClient {
   final AppStorage _storage;
   final StreamController<void> _unauthorizedController =
       StreamController<void>.broadcast();
+  final StreamController<AccountPenaltyNotice> _accountPenaltyController =
+      StreamController<AccountPenaltyNotice>.broadcast();
   final Map<String, Future<Object?>> _inFlight = {};
 
   Stream<void> get unauthorizedEvents => _unauthorizedController.stream;
+
+  Stream<AccountPenaltyNotice> get accountPenaltyEvents =>
+      _accountPenaltyController.stream;
 
   Future<T> get<T>(String path, {Map<String, dynamic>? query}) {
     return _request<T>('GET', path, query: query);
@@ -145,6 +165,27 @@ class ApiClient {
 
   Future<void> dispose() async {
     await _unauthorizedController.close();
+    await _accountPenaltyController.close();
     _dio.close(force: true);
   }
+}
+
+class AccountPenaltyNotice {
+  const AccountPenaltyNotice({
+    required this.reason,
+    required this.permanent,
+    this.banUntil,
+  });
+
+  factory AccountPenaltyNotice.fromJson(Map<String, dynamic> json) {
+    return AccountPenaltyNotice(
+      reason: json['reason']?.toString() ?? '违反平台规则',
+      permanent: json['permanent'] == true,
+      banUntil: DateTime.tryParse(json['banUntil']?.toString() ?? ''),
+    );
+  }
+
+  final String reason;
+  final bool permanent;
+  final DateTime? banUntil;
 }

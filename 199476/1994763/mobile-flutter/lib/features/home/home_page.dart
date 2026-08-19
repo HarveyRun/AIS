@@ -132,7 +132,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authControllerProvider).user!;
+    final user = ref.watch(authControllerProvider).user;
+    if (user == null) return const SizedBox.shrink();
     final noticeCount = ref.watch(notificationCountProvider);
     final theme = Theme.of(context);
     return ColoredBox(

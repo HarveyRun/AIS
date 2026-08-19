@@ -22,20 +22,29 @@ public class LocalFileStorage implements FileStorage {
     }
 
     @Override
-    public StoredFile store(MultipartFile file, String folder) {
+    public StoredFile store(MultipartFile file, String folder, StorageVisibility visibility) {
         if (file.isEmpty()) throw BusinessException.badRequest("文件不能为空");
         String extension = extensionOf(file.getOriginalFilename());
-        String key = folder + "/" + UUID.randomUUID().toString().replace("-", "") + extension;
+        String key = visibility.folder() + "/" + folder + "/"
+            + UUID.randomUUID().toString().replace("-", "") + extension;
         Path target = root.resolve(key).normalize();
         if (!target.startsWith(root)) throw BusinessException.badRequest("文件路径不正确");
 
         try {
             Files.createDirectories(target.getParent());
             Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-            return new StoredFile(key, "/uploads/" + key.replace('\\', '/'), file.getContentType(), file.getSize());
+            String accessUrl = visibility == StorageVisibility.PUBLIC
+                ? accessUrl(key, visibility)
+                : null;
+            return new StoredFile(key, accessUrl, file.getContentType(), file.getSize());
         } catch (IOException exception) {
             throw new IllegalStateException("文件保存失败", exception);
         }
+    }
+
+    @Override
+    public String accessUrl(String storageKey, StorageVisibility visibility) {
+        return "/uploads/" + storageKey.replace('\\', '/');
     }
 
     private static String extensionOf(String filename) {

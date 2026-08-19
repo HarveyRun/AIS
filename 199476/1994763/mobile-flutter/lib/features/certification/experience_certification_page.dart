@@ -50,16 +50,10 @@ class _ExperienceCertificationPageState
       final eligibility = await ref
           .read(repositoryProvider)
           .answererEligibility();
-      final eligible =
-          eligibility['basicInformationApproved'] == true ||
-          (eligibility['identityApproved'] == true &&
-              eligibility['jobApproved'] == true);
+      final eligible = eligibility['identityApproved'] == true;
       if (!eligible) {
         if (mounted) {
-          AppMessage.show(
-            context,
-            eligibility['message']?.toString() ?? '完成基础信息认证后才能添加亲身经历',
-          );
+          AppMessage.show(context, '完成实名认证后才能添加亲身经历');
         }
         return;
       }
@@ -92,7 +86,11 @@ class _ExperienceCertificationPageState
                     padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
                     children: [
                       const SizedBox(height: 150),
-                      const Icon(Icons.route_outlined, size: 44),
+                      const Icon(
+                        Icons.route_outlined,
+                        size: 32,
+                        color: Color(0xFF9A9A9A),
+                      ),
                       const SizedBox(height: 12),
                       const Center(child: Text('还没有亲身经历')),
                       const SizedBox(height: 18),

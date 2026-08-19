@@ -29,6 +29,8 @@ public class CustomerServiceMessage {
     private String content;
     @Column(name = "attachment_url", length = 500)
     private String attachmentUrl;
+    @Column(name = "attachment_key", length = 500)
+    private String attachmentKey;
     @Column(name = "attachment_name", length = 255)
     private String attachmentName;
     @Column(name = "attachment_size")

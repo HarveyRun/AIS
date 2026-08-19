@@ -1,0 +1,229 @@
+.app-version-create {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.app-version-create svg,
+.app-version-table .row-actions svg {
+  width: 15px;
+}
+
+.app-version-summary {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 17px;
+  padding: 17px 19px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.app-version-summary > svg {
+  width: 23px;
+  color: #d33a2c;
+}
+
+.app-version-summary div {
+  display: grid;
+  gap: 4px;
+}
+
+.app-version-summary b {
+  font-size: 14px;
+}
+
+.app-version-summary span {
+  color: #7e838b;
+  font-size: 12px;
+}
+
+.app-version-content {
+  max-width: 300px;
+}
+
+.app-version-content small {
+  max-width: 300px;
+}
+
+.app-version-table .row-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.app-version-dialog-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.app-version-dialog-mask {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(20, 22, 25, 0.48);
+}
+
+.app-version-editor {
+  position: relative;
+  width: min(720px, calc(100vw - 40px));
+  max-height: calc(100vh - 48px);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(21, 24, 29, 0.22);
+  overflow: auto;
+}
+
+.app-version-editor > header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 22px 24px 19px;
+  border-bottom: 1px solid #eff0f2;
+  background: #fff;
+}
+
+.app-version-editor-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.app-version-editor-heading > i {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff0ee;
+  color: #d33a2c;
+}
+
+.app-version-editor-heading > i svg {
+  width: 21px;
+}
+
+.app-version-editor h2,
+.app-version-editor p {
+  margin: 0;
+}
+
+.app-version-editor h2 {
+  font-size: 19px;
+}
+
+.app-version-editor header p {
+  margin-top: 5px;
+  color: #858a92;
+  font-size: 12px;
+}
+
+.app-version-editor > header > button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #f3f4f6;
+  cursor: pointer;
+}
+
+.app-version-editor > header > button svg {
+  width: 17px;
+}
+
+.app-version-editor form {
+  display: grid;
+  gap: 20px;
+  padding: 22px 24px 24px;
+}
+
+.app-version-form-section {
+  display: grid;
+  gap: 14px;
+}
+
+.app-version-form-section + .app-version-form-section {
+  padding-top: 20px;
+  border-top: 1px solid #eff0f2;
+}
+
+.app-version-form-section h3 {
+  margin: 0;
+  color: #33373d;
+  font-size: 14px;
+}
+
+.app-version-editor label {
+  display: grid;
+  gap: 7px;
+}
+
+.app-version-editor label > span {
+  color: #565b63;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-version-editor label > small {
+  color: #858a92;
+  font-size: 12px;
+}
+
+.app-version-editor input,
+.app-version-editor textarea {
+  width: 100%;
+  border: 1px solid #dfe1e5;
+  border-radius: 9px;
+  outline: 0;
+  background: #fff;
+  font: inherit;
+}
+
+.app-version-editor input {
+  height: 42px;
+  padding: 0 12px;
+}
+
+.app-version-editor textarea {
+  padding: 11px 12px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.app-version-editor input:focus,
+.app-version-editor textarea:focus {
+  border-color: #d33a2c;
+  box-shadow: 0 0 0 3px rgba(211, 58, 44, 0.08);
+}
+
+.app-version-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.35fr;
+  gap: 12px;
+}
+
+.app-version-editor form > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding-top: 2px;
+}
+
+.app-version-editor form > footer button {
+  min-width: 82px;
+}
+
+@media (max-width: 760px) {
+  .app-version-grid {
+    grid-template-columns: 1fr;
+  }
+}

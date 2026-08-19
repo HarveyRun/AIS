@@ -1,16 +1,92 @@
-node_modules/
-dist/
-.env
-.env.local
-*.log
+# Operating-system and editor files
 .DS_Store
-backend/target/
-backend/src/main/resources/application-local.yml
-backend/uploads/
-backend/*.log
-frontend*.log
-admin-web/node_modules/
-admin-web/dist/
-admin-web/*.log
+Thumbs.db
+Desktop.ini
 .idea/
+.vscode/
 *.iml
+*.swp
+*.swo
+*~
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+backend/src/main/resources/application-local.yml
+**/local.properties
+**/key.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+
+# Logs and runtime data
+*.log
+*.out.log
+*.err.log
+logs/
+backend/logs/
+backend/uploads/
+frontend*.log
+admin-web/*.log
+
+# JavaScript dependencies, caches, tests and builds
+**/node_modules/
+**/dist/
+**/coverage/
+**/.vite/
+*.tsbuildinfo
+
+# Java builds
+backend/target/
+
+# Flutter/Dart generated files
+mobile-flutter/.dart_tool/
+mobile-flutter/.flutter-plugins
+mobile-flutter/.flutter-plugins-dependencies
+mobile-flutter/.pub/
+mobile-flutter/.pub-cache/
+mobile-flutter/build/
+mobile-flutter/android/.gradle/
+mobile-flutter/android/.kotlin/
+mobile-flutter/android/app/debug/
+mobile-flutter/android/app/profile/
+mobile-flutter/android/app/release/
+mobile-flutter/ios/Pods/
+mobile-flutter/ios/.symlinks/
+mobile-flutter/ios/Flutter/ephemeral/
+
+# Install packages and locally generated releases
+release/
+mobile-flutter/releases/
+*.apk
+*.aab
+*.ipa
+
+# UI review drafts and test evidence (not application source)
+mobile-flutter/test-output/
+mobile-flutter/ui-concepts/
+docs/current.png
+docs/fix-*.png
+docs/fix-*.xml
+docs/test-*.png
+docs/test-*.xml
+docs/version-*.png
+docs/qa-*.zip
+logo-a-refined-preview.png
+
+# Historical mock media no longer referenced by source code
+public/images/avatar1.jpg
+public/images/avatar2.jpg
+public/images/avatar3.png
+public/images/avatar4.png
+public/images/avatar5.png
+public/images/img.png
+public/images/video.mp4
+public/images/ysb.zip
+mobile-flutter/assets/images/avatar*.jpg
+mobile-flutter/assets/images/avatar*.png
+mobile-flutter/assets/images/sample-certification.*

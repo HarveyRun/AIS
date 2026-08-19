@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, ExternalLink } from 'lucide-react';
+import { X, ExternalLink, Search } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
 import { date, Empty, Status } from '../users/UsersPage.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
@@ -16,6 +16,8 @@ const meta = {
 export default function RecordsPage({ type }) {
   const [data, setData] = useState({ items: [], total: 0 });
   const [status, setStatus] = useState('');
+  const [keyword, setKeyword] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
   const [certificationCategory, setCertificationCategory] = useState('BASIC');
   const [selected, setSelected] = useState(null);
   const [modalMode, setModalMode] = useState('view');
@@ -35,6 +37,7 @@ export default function RecordsPage({ type }) {
   const [deletingCertification, setDeletingCertification] = useState(false);
   const [operatingCertificationId, setOperatingCertificationId] = useState(null);
   const size = 20;
+  const supportsUserSearch = ['certifications', 'inquiries', 'withdrawals'].includes(type);
   const visibleJobs = useMemo(() => {
     const keyword = jobKeyword.trim().toLowerCase();
     const matched = keyword
@@ -55,6 +58,7 @@ export default function RecordsPage({ type }) {
       .table(type, new URLSearchParams({
         status,
         category: type === 'certifications' ? certificationCategory : '',
+        keyword: supportsUserSearch ? appliedKeyword : '',
         page: targetPage,
         size,
       }).toString())
@@ -65,7 +69,17 @@ export default function RecordsPage({ type }) {
     setSelected(null);
     setPage(0);
     load(0);
-  }, [type, status, certificationCategory]);
+  }, [type, status, certificationCategory, appliedKeyword]);
+  const search = (event) => {
+    event.preventDefault();
+    const nextKeyword = keyword.trim();
+    setPage(0);
+    if (nextKeyword === appliedKeyword) {
+      load(0);
+      return;
+    }
+    setAppliedKeyword(nextKeyword);
+  };
   const open = async (row, mode = 'view') => {
     try {
       setSelected(row);
@@ -213,7 +227,18 @@ export default function RecordsPage({ type }) {
         </div>
         <span>共 {data.total} 条</span>
       </div>
-      <div className="toolbar">
+      <form className="toolbar" onSubmit={search}>
+        {supportsUserSearch && (
+          <label>
+            <Search aria-hidden="true" />
+            <input
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="输入用户UID或手机号"
+              maxLength={20}
+            />
+          </label>
+        )}
         <select value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">全部状态</option>
           {statusOptions[type].map(([value, label]) => (
@@ -222,7 +247,8 @@ export default function RecordsPage({ type }) {
             </option>
           ))}
         </select>
-      </div>
+        {supportsUserSearch && <button type="submit">查询</button>}
+      </form>
       {type === 'certifications' && (
         <div className="certification-tabs">
           <button className={certificationCategory === 'BASIC' ? 'active' : ''} onClick={() => setCertificationCategory('BASIC')}>基础信息</button>

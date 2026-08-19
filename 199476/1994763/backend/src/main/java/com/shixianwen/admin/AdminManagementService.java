@@ -3,6 +3,8 @@ package com.shixianwen.admin;
 import com.shixianwen.certification.CertificationService;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.content.SensitiveWordService;
+import com.shixianwen.storage.FileStorage;
+import com.shixianwen.storage.StorageVisibility;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ public class AdminManagementService {
     private final AdminAuditLogRepository audits;
     private final RealtimePublisher realtime;
     private final SensitiveWordService sensitiveWords;
+    private final FileStorage fileStorage;
 
     public Map<String,Object> dashboard() {
         Map<String,Object> result=new LinkedHashMap<>();
@@ -37,23 +40,76 @@ public class AdminManagementService {
         return result;
     }
     public PageResult users(String keyword,String status,int page,int size) {
+        jdbc.update("UPDATE users SET account_status='ACTIVE',ban_reason=NULL,banned_at=NULL,ban_until=NULL,banned_by_admin_id=NULL WHERE account_status='SUSPENDED' AND ban_until IS NOT NULL AND ban_until<=NOW(6)");
         String where=" WHERE (?='' OR u.uid LIKE ? OR u.phone LIKE ? OR COALESCE(u.nickname,'') LIKE ?) AND (?='' OR u.account_status=?) ";
         String q=keyword==null?"":keyword.trim(), s=status==null?"":status.trim(); String like="%"+q+"%";
         Long total=jdbc.queryForObject("SELECT COUNT(*) FROM users u"+where,Long.class,q,like,like,like,s,s);
-        List<Map<String,Object>> items=jdbc.queryForList("SELECT u.id,u.uid,u.phone,u.nickname,u.avatar_url AS avatarUrl,u.answerer_status AS answererStatus,u.account_status AS accountStatus,u.accepting_inquiries AS acceptingInquiries,u.created_at AS createdAt,COALESCE(w.available_balance,0) AS availableBalance,COALESCE(w.frozen_balance,0) AS frozenBalance FROM users u LEFT JOIN wallet_accounts w ON w.user_id=u.id"+where+" ORDER BY u.id DESC LIMIT ? OFFSET ?",q,like,like,like,s,s,size,page*size);
+        List<Map<String,Object>> items=jdbc.queryForList("SELECT u.id,u.uid,u.phone,u.nickname,u.avatar_url AS avatarUrl,u.answerer_status AS answererStatus,u.account_status AS accountStatus,u.accepting_inquiries AS acceptingInquiries,u.ban_reason AS banReason,u.banned_at AS bannedAt,u.ban_until AS banUntil,u.created_at AS createdAt,COALESCE(w.available_balance,0) AS availableBalance,COALESCE(w.frozen_balance,0) AS frozenBalance FROM users u LEFT JOIN wallet_accounts w ON w.user_id=u.id"+where+" ORDER BY u.id DESC LIMIT ? OFFSET ?",q,like,like,like,s,s,size,page*size);
         return new PageResult(items,total,page,size);
     }
-    public PageResult table(String type,String status,String category,int page,int size) {
-        TableSpec spec=spec(type); String s=status==null?"":status;
-        String c=category==null?"":category;
-        String categorySql="certifications".equals(type)?" AND (?='' OR t.category=?)":" AND (?='' OR ?='')";
-        String deletedSql="certifications".equals(type)?" AND t.deleted_at IS NULL":"";
-        Long total=jdbc.queryForObject("SELECT COUNT(*) FROM "+spec.table+" t WHERE (?='' OR t.status=?)"+categorySql+deletedSql,Long.class,s,s,c,c);
-        List<Map<String,Object>> rows=jdbc.queryForList(spec.select+" WHERE (?='' OR t.status=?)"+categorySql+deletedSql+" ORDER BY t.id DESC LIMIT ? OFFSET ?",s,s,c,c,size,page*size);
+    public PageResult table(String type,String status,String category,String keyword,int page,int size) {
+        TableSpec spec = spec(type);
+        String normalizedStatus = status == null ? "" : status.trim();
+        String normalizedCategory = category == null ? "" : category.trim();
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+
+        StringBuilder where = new StringBuilder(" WHERE (?='' OR t.status=?)");
+        List<Object> parameters = new ArrayList<>();
+        parameters.add(normalizedStatus);
+        parameters.add(normalizedStatus);
+
+        if ("certifications".equals(type)) {
+            where.append(" AND (?='' OR t.category=?) AND t.deleted_at IS NULL");
+            parameters.add(normalizedCategory);
+            parameters.add(normalizedCategory);
+        }
+
+        if (!normalizedKeyword.isBlank() && !spec.userAliases().isEmpty()) {
+            String likeKeyword = "%" + normalizedKeyword + "%";
+            List<String> userConditions = new ArrayList<>();
+            for (String alias : spec.userAliases()) {
+                userConditions.add(
+                    "(" + alias + ".uid LIKE ? OR " + alias + ".phone LIKE ? OR CAST(" + alias + ".id AS CHAR) LIKE ?)"
+                );
+                parameters.add(likeKeyword);
+                parameters.add(likeKeyword);
+                parameters.add(likeKeyword);
+            }
+            where.append(" AND (").append(String.join(" OR ", userConditions)).append(")");
+        }
+
+        Long total = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM " + spec.from() + where,
+            Long.class,
+            parameters.toArray()
+        );
+        List<Object> rowParameters = new ArrayList<>(parameters);
+        rowParameters.add(size);
+        rowParameters.add(page * size);
+        List<Map<String,Object>> rows = jdbc.queryForList(
+            spec.select() + where + " ORDER BY t.id DESC LIMIT ? OFFSET ?",
+            rowParameters.toArray()
+        );
         return new PageResult(rows,total,page,size);
     }
     public List<Map<String,Object>> certificationMaterials(Long id) {
-        return jdbc.queryForList("SELECT id,material_kind AS kind,original_name AS name,COALESCE(NULLIF(public_url,''),CONCAT('/uploads/',storage_key)) AS url,content_type AS contentType,file_size AS size FROM certification_materials WHERE certification_id=? AND deleted_at IS NULL ORDER BY id",id);
+        return jdbc.queryForList(
+            "SELECT id,material_kind AS kind,original_name AS name,storage_key AS storageKey,public_url AS publicUrl,content_type AS contentType,file_size AS size FROM certification_materials WHERE certification_id=? AND deleted_at IS NULL ORDER BY id",
+            id
+        ).stream().map(this::withPrivateMaterialUrl).toList();
+    }
+
+    private Map<String,Object> withPrivateMaterialUrl(Map<String,Object> source) {
+        Map<String,Object> item = new LinkedHashMap<>(source);
+        String legacyUrl = Objects.toString(item.remove("publicUrl"), "");
+        String storageKey = Objects.toString(item.remove("storageKey"), "");
+        item.put(
+            "url",
+            legacyUrl.isBlank()
+                ? fileStorage.accessUrl(storageKey, StorageVisibility.PRIVATE)
+                : legacyUrl
+        );
+        return item;
     }
     @Transactional public void reviewCertification(AdminUser admin,Long id,boolean approved,String reason,Long jobId,Integer years,Long experienceId,String ip) {
         if(!approved && (reason==null||reason.isBlank())) throw BusinessException.badRequest("驳回时请填写原因");
@@ -136,10 +192,68 @@ public class AdminManagementService {
         boolean approved=identity!=null&&identity>0&&job!=null&&job>0;
         jdbc.update("UPDATE users SET answerer_status=?,accepting_inquiries=CASE WHEN ?=TRUE AND account_status='ACTIVE' AND ?=TRUE THEN TRUE WHEN ?=FALSE THEN FALSE ELSE accepting_inquiries END WHERE id=?",approved?"APPROVED":"PENDING",approved,allowEnable,approved,userId);
     }
-    @Transactional public void userStatus(AdminUser admin,Long id,String status,String ip) {
-        if(!List.of("ACTIVE","SUSPENDED").contains(status)) throw BusinessException.badRequest("用户状态不正确");
-        if(jdbc.update("UPDATE users SET account_status=?,accepting_inquiries=CASE WHEN ?='SUSPENDED' THEN FALSE ELSE accepting_inquiries END WHERE id=?",status,status,id)!=1) throw BusinessException.notFound("用户不存在");
-        audit(admin,"CHANGE_USER_STATUS","USER",id,status,ip);
+    @Transactional
+    public void userStatus(
+        AdminUser admin,
+        Long id,
+        String status,
+        String duration,
+        String reason,
+        String ip
+    ) {
+        if (!List.of("ACTIVE", "SUSPENDED").contains(status)) {
+            throw BusinessException.badRequest("用户状态不正确");
+        }
+        if ("ACTIVE".equals(status)) {
+            int affected = jdbc.update(
+                "UPDATE users SET account_status='ACTIVE',ban_reason=NULL," +
+                    "banned_at=NULL,ban_until=NULL,banned_by_admin_id=NULL WHERE id=?",
+                id
+            );
+            if (affected != 1) throw BusinessException.notFound("用户不存在");
+            audit(admin, "RESTORE_USER", "USER", id, "解除封禁", ip);
+            return;
+        }
+
+        String cleanReason = required(reason, "请填写处罚原因");
+        if (cleanReason.length() > 300) {
+            throw BusinessException.badRequest("处罚原因最多300个字");
+        }
+        String cleanDuration = duration == null
+            ? ""
+            : duration.trim().toUpperCase(Locale.ROOT);
+        LocalDateTime banUntil = switch (cleanDuration) {
+            case "DAYS_3" -> LocalDateTime.now().plusDays(3);
+            case "DAYS_7" -> LocalDateTime.now().plusDays(7);
+            case "DAYS_15" -> LocalDateTime.now().plusDays(15);
+            case "PERMANENT" -> null;
+            default -> throw BusinessException.badRequest("请选择封禁时长");
+        };
+        int affected = jdbc.update(
+            "UPDATE users SET account_status='SUSPENDED'," +
+                "ban_reason=?,banned_at=NOW(6)," +
+                "ban_until=?,banned_by_admin_id=? WHERE id=?",
+            cleanReason,
+            banUntil,
+            admin.getId(),
+            id
+        );
+        if (affected != 1) throw BusinessException.notFound("用户不存在");
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("reason", cleanReason);
+        payload.put("duration", cleanDuration);
+        payload.put("banUntil", banUntil);
+        payload.put("permanent", banUntil == null);
+        realtime.afterCommit(id, "ACCOUNT_PENALTY", payload);
+        audit(
+            admin,
+            "PENALIZE_USER",
+            "USER",
+            id,
+            cleanDuration + " | " + cleanReason,
+            ip
+        );
     }
     public PageResult jobs(String jobName,int page,int size){
         String keyword=jobName==null?"":jobName.trim();
@@ -209,7 +323,8 @@ public class AdminManagementService {
     }
     @Transactional public List<Map<String,Object>> customerServiceMessages(Long userId) {
         jdbc.update("UPDATE customer_service_messages SET read_flag=TRUE WHERE user_id=? AND sender_type='USER'",userId);
-        return jdbc.queryForList("SELECT id,sender_type AS senderType,message_type AS messageType,content,attachment_url AS attachmentUrl,attachment_name AS attachmentName,attachment_size AS attachmentSize,created_at AS createdAt FROM customer_service_messages WHERE user_id=? ORDER BY id",userId);
+        return jdbc.queryForList("SELECT id,sender_type AS senderType,message_type AS messageType,content,attachment_url AS attachmentUrl,attachment_key AS attachmentKey,attachment_name AS attachmentName,attachment_size AS attachmentSize,created_at AS createdAt FROM customer_service_messages WHERE user_id=? ORDER BY id",userId)
+            .stream().map(this::withPrivateAttachmentUrl).toList();
     }
     @Transactional public void readCustomerServiceMessages(Long userId) {
         jdbc.update("UPDATE customer_service_messages SET read_flag=TRUE WHERE user_id=? AND sender_type='USER'",userId);
@@ -219,10 +334,19 @@ public class AdminManagementService {
         if(count("users","id="+userId)==0) throw BusinessException.notFound("用户不存在");
         jdbc.update("INSERT INTO customer_service_messages(user_id,sender_type,message_type,content,read_flag) VALUES (?,'SERVICE','TEXT',?,FALSE)",userId,value);
         Long messageId=jdbc.queryForObject("SELECT LAST_INSERT_ID()",Long.class);
-        Map<String,Object> saved=jdbc.queryForMap("SELECT id,sender_type AS senderType,message_type AS messageType,content,attachment_url AS attachmentUrl,attachment_name AS attachmentName,attachment_size AS attachmentSize,created_at AS createdAt FROM customer_service_messages WHERE id=?",messageId);
+        Map<String,Object> saved=withPrivateAttachmentUrl(jdbc.queryForMap("SELECT id,sender_type AS senderType,message_type AS messageType,content,attachment_url AS attachmentUrl,attachment_key AS attachmentKey,attachment_name AS attachmentName,attachment_size AS attachmentSize,created_at AS createdAt FROM customer_service_messages WHERE id=?",messageId));
         realtime.afterCommit(userId,"CUSTOMER_SERVICE_MESSAGE",saved);
         audit(admin,"REPLY_CUSTOMER_SERVICE","USER",userId,value,ip);
         return saved;
+    }
+
+    private Map<String,Object> withPrivateAttachmentUrl(Map<String,Object> source) {
+        Map<String,Object> item = new LinkedHashMap<>(source);
+        String storageKey = Objects.toString(item.remove("attachmentKey"), "");
+        if (!storageKey.isBlank()) {
+            item.put("attachmentUrl", fileStorage.accessUrl(storageKey, StorageVisibility.PRIVATE));
+        }
+        return item;
     }
     public Map<String,Object> discovery() {
         Map<String,Object> result=new LinkedHashMap<>();
@@ -379,12 +503,37 @@ public class AdminManagementService {
     private long count(String table,String where){return jdbc.queryForObject("SELECT COUNT(*) FROM "+table+" WHERE "+where,Long.class);}
     private void audit(AdminUser admin,String action,String type,Object id,String detail,String ip){ AdminAuditLog l=new AdminAuditLog();l.setAdminUser(admin);l.setAction(action);l.setTargetType(type);l.setTargetId(String.valueOf(id));l.setDetail(detail);l.setIpAddress(ip);audits.save(l); }
     private TableSpec spec(String type){return switch(type){
-        case "certifications" -> new TableSpec("certifications","SELECT t.id,t.category,t.certification_type AS type,t.title,t.description,t.years,t.status,t.enabled,t.rejection_reason AS rejectionReason,t.submitted_at AS submittedAt,u.uid,u.nickname FROM certifications t JOIN users u ON u.id=t.user_id");
-        case "inquiries" -> new TableSpec("inquiries","SELECT t.id,t.topic,t.question,t.amount,t.status,t.funds_status AS fundsStatus,t.created_at AS createdAt,q.uid AS questionerUid,a.uid AS answererUid FROM inquiries t JOIN users q ON q.id=t.questioner_id JOIN users a ON a.id=t.answerer_id");
-        case "withdrawals" -> new TableSpec("withdrawals","SELECT t.id,t.amount,t.fee,t.arrival_amount AS arrivalAmount,t.bank_name_snapshot AS bankName,t.card_last_four_snapshot AS lastFour,t.status,t.created_at AS createdAt,u.uid,u.nickname FROM withdrawals t JOIN users u ON u.id=t.user_id");
-        case "feedback" -> new TableSpec("feedback_records","SELECT t.id,t.feedback_type AS type,t.category,t.content,t.status,t.created_at AS createdAt,u.uid,u.nickname,tu.uid AS targetUid FROM feedback_records t JOIN users u ON u.id=t.user_id LEFT JOIN users tu ON tu.id=t.target_user_id");
-        case "cooperations" -> new TableSpec("business_cooperations","SELECT t.id,t.contact,t.content,t.status,t.created_at AS createdAt,u.uid,u.nickname FROM business_cooperations t JOIN users u ON u.id=t.user_id");
+        case "certifications" -> new TableSpec(
+            "certifications",
+            "certifications t JOIN users u ON u.id=t.user_id",
+            "SELECT t.id,t.category,t.certification_type AS type,t.title,t.description,t.years,t.status,t.enabled,t.rejection_reason AS rejectionReason,t.submitted_at AS submittedAt,u.uid,u.nickname FROM certifications t JOIN users u ON u.id=t.user_id",
+            List.of("u")
+        );
+        case "inquiries" -> new TableSpec(
+            "inquiries",
+            "inquiries t JOIN users q ON q.id=t.questioner_id JOIN users a ON a.id=t.answerer_id",
+            "SELECT t.id,t.topic,t.question,t.amount,t.status,t.funds_status AS fundsStatus,t.created_at AS createdAt,q.uid AS questionerUid,a.uid AS answererUid FROM inquiries t JOIN users q ON q.id=t.questioner_id JOIN users a ON a.id=t.answerer_id",
+            List.of("q", "a")
+        );
+        case "withdrawals" -> new TableSpec(
+            "withdrawals",
+            "withdrawals t JOIN users u ON u.id=t.user_id",
+            "SELECT t.id,t.amount,t.fee,t.arrival_amount AS arrivalAmount,t.bank_name_snapshot AS bankName,t.card_last_four_snapshot AS lastFour,t.status,t.created_at AS createdAt,u.uid,u.nickname FROM withdrawals t JOIN users u ON u.id=t.user_id",
+            List.of("u")
+        );
+        case "feedback" -> new TableSpec(
+            "feedback_records",
+            "feedback_records t JOIN users u ON u.id=t.user_id LEFT JOIN users tu ON tu.id=t.target_user_id",
+            "SELECT t.id,t.feedback_type AS type,t.category,t.content,t.status,t.created_at AS createdAt,u.uid,u.nickname,tu.uid AS targetUid FROM feedback_records t JOIN users u ON u.id=t.user_id LEFT JOIN users tu ON tu.id=t.target_user_id",
+            List.of("u", "tu")
+        );
+        case "cooperations" -> new TableSpec(
+            "business_cooperations",
+            "business_cooperations t JOIN users u ON u.id=t.user_id",
+            "SELECT t.id,t.contact,t.content,t.status,t.created_at AS createdAt,u.uid,u.nickname FROM business_cooperations t JOIN users u ON u.id=t.user_id",
+            List.of("u")
+        );
         default -> throw BusinessException.badRequest("管理模块不存在");};}
-    private record TableSpec(String table,String select){}
+    private record TableSpec(String table,String from,String select,List<String> userAliases){}
     public record PageResult(List<Map<String,Object>> items,long total,int page,int size){}
 }

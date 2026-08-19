@@ -46,6 +46,12 @@ public class RealtimeWebSocketHandler extends TextWebSocketHandler {
         adminSessions.values().forEach(connectedSessions -> send(connectedSessions, type, payload));
     }
 
+    public void sendAllUsers(String type, Object payload) {
+        userSessions.values().forEach(
+            connectedSessions -> send(connectedSessions, type, payload)
+        );
+    }
+
     private void send(Set<WebSocketSession> connectedSessions, String type, Object payload) {
         if (connectedSessions == null) return;
         RealtimeEvent event = new RealtimeEvent(type, payload, Instant.now());

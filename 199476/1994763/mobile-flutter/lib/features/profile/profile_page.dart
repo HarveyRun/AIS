@@ -46,7 +46,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authControllerProvider).user!;
+    final user = ref.watch(authControllerProvider).user;
+    if (user == null) return const SizedBox.shrink();
     final theme = ref.watch(themeControllerProvider);
     final customerUnread = ref.watch(customerServiceUnreadProvider);
     return Scaffold(

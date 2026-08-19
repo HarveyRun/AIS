@@ -16,8 +16,7 @@ Future<void> openMaterial(
     return;
   }
   if (!context.mounted) return;
-  await Navigator.push(
-    context,
+  await Navigator.of(context, rootNavigator: true).push(
     MaterialPageRoute(builder: (_) => MaterialViewerPage(material: material)),
   );
 }
