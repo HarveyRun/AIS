@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, Search, Send, UserRound, X } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
+import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
 import { date } from '../users/UsersPage.jsx';
 import './CustomerServicePage.css';
 import { message } from '../../components/feedback/message.js';
 
 export default function CustomerServicePage({ realtimeEvent, onUnreadChange }) {
+  const { can } = useAdminAccess();
   const [conversations, setConversations] = useState([]);
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -52,7 +54,9 @@ export default function CustomerServicePage({ realtimeEvent, onUnreadChange }) {
       setMessages((current) =>
         current.some((item) => item.id === incoming.id) ? current : [...current, incoming],
       );
-      adminApi.readCustomerServiceMessages(payload.userId).catch(() => {});
+      if (can('CUSTOMER_SERVICE_READ')) {
+        adminApi.readCustomerServiceMessages(payload.userId).catch(() => {});
+      }
     }
 
     setConversations((current) => {
@@ -151,10 +155,10 @@ export default function CustomerServicePage({ realtimeEvent, onUnreadChange }) {
           <h1>在线客服</h1>
           <p>接收用户消息，也可以主动联系用户</p>
         </div>
-        <button className="service-new-conversation" type="button" onClick={showUserPicker}>
+        {can('CUSTOMER_SERVICE_REPLY') && can('USER_VIEW') && <button className="service-new-conversation" type="button" onClick={showUserPicker}>
           <Plus />
           选择用户
-        </button>
+        </button>}
       </div>
       <section className="service-workbench">
         <div className="service-conversation-list">
@@ -223,7 +227,7 @@ export default function CustomerServicePage({ realtimeEvent, onUnreadChange }) {
             )}
             <div ref={messagesEndRef} />
           </div>
-          <footer>
+          {can('CUSTOMER_SERVICE_REPLY') && <footer>
             <textarea
               disabled={!selected}
               value={text}
@@ -240,7 +244,7 @@ export default function CustomerServicePage({ realtimeEvent, onUnreadChange }) {
               <Send />
               {sending ? '发送中' : '发送'}
             </button>
-          </footer>
+          </footer>}
         </div>
       </section>
 

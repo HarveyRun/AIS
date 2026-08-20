@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X, ExternalLink, Search } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
+import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
 import { date, Empty, Status } from '../users/UsersPage.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
 import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
@@ -9,11 +10,12 @@ import { message } from '../../components/feedback/message.js';
 const meta = {
   certifications: ['认证审核', '核对用户提交的身份、岗位与经历材料'],
   inquiries: ['询问管理', '查看询问状态和资金流转'],
-  withdrawals: ['提现处理', '核对并处理银行卡提现申请'],
+  withdrawals: ['提现处理', '核对并处理支付宝提现申请'],
   feedback: ['投诉反馈', '处理产品反馈与用户投诉'],
   cooperations: ['商务合作', '查看并跟进商务合作申请'],
 };
 export default function RecordsPage({ type }) {
+  const { can } = useAdminAccess();
   const [data, setData] = useState({ items: [], total: 0 });
   const [status, setStatus] = useState('');
   const [keyword, setKeyword] = useState('');
@@ -36,6 +38,7 @@ export default function RecordsPage({ type }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deletingCertification, setDeletingCertification] = useState(false);
   const [operatingCertificationId, setOperatingCertificationId] = useState(null);
+  const [exportingWithdrawals, setExportingWithdrawals] = useState(false);
   const size = 20;
   const supportsUserSearch = ['certifications', 'inquiries', 'withdrawals'].includes(type);
   const visibleJobs = useMemo(() => {
@@ -79,6 +82,27 @@ export default function RecordsPage({ type }) {
       return;
     }
     setAppliedKeyword(nextKeyword);
+  };
+  const exportWithdrawals = async () => {
+    try {
+      setExportingWithdrawals(true);
+      const file = await adminApi.exportWithdrawals();
+      saveFile(file);
+      await load();
+      message.success('待处理提现已导出');
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setExportingWithdrawals(false);
+    }
+  };
+  const downloadWithdrawalBatch = async (batchNo) => {
+    try {
+      const file = await adminApi.downloadWithdrawalBatch(batchNo);
+      saveFile(file);
+    } catch (error) {
+      message.error(error.message);
+    }
   };
   const open = async (row, mode = 'view') => {
     try {
@@ -225,7 +249,19 @@ export default function RecordsPage({ type }) {
           <h1>{meta[type][0]}</h1>
           <p>{meta[type][1]}</p>
         </div>
-        <span>共 {data.total} 条</span>
+        <div className="page-title-actions">
+          <span>共 {data.total} 条</span>
+          {type === 'withdrawals' && can('WITHDRAWAL_EXPORT') && (
+            <button
+              type="button"
+              className="primary"
+              disabled={exportingWithdrawals}
+              onClick={exportWithdrawals}
+            >
+              {exportingWithdrawals ? '导出中' : '导出待处理提现'}
+            </button>
+          )}
+        </div>
       </div>
       <form className="toolbar" onSubmit={search}>
         {supportsUserSearch && (
@@ -270,13 +306,13 @@ export default function RecordsPage({ type }) {
                 {cells(type, row)}
                 <td className="row-actions">
                   <button className="plain" onClick={() => open(row, 'view')}>查看</button>
-                  {type === 'certifications' && row.status === 'PENDING' && (
+                  {type === 'certifications' && can('CERTIFICATION_REVIEW') && row.status === 'PENDING' && (
                     <button className="primary" onClick={() => open(row, 'review')}>审核</button>
                   )}
-                  {type === 'certifications' && row.category === 'BASIC' && (
+                  {type === 'certifications' && can('CERTIFICATION_EDIT') && row.category === 'BASIC' && (
                     <button className="plain" onClick={() => open(row, 'edit')}>编辑</button>
                   )}
-                  {type === 'certifications' && row.status === 'APPROVED' && (
+                  {type === 'certifications' && can('CERTIFICATION_TOGGLE') && row.status === 'APPROVED' && (
                     <button
                       className="plain"
                       disabled={operatingCertificationId === row.id}
@@ -285,13 +321,18 @@ export default function RecordsPage({ type }) {
                       {row.enabled ? '停用' : '启用'}
                     </button>
                   )}
-                  {type === 'certifications' && (
+                  {type === 'certifications' && can('CERTIFICATION_DELETE') && (
                     <button className="danger" onClick={() => setDeleteTarget(row)}>删除</button>
                   )}
-                  {type !== 'certifications' && (
-                    ((type === 'withdrawals' && row.status === 'PROCESSING')
+                  {type !== 'certifications' && can(processPermission(type)) && (
+                    ((type === 'withdrawals' && ['PROCESSING', 'EXPORTED'].includes(row.status))
                       || (['feedback', 'cooperations'].includes(type) && !['RESOLVED', 'CLOSED'].includes(row.status)))
                     && <button className="primary" onClick={() => open(row, 'process')}>处理</button>
+                  )}
+                  {type === 'withdrawals' && can('WITHDRAWAL_EXPORT') && row.batchNo && (
+                    <button className="plain" onClick={() => downloadWithdrawalBatch(row.batchNo)}>
+                      下载批次
+                    </button>
                   )}
                 </td>
               </tr>
@@ -470,7 +511,7 @@ export default function RecordsPage({ type }) {
                 )}
               </>
             )}
-            {modalMode === 'process' && type === 'withdrawals' && selected.status === 'PROCESSING' && (
+            {modalMode === 'process' && type === 'withdrawals' && ['PROCESSING', 'EXPORTED'].includes(selected.status) && (
               <footer>
                 <button className="danger" onClick={() => process('FAILED')}>
                   标记失败并退款
@@ -528,6 +569,7 @@ const statusOptions = {
   ],
   withdrawals: [
     ['PROCESSING', '处理中'],
+    ['EXPORTED', '已导出'],
     ['COMPLETED', '已完成'],
     ['FAILED', '失败'],
   ],
@@ -556,14 +598,17 @@ const labels = {
   topic: '主题',
   question: '询问内容',
   amount: '金额',
+  serviceFeeRate: '平台服务费率',
+  serviceFeeAmount: '平台服务费',
+  answererIncomeAmount: '回答方收入',
   fundsStatus: '资金状态',
   createdAt: '创建时间',
   questionerUid: '提问者UID',
   answererUid: '回答者UID',
-  fee: '手续费',
-  arrivalAmount: '到账金额',
-  bankName: '银行',
-  lastFour: '卡号后四位',
+  payeeName: '收款人',
+  alipayAccount: '支付宝账号',
+  batchNo: '导出批次',
+  exportedAt: '导出时间',
   contact: '联系方式',
   content: '内容',
   targetUid: '投诉对象UID',
@@ -572,7 +617,7 @@ function headers(type) {
   return {
     certifications: ['用户', '认证', '状态', '提交时间', '操作'],
     inquiries: ['双方UID', '询问内容', '金额', '状态', '操作'],
-    withdrawals: ['用户', '到账银行卡', '金额 / 手续费', '状态', '操作'],
+    withdrawals: ['用户', '支付宝收款账户', '提现金额', '状态', '操作'],
     feedback: ['用户', '类型', '内容', '状态', '操作'],
     cooperations: ['用户', '联系方式', '内容', '状态', '操作'],
   }[type];
@@ -582,7 +627,7 @@ function cells(type, r) {
     return (
       <>
         <td>
-          <b>{r.nickname || `UID ${r.uid}`}</b>
+          <b>{r.nickname || `UID ${r.uid}`} {r.testData && <TestDataBadge />}</b>
           <small>UID {r.uid}</small>
         </td>
         <td>
@@ -600,13 +645,18 @@ function cells(type, r) {
     return (
       <>
         <td>
-          {r.questionerUid} → {r.answererUid}
+          {r.questionerUid} → {r.answererUid} {r.testData && <TestDataBadge />}
         </td>
         <td>
           <b>{r.topic || '未填写主题'}</b>
           <small>{r.question}</small>
         </td>
-        <td>¥{r.amount}</td>
+        <td>
+          ¥{r.amount}
+          <small>
+            {r.clientPlatform === 'IOS' ? 'iOS' : 'Android'} · 服务费 ¥{r.serviceFeeAmount} · 回答方 ¥{r.answererIncomeAmount}
+          </small>
+        </td>
         <td>
           <Status value={r.status} />
         </td>
@@ -616,15 +666,16 @@ function cells(type, r) {
     return (
       <>
         <td>
-          {r.nickname || r.uid}
+          {r.nickname || r.uid} {r.testData && <TestDataBadge />}
           <small>UID {r.uid}</small>
         </td>
         <td>
-          {r.bankName}（{r.lastFour}）
+          {r.payeeName || '—'}
+          <small>{r.alipayAccount || '—'}</small>
         </td>
         <td>
           ¥{r.amount}
-          <small>手续费 ¥{r.fee}</small>
+          <small>全额到账</small>
         </td>
         <td>
           <Status value={r.status} />
@@ -634,7 +685,7 @@ function cells(type, r) {
   return (
     <>
       <td>
-        {r.nickname || r.uid}
+        {r.nickname || r.uid} {r.testData && <TestDataBadge />}
         <small>UID {r.uid}</small>
       </td>
       <td>{r.category || r.contact}</td>
@@ -644,6 +695,17 @@ function cells(type, r) {
       </td>
     </>
   );
+}
+function TestDataBadge() {
+  return <span className="test-data-badge">测试数据</span>;
+}
+function saveFile(file) {
+  const url = URL.createObjectURL(file.blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 function modalTitle(type, mode) {
   if (type !== 'certifications') {
@@ -685,6 +747,7 @@ const DETAIL_VALUE_LABELS = {
   EXPIRED: '已过期',
   REFUNDED: '已退款',
   PROCESSING: '处理中',
+  EXPORTED: '已导出',
   COMPLETED: '已完成',
   FAILED: '失败',
   SUBMITTED: '待处理',
@@ -694,6 +757,14 @@ const DETAIL_VALUE_LABELS = {
   SETTLED: '已结算',
   UNSETTLED: '未结算',
 };
+
+function processPermission(type) {
+  return {
+    withdrawals: 'WITHDRAWAL_PROCESS',
+    feedback: 'FEEDBACK_PROCESS',
+    cooperations: 'COOPERATION_PROCESS',
+  }[type] || '__NONE__';
+}
 
 function formatDetailValue(key, value, recordType) {
   if (value == null || value === '') return '—';

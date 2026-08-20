@@ -26,11 +26,17 @@ public class VerificationCode {
     @Column(nullable = false, length = 20)
     private String phone;
 
+    @Column(nullable = false, length = 30)
+    private String purpose = "LOGIN";
+
     @Column(name = "code_hash", nullable = false, columnDefinition = "CHAR(64)")
     private String codeHash;
 
     @Column(name = "request_ip", nullable = false, length = 64)
     private String requestIp;
+
+    @Column(name = "request_device_id", nullable = false, length = 100)
+    private String requestDeviceId = "unknown";
 
     @Column(nullable = false)
     private int attempts;

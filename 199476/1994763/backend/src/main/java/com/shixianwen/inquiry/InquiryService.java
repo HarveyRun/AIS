@@ -13,6 +13,7 @@ import com.shixianwen.realtime.RealtimePublisher;
 import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StoredFile;
 import com.shixianwen.storage.StorageVisibility;
+import com.shixianwen.security.SecurityEventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -37,16 +38,48 @@ public class InquiryService {
     private final FileStorage fileStorage;
     private final AnswererEligibilityService answererEligibility;
     private final SensitiveWordService sensitiveWords;
+    private final ChatAbuseGuard chatAbuseGuard;
+    private final SecurityEventService securityEvents;
 
     @Transactional
     public InquiryView create(Long questionerId, CreateCommand command, ClientNetworkInfo network) {
         if (questionerId.equals(command.answererId())) throw BusinessException.badRequest("不能向自己发起询问");
         User questioner = user(questionerId);
         User answerer = user(command.answererId());
+        if (!questioner.getAccountType().equals(answerer.getAccountType())) {
+            securityEvents.recordSafely(
+                questionerId, null, "CROSS_ENVIRONMENT_INQUIRY_BLOCKED", "HIGH",
+                network.ipAddress(), null, "answererId=" + answerer.getId()
+            );
+            throw BusinessException.forbidden("测试账号与普通账号不能互相发起询问");
+        }
+        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+        if (inquiries.countByQuestionerIdAndCreatedAtAfter(questionerId, startOfDay) >= 20) {
+            securityEvents.recordSafely(
+                questionerId, null, "INQUIRY_DAILY_LIMIT", "HIGH", network.ipAddress(), null, null
+            );
+            throw BusinessException.tooManyRequests("今日发起询问次数已达上限");
+        }
+        if (inquiries.countByQuestionerIdAndAnswererIdAndCreatedAtAfter(
+            questionerId, answerer.getId(), startOfDay
+        ) >= 3) {
+            securityEvents.recordSafely(
+                questionerId, null, "INQUIRY_COUNTERPART_LIMIT", "HIGH", network.ipAddress(), null,
+                "answererId=" + answerer.getId()
+            );
+            throw BusinessException.tooManyRequests("今日向同一人发起询问次数已达上限");
+        }
+        if (network.ipAddress() != null && network.ipAddress().equals(answerer.getLastLoginIp())) {
+            securityEvents.recordSafely(
+                questionerId, null, "INQUIRY_SHARED_IP", "HIGH", network.ipAddress(), null,
+                "answererId=" + answerer.getId()
+            );
+        }
         answererEligibility.requireAvailable(answerer.getId());
         BigDecimal amount = MoneyAmounts.requireWholeAmount(
             command.amount(), BigDecimal.ONE, new BigDecimal("5000"), "询问金额"
         );
+        var settlementQuote = wallet.quoteInquirySettlement(amount, command.clientPlatform());
         requirePriceInRange(answerer, amount);
         if (inquiries.existsByQuestionerIdAndAnswererIdAndStatusIn(questionerId, answerer.getId(), OPEN))
             throw BusinessException.badRequest("你们已有一条进行中的询问");
@@ -56,11 +89,18 @@ public class InquiryService {
         item.setQuestion(sensitiveWords.mask(required(command.question(), "请填写想问的事情", 300)));
         item.setRequestIp(network.ipAddress());
         item.setRequestLocation(network.location());
-        item.setAmount(amount); item.setStatus("PENDING"); item.setFundsStatus("FROZEN");
+        item.setAmount(amount);
+        item.setClientPlatform(settlementQuote.clientPlatform());
+        item.setServiceFeeRate(settlementQuote.serviceFeeRate());
+        item.setServiceFeeAmount(settlementQuote.serviceFeeAmount());
+        item.setAnswererIncomeAmount(settlementQuote.answererIncomeAmount());
+        item.setStatus("PENDING"); item.setFundsStatus("FROZEN");
         item.setAnswererUnreadCount(1);
         item.setResponseDeadline(LocalDateTime.now().plusHours(24));
         item = inquiries.save(item);
-        wallet.freeze(questionerId, item.getAmount(), item.getId());
+        WalletService.FrozenAllocation allocation = wallet.freeze(questionerId, item.getAmount(), item.getId());
+        item.setFrozenRechargeAmount(allocation.rechargeAmount());
+        item.setFrozenIncomeAmount(allocation.incomeAmount());
         notifications.send(answerer, "收到新的询问", displayName(questioner) + "：" + notificationSubject(item), "/inquiries/" + item.getId());
         publishInquiryChanged(answerer.getId(), item);
         return view(item, questionerId);
@@ -139,6 +179,7 @@ public class InquiryService {
     public MessageView send(Long userId, Long inquiryId, String content) {
         Inquiry item = lockedAccessible(userId, inquiryId);
         requireStatus(item, "ACTIVE");
+        chatAbuseGuard.requireTextAllowed(inquiryId, userId, content == null ? "" : content.trim());
         if (item.getQuestioner().getId().equals(userId)) item.setQuestionerUnreadCount(0);
         else item.setAnswererUnreadCount(0);
         InquiryMessage message = new InquiryMessage();
@@ -161,13 +202,14 @@ public class InquiryService {
     public MessageView sendImage(Long userId, Long inquiryId, MultipartFile image) {
         Inquiry item = lockedAccessible(userId, inquiryId);
         requireStatus(item, "ACTIVE");
+        chatAbuseGuard.requireImageAllowed(inquiryId, userId);
         validateChatImage(image);
         if (item.getQuestioner().getId().equals(userId)) item.setQuestionerUnreadCount(0);
         else item.setAnswererUnreadCount(0);
 
         StoredFile stored = fileStorage.store(
             image,
-            "inquiries/" + inquiryId,
+            storagePrefix(user(userId)) + "inquiries/" + inquiryId,
             StorageVisibility.PRIVATE
         );
         InquiryMessage message = new InquiryMessage();
@@ -257,11 +299,22 @@ public class InquiryService {
     }
 
     private void refund(Inquiry item, String status) {
-        wallet.refund(item.getQuestioner().getId(), item.getAmount(), item.getId());
+        wallet.refund(
+            item.getQuestioner().getId(),
+            item.getFrozenRechargeAmount(),
+            item.getFrozenIncomeAmount(),
+            item.getId()
+        );
         item.setStatus(status); item.setFundsStatus("REFUNDED"); item.setResponseDeadline(null);
     }
     private void settle(Inquiry item) {
-        wallet.settle(item.getQuestioner().getId(), item.getAnswerer().getId(), item.getAmount(), item.getId());
+        wallet.settle(
+            item.getQuestioner().getId(),
+            item.getAnswerer().getId(),
+            item.getFrozenRechargeAmount(),
+            item.getFrozenIncomeAmount(),
+            item
+        );
         item.setStatus("COMPLETED"); item.setFundsStatus("SETTLED"); item.setEndedAt(LocalDateTime.now());
         item.setConfirmationDeadline(null);
         increaseUnread(item, item.getAnswerer().getId());
@@ -322,6 +375,10 @@ public class InquiryService {
         return question.length() <= 36 ? question : question.substring(0, 36) + "…";
     }
 
+    private String storagePrefix(User user) {
+        return "TEST".equals(user.getAccountType()) ? "test/" : "";
+    }
+
     private MessageView messageView(InquiryMessage message) {
         return MessageView.of(message, fileStorage);
     }
@@ -330,13 +387,23 @@ public class InquiryService {
         User other = i.getQuestioner().getId().equals(me) ? i.getAnswerer() : i.getQuestioner();
         return new InquiryView(i.getId(), i.getQuestioner().getId().equals(me) ? "QUESTIONER" : "ANSWERER",
                 other.getId(), other.getNickname() == null || other.getNickname().isBlank() ? other.getUid() : other.getNickname(),
-                other.getAvatarUrl(), i.getTopic(), i.getQuestion(), i.getAmount(), i.getStatus(), i.getFundsStatus(),
+                other.getAvatarUrl(), i.getTopic(), i.getQuestion(), i.getAmount(), i.getServiceFeeRate(),
+                i.getServiceFeeAmount(), i.getAnswererIncomeAmount(), i.getStatus(), i.getFundsStatus(),
                 unreadFor(i, me), i.getResponseDeadline(), i.getConfirmationDeadline(), i.getCreatedAt(),
                 i.getLastMessageAt());
     }
-    public record CreateCommand(Long answererId, String topic, String sourceType, String question, BigDecimal amount) {}
+    public record CreateCommand(
+        Long answererId,
+        String topic,
+        String sourceType,
+        String question,
+        BigDecimal amount,
+        String clientPlatform
+    ) {}
     public record InquiryView(Long id, String role, Long otherUserId, String otherName, String otherAvatar, String topic,
-                              String question, BigDecimal amount, String status, String fundsStatus,
+                              String question, BigDecimal amount, BigDecimal serviceFeeRate,
+                              BigDecimal serviceFeeAmount, BigDecimal answererIncomeAmount,
+                              String status, String fundsStatus,
                               int unreadCount, LocalDateTime responseDeadline, LocalDateTime confirmationDeadline,
                               LocalDateTime createdAt, LocalDateTime lastMessageAt) {}
     public record MessageView(Long id, Long senderId, String senderName, String senderAvatar, String type, String content,

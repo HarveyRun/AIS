@@ -20,7 +20,18 @@ public class RechargeService {
     private final WalletService wallet;
     private final PaymentGateway gateway;
 
-    public PaymentGateway.PaymentCapability capability() {
+    public PaymentGateway.PaymentCapability capability(Long userId) {
+        User user = users.findById(userId)
+            .orElseThrow(() -> BusinessException.notFound("用户不存在"));
+        if ("TEST".equals(user.getAccountType())) {
+            return new PaymentGateway.PaymentCapability(
+                "TEST",
+                "测试余额",
+                true,
+                "测试余额即时到账",
+                "TEST"
+            );
+        }
         return gateway.capability();
     }
 
@@ -31,9 +42,6 @@ public class RechargeService {
 
     @Transactional
     public RechargeView create(Long userId, BigDecimal rawAmount, String requestId) {
-        if (!gateway.capability().available()) {
-            throw BusinessException.serviceUnavailable(gateway.capability().message());
-        }
         BigDecimal amount = MoneyAmounts.requireWholeAmount(
             rawAmount,
             BigDecimal.ONE,
@@ -43,6 +51,10 @@ public class RechargeService {
         String normalizedRequestId = requireRequestId(requestId);
         User user = users.findWithLockById(userId)
             .orElseThrow(() -> BusinessException.notFound("用户不存在"));
+        boolean testAccount = "TEST".equals(user.getAccountType());
+        if (!testAccount && !gateway.capability().available()) {
+            throw BusinessException.serviceUnavailable(gateway.capability().message());
+        }
         Recharge existing = recharges.findByUserIdAndRequestNo(userId, normalizedRequestId).orElse(null);
         if (existing != null) {
             if (!MoneyAmounts.same(existing.getAmount(), amount)) {
@@ -56,8 +68,15 @@ public class RechargeService {
         }
         Recharge item = new Recharge(); item.setUser(user); item.setAmount(amount);
         item.setRequestNo(normalizedRequestId);
-        item.setOrderNo("SXW" + UUID.randomUUID().toString().replace("-", "").toUpperCase()); item.setStatus("PENDING");
+        item.setOrderNo((testAccount ? "TEST" : "SXW") + UUID.randomUUID().toString().replace("-", "").toUpperCase());
+        item.setChannel(testAccount ? "TEST" : "ALIPAY");
+        item.setStatus(testAccount ? "PAID" : "PENDING");
+        if (testAccount) item.setPaidAt(LocalDateTime.now());
         item = recharges.save(item);
+        if (testAccount) {
+            wallet.creditRecharge(userId, amount, item.getId());
+            return RechargeView.of(item, null);
+        }
         PaymentGateway.PaymentOrder order = gateway.createOrder(item.getOrderNo(), amount, "事先问账户充值");
         return RechargeView.of(item, order.paymentPayload());
     }
@@ -84,6 +103,7 @@ public class RechargeService {
         ensureMockGateway();
         Recharge item = recharges.findByOrderNo(orderNo)
             .orElseThrow(() -> BusinessException.notFound("充值订单不存在"));
+        rejectTestPaymentCallback(item);
         return RechargeView.of(item, null);
     }
 
@@ -92,6 +112,7 @@ public class RechargeService {
         ensureMockGateway();
         Recharge item = recharges.findWithLockByOrderNo(orderNo)
             .orElseThrow(() -> BusinessException.notFound("充值订单不存在"));
+        rejectTestPaymentCallback(item);
         applyPaid(item, null, item.getAmount(), LocalDateTime.now());
     }
 
@@ -104,12 +125,19 @@ public class RechargeService {
         }
         Recharge item = recharges.findWithLockByOrderNo(notification.orderNo())
             .orElseThrow(() -> BusinessException.notFound("充值订单不存在"));
+        rejectTestPaymentCallback(item);
         applyPaid(
             item,
             notification.providerTradeNo(),
             notification.paidAmount(),
             notification.paidAt()
         );
+    }
+
+    private void rejectTestPaymentCallback(Recharge item) {
+        if ("TEST".equals(item.getUser().getAccountType())) {
+            throw BusinessException.forbidden("测试充值不接收外部支付回调");
+        }
     }
 
     private void applyPaid(

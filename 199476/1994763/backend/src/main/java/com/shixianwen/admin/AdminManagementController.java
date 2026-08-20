@@ -4,10 +4,18 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 @RestController @RequestMapping("/api/admin") @RequiredArgsConstructor
 public class AdminManagementController {
     private final AdminManagementService service;
+    private final WithdrawalBatchExportService withdrawalBatchExportService;
     @GetMapping("/dashboard") public ApiResponse<Map<String,Object>> dashboard(){return ApiResponse.ok(service.dashboard());}
+    @GetMapping("/platform-fee") public ApiResponse<Map<String,Object>> platformFee(){return ApiResponse.ok(service.platformFeeSetting());}
+    @PutMapping("/platform-fee") public ApiResponse<Map<String,Object>> updatePlatformFee(@CurrentAdmin AdminUser a,@RequestBody PlatformFeeRequest r,HttpServletRequest req){return ApiResponse.ok(service.updatePlatformFee(a,r.androidRatePercent(),r.iosRatePercent(),ip(req)));}
     @GetMapping("/users") public ApiResponse<AdminManagementService.PageResult> users(@RequestParam(defaultValue="")String keyword,@RequestParam(defaultValue="")String status,@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="20")int size){return ApiResponse.ok(service.users(keyword,status,safePage(page),safeSize(size)));}
     @PatchMapping("/users/{id}/status")
     public ApiResponse<Void> userStatus(
@@ -52,6 +60,14 @@ public class AdminManagementController {
     @PutMapping("/certifications/{id}") public ApiResponse<Void> editCertification(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody CertificationEditRequest r,HttpServletRequest req){service.editCertification(a,id,r.title(),r.description(),r.jobId(),r.years(),ip(req));return ApiResponse.ok();}
     @DeleteMapping("/certifications/{id}") public ApiResponse<Void> deleteCertification(@CurrentAdmin AdminUser a,@PathVariable Long id,HttpServletRequest req){service.deleteCertification(a,id,ip(req));return ApiResponse.ok();}
     @PatchMapping("/withdrawals/{id}/status") public ApiResponse<Void> withdrawal(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody StatusRequest r,HttpServletRequest req){service.processWithdrawal(a,id,r.status(),ip(req));return ApiResponse.ok();}
+    @PostMapping("/withdrawals/export")
+    public ResponseEntity<byte[]> exportWithdrawals(@CurrentAdmin AdminUser a,HttpServletRequest req){
+        return withdrawalExportResponse(withdrawalBatchExportService.export(a,ip(req)));
+    }
+    @GetMapping("/withdrawals/export/{batchNo}")
+    public ResponseEntity<byte[]> downloadWithdrawalBatch(@PathVariable String batchNo){
+        return withdrawalExportResponse(withdrawalBatchExportService.downloadBatch(batchNo));
+    }
     @PatchMapping("/{type:feedback|cooperations}/{id}/status") public ApiResponse<Void> record(@CurrentAdmin AdminUser a,@PathVariable String type,@PathVariable Long id,@RequestBody StatusRequest r,HttpServletRequest req){service.updateRecordStatus(a,type,id,r.status(),ip(req));return ApiResponse.ok();}
     @GetMapping("/audit-logs") public ApiResponse<AdminManagementService.PageResult> logs(@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="20")int size){return ApiResponse.ok(service.auditLogs(safePage(page),safeSize(size)));}
     @GetMapping("/customer-service/conversations") public ApiResponse<List<Map<String,Object>>> conversations(){return ApiResponse.ok(service.customerServiceConversations());}
@@ -59,6 +75,7 @@ public class AdminManagementController {
     @PutMapping("/customer-service/users/{userId}/read") public ApiResponse<Void> readCustomerService(@PathVariable Long userId){service.readCustomerServiceMessages(userId);return ApiResponse.ok();}
     @PostMapping("/customer-service/users/{userId}/reply") public ApiResponse<Map<String,Object>> reply(@CurrentAdmin AdminUser a,@PathVariable Long userId,@RequestBody ReplyRequest r,HttpServletRequest req){return ApiResponse.ok(service.replyCustomerService(a,userId,r.content(),ip(req)));}
     @GetMapping("/discovery") public ApiResponse<Map<String,Object>> discovery(){return ApiResponse.ok(service.discovery());}
+    @GetMapping("/experience-library") public ApiResponse<Map<String,Object>> experienceLibrary(){return ApiResponse.ok(service.discovery());}
     @PostMapping("/discovery/categories") public ApiResponse<Void> createCategory(@CurrentAdmin AdminUser a,@RequestBody CategoryRequest r,HttpServletRequest req){service.createCategory(a,r.mainCategory(),r.name(),r.sortOrder(),ip(req));return ApiResponse.ok();}
     @PutMapping("/discovery/categories/{id}") public ApiResponse<Void> updateCategory(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody CategoryRequest r,HttpServletRequest req){service.updateCategory(a,id,r.mainCategory(),r.name(),r.sortOrder(),r.active(),ip(req));return ApiResponse.ok();}
     @DeleteMapping("/discovery/categories/{id}") public ApiResponse<Void> deleteCategory(@CurrentAdmin AdminUser a,@PathVariable Long id,HttpServletRequest req){service.deleteCategory(a,id,ip(req));return ApiResponse.ok();}
@@ -74,6 +91,7 @@ public class AdminManagementController {
     private int safePage(int page){return Math.max(page,0);}
     private int safeSize(int size){return Math.max(1,Math.min(size,100));}
     public record StatusRequest(String status){}
+    public record PlatformFeeRequest(BigDecimal androidRatePercent, BigDecimal iosRatePercent){}
     public record UserPenaltyRequest(String status, String duration, String reason){}
     public record EnabledRequest(boolean enabled){} public record ReviewRequest(boolean approved,String reason,Long jobId,Integer years,Long experienceId){} public record CertificationEditRequest(String title,String description,Long jobId,Integer years){} public record ReplyRequest(String content){}
     public record JobRequest(String name,String description,Boolean active){}
@@ -82,4 +100,13 @@ public class AdminManagementController {
     public record MatterJobRequest(Long jobId){}
     public record ExperienceRequest(Long categoryId,String name,Boolean active){}
     public record ClassificationRequest(Long experienceId){}
+
+    private ResponseEntity<byte[]> withdrawalExportResponse(WithdrawalBatchExportService.ExportFile file){
+        String filename=java.net.URLEncoder.encode(file.filename(),StandardCharsets.UTF_8).replace("+","%20");
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .header(HttpHeaders.CONTENT_DISPOSITION,"attachment; filename*=UTF-8''"+filename)
+            .header("X-Export-Count",String.valueOf(file.count()))
+            .body(file.content());
+    }
 }

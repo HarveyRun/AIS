@@ -4,6 +4,7 @@ import com.shixianwen.auth.AuthInterceptor;
 import com.shixianwen.auth.CurrentUserArgumentResolver;
 import com.shixianwen.admin.AdminAuthInterceptor;
 import com.shixianwen.admin.CurrentAdminResolver;
+import com.shixianwen.admin.AdminPermissionInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -24,6 +25,7 @@ public class WebConfig implements WebMvcConfigurer {
     private final Path storageRoot;
     private final AdminAuthInterceptor adminAuthInterceptor;
     private final CurrentAdminResolver currentAdminResolver;
+    private final AdminPermissionInterceptor adminPermissionInterceptor;
 
     public WebConfig(
         AuthInterceptor authInterceptor,
@@ -31,7 +33,8 @@ public class WebConfig implements WebMvcConfigurer {
         @Value("${app.cors.allowed-origins}") String allowedOrigins,
         @Value("${app.storage.root}") String storageRoot,
         AdminAuthInterceptor adminAuthInterceptor,
-        CurrentAdminResolver currentAdminResolver
+        CurrentAdminResolver currentAdminResolver,
+        AdminPermissionInterceptor adminPermissionInterceptor
     ) {
         this.authInterceptor = authInterceptor;
         this.currentUserArgumentResolver = currentUserArgumentResolver;
@@ -39,6 +42,7 @@ public class WebConfig implements WebMvcConfigurer {
         this.storageRoot = Path.of(storageRoot).toAbsolutePath().normalize();
         this.adminAuthInterceptor = adminAuthInterceptor;
         this.currentAdminResolver = currentAdminResolver;
+        this.adminPermissionInterceptor = adminPermissionInterceptor;
     }
 
     @Override
@@ -58,7 +62,18 @@ public class WebConfig implements WebMvcConfigurer {
             );
         registry.addInterceptor(adminAuthInterceptor)
             .addPathPatterns("/api/admin/**")
-            .excludePathPatterns("/api/admin/auth/setup-status", "/api/admin/auth/setup", "/api/admin/auth/login");
+            .excludePathPatterns(
+                "/api/admin/auth/setup-status",
+                "/api/admin/auth/setup",
+                "/api/admin/auth/login"
+            );
+        registry.addInterceptor(adminPermissionInterceptor)
+            .addPathPatterns("/api/admin/**")
+            .excludePathPatterns(
+                "/api/admin/auth/setup-status",
+                "/api/admin/auth/setup",
+                "/api/admin/auth/login"
+            );
     }
 
     @Override
@@ -78,7 +93,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/uploads/**")
-            .addResourceLocations(storageRoot.toUri().toString());
+        registry.addResourceHandler("/uploads/public/**")
+            .addResourceLocations(storageRoot.resolve("public").toUri().toString());
     }
 }

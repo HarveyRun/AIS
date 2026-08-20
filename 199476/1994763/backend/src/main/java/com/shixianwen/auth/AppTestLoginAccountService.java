@@ -4,6 +4,7 @@ import com.shixianwen.admin.AdminAuditLog;
 import com.shixianwen.admin.AdminAuditLogRepository;
 import com.shixianwen.admin.AdminUser;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +21,8 @@ import java.util.Optional;
 public class AppTestLoginAccountService {
     private final AppTestLoginAccountRepository repository;
     private final AdminAuditLogRepository auditLogRepository;
+    private final UserRepository userRepository;
+    private final AuthSessionRepository authSessionRepository;
 
     @Transactional(readOnly = true)
     public Optional<String> activeVerificationCode(String phone) {
@@ -56,6 +59,7 @@ public class AppTestLoginAccountService {
     ) {
         String normalizedPhone = normalizePhone(phone);
         String normalizedCode = normalizeCode(verificationCode);
+        ensureSandboxPhone(normalizedPhone);
         AppTestLoginAccount account = repository.findByPhone(normalizedPhone)
             .filter(AppTestLoginAccount::isDeleted)
             .orElseGet(AppTestLoginAccount::new);
@@ -71,6 +75,7 @@ public class AppTestLoginAccountService {
         account.setDeletedAt(null);
         account.setUpdatedByAdmin(admin);
         account = repository.save(account);
+        revokeSessions(normalizedPhone);
         recordAudit(admin, "CREATE_APP_TEST_ACCOUNT", account, ipAddress);
         return View.from(account);
     }
@@ -86,7 +91,9 @@ public class AppTestLoginAccountService {
     ) {
         String normalizedPhone = normalizePhone(phone);
         String normalizedCode = normalizeCode(verificationCode);
+        ensureSandboxPhone(normalizedPhone);
         AppTestLoginAccount account = activeAccount(id);
+        String previousPhone = account.getPhone();
         repository.findByPhone(normalizedPhone)
             .filter(existing -> !existing.getId().equals(id))
             .ifPresent(existing -> {
@@ -98,6 +105,10 @@ public class AppTestLoginAccountService {
         account.setEnabled(enabled);
         account.setUpdatedByAdmin(admin);
         account = repository.save(account);
+        revokeSessions(previousPhone);
+        if (!previousPhone.equals(normalizedPhone)) {
+            revokeSessions(normalizedPhone);
+        }
         recordAudit(admin, "UPDATE_APP_TEST_ACCOUNT", account, ipAddress);
         return View.from(account);
     }
@@ -110,7 +121,21 @@ public class AppTestLoginAccountService {
         account.setDeletedAt(LocalDateTime.now());
         account.setUpdatedByAdmin(admin);
         repository.save(account);
+        revokeSessions(account.getPhone());
         recordAudit(admin, "DELETE_APP_TEST_ACCOUNT", account, ipAddress);
+    }
+
+    private void revokeSessions(String phone) {
+        userRepository.findByPhone(phone)
+            .ifPresent(user -> authSessionRepository.deleteByUserId(user.getId()));
+    }
+
+    private void ensureSandboxPhone(String phone) {
+        userRepository.findByPhone(phone)
+            .filter(user -> !"TEST".equals(user.getAccountType()))
+            .ifPresent(user -> {
+                throw BusinessException.badRequest("该手机号已是普通用户，不能转为测试账号");
+            });
     }
 
     private AppTestLoginAccount activeAccount(Long id) {

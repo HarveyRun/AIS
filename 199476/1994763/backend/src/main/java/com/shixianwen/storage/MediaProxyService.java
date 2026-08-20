@@ -21,11 +21,13 @@ public class MediaProxyService {
 
     private final HttpClient httpClient;
     private final Set<String> allowedHosts;
+    private final FileTypeDetector fileTypeDetector;
 
-    public MediaProxyService(ThirdPartySettings settings) {
+    public MediaProxyService(ThirdPartySettings settings, FileTypeDetector fileTypeDetector) {
+        this.fileTypeDetector = fileTypeDetector;
         this.httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(8))
-            .followRedirects(HttpClient.Redirect.NORMAL)
+            .followRedirects(HttpClient.Redirect.NEVER)
             .build();
         this.allowedHosts = allowedHosts(settings);
     }
@@ -59,7 +61,11 @@ public class MediaProxyService {
                 if (bytes.length > MAX_IMAGE_BYTES) {
                     throw BusinessException.badRequest("图片过大，无法预览");
                 }
-                return new ProxiedImage(bytes, contentType);
+                FileTypeDetector.DetectedFile detected = fileTypeDetector.detect(bytes);
+                if (!"IMAGE".equals(detected.kind())) {
+                    throw BusinessException.badRequest("图片内容无法识别");
+                }
+                return new ProxiedImage(bytes, detected.contentType());
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();

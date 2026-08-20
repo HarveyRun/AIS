@@ -1,11 +1,13 @@
 package com.shixianwen.auth;
 
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.network.ClientNetworkInfo;
+import com.shixianwen.security.LoginAttemptService;
+import com.shixianwen.security.SecurityEventService;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
 import com.shixianwen.wallet.WalletAccount;
 import com.shixianwen.wallet.WalletAccountRepository;
-import com.shixianwen.network.ClientNetworkInfo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,8 @@ public class AuthService {
     private final AppTestLoginAccountService appTestLoginAccountService;
     private final VerificationCodeService verificationCodeService;
     private final UidAllocator uidAllocator;
+    private final LoginAttemptService loginAttempts;
+    private final SecurityEventService securityEvents;
     private final SecureRandom secureRandom = new SecureRandom();
     private final int tokenValidDays;
 
@@ -38,6 +42,8 @@ public class AuthService {
         AppTestLoginAccountService appTestLoginAccountService,
         VerificationCodeService verificationCodeService,
         UidAllocator uidAllocator,
+        LoginAttemptService loginAttempts,
+        SecurityEventService securityEvents,
         @Value("${app.auth.token-valid-days}") int tokenValidDays
     ) {
         this.userRepository = userRepository;
@@ -47,42 +53,81 @@ public class AuthService {
         this.appTestLoginAccountService = appTestLoginAccountService;
         this.verificationCodeService = verificationCodeService;
         this.uidAllocator = uidAllocator;
+        this.loginAttempts = loginAttempts;
+        this.securityEvents = securityEvents;
         this.tokenValidDays = tokenValidDays;
     }
 
-    public void sendVerificationCode(String phone, String requestIp, boolean appClient) {
+    public void sendVerificationCode(String phone, String requestIp, String deviceId, boolean appClient) {
         if (appClient && appTestLoginAccountService.activeVerificationCode(phone).isPresent()) {
             return;
         }
-        verificationCodeService.send(phone, requestIp);
+        verificationCodeService.send(phone, "LOGIN", requestIp, deviceId);
     }
 
-    public void validateCode(String phone, String code, boolean appClient) {
+    public boolean validateCode(String phone, String code, boolean appClient) {
         if (appClient) {
             var appTestCode = appTestLoginAccountService.activeVerificationCode(phone);
             if (appTestCode.isPresent()) {
                 if (!appTestCode.get().equals(code)) {
                     throw BusinessException.badRequest("验证码不正确");
                 }
-                return;
+                return true;
             }
         }
-        verificationCodeService.verify(phone, code);
+        verificationCodeService.verify(phone, "LOGIN", code);
+        return false;
     }
 
     @Transactional
-    public LoginResult login(String phone, String code, ClientNetworkInfo network, boolean appClient) {
-        validateCode(phone, code, appClient);
-        User user = userRepository.findByPhone(phone).orElseGet(() -> createUser(phone, network));
+    public LoginResult login(
+        String phone,
+        String code,
+        ClientNetworkInfo network,
+        String deviceId,
+        boolean appClient
+    ) {
+        String safeDevice = LoginAttemptService.safeDevice(deviceId);
+        loginAttempts.requireAllowed("USER", phone, network.ipAddress(), safeDevice);
+
+        final boolean testLogin;
+        try {
+            testLogin = validateCode(phone, code, appClient);
+        } catch (BusinessException exception) {
+            loginAttempts.record("USER", phone, network.ipAddress(), safeDevice, false);
+            securityEvents.recordSafely(
+                null, null, "USER_LOGIN_FAILED", "MEDIUM", network.ipAddress(), safeDevice,
+                "验证码校验失败"
+            );
+            throw exception;
+        }
+
+        var existingUser = userRepository.findByPhone(phone);
+        boolean newlyCreated = existingUser.isEmpty();
+        User user = existingUser.orElseGet(() -> createUser(phone, network));
+        if (testLogin) {
+            user.setAccountType("TEST");
+        } else if ("TEST".equals(user.getAccountType())) {
+            throw BusinessException.forbidden("测试账号不能进入真实业务");
+        }
         ensureAccountAvailable(user);
         user.setLastLoginIp(network.ipAddress());
         user.setLastLoginLocation(network.location());
         user.setLastLoginAt(LocalDateTime.now());
+
         UserLoginRecord loginRecord = new UserLoginRecord();
         loginRecord.setUser(user);
         loginRecord.setIpAddress(network.ipAddress());
         loginRecord.setIpLocation(network.location());
+        loginRecord.setDeviceId(safeDevice);
         loginRecordRepository.save(loginRecord);
+        loginAttempts.record("USER", phone, network.ipAddress(), safeDevice, true);
+        securityEvents.recordSafely(
+            newlyCreated ? null : user.getId(), null,
+            testLogin ? "TEST_ACCOUNT_LOGIN" : "USER_LOGIN_SUCCESS",
+            testLogin ? "MEDIUM" : "INFO", network.ipAddress(), safeDevice,
+            newlyCreated ? "newUid=" + user.getUid() : null
+        );
         return createSession(user);
     }
 
@@ -104,10 +149,7 @@ public class AuthService {
     public User authenticate(String rawToken) {
         AuthSession session = authSessionRepository
             .findByTokenHashAndExpiresAtAfter(hash(rawToken), LocalDateTime.now())
-            .orElseThrow(() -> new BusinessException(
-                HttpStatus.UNAUTHORIZED,
-                "登录已失效，请重新登录"
-            ));
+            .orElseThrow(() -> new BusinessException(HttpStatus.UNAUTHORIZED, "登录已失效，请重新登录"));
         User user = session.getUser();
         ensureAccountAvailable(user);
         return user;

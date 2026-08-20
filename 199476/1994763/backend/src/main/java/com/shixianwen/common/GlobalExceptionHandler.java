@@ -9,10 +9,21 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import lombok.RequiredArgsConstructor;
+import jakarta.servlet.http.HttpServletRequest;
+import com.shixianwen.security.SecurityEventService;
+import com.shixianwen.network.ClientIpExtractor;
+import com.shixianwen.user.User;
+import com.shixianwen.auth.AuthInterceptor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+    private final SecurityEventService securityEvents;
+    private final ClientIpExtractor clientIpExtractor;
     @ExceptionHandler(AccountPenaltyException.class)
     public ResponseEntity<ApiResponse<AccountPenaltyView>> handleAccountPenalty(
         AccountPenaltyException exception
@@ -29,7 +40,18 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException exception) {
+    public ResponseEntity<ApiResponse<Void>> handleBusiness(
+        BusinessException exception,
+        HttpServletRequest request
+    ) {
+        if (exception.getStatus() == HttpStatus.FORBIDDEN) {
+            Object current = request.getAttribute(AuthInterceptor.CURRENT_USER_ATTRIBUTE);
+            Long userId = current instanceof User user ? user.getId() : null;
+            securityEvents.recordSafely(
+                userId, null, "ACCESS_DENIED", "HIGH", clientIpExtractor.extract(request),
+                request.getHeader("X-Device-Id"), "path=" + request.getRequestURI()
+            );
+        }
         return ResponseEntity.status(exception.getStatus()).body(ApiResponse.error(exception.getMessage()));
     }
 
@@ -49,6 +71,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException exception) {
         return ResponseEntity.badRequest().body(ApiResponse.error("请求数据格式不正确"));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingResource(NoResourceFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("内容不存在"));
     }
 
     @ExceptionHandler(Exception.class)

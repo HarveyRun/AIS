@@ -3,6 +3,8 @@ package com.shixianwen.auth;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.user.UserRepository;
 import com.shixianwen.wallet.WalletAccountRepository;
+import com.shixianwen.security.LoginAttemptService;
+import com.shixianwen.security.SecurityEventService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +35,8 @@ class AuthServiceTest {
             testAccountService,
             verificationCodeService,
             mock(UidAllocator.class),
+            mock(LoginAttemptService.class),
+            mock(SecurityEventService.class),
             30
         );
     }
@@ -42,9 +46,9 @@ class AuthServiceTest {
         when(testAccountService.activeVerificationCode("19900000000"))
             .thenReturn(Optional.of("5678"));
 
-        authService.sendVerificationCode("19900000000", "127.0.0.1", true);
+        authService.sendVerificationCode("19900000000", "127.0.0.1", "device-001", true);
 
-        verify(verificationCodeService, never()).send("19900000000", "127.0.0.1");
+        verify(verificationCodeService, never()).send("19900000000", "LOGIN", "127.0.0.1", "device-001");
     }
 
     @Test
@@ -52,9 +56,9 @@ class AuthServiceTest {
         when(testAccountService.activeVerificationCode("18800000000"))
             .thenReturn(Optional.empty());
 
-        authService.sendVerificationCode("18800000000", "127.0.0.1", true);
+        authService.sendVerificationCode("18800000000", "127.0.0.1", "device-001", true);
 
-        verify(verificationCodeService).send("18800000000", "127.0.0.1");
+        verify(verificationCodeService).send("18800000000", "LOGIN", "127.0.0.1", "device-001");
     }
 
     @Test
@@ -74,7 +78,7 @@ class AuthServiceTest {
         when(testAccountService.activeVerificationCode("18800000000"))
             .thenReturn(Optional.empty());
         doThrow(BusinessException.badRequest("验证码不正确"))
-            .when(verificationCodeService).verify("18800000000", "5678");
+            .when(verificationCodeService).verify("18800000000", "LOGIN", "5678");
 
         assertDoesNotThrow(() -> authService.validateCode("18800000000", "1234", true));
         assertThrows(
@@ -86,7 +90,7 @@ class AuthServiceTest {
     @Test
     void webClientCannotUseAppTestAccountCode() {
         doThrow(BusinessException.badRequest("验证码不正确"))
-            .when(verificationCodeService).verify("19900000000", "5678");
+            .when(verificationCodeService).verify("19900000000", "LOGIN", "5678");
         assertDoesNotThrow(() -> authService.validateCode("19900000000", "1234", false));
         assertThrows(
             BusinessException.class,
@@ -97,9 +101,9 @@ class AuthServiceTest {
 
     @Test
     void webClientDoesNotBypassSmsSender() {
-        authService.sendVerificationCode("19900000000", "127.0.0.1", false);
+        authService.sendVerificationCode("19900000000", "127.0.0.1", "device-001", false);
 
-        verify(verificationCodeService).send("19900000000", "127.0.0.1");
+        verify(verificationCodeService).send("19900000000", "LOGIN", "127.0.0.1", "device-001");
         verify(testAccountService, never()).activeVerificationCode("19900000000");
     }
 }

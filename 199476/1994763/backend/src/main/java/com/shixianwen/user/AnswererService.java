@@ -26,14 +26,15 @@ public class AnswererService {
 
     @Transactional(readOnly = true)
     public AnswererPage search(Long currentUserId, String keyword, int page, int size) {
+        String accountType = accountType(currentUserId);
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, 50));
         List<Long> ids = jdbc.queryForList(
-            "SELECT u.id FROM users u WHERE u.id<>? AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED +
+            "SELECT u.id FROM users u WHERE u.id<>? AND u.account_type=? AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED +
                 "AND (?='' OR EXISTS (SELECT 1 FROM user_jobs uj JOIN jobs j ON j.id=uj.job_id WHERE uj.user_id=u.id AND uj.verified=TRUE AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND j.name LIKE CONCAT('%',?,'%'))) " +
                 "ORDER BY u.id DESC LIMIT ? OFFSET ?",
-            Long.class, currentUserId, normalizedKeyword, normalizedKeyword,
+            Long.class, currentUserId, accountType, normalizedKeyword, normalizedKeyword,
             safeSize + 1, safePage * safeSize
         );
         boolean hasMore = ids.size() > safeSize;
@@ -43,8 +44,10 @@ public class AnswererService {
     }
 
     @Transactional(readOnly = true)
-    public AnswererView detail(String uid) {
+    public AnswererView detail(Long currentUserId, String uid) {
+        String accountType = accountType(currentUserId);
         User user = userRepository.findByUidAndAccountStatus(uid, "ACTIVE")
+            .filter(item -> accountType.equals(item.getAccountType()))
             .filter(item -> currentQualification(item.getId()))
             .orElseThrow(() -> BusinessException.notFound("该答主不存在"));
         return toView(user);
@@ -73,26 +76,28 @@ public class AnswererService {
     }
 
     @Transactional(readOnly = true)
-    public List<AnswererView> forMatter(Long matterId) {
+    public List<AnswererView> forMatter(Long currentUserId, Long matterId) {
+        String accountType = accountType(currentUserId);
         List<Long> ids = jdbc.queryForList(
             "SELECT DISTINCT u.id FROM discovery_matter_jobs mj " +
                 "JOIN user_jobs uj ON uj.job_id=mj.job_id JOIN users u ON u.id=uj.user_id " +
-                "JOIN jobs j ON j.id=uj.job_id WHERE mj.matter_id=? AND mj.active=TRUE AND mj.deleted_at IS NULL AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND uj.verified=TRUE AND u.account_status='ACTIVE' " +
-                "AND u.accepting_inquiries=TRUE AND " + QUALIFIED + "ORDER BY u.id DESC",
-            Long.class, matterId
+                "JOIN jobs j ON j.id=uj.job_id WHERE mj.matter_id=? AND u.id<>? AND mj.active=TRUE AND mj.deleted_at IS NULL AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND uj.verified=TRUE AND u.account_status='ACTIVE' " +
+                "AND u.account_type=? AND u.accepting_inquiries=TRUE AND " + QUALIFIED + "ORDER BY u.id DESC",
+            Long.class, matterId, currentUserId, accountType
         );
         return ids.stream().map(userRepository::findById).flatMap(java.util.Optional::stream).map(this::toView).toList();
     }
 
     @Transactional(readOnly = true)
-    public List<AnswererView> forExperience(Long experienceId) {
+    public List<AnswererView> forExperience(Long currentUserId, Long experienceId) {
+        String accountType = accountType(currentUserId);
         List<Long> ids = jdbc.queryForList(
             "SELECT DISTINCT u.id FROM certifications c JOIN users u ON u.id=c.user_id " +
                 "JOIN discovery_experiences e ON e.id=c.discovery_experience_id " +
-                "WHERE c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL AND c.discovery_experience_id=? AND e.active=TRUE AND e.deleted_at IS NULL " +
-                "AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED +
+                "WHERE c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL AND c.discovery_experience_id=? AND u.id<>? AND e.active=TRUE AND e.deleted_at IS NULL " +
+                "AND u.account_status='ACTIVE' AND u.account_type=? AND u.accepting_inquiries=TRUE AND " + QUALIFIED +
                 "ORDER BY u.id DESC",
-            Long.class, experienceId
+            Long.class, experienceId, currentUserId, accountType
         );
         return ids.stream().map(userRepository::findById).flatMap(java.util.Optional::stream).map(this::toView).toList();
     }
@@ -104,6 +109,12 @@ public class AnswererService {
             userId
         );
         return count != null && count > 0;
+    }
+
+    private String accountType(Long userId) {
+        return userRepository.findById(userId)
+            .map(User::getAccountType)
+            .orElseThrow(() -> BusinessException.notFound("用户不存在"));
     }
 
     private record JobView(String name, Integer years, String description) {}

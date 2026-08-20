@@ -49,6 +49,8 @@ app:
     token-valid-days: 30
     demo-verification-code: ${DEMO_VERIFICATION_CODE:1234}
     verification-code-pepper: ${VERIFICATION_CODE_PEPPER:shixianwen-local-change-me}
+  wallet:
+    account-encryption-secret: ${PAYOUT_ACCOUNT_ENCRYPTION_SECRET:${VERIFICATION_CODE_PEPPER:shixianwen-local-change-me}}
   integrations:
     legacy-properties-file: ${LEGACY_THIRD_PARTY_PROPERTIES:D:/Harvey/elephant/src/main/resources/application.properties}
   sms:
@@ -70,6 +72,7 @@ app:
     alipay:
       gateway-url: ${ALIPAY_GATEWAY_URL:https://openapi.alipay.com/gateway.do}
       app-id: ${ALIPAY_APP_ID:}
+      partner-id: ${ALIPAY_PARTNER_ID:}
       private-key: ${ALIPAY_PRIVATE_KEY:}
       public-key: ${ALIPAY_PUBLIC_KEY:}
       notify-url: ${ALIPAY_NOTIFY_URL:}

@@ -25,6 +25,10 @@ public class RealtimeTicketService {
 
     private TicketView issue(String subjectType, Long subjectId) {
         cleanup();
+        tickets.entrySet().removeIf(entry ->
+            entry.getValue().subjectType().equals(subjectType)
+                && entry.getValue().subjectId().equals(subjectId)
+        );
         byte[] bytes = new byte[32];
         random.nextBytes(bytes);
         String value = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);

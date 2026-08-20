@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -63,5 +64,37 @@ class RechargeServiceTest {
 
         assertThrows(BusinessException.class, () -> service.create(1L, new BigDecimal("12.34")));
         assertThrows(BusinessException.class, () -> service.create(1L, new BigDecimal("10000")));
+    }
+
+    @Test
+    void testAccountRechargeCreditsSandboxBalanceWithoutCallingPaymentGateway() {
+        RechargeRepository recharges = mock(RechargeRepository.class);
+        UserRepository users = mock(UserRepository.class);
+        WalletService wallet = mock(WalletService.class);
+        PaymentGateway gateway = mock(PaymentGateway.class);
+        RechargeService service = new RechargeService(recharges, users, wallet, gateway);
+        User user = new User();
+        user.setId(1L);
+        user.setAccountType("TEST");
+        when(users.findWithLockById(1L)).thenReturn(Optional.of(user));
+        when(users.findById(1L)).thenReturn(Optional.of(user));
+        when(recharges.save(any(Recharge.class))).thenAnswer(invocation -> {
+            Recharge item = invocation.getArgument(0);
+            item.setId(7L);
+            return item;
+        });
+
+        assertEquals("TEST", service.capability(1L).paymentMode());
+        RechargeService.RechargeView result = service.create(
+            1L,
+            new BigDecimal("20"),
+            "test_recharge_1234"
+        );
+
+        assertEquals("PAID", result.status());
+        assertEquals("TEST", result.channel());
+        assertEquals(null, result.paymentPayload());
+        verify(wallet).creditRecharge(1L, new BigDecimal("20.00"), 7L);
+        verify(gateway, never()).createOrder(any(), any(), any());
     }
 }

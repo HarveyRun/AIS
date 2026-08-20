@@ -190,6 +190,7 @@ td small {
 }
 .status.pending,
 .status.processing,
+.status.exported,
 .status.submitted {
   background: #fff5df;
   color: #a4670c;
@@ -367,6 +368,23 @@ button.primary {
   border-radius: 10px;
   background: #f7f8f9;
 }
+.page-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #7c8189;
+  font-size: 13px;
+}
+.toolbar > input {
+  width: 260px;
+  height: 40px;
+  box-sizing: border-box;
+  border: 1px solid #dfe1e5;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 12px;
+  outline: none;
+}
 .row-actions {
   white-space: nowrap;
 }
@@ -376,6 +394,20 @@ button.primary {
 .row-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.test-data-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #eef1f5;
+  color: #626975;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  vertical-align: middle;
 }
 
 .certification-edit-panel h3 {

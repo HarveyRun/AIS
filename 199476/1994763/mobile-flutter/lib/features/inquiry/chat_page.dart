@@ -438,7 +438,7 @@ class _ChatStatus extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  '¥${formatMoney(inquiry.amount)}',
+                  '${inquiry.isIncoming ? '预计收入' : '询问金额'} ¥${formatMoney(inquiry.visibleAmount)}',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: Theme.of(context).colorScheme.primary,

@@ -235,7 +235,7 @@ class _InquiryList extends StatelessWidget {
                           Row(
                             children: [
                               Text(
-                                '¥${formatMoney(item.amount)}',
+                                '${item.isIncoming ? '预计收入' : '询问金额'} ¥${formatMoney(item.visibleAmount)}',
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.primary,
                                   fontSize: 13,

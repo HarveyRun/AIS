@@ -21,4 +21,5 @@ public class AdminUser {
     @Column(name="last_login_at") private LocalDateTime lastLoginAt;
     @CreationTimestamp @Column(name="created_at", updatable=false) private LocalDateTime createdAt;
     @UpdateTimestamp @Column(name="updated_at") private LocalDateTime updatedAt;
+    @Column(name="deleted_at") private LocalDateTime deletedAt;
 }

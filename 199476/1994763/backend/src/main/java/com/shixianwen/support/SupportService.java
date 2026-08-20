@@ -54,13 +54,14 @@ public class SupportService {
         if (image.getSize() > 10L * 1024 * 1024) {
             throw BusinessException.badRequest("图片不能超过10MB");
         }
+        User currentUser = user(userId);
         StoredFile stored = fileStorage.store(
             image,
-            "customer-service/" + userId,
+            ("TEST".equals(currentUser.getAccountType()) ? "test/" : "") + "customer-service/" + userId,
             StorageVisibility.PRIVATE
         );
         CustomerServiceMessage item = new CustomerServiceMessage();
-        item.setUser(user(userId));
+        item.setUser(currentUser);
         item.setSenderType("USER");
         item.setMessageType("IMAGE");
         item.setContent("");

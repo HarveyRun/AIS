@@ -2,7 +2,12 @@ package com.shixianwen.wallet;
 
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
+import com.shixianwen.auth.VerificationCodeService;
+import com.shixianwen.auth.AppTestLoginAccountService;
+import com.shixianwen.security.SecurityEventService;
+import com.shixianwen.inquiry.Inquiry;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -42,6 +47,62 @@ class WalletServiceTest {
         verify(transactions, times(1)).save(any(WalletTransaction.class));
     }
 
+    @Test
+    void settlementCreditsOnlyTheAnswererNetIncome() {
+        WalletAccountRepository wallets = mock(WalletAccountRepository.class);
+        WalletTransactionRepository transactions = mock(WalletTransactionRepository.class);
+        WalletIncomeHoldRepository incomeHolds = mock(WalletIncomeHoldRepository.class);
+        PlatformFeeRecordRepository feeRecords = mock(PlatformFeeRecordRepository.class);
+        WalletAccount payer = wallet(1L, "0.00", "100.00");
+        WalletAccount receiver = wallet(2L, "0.00", "0.00");
+        when(wallets.findWithLockByUserId(1L)).thenReturn(Optional.of(payer));
+        when(wallets.findWithLockByUserId(2L)).thenReturn(Optional.of(receiver));
+        when(transactions.findByUserIdAndTransactionTypeAndReferenceTypeAndReferenceId(
+            any(), any(), any(), any()
+        )).thenReturn(Optional.empty());
+        when(feeRecords.existsByInquiryId(8L)).thenReturn(false);
+
+        Inquiry inquiry = new Inquiry();
+        inquiry.setId(8L);
+        inquiry.setServiceFeeRate(new BigDecimal("0.050000"));
+        inquiry.setServiceFeeAmount(new BigDecimal("5.00"));
+        inquiry.setAnswererIncomeAmount(new BigDecimal("95.00"));
+
+        WalletService service = new WalletService(
+            wallets,
+            transactions,
+            mock(AlipayAccountRepository.class),
+            mock(WithdrawalRepository.class),
+            incomeHolds,
+            mock(UserRepository.class),
+            mock(PlatformServiceFeePolicy.class),
+            feeRecords,
+            mock(VerificationCodeService.class),
+            mock(AppTestLoginAccountService.class),
+            mock(SecurityEventService.class)
+        );
+
+        service.settle(
+            1L,
+            2L,
+            new BigDecimal("100.00"),
+            MoneyAmounts.ZERO,
+            inquiry
+        );
+
+        assertEquals(new BigDecimal("0.00"), payer.getFrozenBalance());
+        assertEquals(new BigDecimal("95.00"), receiver.getPendingIncomeBalance());
+
+        ArgumentCaptor<WalletIncomeHold> holdCaptor = ArgumentCaptor.forClass(WalletIncomeHold.class);
+        verify(incomeHolds).save(holdCaptor.capture());
+        assertEquals(new BigDecimal("95.00"), holdCaptor.getValue().getAmount());
+
+        ArgumentCaptor<PlatformFeeRecord> feeCaptor = ArgumentCaptor.forClass(PlatformFeeRecord.class);
+        verify(feeRecords).save(feeCaptor.capture());
+        assertEquals(new BigDecimal("5.00"), feeCaptor.getValue().getServiceFeeAmount());
+        assertEquals(new BigDecimal("95.00"), feeCaptor.getValue().getAnswererIncomeAmount());
+    }
+
     private WalletService service(
         WalletAccountRepository wallets,
         WalletTransactionRepository transactions
@@ -49,10 +110,15 @@ class WalletServiceTest {
         return new WalletService(
             wallets,
             transactions,
-            mock(BankCardRepository.class),
+            mock(AlipayAccountRepository.class),
             mock(WithdrawalRepository.class),
+            mock(WalletIncomeHoldRepository.class),
             mock(UserRepository.class),
-            new WithdrawalFeePolicy()
+            mock(PlatformServiceFeePolicy.class),
+            mock(PlatformFeeRecordRepository.class),
+            mock(VerificationCodeService.class),
+            mock(AppTestLoginAccountService.class),
+            mock(SecurityEventService.class)
         );
     }
 

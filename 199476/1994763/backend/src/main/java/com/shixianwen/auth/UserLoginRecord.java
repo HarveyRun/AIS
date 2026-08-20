@@ -29,6 +29,9 @@ public class UserLoginRecord {
     @Column(name = "ip_location", nullable = false, length = 100)
     private String ipLocation;
 
+    @Column(name = "device_id", nullable = false, length = 100)
+    private String deviceId = "unknown";
+
     @CreationTimestamp
     @Column(name = "logged_in_at", nullable = false, updatable = false)
     private LocalDateTime loggedInAt;

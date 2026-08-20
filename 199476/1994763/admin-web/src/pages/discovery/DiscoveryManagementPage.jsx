@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, Search, X } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
+import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
 import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
 import { message } from '../../components/feedback/message.js';
@@ -13,6 +14,7 @@ const newMatter = () => ({ categoryId: '', title: '', sortOrder: 1, active: true
 const tablePageSize = 20;
 
 export default function DiscoveryManagementPage() {
+  const { can } = useAdminAccess();
   const [data, setData] = useState({
     categories: [],
     matters: [],
@@ -280,7 +282,7 @@ export default function DiscoveryManagementPage() {
               <h2>通用分类</h2>
               <p>这里的分类同时用于按事情找人和按经历找人。</p>
             </div>
-            <button
+            {can('DISCOVERY_CREATE') && <button
               className="primary"
               type="button"
               onClick={() => {
@@ -291,7 +293,7 @@ export default function DiscoveryManagementPage() {
             >
               <Plus />
               新增分类
-            </button>
+            </button>}
           </header>
           <form
             className="query-toolbar"
@@ -372,15 +374,15 @@ export default function DiscoveryManagementPage() {
                         <span className="fixed-category">固定分类</span>
                       ) : (
                         <>
-                          <button className="plain" onClick={() => editCategory(item)}>
+                          {can('DISCOVERY_EDIT') && <button className="plain" onClick={() => editCategory(item)}>
                             编辑
-                          </button>
-                          <button className="plain" onClick={() => toggleCategory(item)}>
+                          </button>}
+                          {can('DISCOVERY_EDIT') && <button className="plain" onClick={() => toggleCategory(item)}>
                             {item.active ? '停用' : '启用'}
-                          </button>
-                          <button className="danger" onClick={() => deleteCategory(item)}>
+                          </button>}
+                          {can('DISCOVERY_DELETE') && <button className="danger" onClick={() => deleteCategory(item)}>
                             删除
-                          </button>
+                          </button>}
                         </>
                       )}
                     </td>
@@ -406,7 +408,7 @@ export default function DiscoveryManagementPage() {
               <h2>按事情找人</h2>
               <p>查询事情，或单独新增并配置岗位方案。</p>
             </div>
-            <button
+            {can('DISCOVERY_CREATE') && <button
               className="primary"
               type="button"
               onClick={() => {
@@ -418,7 +420,7 @@ export default function DiscoveryManagementPage() {
             >
               <Plus />
               新增事情
-            </button>
+            </button>}
           </header>
           <form
             className="query-toolbar matter-query"
@@ -527,15 +529,15 @@ export default function DiscoveryManagementPage() {
                         </span>
                       </td>
                       <td className="row-actions">
-                        <button className="plain" onClick={() => editMatter(item)}>
+                        {can('DISCOVERY_EDIT') && <button className="plain" onClick={() => editMatter(item)}>
                           编辑
-                        </button>
-                        <button className="plain" onClick={() => toggleMatter(item)}>
+                        </button>}
+                        {can('DISCOVERY_EDIT') && <button className="plain" onClick={() => toggleMatter(item)}>
                           {item.active ? '停用' : '启用'}
-                        </button>
-                        <button className="danger" onClick={() => deleteMatter(item)}>
+                        </button>}
+                        {can('DISCOVERY_DELETE') && <button className="danger" onClick={() => deleteMatter(item)}>
                           删除
-                        </button>
+                        </button>}
                       </td>
                     </tr>
                   );

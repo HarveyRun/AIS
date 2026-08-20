@@ -1,6 +1,7 @@
 package com.shixianwen.auth;
 
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.security.SecurityEventService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,10 +31,10 @@ class VerificationCodeServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new VerificationCodeService(repository, sender);
+        service = new VerificationCodeService(repository, sender, org.mockito.Mockito.mock(SecurityEventService.class));
         ReflectionTestUtils.setField(service, "pepper", "test-pepper");
         ReflectionTestUtils.setField(service, "localCode", "1234");
-        when(repository.findFirstByPhoneOrderByCreatedAtDesc("13800138000"))
+        when(repository.findFirstByPhoneAndPurposeOrderByCreatedAtDesc("13800138000", "LOGIN"))
             .thenReturn(Optional.empty());
     }
 
@@ -41,7 +42,7 @@ class VerificationCodeServiceTest {
     void sendsAndStoresHashedLocalCode() {
         when(sender.localMode()).thenReturn(true);
 
-        service.send("13800138000", "127.0.0.1");
+        service.send("13800138000", "LOGIN", "127.0.0.1", "device-001");
 
         verify(sender).send("13800138000", "1234");
         verify(repository).save(any(VerificationCode.class));
@@ -51,10 +52,10 @@ class VerificationCodeServiceTest {
     void rejectsSendingAgainInsideCooldown() {
         VerificationCode latest = new VerificationCode();
         latest.setCreatedAt(LocalDateTime.now());
-        when(repository.findFirstByPhoneOrderByCreatedAtDesc("13800138000"))
+        when(repository.findFirstByPhoneAndPurposeOrderByCreatedAtDesc("13800138000", "LOGIN"))
             .thenReturn(Optional.of(latest));
 
-        assertThatThrownBy(() -> service.send("13800138000", "127.0.0.1"))
+        assertThatThrownBy(() -> service.send("13800138000", "LOGIN", "127.0.0.1", "device-001"))
             .isInstanceOf(BusinessException.class)
             .hasMessageContaining("发送过于频繁");
         verify(sender, never()).send(any(), any());
@@ -63,16 +64,16 @@ class VerificationCodeServiceTest {
     @Test
     void consumesCorrectCode() {
         when(sender.localMode()).thenReturn(true);
-        service.send("13800138000", "127.0.0.1");
+        service.send("13800138000", "LOGIN", "127.0.0.1", "device-001");
         org.mockito.ArgumentCaptor<VerificationCode> captor =
             org.mockito.ArgumentCaptor.forClass(VerificationCode.class);
         verify(repository).save(captor.capture());
         VerificationCode record = captor.getValue();
-        when(repository.findFirstByPhoneAndConsumedAtIsNullAndExpiresAtAfterOrderByCreatedAtDesc(
-            org.mockito.ArgumentMatchers.eq("13800138000"), any(LocalDateTime.class)
+        when(repository.findFirstByPhoneAndPurposeAndConsumedAtIsNullAndExpiresAtAfterOrderByCreatedAtDesc(
+            org.mockito.ArgumentMatchers.eq("13800138000"), org.mockito.ArgumentMatchers.eq("LOGIN"), any(LocalDateTime.class)
         )).thenReturn(Optional.of(record));
 
-        service.verify("13800138000", "1234");
+        service.verify("13800138000", "LOGIN", "1234");
 
         assertThat(record.getConsumedAt()).isNotNull();
         assertThat(record.getAttempts()).isZero();
@@ -81,16 +82,16 @@ class VerificationCodeServiceTest {
     @Test
     void countsWrongAttemptsWithoutConsumingImmediately() {
         when(sender.localMode()).thenReturn(true);
-        service.send("13800138000", "127.0.0.1");
+        service.send("13800138000", "LOGIN", "127.0.0.1", "device-001");
         org.mockito.ArgumentCaptor<VerificationCode> captor =
             org.mockito.ArgumentCaptor.forClass(VerificationCode.class);
         verify(repository).save(captor.capture());
         VerificationCode record = captor.getValue();
-        when(repository.findFirstByPhoneAndConsumedAtIsNullAndExpiresAtAfterOrderByCreatedAtDesc(
-            org.mockito.ArgumentMatchers.eq("13800138000"), any(LocalDateTime.class)
+        when(repository.findFirstByPhoneAndPurposeAndConsumedAtIsNullAndExpiresAtAfterOrderByCreatedAtDesc(
+            org.mockito.ArgumentMatchers.eq("13800138000"), org.mockito.ArgumentMatchers.eq("LOGIN"), any(LocalDateTime.class)
         )).thenReturn(Optional.of(record));
 
-        assertThatThrownBy(() -> service.verify("13800138000", "0000"))
+        assertThatThrownBy(() -> service.verify("13800138000", "LOGIN", "0000"))
             .isInstanceOf(BusinessException.class)
             .hasMessageContaining("验证码不正确");
 

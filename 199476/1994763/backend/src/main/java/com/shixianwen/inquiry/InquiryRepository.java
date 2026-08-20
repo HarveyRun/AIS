@@ -22,6 +22,12 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
     boolean existsByQuestionerIdAndStatusIn(Long userId, Collection<String> statuses);
     boolean existsByAnswererIdAndStatusIn(Long userId, Collection<String> statuses);
     boolean existsByQuestionerIdAndAnswererIdAndStatusIn(Long questionerId, Long answererId, Collection<String> statuses);
+    long countByQuestionerIdAndCreatedAtAfter(Long questionerId, LocalDateTime after);
+    long countByQuestionerIdAndAnswererIdAndCreatedAtAfter(
+        Long questionerId,
+        Long answererId,
+        LocalDateTime after
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = {"questioner", "answerer"})

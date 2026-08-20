@@ -6,14 +6,17 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface VerificationCodeRepository extends JpaRepository<VerificationCode, Long> {
-    Optional<VerificationCode> findFirstByPhoneOrderByCreatedAtDesc(String phone);
+    Optional<VerificationCode> findFirstByPhoneAndPurposeOrderByCreatedAtDesc(String phone, String purpose);
 
-    Optional<VerificationCode> findFirstByPhoneAndConsumedAtIsNullAndExpiresAtAfterOrderByCreatedAtDesc(
+    Optional<VerificationCode> findFirstByPhoneAndPurposeAndConsumedAtIsNullAndExpiresAtAfterOrderByCreatedAtDesc(
         String phone,
+        String purpose,
         LocalDateTime now
     );
 
-    long countByPhoneAndCreatedAtAfter(String phone, LocalDateTime after);
+    long countByPhoneAndPurposeAndCreatedAtAfter(String phone, String purpose, LocalDateTime after);
 
     long countByRequestIpAndCreatedAtAfter(String requestIp, LocalDateTime after);
+
+    long countByRequestDeviceIdAndCreatedAtAfter(String requestDeviceId, LocalDateTime after);
 }

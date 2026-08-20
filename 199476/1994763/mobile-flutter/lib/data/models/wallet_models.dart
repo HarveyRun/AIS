@@ -2,29 +2,29 @@ class WalletInfo {
   const WalletInfo({
     required this.availableBalance,
     required this.frozenBalance,
+    required this.rechargeBalance,
+    required this.withdrawableIncome,
+    required this.pendingIncome,
     required this.totalWithdrawn,
-    required this.freeWithdrawalLimit,
-    required this.withdrawalFeeRate,
   });
 
   factory WalletInfo.fromJson(Map<String, dynamic> json) {
     return WalletInfo(
       availableBalance: _double(json['availableBalance']),
       frozenBalance: _double(json['frozenBalance']),
+      rechargeBalance: _double(json['rechargeBalance']),
+      withdrawableIncome: _double(json['withdrawableIncome']),
+      pendingIncome: _double(json['pendingIncome']),
       totalWithdrawn: _double(json['totalWithdrawn']),
-      freeWithdrawalLimit: _double(
-        json['freeWithdrawalLimit'],
-        fallback: 30000,
-      ),
-      withdrawalFeeRate: _double(json['withdrawalFeeRate'], fallback: .2),
     );
   }
 
   final double availableBalance;
   final double frozenBalance;
+  final double rechargeBalance;
+  final double withdrawableIncome;
+  final double pendingIncome;
   final double totalWithdrawn;
-  final double freeWithdrawalLimit;
-  final double withdrawalFeeRate;
 }
 
 class WalletTransaction {
@@ -62,38 +62,41 @@ class WalletTransaction {
   final DateTime? createdAt;
 }
 
-class BankCardInfo {
-  const BankCardInfo({
+class AlipayAccountInfo {
+  const AlipayAccountInfo({
     required this.id,
-    required this.holderName,
-    required this.bankName,
-    required this.lastFour,
+    required this.displayName,
+    required this.identifierType,
+    required this.accountMasked,
+    required this.authorizedAt,
   });
 
-  factory BankCardInfo.fromJson(Map<String, dynamic> json) {
-    return BankCardInfo(
+  factory AlipayAccountInfo.fromJson(Map<String, dynamic> json) {
+    return AlipayAccountInfo(
       id: _int(json['id']),
-      holderName: json['holderName']?.toString() ?? '',
-      bankName: json['bankName']?.toString() ?? '',
-      lastFour: json['lastFour']?.toString() ?? '',
+      displayName: json['displayName']?.toString() ?? '已授权支付宝账户',
+      identifierType: json['identifierType']?.toString() ?? '',
+      accountMasked: json['accountMasked']?.toString() ?? '',
+      authorizedAt: _date(json['authorizedAt']),
     );
   }
 
   final int id;
-  final String holderName;
-  final String bankName;
-  final String lastFour;
+  final String displayName;
+  final String identifierType;
+  final String accountMasked;
+  final DateTime? authorizedAt;
 }
 
 class WithdrawalRecord {
   const WithdrawalRecord({
     required this.id,
     required this.amount,
-    required this.fee,
-    required this.arrivalAmount,
-    required this.bankName,
-    required this.lastFour,
+    required this.payeeName,
+    required this.alipayAccount,
     required this.status,
+    required this.batchNo,
+    required this.exportedAt,
     required this.createdAt,
   });
 
@@ -101,43 +104,23 @@ class WithdrawalRecord {
     return WithdrawalRecord(
       id: _int(json['id']),
       amount: _double(json['amount']),
-      fee: _double(json['fee']),
-      arrivalAmount: _double(json['arrivalAmount']),
-      bankName: json['bankName']?.toString() ?? '',
-      lastFour: json['lastFour']?.toString() ?? '',
+      payeeName: json['payeeName']?.toString() ?? '',
+      alipayAccount: json['alipayAccount']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
+      batchNo: json['batchNo']?.toString() ?? '',
+      exportedAt: _date(json['exportedAt']),
       createdAt: _date(json['createdAt']),
     );
   }
 
   final int id;
   final double amount;
-  final double fee;
-  final double arrivalAmount;
-  final String bankName;
-  final String lastFour;
+  final String payeeName;
+  final String alipayAccount;
   final String status;
+  final String batchNo;
+  final DateTime? exportedAt;
   final DateTime? createdAt;
-}
-
-class WithdrawalQuote {
-  const WithdrawalQuote({
-    required this.amount,
-    required this.fee,
-    required this.arrivalAmount,
-  });
-
-  factory WithdrawalQuote.fromJson(Map<String, dynamic> json) {
-    return WithdrawalQuote(
-      amount: _double(json['amount']),
-      fee: _double(json['fee']),
-      arrivalAmount: _double(json['arrivalAmount']),
-    );
-  }
-
-  final double amount;
-  final double fee;
-  final double arrivalAmount;
 }
 
 int _int(Object? value) =>

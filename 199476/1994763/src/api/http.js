@@ -147,9 +147,15 @@ export const api = {
     method: 'POST',
     globalLoading: false,
   }),
-  bindBankCard: (body) => request('/wallet/bank-card', { method: 'PUT', body: JSON.stringify(body) }),
-  bankCard: () => request('/wallet/bank-card'),
-  withdraw: (amount) => request('/wallet/withdrawals', { method: 'POST', body: JSON.stringify({ amount }) }),
+  sendWalletCode: (purpose) => request('/wallet/verification-codes', {
+    method: 'POST',
+    body: JSON.stringify({ purpose }),
+  }),
+  alipayAccount: () => request('/wallet/alipay-account'),
+  withdraw: (body) => request('/wallet/withdrawals', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
   createRecharge: (amount) => request('/recharges', { method: 'POST', body: JSON.stringify({ amount }) }),
   rechargeCapability: () => request('/recharges/capability'),
   rechargeOrder: (orderNo) => request(`/recharges/${encodeURIComponent(orderNo)}`),

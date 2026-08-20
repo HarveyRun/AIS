@@ -1,8 +1,10 @@
 package com.shixianwen.notification;
 
 import com.shixianwen.admin.AdminUser;
+import com.shixianwen.admin.AdminAuthorizationService;
 import com.shixianwen.admin.CurrentAdmin;
 import com.shixianwen.common.ApiResponse;
+import com.shixianwen.common.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -25,6 +27,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AdminSystemAnnouncementController {
     private final SystemAnnouncementService service;
+    private final AdminAuthorizationService authorization;
 
     @GetMapping
     public ApiResponse<SystemAnnouncementService.PageResult> list(
@@ -40,6 +43,7 @@ public class AdminSystemAnnouncementController {
         @Valid @RequestBody SaveRequest request,
         HttpServletRequest servletRequest
     ) {
+        requirePublishPermissionForActiveMode(admin, request.mode());
         return ApiResponse.ok(
             service.create(admin, request.command(), ip(servletRequest))
         );
@@ -52,6 +56,7 @@ public class AdminSystemAnnouncementController {
         @Valid @RequestBody SaveRequest request,
         HttpServletRequest servletRequest
     ) {
+        requirePublishPermissionForActiveMode(admin, request.mode());
         return ApiResponse.ok(
             service.update(admin, id, request.command(), ip(servletRequest))
         );
@@ -94,6 +99,12 @@ public class AdminSystemAnnouncementController {
         return forwarded == null
             ? request.getRemoteAddr()
             : forwarded.split(",")[0].trim();
+    }
+
+    private void requirePublishPermissionForActiveMode(AdminUser admin, String mode) {
+        if (!"DRAFT".equalsIgnoreCase(mode) && !authorization.hasPermission(admin, "ANNOUNCEMENT_PUBLISH")) {
+            throw BusinessException.forbidden("没有发布通知的权限");
+        }
     }
 
     public record SaveRequest(

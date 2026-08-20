@@ -1,10 +1,13 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:math';
 
 class AppStorage {
   static const _tokenKey = 'access_token';
   static const _themeKey = 'theme_mode';
   static const _privacyConsentKey = 'privacy_consent_accepted';
+  static const _deviceIdKey = 'device_id';
 
   const AppStorage({
     FlutterSecureStorage secureStorage = const FlutterSecureStorage(),
@@ -19,6 +22,16 @@ class AppStorage {
   }
 
   Future<void> deleteToken() => _secureStorage.delete(key: _tokenKey);
+
+  Future<String> readOrCreateDeviceId() async {
+    final existing = await _secureStorage.read(key: _deviceIdKey);
+    if (existing != null && existing.length >= 8) return existing;
+    final random = Random.secure();
+    final bytes = List<int>.generate(24, (_) => random.nextInt(256));
+    final value = base64UrlEncode(bytes).replaceAll('=', '');
+    await _secureStorage.write(key: _deviceIdKey, value: value);
+    return value;
+  }
 
   Future<bool> readDarkMode() async {
     final preferences = await SharedPreferences.getInstance();

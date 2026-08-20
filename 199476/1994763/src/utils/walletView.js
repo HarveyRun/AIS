@@ -1,7 +1,8 @@
 const WITHDRAWAL_STATUS = {
   PROCESSING: '处理中',
+  EXPORTED: '支付处理中',
   COMPLETED: '已到账',
-  FAILED: '提现失败',
+  FAILED: '已退回',
 };
 
 function formatMoney(amount) {
@@ -37,15 +38,15 @@ export function walletTransactionFromApi(item) {
 }
 
 export function withdrawalFromApi(item) {
-  const bankLabel = item.bankName && item.lastFour
-    ? `${item.bankName}（${item.lastFour}）`
-    : '银行卡信息不可用';
+  const alipayLabel = item.alipayAccount
+    ? `支付宝 ${item.alipayAccount}`
+    : '支付宝账户不可用';
 
   return [
     `¥${formatMoney(item.amount)}`,
     WITHDRAWAL_STATUS[item.status] || '状态未知',
     new Date(item.createdAt).toLocaleString(),
-    item.status === 'FAILED' ? '款项已退回账户余额' : '',
-    bankLabel,
+    item.status === 'FAILED' ? '款项已退回可提现收入' : '',
+    alipayLabel,
   ];
 }

@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
+import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
 import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
 import { message } from '../../components/feedback/message.js';
@@ -33,6 +34,7 @@ const STATUS_TEXT = {
 };
 
 export default function AnnouncementsPage() {
+  const { can } = useAdminAccess();
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -183,14 +185,14 @@ export default function AnnouncementsPage() {
           <h1>通知管理</h1>
           <p>向当前所有用户发布平台通知</p>
         </div>
-        <button
+        {can('ANNOUNCEMENT_CREATE') && <button
           className="primary announcement-create"
           type="button"
           onClick={openCreate}
         >
           <Plus />
           新增通知
-        </button>
+        </button>}
       </div>
 
       <section className="announcement-summary">
@@ -243,7 +245,7 @@ export default function AnnouncementsPage() {
                   <small>{date(item.updatedAt)}</small>
                 </td>
                 <td className="row-actions announcement-actions">
-                  {item.status !== 'PUBLISHED' && (
+                  {can('ANNOUNCEMENT_EDIT') && item.status !== 'PUBLISHED' && (
                     <button
                       className="plain"
                       type="button"
@@ -252,7 +254,7 @@ export default function AnnouncementsPage() {
                       <Pencil />编辑
                     </button>
                   )}
-                  {['DRAFT', 'SCHEDULED', 'WITHDRAWN'].includes(item.status) && (
+                  {can('ANNOUNCEMENT_PUBLISH') && ['DRAFT', 'SCHEDULED', 'WITHDRAWN'].includes(item.status) && (
                     <button
                       className="plain"
                       type="button"
@@ -264,7 +266,7 @@ export default function AnnouncementsPage() {
                       <Send />立即发布
                     </button>
                   )}
-                  {['PUBLISHED', 'SCHEDULED'].includes(item.status) && (
+                  {can('ANNOUNCEMENT_WITHDRAW') && ['PUBLISHED', 'SCHEDULED'].includes(item.status) && (
                     <button
                       className="plain"
                       type="button"
@@ -276,7 +278,7 @@ export default function AnnouncementsPage() {
                       <Undo2 />撤回
                     </button>
                   )}
-                  <button
+                  {can('ANNOUNCEMENT_DELETE') && <button
                     className="danger"
                     type="button"
                     onClick={() => setConfirmAction({
@@ -285,7 +287,7 @@ export default function AnnouncementsPage() {
                     })}
                   >
                     <Trash2 />删除
-                  </button>
+                  </button>}
                 </td>
               </tr>
             ))}
@@ -364,7 +366,7 @@ export default function AnnouncementsPage() {
               <fieldset>
                 <legend>发布方式</legend>
                 <div className="announcement-mode-options">
-                  <ModeButton
+                  {can('ANNOUNCEMENT_PUBLISH') && <ModeButton
                     value="DRAFT"
                     current={form.mode}
                     icon={Pencil}
@@ -374,8 +376,8 @@ export default function AnnouncementsPage() {
                       ...current,
                       mode,
                     }))}
-                  />
-                  <ModeButton
+                  />}
+                  {can('ANNOUNCEMENT_PUBLISH') && <ModeButton
                     value="NOW"
                     current={form.mode}
                     icon={Send}
@@ -385,7 +387,7 @@ export default function AnnouncementsPage() {
                       ...current,
                       mode,
                     }))}
-                  />
+                  />}
                   <ModeButton
                     value="SCHEDULED"
                     current={form.mode}

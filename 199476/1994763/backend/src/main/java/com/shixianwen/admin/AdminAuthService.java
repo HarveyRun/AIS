@@ -1,23 +1,30 @@
 package com.shixianwen.admin;
 
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.security.LoginAttemptService;
+import com.shixianwen.security.SecurityEventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
-import org.springframework.jdbc.core.JdbcTemplate;
 
-@Service @RequiredArgsConstructor
+@Service
+@RequiredArgsConstructor
 public class AdminAuthService {
     private final AdminUserRepository users;
     private final AdminSessionRepository sessions;
     private final AdminPasswordEncoder passwords;
     private final JdbcTemplate jdbc;
+    private final LoginAttemptService loginAttempts;
+    private final SecurityEventService securityEvents;
+    private final AdminAuthorizationService authorization;
     private final SecureRandom random = new SecureRandom();
 
     @Transactional(readOnly = true)
@@ -26,7 +33,13 @@ public class AdminAuthService {
     }
 
     @Transactional
-    public LoginResult setup(String phone, String password, String displayName) {
+    public LoginResult setup(
+        String phone,
+        String password,
+        String displayName,
+        String ip,
+        String deviceId
+    ) {
         boolean hasAdmin = users.count() > 0;
         jdbc.update(
             "INSERT IGNORE INTO admin_system_state(id,initialized,initialized_at) VALUES (1,?,?)",
@@ -42,39 +55,147 @@ public class AdminAuthService {
         jdbc.update(
             "UPDATE admin_system_state SET initialized=FALSE,initialized_at=NULL WHERE id=1 AND NOT EXISTS (SELECT 1 FROM admin_users)"
         );
-        int claimed = jdbc.update("UPDATE admin_system_state SET initialized=TRUE,initialized_at=NOW(6) WHERE id=1 AND initialized=FALSE");
+        int claimed = jdbc.update(
+            "UPDATE admin_system_state SET initialized=TRUE,initialized_at=NOW(6) WHERE id=1 AND initialized=FALSE"
+        );
         if (claimed != 1) throw BusinessException.forbidden("管理员已经初始化");
         validate(phone, password);
-        AdminUser user = new AdminUser(); user.setPhone(phone.trim()); user.setPasswordHash(passwords.encode(password));
-        user.setDisplayName(displayName == null || displayName.isBlank() ? "管理员" : displayName.trim()); users.save(user);
-        return session(user);
+        AdminUser user = new AdminUser();
+        user.setPhone(phone.trim());
+        user.setPasswordHash(passwords.encode(password));
+        user.setDisplayName(displayName == null || displayName.isBlank() ? "管理员" : displayName.trim());
+        user = users.save(user);
+        securityEvents.recordSafely(null, null, "ADMIN_CREATED", "HIGH", ip, deviceId, "phoneSuffix=" + phone.substring(7));
+        assignSuperAdminRole(user.getId());
+        return session(user, ip, deviceId);
     }
+
     @Transactional
-    public LoginResult login(String phone, String password) {
-        AdminUser user = users.findByPhoneAndStatus(phone, "ACTIVE")
-                .orElseThrow(() -> new BusinessException(HttpStatus.UNAUTHORIZED, "账号或密码不正确"));
-        if (!passwords.matches(password, user.getPasswordHash())) throw new BusinessException(HttpStatus.UNAUTHORIZED, "账号或密码不正确");
-        user.setLastLoginAt(LocalDateTime.now()); return session(user);
+    public LoginResult login(
+        String phone,
+        String password,
+        String ip,
+        String deviceId
+    ) {
+        String safeDevice = LoginAttemptService.safeDevice(deviceId);
+        loginAttempts.requireAllowed("ADMIN", phone, ip, safeDevice);
+        try {
+            AdminUser user = users.findByPhoneAndStatusAndDeletedAtIsNull(phone, "ACTIVE")
+                .orElseThrow(() -> unauthorized());
+            if (!passwords.matches(password, user.getPasswordHash())) throw unauthorized();
+            user.setLastLoginAt(LocalDateTime.now());
+            loginAttempts.record("ADMIN", phone, ip, safeDevice, true);
+            securityEvents.recordSafely(null, user.getId(), "ADMIN_LOGIN_SUCCESS", "MEDIUM", ip, safeDevice, null);
+            return session(user, ip, safeDevice);
+        } catch (BusinessException exception) {
+            loginAttempts.record("ADMIN", phone, ip, safeDevice, false);
+            securityEvents.recordSafely(null, null, "ADMIN_LOGIN_FAILED", "HIGH", ip, safeDevice, "登录校验失败");
+            throw exception.getStatus() == HttpStatus.TOO_MANY_REQUESTS ? exception : unauthorized();
+        }
     }
+
     @Transactional(readOnly = true)
-    public AdminUser authenticate(String token) {
-        return sessions.findByTokenHashAndExpiresAtAfter(hash(token), LocalDateTime.now()).map(AdminSession::getAdminUser)
-                .filter(u -> "ACTIVE".equals(u.getStatus())).orElseThrow(() -> new BusinessException(HttpStatus.UNAUTHORIZED, "管理端登录已失效"));
+    public AdminUser authenticate(String token, String ip, String deviceId) {
+        AdminSession session = sessions.findByTokenHashAndExpiresAtAfter(hash(token), LocalDateTime.now())
+            .orElseThrow(() -> unauthorizedSession());
+        String safeDevice = LoginAttemptService.safeDevice(deviceId);
+        if (!session.getLoginIp().equals(ip) || !session.getDeviceId().equals(safeDevice)) {
+            securityEvents.recordSafely(
+                null, session.getAdminUser().getId(), "ADMIN_SESSION_CONTEXT_CHANGED", "CRITICAL",
+                ip, safeDevice, "后台会话的网络或设备发生变化"
+            );
+            throw unauthorizedSession();
+        }
+        AdminUser user = session.getAdminUser();
+        if (!"ACTIVE".equals(user.getStatus())) throw unauthorizedSession();
+        return user;
     }
-    @Transactional public void logout(String token) { sessions.deleteByTokenHash(hash(token)); }
-    private LoginResult session(AdminUser user) {
+
+    @Transactional
+    public void logout(String token) {
+        sessions.deleteByTokenHash(hash(token));
+    }
+
+    private LoginResult session(AdminUser user, String ip, String deviceId) {
         sessions.deleteByAdminUserId(user.getId());
         sessions.flush();
-        byte[] bytes = new byte[32]; random.nextBytes(bytes); String raw = HexFormat.of().formatHex(bytes);
-        AdminSession session = new AdminSession(); session.setAdminUser(user); session.setTokenHash(hash(raw));
-        session.setExpiresAt(LocalDateTime.now().plusHours(12)); sessions.save(session);
-        return new LoginResult(raw, AdminView.of(user));
+        byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
+        String raw = HexFormat.of().formatHex(bytes);
+        AdminSession session = new AdminSession();
+        session.setAdminUser(user);
+        session.setTokenHash(hash(raw));
+        session.setLoginIp(ip == null || ip.isBlank() ? "unknown" : ip);
+        session.setDeviceId(LoginAttemptService.safeDevice(deviceId));
+        session.setExpiresAt(LocalDateTime.now().plusHours(2));
+        sessions.save(session);
+        return new LoginResult(raw, view(user));
     }
+
+    @Transactional(readOnly = true)
+    public AdminView view(AdminUser user) {
+        return AdminView.of(
+            user,
+            authorization.roles(user.getId()),
+            authorization.permissionCodes(user.getId())
+        );
+    }
+
+    private void assignSuperAdminRole(Long userId) {
+        jdbc.update(
+            "INSERT IGNORE INTO admin_user_roles(admin_user_id,role_id) " +
+                "SELECT ?,id FROM admin_roles WHERE code='SUPER_ADMIN' AND deleted_at IS NULL",
+            userId
+        );
+    }
+
     private void validate(String phone, String password) {
-        if (phone == null || !phone.matches("^1\\d{10}$")) throw BusinessException.badRequest("请输入正确的手机号");
-        if (password == null || password.length() < 10 || !password.matches(".*[A-Za-z].*") || !password.matches(".*\\d.*")) throw BusinessException.badRequest("密码至少10位，并包含字母和数字");
+        if (phone == null || !phone.matches("^1\\d{10}$")) {
+            throw BusinessException.badRequest("请输入正确的手机号");
+        }
+        if (password == null || password.length() < 10
+            || !password.matches(".*[A-Za-z].*") || !password.matches(".*\\d.*")) {
+            throw BusinessException.badRequest("密码至少10位，并包含字母和数字");
+        }
     }
-    private static String hash(String value) { try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); } catch(Exception e) { throw new IllegalStateException(e); } }
-    public record AdminView(Long id, String phone, String displayName, String role) { static AdminView of(AdminUser u) { return new AdminView(u.getId(), u.getPhone(), u.getDisplayName(), u.getRole()); } }
-    public record LoginResult(String token, AdminView admin) {}
+
+    private BusinessException unauthorized() {
+        return new BusinessException(HttpStatus.UNAUTHORIZED, "账号或密码不正确");
+    }
+
+    private BusinessException unauthorizedSession() {
+        return new BusinessException(HttpStatus.UNAUTHORIZED, "管理端登录已失效");
+    }
+
+    private static String hash(String value) {
+        try {
+            return HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))
+            );
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    public record AdminView(
+        Long id,
+        String phone,
+        String displayName,
+        String role,
+        java.util.List<AdminAuthorizationService.AdminRoleSummary> roles,
+        java.util.Set<String> permissions
+    ) {
+        static AdminView of(
+            AdminUser user,
+            java.util.List<AdminAuthorizationService.AdminRoleSummary> roles,
+            java.util.Set<String> permissions
+        ) {
+            return new AdminView(
+                user.getId(), user.getPhone(), user.getDisplayName(), user.getRole(), roles, permissions
+            );
+        }
+    }
+
+    public record LoginResult(String token, AdminView admin) {
+    }
 }

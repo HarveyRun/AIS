@@ -30,6 +30,21 @@ public class WalletAccount {
     @Column(name = "frozen_balance", nullable = false, precision = 14, scale = 2)
     private BigDecimal frozenBalance = MoneyAmounts.ZERO;
 
+    @Column(name = "recharge_balance", nullable = false, precision = 14, scale = 2)
+    private BigDecimal rechargeBalance = MoneyAmounts.ZERO;
+
+    @Column(name = "income_balance", nullable = false, precision = 14, scale = 2)
+    private BigDecimal incomeBalance = MoneyAmounts.ZERO;
+
+    @Column(name = "pending_income_balance", nullable = false, precision = 14, scale = 2)
+    private BigDecimal pendingIncomeBalance = MoneyAmounts.ZERO;
+
+    @Column(name = "frozen_recharge_balance", nullable = false, precision = 14, scale = 2)
+    private BigDecimal frozenRechargeBalance = MoneyAmounts.ZERO;
+
+    @Column(name = "frozen_income_balance", nullable = false, precision = 14, scale = 2)
+    private BigDecimal frozenIncomeBalance = MoneyAmounts.ZERO;
+
     @Column(name = "total_withdrawn", nullable = false, precision = 14, scale = 2)
     private BigDecimal totalWithdrawn = MoneyAmounts.ZERO;
 

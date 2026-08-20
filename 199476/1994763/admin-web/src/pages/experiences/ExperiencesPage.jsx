@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Plus, Search, UsersRound, X } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
+import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
 import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
 import { message } from '../../components/feedback/message.js';
@@ -19,6 +20,7 @@ const PAGE_SIZE = 20;
 const emptyExperience = () => ({ categoryId: '', name: '', active: true });
 
 export default function ExperiencesPage() {
+  const { can } = useAdminAccess();
   const [data, setData] = useState({ categories: [], experienceCatalogs: [] });
   const [catalogKeyword, setCatalogKeyword] = useState('');
   const [catalogPage, setCatalogPage] = useState(0);
@@ -35,7 +37,7 @@ export default function ExperiencesPage() {
 
   const load = async () => {
     try {
-      setData(await adminApi.discovery());
+      setData(await adminApi.experienceLibrary());
     } catch (error) {
       message.error(error.message);
     }
@@ -186,7 +188,7 @@ export default function ExperiencesPage() {
         </div>
         <div className="library-title-actions">
           <span>共 {visibleCatalogs.length} 条经历</span>
-          <button className="primary" type="button" onClick={openCreate}><Plus />新增经历</button>
+          {can('EXPERIENCE_CREATE') && <button className="primary" type="button" onClick={openCreate}><Plus />新增经历</button>}
         </div>
       </div>
 
@@ -214,9 +216,9 @@ export default function ExperiencesPage() {
                     </td>
                     <td><span className={`status ${item.active ? 'active' : 'suspended'}`}>{item.active ? '启用' : '停用'}</span></td>
                     <td className="row-actions">
-                      <button className="plain" onClick={() => openEdit(item)}>编辑</button>
-                      <button className="plain" onClick={() => toggleCatalog(item)}>{item.active ? '停用' : '启用'}</button>
-                      <button className="danger" onClick={() => removeCatalog(item)}>删除</button>
+                      {can('EXPERIENCE_EDIT') && <button className="plain" onClick={() => openEdit(item)}>编辑</button>}
+                      {can('EXPERIENCE_EDIT') && <button className="plain" onClick={() => toggleCatalog(item)}>{item.active ? '停用' : '启用'}</button>}
+                      {can('EXPERIENCE_DELETE') && <button className="danger" onClick={() => removeCatalog(item)}>删除</button>}
                     </td>
                   </tr>
                 ))}
@@ -265,14 +267,14 @@ export default function ExperiencesPage() {
                       </td>
                       <td><b>{item.title}</b><small>{item.description || '无补充说明'}</small></td>
                       <td>
-                        <select className="table-select" value={usersModal.id} onChange={(event) => updateUserExperience(() => adminApi.classifyExperience(item.id, Number(event.target.value)), '经历关联已更新')}>
+                        <select className="table-select" disabled={!can('EXPERIENCE_RELATE_USER')} value={usersModal.id} onChange={(event) => updateUserExperience(() => adminApi.classifyExperience(item.id, Number(event.target.value)), '经历关联已更新')}>
                           {data.experienceCatalogs.filter((entry) => entry.active).map((entry) => <option key={entry.id} value={entry.id}>{entry.name}（{entry.categoryName}）</option>)}
                         </select>
                       </td>
                       <td><span className={`status ${item.enabled ? 'active' : 'suspended'}`}>{item.enabled ? '启用' : '停用'}</span></td>
                       <td className="row-actions">
-                        <button className="plain" type="button" onClick={() => toggleUserExperience(item)}>{item.enabled ? '停用' : '启用'}</button>
-                        <button className="danger" type="button" onClick={() => removeUserExperience(item)}>删除</button>
+                        {can('CERTIFICATION_TOGGLE') && <button className="plain" type="button" onClick={() => toggleUserExperience(item)}>{item.enabled ? '停用' : '启用'}</button>}
+                        {can('CERTIFICATION_DELETE') && <button className="danger" type="button" onClick={() => removeUserExperience(item)}>删除</button>}
                       </td>
                     </tr>
                   ))}

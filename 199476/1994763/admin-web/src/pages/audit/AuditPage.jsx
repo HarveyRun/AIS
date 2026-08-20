@@ -94,6 +94,20 @@ const ACTION_LABELS = {
   UPDATE_APP_TEST_ACCOUNT: '更新App超级账号',
   CREATE_APP_TEST_ACCOUNT: '新增App超级账号',
   DELETE_APP_TEST_ACCOUNT: '删除App超级账号',
+  UPDATE_PLATFORM_SERVICE_FEE: '调整平台服务费率',
+  EXPORT_WITHDRAWAL_BATCH: '导出支付宝提现批次',
+  RESET_ADMIN_PASSWORD: '重置后台账号密码',
+  CREATE_ADMIN_USER: '新增后台账号',
+  UPDATE_ADMIN_USER: '编辑后台账号',
+  DELETE_ADMIN_USER: '删除后台账号',
+  ASSIGN_ADMIN_ROLES: '配置账号角色',
+  CREATE_ADMIN_ROLE: '新增角色',
+  UPDATE_ADMIN_ROLE: '编辑角色',
+  DELETE_ADMIN_ROLE: '删除角色',
+  ASSIGN_ROLE_PERMISSIONS: '配置角色权限',
+  CREATE_ADMIN_PERMISSION: '新增权限',
+  UPDATE_ADMIN_PERMISSION: '编辑权限',
+  DELETE_ADMIN_PERMISSION: '删除权限',
 };
 
 const TARGET_LABELS = {
@@ -107,6 +121,11 @@ const TARGET_LABELS = {
   DISCOVERY_MATTER: '事情',
   DISCOVERY_EXPERIENCE: '经历',
   APP_TEST_ACCOUNT: 'App超级账号',
+  PLATFORM_FEE_SETTING: '平台服务费配置',
+  WITHDRAWAL_BATCH: '支付宝提现批次',
+  ADMIN_USER: '后台账号',
+  ADMIN_ROLE: '角色',
+  ADMIN_PERMISSION: '权限',
 };
 
 const DETAIL_LABELS = {
@@ -115,6 +134,7 @@ const DETAIL_LABELS = {
   ACTIVE: '正常',
   DISABLED: '停用',
   PROCESSING: '处理中',
+  EXPORTED: '支付处理中',
   COMPLETED: '已完成',
   FAILED: '失败',
   SUBMITTED: '待处理',

@@ -5,11 +5,15 @@ import com.shixianwen.common.BusinessException;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StorageVisibility;
+import com.shixianwen.security.SecurityEventService;
+import com.shixianwen.wallet.PlatformServiceFeePolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import com.shixianwen.realtime.RealtimePublisher;
 
@@ -21,30 +25,103 @@ public class AdminManagementService {
     private final RealtimePublisher realtime;
     private final SensitiveWordService sensitiveWords;
     private final FileStorage fileStorage;
+    private final SecurityEventService securityEvents;
+    private final PlatformServiceFeePolicy platformServiceFeePolicy;
 
     public Map<String,Object> dashboard() {
         Map<String,Object> result=new LinkedHashMap<>();
-        result.put("users", count("users","account_status='ACTIVE'"));
+        result.put("users", count("users","account_status='ACTIVE' AND account_type='NORMAL'"));
         result.put("answerers", jdbc.queryForObject(
-            "SELECT COUNT(*) FROM users u WHERE u.account_status='ACTIVE' " +
+            "SELECT COUNT(*) FROM users u WHERE u.account_status='ACTIVE' AND u.account_type='NORMAL' " +
                 "AND EXISTS (SELECT 1 FROM certifications ci WHERE ci.user_id=u.id AND ci.certification_type='IDENTITY' AND ci.status='APPROVED' AND ci.enabled=TRUE AND ci.deleted_at IS NULL) " +
                 "AND EXISTS (SELECT 1 FROM certifications cj WHERE cj.user_id=u.id AND cj.certification_type='MAIN_JOB' AND cj.status='APPROVED' AND cj.enabled=TRUE AND cj.deleted_at IS NULL)",
             Long.class
         ));
-        result.put("pendingCertifications", count("certifications","status='PENDING' AND deleted_at IS NULL"));
-        result.put("activeInquiries", count("inquiries","status IN ('PENDING','ACTIVE','AWAITING_CONFIRMATION','DISPUTED')"));
-        result.put("pendingWithdrawals", count("withdrawals","status='PROCESSING'"));
-        result.put("openFeedback", count("feedback_records","status='SUBMITTED'"));
-        result.put("totalBalance", jdbc.queryForObject("SELECT COALESCE(SUM(available_balance),0) FROM wallet_accounts", java.math.BigDecimal.class));
-        result.put("totalFrozen", jdbc.queryForObject("SELECT COALESCE(SUM(frozen_balance),0) FROM wallet_accounts", java.math.BigDecimal.class));
+        result.put("pendingCertifications", jdbc.queryForObject(
+            "SELECT COUNT(*) FROM certifications c JOIN users u ON u.id=c.user_id WHERE c.status='PENDING' AND c.deleted_at IS NULL AND u.account_type='NORMAL'",
+            Long.class
+        ));
+        result.put("activeInquiries", jdbc.queryForObject(
+            "SELECT COUNT(*) FROM inquiries i JOIN users u ON u.id=i.questioner_id WHERE i.status IN ('PENDING','ACTIVE','AWAITING_CONFIRMATION','DISPUTED') AND u.account_type='NORMAL'",
+            Long.class
+        ));
+        result.put("pendingWithdrawals", jdbc.queryForObject(
+            "SELECT COUNT(*) FROM withdrawals w JOIN users u ON u.id=w.user_id WHERE w.status='PROCESSING' AND u.account_type='NORMAL'",
+            Long.class
+        ));
+        result.put("openFeedback", jdbc.queryForObject(
+            "SELECT COUNT(*) FROM feedback_records f JOIN users u ON u.id=f.user_id WHERE f.status='SUBMITTED' AND u.account_type='NORMAL'",
+            Long.class
+        ));
+        result.put("totalBalance", jdbc.queryForObject(
+            "SELECT COALESCE(SUM(w.available_balance),0) FROM wallet_accounts w JOIN users u ON u.id=w.user_id WHERE u.account_type='NORMAL'",
+            java.math.BigDecimal.class
+        ));
+        result.put("totalFrozen", jdbc.queryForObject(
+            "SELECT COALESCE(SUM(w.frozen_balance),0) FROM wallet_accounts w JOIN users u ON u.id=w.user_id WHERE u.account_type='NORMAL'",
+            java.math.BigDecimal.class
+        ));
         return result;
+    }
+
+    public Map<String, Object> platformFeeSetting() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        jdbc.queryForList(
+            "SELECT client_platform AS clientPlatform,service_fee_rate * 100 AS ratePercent," +
+                "updated_at AS updatedAt FROM platform_fee_settings WHERE client_platform IN ('ANDROID','IOS')"
+        ).forEach(row -> {
+            String prefix = "IOS".equals(row.get("clientPlatform")) ? "ios" : "android";
+            result.put(prefix + "RatePercent", row.get("ratePercent"));
+            result.put(prefix + "UpdatedAt", row.get("updatedAt"));
+        });
+        if (!result.containsKey("androidRatePercent") || !result.containsKey("iosRatePercent")) {
+            throw BusinessException.badRequest("Android或iOS平台服务费配置不存在");
+        }
+        return result;
+    }
+
+    @Transactional
+    public Map<String, Object> updatePlatformFee(
+        AdminUser admin,
+        BigDecimal androidRatePercent,
+        BigDecimal iosRatePercent,
+        String ip
+    ) {
+        BigDecimal androidRate = rateFromPercent(androidRatePercent, "Android");
+        BigDecimal iosRate = rateFromPercent(iosRatePercent, "iOS");
+        updatePlatformRate("ANDROID", androidRate, admin.getId());
+        updatePlatformRate("IOS", iosRate, admin.getId());
+        audit(
+            admin, "UPDATE_PLATFORM_SERVICE_FEE", "PLATFORM_FEE_SETTING", "ANDROID_IOS",
+            "Android=" + androidRatePercent + "%, iOS=" + iosRatePercent + "%", ip
+        );
+        return platformFeeSetting();
+    }
+
+    private BigDecimal rateFromPercent(BigDecimal ratePercent, String platformName) {
+        if (ratePercent == null) throw BusinessException.badRequest("请输入" + platformName + "平台服务费率");
+        if (ratePercent.compareTo(BigDecimal.ZERO) < 0
+            || ratePercent.compareTo(new BigDecimal("99")) > 0) {
+            throw BusinessException.badRequest(platformName + "平台服务费率必须在0%至99%之间");
+        }
+        return platformServiceFeePolicy.requireValidRate(
+            ratePercent.divide(new BigDecimal("100"), 6, RoundingMode.HALF_UP)
+        );
+    }
+
+    private void updatePlatformRate(String platform, BigDecimal rate, Long adminId) {
+        int changed = jdbc.update(
+            "UPDATE platform_fee_settings SET service_fee_rate=?,updated_by_admin_id=? WHERE client_platform=?",
+            rate, adminId, platform
+        );
+        if (changed != 1) throw BusinessException.badRequest(platform + "平台服务费配置不存在");
     }
     public PageResult users(String keyword,String status,int page,int size) {
         jdbc.update("UPDATE users SET account_status='ACTIVE',ban_reason=NULL,banned_at=NULL,ban_until=NULL,banned_by_admin_id=NULL WHERE account_status='SUSPENDED' AND ban_until IS NOT NULL AND ban_until<=NOW(6)");
         String where=" WHERE (?='' OR u.uid LIKE ? OR u.phone LIKE ? OR COALESCE(u.nickname,'') LIKE ?) AND (?='' OR u.account_status=?) ";
         String q=keyword==null?"":keyword.trim(), s=status==null?"":status.trim(); String like="%"+q+"%";
         Long total=jdbc.queryForObject("SELECT COUNT(*) FROM users u"+where,Long.class,q,like,like,like,s,s);
-        List<Map<String,Object>> items=jdbc.queryForList("SELECT u.id,u.uid,u.phone,u.nickname,u.avatar_url AS avatarUrl,u.answerer_status AS answererStatus,u.account_status AS accountStatus,u.accepting_inquiries AS acceptingInquiries,u.ban_reason AS banReason,u.banned_at AS bannedAt,u.ban_until AS banUntil,u.created_at AS createdAt,COALESCE(w.available_balance,0) AS availableBalance,COALESCE(w.frozen_balance,0) AS frozenBalance FROM users u LEFT JOIN wallet_accounts w ON w.user_id=u.id"+where+" ORDER BY u.id DESC LIMIT ? OFFSET ?",q,like,like,like,s,s,size,page*size);
+        List<Map<String,Object>> items=jdbc.queryForList("SELECT u.id,u.uid,u.phone,u.nickname,u.avatar_url AS avatarUrl,u.account_type AS accountType,u.answerer_status AS answererStatus,u.account_status AS accountStatus,u.accepting_inquiries AS acceptingInquiries,u.ban_reason AS banReason,u.banned_at AS bannedAt,u.ban_until AS banUntil,u.created_at AS createdAt,COALESCE(w.available_balance,0) AS availableBalance,COALESCE(w.frozen_balance,0) AS frozenBalance FROM users u LEFT JOIN wallet_accounts w ON w.user_id=u.id"+where+" ORDER BY u.id DESC LIMIT ? OFFSET ?",q,like,like,like,s,s,size,page*size);
         return new PageResult(items,total,page,size);
     }
     public PageResult table(String type,String status,String category,String keyword,int page,int size) {
@@ -299,14 +376,31 @@ public class AdminManagementService {
     @Transactional public void deleteJob(AdminUser admin,Long id,String ip){if(count("user_jobs","job_id="+id+" AND deleted_at IS NULL")>0||count("discovery_matter_jobs","job_id="+id+" AND deleted_at IS NULL")>0)throw BusinessException.badRequest("该岗位仍关联用户或事情，请先解除关联");if(jdbc.update("UPDATE jobs SET active=FALSE,deleted_at=NOW(6) WHERE id=? AND deleted_at IS NULL",id)!=1)throw BusinessException.notFound("岗位不存在");audit(admin,"DELETE_JOB","JOB",id,"SOFT_DELETE",ip);}
     @Transactional public void processWithdrawal(AdminUser admin,Long id,String status,String ip) {
         if(!List.of("COMPLETED","FAILED").contains(status)) throw BusinessException.badRequest("提现状态不正确");
-        Map<String,Object> row=jdbc.queryForMap("SELECT user_id,amount,status FROM withdrawals WHERE id=? FOR UPDATE",id);
-        if(!"PROCESSING".equals(row.get("status"))) throw BusinessException.badRequest("该提现已经处理");
+        Map<String,Object> row=jdbc.queryForMap(
+            "SELECT w.user_id,w.amount,w.status,u.account_type AS accountType FROM withdrawals w JOIN users u ON u.id=w.user_id WHERE w.id=? FOR UPDATE",
+            id
+        );
+        if ("TEST".equals(row.get("accountType"))) {
+            throw BusinessException.badRequest("测试提现由沙箱自动完成，不能进入真实出款处理");
+        }
+        if(!List.of("PROCESSING", "EXPORTED").contains(String.valueOf(row.get("status")))) {
+            throw BusinessException.badRequest("该提现已经处理");
+        }
         jdbc.update("UPDATE withdrawals SET status=?,completed_at=NOW(6) WHERE id=?",status,id);
         if("FAILED".equals(status)) {
-            jdbc.update("UPDATE wallet_accounts SET available_balance=available_balance+? WHERE user_id=?",row.get("amount"),row.get("user_id"));
+            jdbc.update(
+                "UPDATE wallet_accounts SET available_balance=available_balance+?,income_balance=income_balance+?,"+
+                    "total_withdrawn=GREATEST(total_withdrawn-?,0) WHERE user_id=?",
+                row.get("amount"),row.get("amount"),row.get("amount"),row.get("user_id")
+            );
             jdbc.update("INSERT INTO wallet_transactions(user_id,transaction_type,direction,amount,available_after,frozen_after,reference_type,reference_id,description) SELECT ?, 'WITHDRAWAL_REFUND','IN',?,available_balance,frozen_balance,'WITHDRAWAL',?,'提现失败退款' FROM wallet_accounts WHERE user_id=?",row.get("user_id"),row.get("amount"),id,row.get("user_id"));
         }
         audit(admin,"PROCESS_WITHDRAWAL","WITHDRAWAL",id,status,ip);
+        securityEvents.recordSafely(
+            ((Number) row.get("user_id")).longValue(), admin.getId(),
+            "WITHDRAWAL_" + status, "CRITICAL", ip, null,
+            "withdrawalId=" + id + ", amount=" + row.get("amount")
+        );
     }
     @Transactional public void updateRecordStatus(AdminUser admin,String type,Long id,String status,String ip) {
         TableSpec spec=spec(type); if(!List.of("PROCESSING","RESOLVED","CLOSED").contains(status)) throw BusinessException.badRequest("处理状态不正确");
@@ -506,31 +600,31 @@ public class AdminManagementService {
         case "certifications" -> new TableSpec(
             "certifications",
             "certifications t JOIN users u ON u.id=t.user_id",
-            "SELECT t.id,t.category,t.certification_type AS type,t.title,t.description,t.years,t.status,t.enabled,t.rejection_reason AS rejectionReason,t.submitted_at AS submittedAt,u.uid,u.nickname FROM certifications t JOIN users u ON u.id=t.user_id",
+            "SELECT t.id,t.category,t.certification_type AS type,t.title,t.description,t.years,t.status,t.enabled,t.rejection_reason AS rejectionReason,t.submitted_at AS submittedAt,u.uid,u.nickname,(u.account_type='TEST') AS testData FROM certifications t JOIN users u ON u.id=t.user_id",
             List.of("u")
         );
         case "inquiries" -> new TableSpec(
             "inquiries",
             "inquiries t JOIN users q ON q.id=t.questioner_id JOIN users a ON a.id=t.answerer_id",
-            "SELECT t.id,t.topic,t.question,t.amount,t.status,t.funds_status AS fundsStatus,t.created_at AS createdAt,q.uid AS questionerUid,a.uid AS answererUid FROM inquiries t JOIN users q ON q.id=t.questioner_id JOIN users a ON a.id=t.answerer_id",
+            "SELECT t.id,t.topic,t.question,t.amount,t.client_platform AS clientPlatform,t.service_fee_rate AS serviceFeeRate,t.service_fee_amount AS serviceFeeAmount,t.answerer_income_amount AS answererIncomeAmount,t.status,t.funds_status AS fundsStatus,t.created_at AS createdAt,q.uid AS questionerUid,a.uid AS answererUid,(q.account_type='TEST') AS testData FROM inquiries t JOIN users q ON q.id=t.questioner_id JOIN users a ON a.id=t.answerer_id",
             List.of("q", "a")
         );
         case "withdrawals" -> new TableSpec(
             "withdrawals",
             "withdrawals t JOIN users u ON u.id=t.user_id",
-            "SELECT t.id,t.amount,t.fee,t.arrival_amount AS arrivalAmount,t.bank_name_snapshot AS bankName,t.card_last_four_snapshot AS lastFour,t.status,t.created_at AS createdAt,u.uid,u.nickname FROM withdrawals t JOIN users u ON u.id=t.user_id",
+            "SELECT t.id,t.amount,t.payee_name_snapshot AS payeeName,t.alipay_account_masked_snapshot AS alipayAccount,t.status,t.batch_no AS batchNo,t.exported_at AS exportedAt,t.created_at AS createdAt,u.uid,u.nickname,(u.account_type='TEST') AS testData FROM withdrawals t JOIN users u ON u.id=t.user_id",
             List.of("u")
         );
         case "feedback" -> new TableSpec(
             "feedback_records",
             "feedback_records t JOIN users u ON u.id=t.user_id LEFT JOIN users tu ON tu.id=t.target_user_id",
-            "SELECT t.id,t.feedback_type AS type,t.category,t.content,t.status,t.created_at AS createdAt,u.uid,u.nickname,tu.uid AS targetUid FROM feedback_records t JOIN users u ON u.id=t.user_id LEFT JOIN users tu ON tu.id=t.target_user_id",
+            "SELECT t.id,t.feedback_type AS type,t.category,t.content,t.status,t.created_at AS createdAt,u.uid,u.nickname,tu.uid AS targetUid,(u.account_type='TEST') AS testData FROM feedback_records t JOIN users u ON u.id=t.user_id LEFT JOIN users tu ON tu.id=t.target_user_id",
             List.of("u", "tu")
         );
         case "cooperations" -> new TableSpec(
             "business_cooperations",
             "business_cooperations t JOIN users u ON u.id=t.user_id",
-            "SELECT t.id,t.contact,t.content,t.status,t.created_at AS createdAt,u.uid,u.nickname FROM business_cooperations t JOIN users u ON u.id=t.user_id",
+            "SELECT t.id,t.contact,t.content,t.status,t.created_at AS createdAt,u.uid,u.nickname,(u.account_type='TEST') AS testData FROM business_cooperations t JOIN users u ON u.id=t.user_id",
             List.of("u")
         );
         default -> throw BusinessException.badRequest("管理模块不存在");};}

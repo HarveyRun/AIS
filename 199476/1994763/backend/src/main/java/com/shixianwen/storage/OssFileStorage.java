@@ -16,7 +16,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
-import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -27,8 +26,10 @@ public class OssFileStorage implements FileStorage {
     private final String privateBucket;
     private final String publicDomain;
     private final Duration privateUrlValidity;
+    private final FileTypeDetector fileTypeDetector;
 
-    public OssFileStorage(ThirdPartySettings settings) {
+    public OssFileStorage(ThirdPartySettings settings, FileTypeDetector fileTypeDetector) {
+        this.fileTypeDetector = fileTypeDetector;
         String endpoint = settings.value("app.storage.oss.endpoint", "oss.endpoint");
         String accessKeyId = settings.value("app.storage.oss.access-key-id", "oss.accessKeyId");
         String accessKeySecret = settings.value("app.storage.oss.access-key-secret", "oss.accessKeySecret");
@@ -56,7 +57,11 @@ public class OssFileStorage implements FileStorage {
         if (file == null || file.isEmpty()) {
             throw BusinessException.badRequest("文件不能为空");
         }
-        String extension = extensionOf(file.getOriginalFilename());
+        FileTypeDetector.DetectedFile detected = fileTypeDetector.detect(file);
+        if ("UNKNOWN".equals(detected.kind())) {
+            throw BusinessException.badRequest("不支持该文件类型");
+        }
+        String extension = detected.extension();
         String date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
         String safeFolder = folder.replaceAll("[^a-zA-Z0-9/_-]", "");
         String key = visibility.folder() + '/' + safeFolder + '/' + date + '/'
@@ -64,14 +69,12 @@ public class OssFileStorage implements FileStorage {
         try {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(file.getSize());
-            if (hasText(file.getContentType())) {
-                metadata.setContentType(file.getContentType());
-            }
+            metadata.setContentType(detected.contentType());
             client.putObject(bucketFor(visibility), key, file.getInputStream(), metadata);
             String accessUrl = visibility == StorageVisibility.PUBLIC
                 ? accessUrl(key, visibility)
                 : null;
-            return new StoredFile(key, accessUrl, file.getContentType(), file.getSize());
+            return new StoredFile(key, accessUrl, detected.contentType(), file.getSize());
         } catch (IOException | RuntimeException exception) {
             throw BusinessException.serviceUnavailable("文件上传失败，请稍后重试");
         }
@@ -94,14 +97,6 @@ public class OssFileStorage implements FileStorage {
     @PreDestroy
     public void close() {
         client.shutdown();
-    }
-
-    private static String extensionOf(String filename) {
-        if (filename == null) return "";
-        int index = filename.lastIndexOf('.');
-        if (index < 0 || index == filename.length() - 1) return "";
-        String extension = filename.substring(index).toLowerCase(Locale.ROOT);
-        return extension.matches("\\.[a-z0-9]{1,10}") ? extension : "";
     }
 
     private static String trimTrailingSlash(String value) {

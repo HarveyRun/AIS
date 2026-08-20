@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronRight, Plus, Search, UsersRound, X } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
+import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
 import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
 import { message } from '../../components/feedback/message.js';
@@ -15,6 +16,7 @@ const emptyJob = {
 };
 
 export default function JobsPage() {
+  const { can } = useAdminAccess();
   const [jobs, setJobs] = useState([]);
   const [jobsPage, setJobsPage] = useState(0);
   const [jobsTotal, setJobsTotal] = useState(0);
@@ -149,7 +151,7 @@ export default function JobsPage() {
         </div>
         <div className="library-title-actions">
           <span>共 {jobsTotal} 个岗位</span>
-          <button className="primary" type="button" onClick={createJob}><Plus />新增岗位</button>
+          {can('JOB_CREATE') && <button className="primary" type="button" onClick={createJob}><Plus />新增岗位</button>}
         </div>
       </div>
 
@@ -214,13 +216,13 @@ export default function JobsPage() {
                     </span>
                   </td>
                   <td className="row-actions">
-                    <button className="plain" type="button" onClick={() => editJob(job)}>
+                    {can('JOB_EDIT') && <button className="plain" type="button" onClick={() => editJob(job)}>
                       编辑
-                    </button>
-                    <button className="plain" type="button" onClick={() => toggleJobStatus(job)}>
+                    </button>}
+                    {can('JOB_EDIT') && <button className="plain" type="button" onClick={() => toggleJobStatus(job)}>
                       {job.active ? '停用' : '启用'}
-                    </button>
-                    <button
+                    </button>}
+                    {can('JOB_DELETE') && <button
                       className="danger"
                       type="button"
                       onClick={() =>
@@ -232,7 +234,7 @@ export default function JobsPage() {
                       }
                     >
                       删除
-                    </button>
+                    </button>}
                   </td>
                 </tr>
               ))}

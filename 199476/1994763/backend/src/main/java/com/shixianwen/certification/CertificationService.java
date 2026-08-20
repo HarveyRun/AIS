@@ -5,6 +5,7 @@ import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StoredFile;
 import com.shixianwen.storage.StorageVisibility;
+import com.shixianwen.storage.FileTypeDetector;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
 import org.springframework.stereotype.Service;
@@ -24,16 +25,19 @@ public class CertificationService {
     private final UserRepository userRepository;
     private final FileStorage fileStorage;
     private final SensitiveWordService sensitiveWords;
+    private final FileTypeDetector fileTypeDetector;
 
     public CertificationService(
             CertificationRepository certificationRepository,
             UserRepository userRepository,
             FileStorage fileStorage,
-            SensitiveWordService sensitiveWords) {
+            SensitiveWordService sensitiveWords,
+            FileTypeDetector fileTypeDetector) {
         this.certificationRepository = certificationRepository;
         this.userRepository = userRepository;
         this.fileStorage = fileStorage;
         this.sensitiveWords = sensitiveWords;
+        this.fileTypeDetector = fileTypeDetector;
     }
 
     @Transactional(readOnly = true)
@@ -157,7 +161,7 @@ public class CertificationService {
         for (MultipartFile file : files) {
             StoredFile stored = fileStorage.store(
                 file,
-                "certifications/" + certification.getUser().getUid(),
+                storagePrefix(certification.getUser()) + "certifications/" + certification.getUser().getUid(),
                 StorageVisibility.PRIVATE
             );
             CertificationMaterial material = new CertificationMaterial();
@@ -170,6 +174,10 @@ public class CertificationService {
             material.setFileSize(stored.size());
             certification.getMaterials().add(material);
         }
+    }
+
+    private String storagePrefix(User user) {
+        return "TEST".equals(user.getAccountType()) ? "test/" : "";
     }
 
     private CertificationView view(Certification certification) {
@@ -223,31 +231,26 @@ public class CertificationService {
         user.setAnswererStatus(basicInformationApproved ? "APPROVED" : "PENDING");
         if (!basicInformationApproved || !"ACTIVE".equals(user.getAccountStatus())) {
             user.setAcceptingInquiries(false);
-        } else if (reviewedBasicInformation) {
+        } else if (reviewedBasicInformation && user.getInquiryPriceUpdatedAt() != null) {
             user.setAcceptingInquiries(true);
         }
         userRepository.save(user);
     }
 
     private boolean isImage(MultipartFile file) {
-        return file.getContentType() != null && file.getContentType().startsWith("image/");
+        return "IMAGE".equals(fileTypeDetector.detect(file).kind());
     }
 
     private boolean isVideo(MultipartFile file) {
-        return file.getContentType() != null && file.getContentType().startsWith("video/");
+        return "VIDEO".equals(fileTypeDetector.detect(file).kind());
     }
 
     private boolean isArchive(MultipartFile file) {
-        String name = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase(Locale.ROOT);
-        return name.endsWith(".zip") || name.endsWith(".rar");
+        return "ARCHIVE".equals(fileTypeDetector.detect(file).kind());
     }
 
     private String kindOf(MultipartFile file) {
-        if (isImage(file))
-            return "IMAGE";
-        if (isVideo(file))
-            return "VIDEO";
-        return "ARCHIVE";
+        return fileTypeDetector.detect(file).kind();
     }
 
     public record MaterialView(Long id, String kind, String name, String url, long size, String contentType) {

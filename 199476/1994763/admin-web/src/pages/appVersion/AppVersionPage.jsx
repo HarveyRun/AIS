@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
+import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
 import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
 import { message } from '../../components/feedback/message.js';
@@ -28,6 +29,7 @@ const EMPTY_FORM = {
 };
 
 export default function AppVersionPage() {
+  const { can } = useAdminAccess();
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
@@ -160,9 +162,9 @@ export default function AppVersionPage() {
           <h1>App版本管理</h1>
           <p>发布更新提醒，并控制低版本是否必须更新</p>
         </div>
-        <button className="primary app-version-create" type="button" onClick={openCreate}>
+        {can('APP_VERSION_CREATE') && <button className="primary app-version-create" type="button" onClick={openCreate}>
           <Plus />新增版本
-        </button>
+        </button>}
       </div>
 
       <section className="app-version-summary">
@@ -207,16 +209,16 @@ export default function AppVersionPage() {
                   <small>{item.updatedAt ? new Date(item.updatedAt).toLocaleString() : '-'}</small>
                 </td>
                 <td className="row-actions">
-                  <button className="plain" type="button" onClick={() => openEdit(item)}>
+                  {can('APP_VERSION_EDIT') && <button className="plain" type="button" onClick={() => openEdit(item)}>
                     <Pencil />编辑
-                  </button>
-                  <button className="plain" type="button" onClick={() => togglePublished(item)}>
+                  </button>}
+                  {can('APP_VERSION_PUBLISH') && <button className="plain" type="button" onClick={() => togglePublished(item)}>
                     {item.published ? <CircleStop /> : <Send />}
                     {item.published ? '停止' : '发布'}
-                  </button>
-                  <button className="danger" type="button" onClick={() => setDeleteTarget(item)}>
+                  </button>}
+                  {can('APP_VERSION_DELETE') && <button className="danger" type="button" onClick={() => setDeleteTarget(item)}>
                     <Trash2 />删除
-                  </button>
+                  </button>}
                 </td>
               </tr>
             ))}

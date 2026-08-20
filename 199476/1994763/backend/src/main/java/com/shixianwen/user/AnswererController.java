@@ -26,19 +26,26 @@ public class AnswererController {
     }
 
     @GetMapping("/{uid}")
-    public ApiResponse<AnswererService.AnswererView> detail(@PathVariable String uid) {
-        return ApiResponse.ok(answererService.detail(uid));
+    public ApiResponse<AnswererService.AnswererView> detail(
+        @CurrentUser User currentUser,
+        @PathVariable String uid
+    ) {
+        return ApiResponse.ok(answererService.detail(currentUser.getId(), uid));
     }
 
     @GetMapping("/by-matter/{matterId}")
-    public ApiResponse<List<AnswererService.AnswererView>> byMatter(@PathVariable Long matterId) {
-        return ApiResponse.ok(answererService.forMatter(matterId));
+    public ApiResponse<List<AnswererService.AnswererView>> byMatter(
+        @CurrentUser User currentUser,
+        @PathVariable Long matterId
+    ) {
+        return ApiResponse.ok(answererService.forMatter(currentUser.getId(), matterId));
     }
 
     @GetMapping("/by-experience")
     public ApiResponse<List<AnswererService.AnswererView>> byExperience(
+        @CurrentUser User currentUser,
         @RequestParam Long experienceId
     ) {
-        return ApiResponse.ok(answererService.forExperience(experienceId));
+        return ApiResponse.ok(answererService.forExperience(currentUser.getId(), experienceId));
     }
 }

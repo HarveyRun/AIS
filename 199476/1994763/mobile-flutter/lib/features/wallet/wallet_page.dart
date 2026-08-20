@@ -26,12 +26,13 @@ class WalletPage extends ConsumerStatefulWidget {
 class _WalletPageState extends ConsumerState<WalletPage> {
   WalletTab _tab = WalletTab.transactions;
   WalletInfo? _wallet;
-  BankCardInfo? _bankCard;
+  AlipayAccountInfo? _alipayAccount;
   List<WalletTransaction> _transactions = const [];
   List<WithdrawalRecord> _withdrawals = const [];
   final _amount = TextEditingController();
   bool _loading = true;
   bool _submitting = false;
+  bool _authorizingAlipay = false;
   String? _rechargeRequestId;
   String? _withdrawalRequestId;
 
@@ -54,14 +55,14 @@ class _WalletPageState extends ConsumerState<WalletPage> {
         ref.read(repositoryProvider).wallet(),
         ref.read(repositoryProvider).walletTransactions(),
         ref.read(repositoryProvider).withdrawals(),
-        ref.read(repositoryProvider).bankCard(),
+        ref.read(repositoryProvider).alipayAccount(),
       ]);
       if (!mounted) return;
       setState(() {
         _wallet = results[0] as WalletInfo;
         _transactions = results[1] as List<WalletTransaction>;
         _withdrawals = results[2] as List<WithdrawalRecord>;
-        _bankCard = results[3] as BankCardInfo?;
+        _alipayAccount = results[3] as AlipayAccountInfo?;
       });
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
@@ -70,13 +71,41 @@ class _WalletPageState extends ConsumerState<WalletPage> {
     }
   }
 
-  Future<void> _bindCard() async {
-    final saved = await showModalBottomSheet<BankCardInfo>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => _BankCardSheet(current: _bankCard),
-    );
-    if (saved != null) setState(() => _bankCard = saved);
+  Future<void> _authorizeAlipay() async {
+    if (_authorizingAlipay) return;
+    if (!await tobias.Tobias().isAliPayInstalled) {
+      if (mounted) AppMessage.show(context, '请先安装支付宝');
+      return;
+    }
+    setState(() => _authorizingAlipay = true);
+    try {
+      final payload = await ref
+          .read(repositoryProvider)
+          .alipayAuthorizationPayload();
+      if (payload.isEmpty) throw Exception('支付宝授权信息生成失败');
+      final result = await tobias.Tobias().auth(payload);
+      final resultStatus = result['resultStatus']?.toString() ?? '';
+      if (resultStatus == '6001') {
+        if (mounted) AppMessage.show(context, '已取消支付宝授权');
+        return;
+      }
+      final values = Uri.splitQueryString(result['result']?.toString() ?? '');
+      if (resultStatus != '9000' || values['result_code'] != '200') {
+        throw Exception('支付宝授权未完成');
+      }
+      final authCode = values['auth_code'] ?? '';
+      if (authCode.isEmpty) throw Exception('支付宝未返回授权码');
+      final saved = await ref
+          .read(repositoryProvider)
+          .completeAlipayAuthorization(authCode);
+      if (!mounted) return;
+      setState(() => _alipayAccount = saved);
+      AppMessage.show(context, '支付宝授权成功');
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+    } finally {
+      if (mounted) setState(() => _authorizingAlipay = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -106,39 +135,49 @@ class _WalletPageState extends ConsumerState<WalletPage> {
             .createRecharge(amount, requestId);
         final paymentPayload = order['paymentPayload']?.toString() ?? '';
         final paymentMode = capability['paymentMode']?.toString() ?? '';
-        if (paymentPayload.isEmpty) {
-          throw Exception('支付信息生成失败');
-        }
-        final mockPayment =
-            paymentMode == 'MOCK_WEB' ||
-            paymentPayload.startsWith('/api/recharges/mock-cashier');
-        final alipayAppPayment =
-            paymentMode == 'ALIPAY_APP' ||
-            _looksLikeAlipayAppOrder(paymentPayload);
-        if (alipayAppPayment) {
-          await _payWithAlipayApp(order, paymentPayload);
-        } else if (mockPayment) {
-          await launchUrl(
-            AppConfig.resolveResource(paymentPayload),
-            mode: LaunchMode.externalApplication,
-          );
+        if (paymentMode == 'TEST' && order['status']?.toString() == 'PAID') {
+          if (mounted) AppMessage.show(context, '余额已到账');
         } else {
-          throw Exception('支付方式返回异常，请稍后重试');
+          if (paymentPayload.isEmpty) {
+            throw Exception('支付信息生成失败');
+          }
+          final mockPayment =
+              paymentMode == 'MOCK_WEB' ||
+              paymentPayload.startsWith('/api/recharges/mock-cashier');
+          final alipayAppPayment =
+              paymentMode == 'ALIPAY_APP' ||
+              _looksLikeAlipayAppOrder(paymentPayload);
+          if (alipayAppPayment) {
+            await _payWithAlipayApp(order, paymentPayload);
+          } else if (mockPayment) {
+            await launchUrl(
+              AppConfig.resolveResource(paymentPayload),
+              mode: LaunchMode.externalApplication,
+            );
+          } else {
+            throw Exception('支付方式返回异常，请稍后重试');
+          }
         }
       } else {
-        if (_bankCard == null) {
-          await _bindCard();
-          if (_bankCard == null) return;
+        if (_alipayAccount == null) {
+          AppMessage.show(context, '请先完成支付宝授权');
+          return;
         }
-        final quote = await ref
-            .read(repositoryProvider)
-            .withdrawalQuote(amount);
-        if (!mounted || !await _confirmWithdrawal(quote)) return;
+        if (!mounted || !await _confirmWithdrawal(amount)) return;
         final requestId =
             _withdrawalRequestId ?? RequestId.create('withdrawal');
         _withdrawalRequestId = requestId;
-        await ref.read(repositoryProvider).withdraw(amount, requestId);
-        if (mounted) AppMessage.show(context, '提现申请已经提交');
+        final verificationCode = await _requestWithdrawalCode();
+        if (verificationCode == null) return;
+        final withdrawal = await ref
+            .read(repositoryProvider)
+            .withdraw(amount, requestId, verificationCode);
+        if (mounted) {
+          AppMessage.show(
+            context,
+            withdrawal.status == 'COMPLETED' ? '提现已完成' : '提现申请已经提交',
+          );
+        }
       }
       _amount.clear();
       _rechargeRequestId = null;
@@ -151,7 +190,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
     }
   }
 
-  Future<bool> _confirmWithdrawal(WithdrawalQuote quote) async {
+  Future<bool> _confirmWithdrawal(int amount) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -160,11 +199,9 @@ class _WalletPageState extends ConsumerState<WalletPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('提现金额  ¥${formatMoney(quote.amount)}'),
+            Text('提现金额  ¥${formatMoney(amount)}'),
             const SizedBox(height: 8),
-            Text('手续费  ¥${formatMoney(quote.fee)}'),
-            const SizedBox(height: 8),
-            Text('预计到账  ¥${formatMoney(quote.arrivalAmount)}'),
+            Text('支付宝账户  ${_alipayAccount?.accountMasked ?? ''}'),
           ],
         ),
         actions: [
@@ -180,6 +217,22 @@ class _WalletPageState extends ConsumerState<WalletPage> {
       ),
     );
     return confirmed == true;
+  }
+
+  Future<String?> _requestWithdrawalCode() async {
+    try {
+      await ref
+          .read(repositoryProvider)
+          .sendWalletVerificationCode('WITHDRAWAL');
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+      return null;
+    }
+    if (!mounted) return null;
+    return showDialog<String>(
+      context: context,
+      builder: (context) => const _WithdrawalCodeDialog(),
+    );
   }
 
   Future<void> _payWithAlipayApp(
@@ -219,8 +272,6 @@ class _WalletPageState extends ConsumerState<WalletPage> {
   Widget build(BuildContext context) {
     final wallet = _wallet;
     final amount = int.tryParse(_amount.text) ?? 0;
-    final freeWithdrawalLimit = wallet?.freeWithdrawalLimit ?? 30000;
-    final withdrawalFeeRate = wallet?.withdrawalFeeRate ?? .2;
     return Scaffold(
       appBar: AppBar(title: const Text('账户余额')),
       body: _loading
@@ -251,6 +302,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                                 value: wallet?.availableBalance ?? 0,
                               ),
                             ),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: _Balance(
                                 label: '冻结中',
@@ -266,6 +318,27 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                             color: Color(0xE6FFFFFF),
                             fontSize: 12,
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 4,
+                          children: [
+                            Text(
+                              '充值余额 ¥${formatMoney(wallet?.rechargeBalance ?? 0)} · 不可提现',
+                              style: const TextStyle(
+                                color: Color(0xBFFFFFFF),
+                                fontSize: 10,
+                              ),
+                            ),
+                            Text(
+                              '回答收入 ¥${formatMoney(wallet?.withdrawableIncome ?? 0)} · 可提现',
+                              style: const TextStyle(
+                                color: Color(0xBFFFFFFF),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -291,6 +364,13 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                         _withdrawalRequestId = null;
                       }),
                     ),
+                    if (_tab == WalletTab.withdraw) ...[
+                      const SizedBox(height: 7),
+                      Text(
+                        '只有回答收入可以提现，充值余额不可提现。',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     if (_tab == WalletTab.recharge)
                       Container(
@@ -325,30 +405,33 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                     if (_tab == WalletTab.withdraw) ...[
                       Container(
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
+                          color: Theme.of(context).colorScheme.surfaceContainer,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                           ),
-                          leading: const Icon(Icons.account_balance_outlined),
-                          title: const Text('到账银行卡'),
+                          leading: const FaIcon(FontAwesomeIcons.alipay),
+                          title: const Text('支付宝收款账户'),
                           subtitle: Text(
-                            _bankCard == null
-                                ? '尚未绑定，点击添加'
-                                : '${_bankCard!.bankName}（${_bankCard!.lastFour}）',
+                            _alipayAccount == null
+                                ? '授权后用于接收提现'
+                                : '${_alipayAccount!.displayName} · ${_alipayAccount!.accountMasked}',
                           ),
                           trailing: TextButton(
-                            onPressed: _bindCard,
-                            child: Text(_bankCard == null ? '添加' : '修改'),
+                            onPressed: _authorizingAlipay
+                                ? null
+                                : _authorizeAlipay,
+                            child: Text(
+                              _authorizingAlipay
+                                  ? '授权中'
+                                  : _alipayAccount == null
+                                  ? '去授权'
+                                  : '重新授权',
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        '累计提现${formatMoney(freeWithdrawalLimit)}元以内免费，超出部分收取${formatMoney(withdrawalFeeRate * 100)}%。',
-                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                     const SizedBox(height: 16),
@@ -372,6 +455,54 @@ class _WalletPageState extends ConsumerState<WalletPage> {
   }
 }
 
+class _WithdrawalCodeDialog extends StatefulWidget {
+  const _WithdrawalCodeDialog();
+
+  @override
+  State<_WithdrawalCodeDialog> createState() => _WithdrawalCodeDialogState();
+}
+
+class _WithdrawalCodeDialogState extends State<_WithdrawalCodeDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('确认是本人操作'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(4),
+        ],
+        decoration: const InputDecoration(hintText: '请输入短信验证码'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (RegExp(r'^\d{4}$').hasMatch(_controller.text)) {
+              Navigator.pop(context, _controller.text);
+            }
+          },
+          child: const Text('确认提现'),
+        ),
+      ],
+    );
+  }
+}
+
 class _WalletAmountField extends StatelessWidget {
   const _WalletAmountField({
     required this.controller,
@@ -391,7 +522,7 @@ class _WalletAmountField extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -501,8 +632,10 @@ class _WalletTabs extends StatelessWidget {
 
 class _Balance extends StatelessWidget {
   const _Balance({required this.label, required this.value});
+
   final String label;
   final double value;
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -605,9 +738,9 @@ class _WithdrawalList extends StatelessWidget {
           ),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-            title: Text('提现至${item.bankName}（${item.lastFour}）'),
+            title: Text('提现至支付宝 ${item.alipayAccount}'),
             subtitle: Text(
-              '手续费 ¥${formatMoney(item.fee)}  ·  ${item.createdAt == null ? '' : DateFormat('yyyy-MM-dd HH:mm').format(item.createdAt!)}',
+              '${item.payeeName}  ·  ${item.createdAt == null ? '' : DateFormat('yyyy-MM-dd HH:mm').format(item.createdAt!)}',
             ),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -618,7 +751,7 @@ class _WithdrawalList extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 Text(
-                  item.status,
+                  _withdrawalStatusLabel(item.status),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: statusStyle.foreground,
                     fontWeight: FontWeight.w700,
@@ -633,120 +766,12 @@ class _WithdrawalList extends StatelessWidget {
   }
 }
 
-class _BankCardSheet extends ConsumerStatefulWidget {
-  const _BankCardSheet({this.current});
-  final BankCardInfo? current;
-  @override
-  ConsumerState<_BankCardSheet> createState() => _BankCardSheetState();
-}
-
-class _BankCardSheetState extends ConsumerState<_BankCardSheet> {
-  final _holder = TextEditingController();
-  final _number = TextEditingController();
-  String _bank = '';
-  bool _saving = false;
-  static const _banks = [
-    '中国工商银行',
-    '中国农业银行',
-    '中国银行',
-    '中国建设银行',
-    '交通银行',
-    '招商银行',
-    '中国邮政储蓄银行',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _holder.text = widget.current?.holderName ?? '';
-    _bank = widget.current?.bankName ?? '';
-  }
-
-  @override
-  void dispose() {
-    _holder.dispose();
-    _number.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    if (_holder.text.trim().isEmpty ||
-        _bank.isEmpty ||
-        !RegExp(r'^\d{12,19}$').hasMatch(_number.text)) {
-      AppMessage.show(context, '请填写正确的银行卡信息');
-      return;
-    }
-    setState(() => _saving = true);
-    try {
-      final saved = await ref
-          .read(repositoryProvider)
-          .bindBankCard(
-            holderName: _holder.text.trim(),
-            bankName: _bank,
-            cardNumber: _number.text,
-          );
-      if (mounted) Navigator.pop(context, saved);
-    } catch (error) {
-      if (mounted) AppMessage.show(context, '$error');
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
-      20,
-      20,
-      20,
-      MediaQuery.viewInsetsOf(context).bottom + 24,
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.current == null ? '添加银行卡' : '修改银行卡',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 4),
-        Text('仅可绑定一张银行卡', style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 18),
-        Text('持卡人', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 7),
-        TextField(
-          controller: _holder,
-          decoration: const InputDecoration(hintText: '请填写持卡人姓名'),
-        ),
-        const SizedBox(height: 14),
-        Text('开户银行', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 7),
-        DropdownButtonFormField<String>(
-          value: _bank.isEmpty ? null : _bank,
-          items: _banks
-              .map((bank) => DropdownMenuItem(value: bank, child: Text(bank)))
-              .toList(),
-          onChanged: (value) => setState(() => _bank = value ?? ''),
-          decoration: const InputDecoration(hintText: '请选择开户银行'),
-        ),
-        const SizedBox(height: 14),
-        Text('银行卡号', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 7),
-        TextField(
-          controller: _number,
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(19),
-          ],
-          decoration: const InputDecoration(hintText: '请填写银行卡号'),
-        ),
-        const SizedBox(height: 18),
-        FilledButton(
-          onPressed: _saving ? null : _save,
-          child: Text(widget.current == null ? '确认绑定' : '保存修改'),
-        ),
-      ],
-    ),
-  );
+String _withdrawalStatusLabel(String status) {
+  return switch (status.toUpperCase()) {
+    'PROCESSING' => '待处理',
+    'EXPORTED' => '支付处理中',
+    'COMPLETED' => '已到账',
+    'FAILED' => '已退回',
+    _ => status,
+  };
 }

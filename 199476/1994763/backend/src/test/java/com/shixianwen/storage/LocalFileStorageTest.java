@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class LocalFileStorageTest {
     @TempDir
@@ -15,7 +17,14 @@ class LocalFileStorageTest {
 
     @Test
     void separatesPublicAndPrivateFiles() throws Exception {
-        LocalFileStorage storage = new LocalFileStorage(root.toString());
+        FileTypeDetector detector = mock(FileTypeDetector.class);
+        when(detector.detect(org.mockito.ArgumentMatchers.any(org.springframework.web.multipart.MultipartFile.class)))
+            .thenReturn(new FileTypeDetector.DetectedFile("IMAGE", "image/png", ".png"));
+        LocalFileStorage storage = new LocalFileStorage(
+            root.toString(),
+            detector,
+            new LocalMediaSigner("test-signing-secret-123456")
+        );
 
         StoredFile publicFile = storage.store(
             image("avatar.png"),

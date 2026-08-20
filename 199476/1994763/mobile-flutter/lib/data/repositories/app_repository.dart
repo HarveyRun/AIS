@@ -256,26 +256,25 @@ class AppRepository {
         .toList(growable: false);
   }
 
-  Future<BankCardInfo?> bankCard() async {
-    final data = await _api.get<Object?>('/wallet/bank-card');
+  Future<AlipayAccountInfo?> alipayAccount() async {
+    final data = await _api.get<Object?>('/wallet/alipay-account');
     if (data is! Map) return null;
-    return BankCardInfo.fromJson(Map<String, dynamic>.from(data));
+    return AlipayAccountInfo.fromJson(Map<String, dynamic>.from(data));
   }
 
-  Future<BankCardInfo> bindBankCard({
-    required String holderName,
-    required String bankName,
-    required String cardNumber,
-  }) async {
-    final data = await _api.put<Map<String, dynamic>>(
-      '/wallet/bank-card',
-      data: {
-        'holderName': holderName,
-        'bankName': bankName,
-        'cardNumber': cardNumber,
-      },
+  Future<String> alipayAuthorizationPayload() async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/wallet/alipay-authorization/payload',
     );
-    return BankCardInfo.fromJson(data);
+    return data['authPayload']?.toString() ?? '';
+  }
+
+  Future<AlipayAccountInfo> completeAlipayAuthorization(String authCode) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/wallet/alipay-authorization/complete',
+      data: {'authCode': authCode},
+    );
+    return AlipayAccountInfo.fromJson(data);
   }
 
   Future<List<WithdrawalRecord>> withdrawals() async {
@@ -288,18 +287,25 @@ class AppRepository {
         .toList(growable: false);
   }
 
-  Future<WithdrawalQuote> withdrawalQuote(int amount) async {
-    final data = await _api.post<Map<String, dynamic>>(
-      '/wallet/withdrawals/quote',
-      data: {'amount': amount},
+  Future<void> sendWalletVerificationCode(String purpose) {
+    return _api.post<Object?>(
+      '/wallet/verification-codes',
+      data: {'purpose': purpose},
     );
-    return WithdrawalQuote.fromJson(data);
   }
 
-  Future<WithdrawalRecord> withdraw(int amount, String requestId) async {
+  Future<WithdrawalRecord> withdraw(
+    int amount,
+    String requestId,
+    String verificationCode,
+  ) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/wallet/withdrawals',
-      data: {'amount': amount, 'requestId': requestId},
+      data: {
+        'amount': amount,
+        'requestId': requestId,
+        'verificationCode': verificationCode,
+      },
     );
     return WithdrawalRecord.fromJson(data);
   }

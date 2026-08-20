@@ -20,7 +20,21 @@ import org.springframework.web.multipart.MultipartFile;
 public class InquiryController {
     private final InquiryService service;
     private final ClientNetworkService clientNetworkService;
-    @PostMapping public ApiResponse<InquiryService.InquiryView> create(@CurrentUser User u, @Valid @RequestBody CreateRequest r, HttpServletRequest request) { return ApiResponse.ok(service.create(u.getId(), new InquiryService.CreateCommand(r.answererId(), r.topic(), r.sourceType(), r.question(), r.amount()), clientNetworkService.resolve(request))); }
+    @PostMapping
+    public ApiResponse<InquiryService.InquiryView> create(
+        @CurrentUser User user,
+        @Valid @RequestBody CreateRequest body,
+        @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform,
+        HttpServletRequest request
+    ) {
+        return ApiResponse.ok(service.create(
+            user.getId(),
+            new InquiryService.CreateCommand(
+                body.answererId(), body.topic(), body.sourceType(), body.question(), body.amount(), clientPlatform
+            ),
+            clientNetworkService.resolve(request)
+        ));
+    }
     @GetMapping public ApiResponse<List<InquiryService.InquiryView>> list(@CurrentUser User u) { return ApiResponse.ok(service.list(u.getId())); }
     @GetMapping("/{id}") public ApiResponse<InquiryService.InquiryDetail> detail(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.detail(u.getId(), id)); }
     @PutMapping("/{id}/read") public ApiResponse<Void> read(@CurrentUser User u, @PathVariable Long id) { service.read(u.getId(), id); return ApiResponse.ok(); }

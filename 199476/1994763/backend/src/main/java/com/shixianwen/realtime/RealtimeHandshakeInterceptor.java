@@ -29,6 +29,10 @@ public class RealtimeHandshakeInterceptor implements HandshakeInterceptor {
         RealtimeTicketService.RealtimePrincipal principal = tickets.consume(query.getFirst("ticket"));
         attributes.put("subjectType", principal.subjectType());
         attributes.put("subjectId", principal.subjectId());
+        String clientIp = request.getRemoteAddress() == null
+            ? "unknown"
+            : request.getRemoteAddress().getAddress().getHostAddress();
+        attributes.put("clientIp", clientIp);
         return true;
     }
 

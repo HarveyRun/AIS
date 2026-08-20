@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
+import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
 import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
 import { message } from '../../components/feedback/message.js';
@@ -25,6 +26,7 @@ const EMPTY_FORM = {
 const PAGE_SIZE = 20;
 
 export default function AppTestAccountPage() {
+  const { can } = useAdminAccess();
   const [accounts, setAccounts] = useState([]);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
@@ -154,10 +156,12 @@ export default function AppTestAccountPage() {
           <h1>App超级账号</h1>
           <p>维护 App 测试与商店审核使用的固定登录账号</p>
         </div>
-        <button className="primary" type="button" onClick={openCreate}>
-          <Plus />
-          新增账号
-        </button>
+        {can('APP_TEST_ACCOUNT_CREATE') && (
+          <button className="primary" type="button" onClick={openCreate}>
+            <Plus />
+            新增账号
+          </button>
+        )}
       </div>
 
       <div className="app-test-account-layout">
@@ -200,13 +204,21 @@ export default function AppTestAccountPage() {
                       </button>
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        className={`app-test-account-status ${account.enabled ? 'enabled' : ''}`}
-                        onClick={() => toggleEnabled(account)}
-                      >
-                        {account.enabled ? '已启用' : '已停用'}
-                      </button>
+                      {can('APP_TEST_ACCOUNT_EDIT') ? (
+                        <button
+                          type="button"
+                          className={`app-test-account-status ${account.enabled ? 'enabled' : ''}`}
+                          onClick={() => toggleEnabled(account)}
+                        >
+                          {account.enabled ? '已启用' : '已停用'}
+                        </button>
+                      ) : (
+                        <span
+                          className={`app-test-account-status ${account.enabled ? 'enabled' : ''}`}
+                        >
+                          {account.enabled ? '已启用' : '已停用'}
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className="app-test-account-updated">
@@ -216,18 +228,22 @@ export default function AppTestAccountPage() {
                     </td>
                     <td>
                       <div className="table-actions">
-                        <button type="button" onClick={() => openEdit(account)}>
-                          <Pencil />
-                          编辑
-                        </button>
-                        <button
-                          className="danger"
-                          type="button"
-                          onClick={() => setDeleteTarget(account)}
-                        >
-                          <Trash2 />
-                          删除
-                        </button>
+                        {can('APP_TEST_ACCOUNT_EDIT') && (
+                          <button type="button" onClick={() => openEdit(account)}>
+                            <Pencil />
+                            编辑
+                          </button>
+                        )}
+                        {can('APP_TEST_ACCOUNT_DELETE') && (
+                          <button
+                            className="danger"
+                            type="button"
+                            onClick={() => setDeleteTarget(account)}
+                          >
+                            <Trash2 />
+                            删除
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -246,14 +262,14 @@ export default function AppTestAccountPage() {
               <Check />
               <div>
                 <b>平台功能验证</b>
-                <span>稳定登录指定 App 账号，检查完整业务流程。</span>
+                <span>测试账号之间可验证询问、聊天、充值、结算和提现。</span>
               </div>
             </li>
             <li>
               <MessageSquareOff />
               <div>
                 <b>减少短信消耗</b>
-                <span>启用的账号不会调用短信渠道。</span>
+                <span>使用固定验证码，充值和提现也不会调用真实第三方渠道。</span>
               </div>
             </li>
             <li>
@@ -264,7 +280,9 @@ export default function AppTestAccountPage() {
               </div>
             </li>
           </ul>
-          <p>这些账号在 App 内仍是普通用户，不具备后台管理权限。</p>
+          <p>
+            测试账号只能看到其他测试账号，资金、文件和业务记录与真实用户隔离，且不具备后台管理权限。
+          </p>
         </aside>
       </div>
 

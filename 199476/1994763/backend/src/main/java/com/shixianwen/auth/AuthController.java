@@ -25,11 +25,13 @@ public class AuthController {
     public ApiResponse<Map<String, Object>> sendCode(
         @Valid @RequestBody PhoneRequest request,
         @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform,
+        @RequestHeader(value = "X-Device-Id", required = false) String deviceId,
         HttpServletRequest servletRequest
     ) {
         authService.sendVerificationCode(
             request.phone(),
             clientNetworkService.resolve(servletRequest).ipAddress(),
+            deviceId,
             isAppClient(clientPlatform)
         );
         return ApiResponse.ok(Map.of("sent", true, "expiresIn", 300));
@@ -39,12 +41,14 @@ public class AuthController {
     public ApiResponse<AuthService.LoginResult> login(
         @Valid @RequestBody LoginRequest request,
         @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform,
+        @RequestHeader(value = "X-Device-Id", required = false) String deviceId,
         HttpServletRequest servletRequest
     ) {
         return ApiResponse.ok(authService.login(
             request.phone(),
             request.code(),
             clientNetworkService.resolve(servletRequest),
+            deviceId,
             isAppClient(clientPlatform)
         ));
     }

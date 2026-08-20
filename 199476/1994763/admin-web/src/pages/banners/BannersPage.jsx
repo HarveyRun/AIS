@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
+import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
 import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
 import { message } from '../../components/feedback/message.js';
@@ -33,6 +34,7 @@ const EMPTY_FORM = {
 };
 
 export default function BannersPage() {
+  const { can } = useAdminAccess();
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
@@ -188,9 +190,9 @@ export default function BannersPage() {
           <h1>首页轮播</h1>
           <p>维护App首页展示的图片和文字内容</p>
         </div>
-        <button className="primary" type="button" onClick={openCreate}>
+        {can('BANNER_CREATE') && <button className="primary" type="button" onClick={openCreate}>
           <Plus />新增Banner
-        </button>
+        </button>}
       </div>
 
       <div className="table-card banner-table">
@@ -232,16 +234,16 @@ export default function BannersPage() {
                 </td>
                 <td>
                   <div className="banner-actions">
-                    <button className="plain" type="button" onClick={() => openEdit(item)}>
+                    {can('BANNER_EDIT') && <button className="plain" type="button" onClick={() => openEdit(item)}>
                       <Pencil />编辑
-                    </button>
-                    <button className="plain" type="button" onClick={() => toggleEnabled(item)}>
+                    </button>}
+                    {can('BANNER_TOGGLE') && <button className="plain" type="button" onClick={() => toggleEnabled(item)}>
                       {item.enabled ? <PowerOff /> : <Power />}
                       {item.enabled ? '停用' : '启用'}
-                    </button>
-                    <button className="danger" type="button" onClick={() => setDeleteTarget(item)}>
+                    </button>}
+                    {can('BANNER_DELETE') && <button className="danger" type="button" onClick={() => setDeleteTarget(item)}>
                       <Trash2 />删除
-                    </button>
+                    </button>}
                   </div>
                 </td>
               </tr>
@@ -290,9 +292,9 @@ export default function BannersPage() {
                       ) : (
                         <div><ImageIcon /><span>还没有上传图片</span></div>
                       )}
-                      <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                      {can('BANNER_UPLOAD') && <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                         <ImagePlus />{uploading ? '上传中…' : form.imageUrl ? '更换图片' : '上传图片'}
-                      </button>
+                      </button>}
                       <input
                         ref={fileInputRef}
                         type="file"

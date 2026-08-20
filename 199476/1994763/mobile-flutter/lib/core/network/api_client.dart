@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 
@@ -14,9 +15,9 @@ class ApiClient {
           connectTimeout: const Duration(seconds: 12),
           receiveTimeout: const Duration(seconds: 30),
           sendTimeout: const Duration(seconds: 30),
-          headers: const {
+          headers: {
             'Accept': 'application/json',
-            'X-Client-Platform': 'app',
+            'X-Client-Platform': Platform.isIOS ? 'ios' : 'android',
           },
         ),
       ) {
@@ -24,6 +25,8 @@ class ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await _storage.readToken();
+          options.headers['X-Device-Id'] = await _storage
+              .readOrCreateDeviceId();
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }

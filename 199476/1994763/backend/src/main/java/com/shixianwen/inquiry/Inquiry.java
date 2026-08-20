@@ -47,6 +47,24 @@ public class Inquiry {
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
 
+    @Column(name = "client_platform", nullable = false, length = 20)
+    private String clientPlatform = "ANDROID";
+
+    @Column(name = "service_fee_rate", nullable = false, precision = 7, scale = 6)
+    private BigDecimal serviceFeeRate = BigDecimal.ZERO.setScale(6);
+
+    @Column(name = "service_fee_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal serviceFeeAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
+
+    @Column(name = "answerer_income_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal answererIncomeAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
+
+    @Column(name = "frozen_recharge_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal frozenRechargeAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
+
+    @Column(name = "frozen_income_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal frozenIncomeAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
+
     @Column(nullable = false, length = 40)
     private String status;
 

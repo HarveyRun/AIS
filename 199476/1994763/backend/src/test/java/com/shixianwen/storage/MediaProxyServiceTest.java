@@ -16,7 +16,7 @@ class MediaProxyServiceTest {
         ThirdPartySettings settings = mock(ThirdPartySettings.class);
         when(settings.value("app.storage.oss.public-domain", "oss.domain"))
             .thenReturn("https://bucket.oss-cn-beijing.aliyuncs.com");
-        MediaProxyService service = new MediaProxyService(settings);
+        MediaProxyService service = new MediaProxyService(settings, new FileTypeDetector());
 
         assertThatThrownBy(() -> service.loadImage("http://127.0.0.1/internal"))
             .isInstanceOfSatisfying(BusinessException.class, exception ->

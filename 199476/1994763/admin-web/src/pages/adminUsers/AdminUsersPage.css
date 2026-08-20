@@ -1,0 +1,160 @@
+.rbac-title-button,
+.row-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.rbac-title-button svg,
+.row-actions button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.rbac-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 150px;
+}
+
+.rbac-tags span {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f0f2f5;
+  color: #505660;
+  font-size: 12px;
+}
+
+.rbac-drawer {
+  width: min(580px, 90vw);
+}
+
+.rbac-drawer-content {
+  padding-top: 20px;
+}
+
+.rbac-drawer-intro {
+  margin: 0 0 18px;
+  color: #747a84;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.rbac-form {
+  display: grid;
+  gap: 15px;
+}
+
+.rbac-form > label {
+  display: grid;
+  gap: 7px;
+}
+
+.rbac-form > label > span,
+.rbac-checks legend {
+  color: #5f646c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rbac-form input,
+.rbac-form select,
+.rbac-form textarea {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #d8dbe0;
+  border-radius: 7px;
+  background: #fff;
+  color: #25282d;
+  font: inherit;
+}
+
+.rbac-form textarea {
+  height: 96px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.rbac-form input:focus,
+.rbac-form select:focus,
+.rbac-form textarea:focus {
+  border-color: #c7cbd1;
+  outline: 0;
+}
+
+.rbac-form input:disabled,
+.rbac-form select:disabled {
+  background: #f3f4f6;
+  color: #8d929a;
+  cursor: not-allowed;
+}
+
+.rbac-form label > small {
+  color: #90959e;
+  font-size: 12px;
+}
+
+.rbac-checks {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.rbac-checks legend {
+  margin-bottom: 9px;
+}
+
+.rbac-checks > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  background: #f7f7f8;
+  cursor: pointer;
+}
+
+.rbac-checks input {
+  width: 16px;
+  height: 16px;
+  accent-color: #d33a2c;
+}
+
+.rbac-checks label span {
+  display: grid;
+  gap: 3px;
+}
+
+.rbac-checks label b {
+  font-size: 13px;
+}
+
+.rbac-checks label small {
+  color: #8a9098;
+  font-size: 11px;
+}
+
+.rbac-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding-top: 4px;
+}
+
+@media (max-width: 680px) {
+  .rbac-drawer {
+    width: 94vw;
+  }
+}

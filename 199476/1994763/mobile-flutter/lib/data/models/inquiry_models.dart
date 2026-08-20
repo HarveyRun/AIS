@@ -8,6 +8,9 @@ class InquirySummary {
     required this.topic,
     required this.question,
     required this.amount,
+    required this.serviceFeeRate,
+    required this.serviceFeeAmount,
+    required this.answererIncomeAmount,
     required this.status,
     required this.fundsStatus,
     required this.unreadCount,
@@ -27,6 +30,9 @@ class InquirySummary {
       topic: json['topic']?.toString() ?? '',
       question: json['question']?.toString() ?? '',
       amount: _double(json['amount']),
+      serviceFeeRate: _double(json['serviceFeeRate']),
+      serviceFeeAmount: _double(json['serviceFeeAmount']),
+      answererIncomeAmount: _double(json['answererIncomeAmount']),
       status: json['status']?.toString() ?? '',
       fundsStatus: json['fundsStatus']?.toString() ?? '',
       unreadCount: _int(json['unreadCount']),
@@ -45,6 +51,9 @@ class InquirySummary {
   final String topic;
   final String question;
   final double amount;
+  final double serviceFeeRate;
+  final double serviceFeeAmount;
+  final double answererIncomeAmount;
   final String status;
   final String fundsStatus;
   final int unreadCount;
@@ -55,6 +64,7 @@ class InquirySummary {
 
   bool get isIncoming => role.toUpperCase() == 'ANSWERER';
   bool get canChat => status.toUpperCase() == 'ACTIVE';
+  double get visibleAmount => isIncoming ? answererIncomeAmount : amount;
 }
 
 class ChatMessage {

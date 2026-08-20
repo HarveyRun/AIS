@@ -1,19 +1,30 @@
 import { beginRequest, endRequest } from './requestActivity.js';
 
 const TOKEN_KEY = 'shixianwen-admin-token';
+const DEVICE_KEY = 'shixianwen-admin-device-id';
 const inFlightRequests = new Map();
 let unauthorizedEventSent = false;
 export const token = {
-  get: () => localStorage.getItem(TOKEN_KEY) || '',
+  get: () => sessionStorage.getItem(TOKEN_KEY) || '',
   set: (value) => {
     if (value) {
-      localStorage.setItem(TOKEN_KEY, value);
+      sessionStorage.setItem(TOKEN_KEY, value);
+      localStorage.removeItem(TOKEN_KEY);
       unauthorizedEventSent = false;
       return;
     }
+    sessionStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(TOKEN_KEY);
   },
 };
+function deviceId() {
+  let value = localStorage.getItem(DEVICE_KEY);
+  if (!value) {
+    value = globalThis.crypto?.randomUUID?.() || `admin-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(DEVICE_KEY, value);
+  }
+  return value;
+}
 function requestKey(path, options, accessToken) {
   const method = String(options.method || 'GET').toUpperCase();
   return `${method}:${path}:${accessToken}:${String(options.body || '')}`;
@@ -30,6 +41,7 @@ export function request(path, options = {}) {
     if (globalLoading) beginRequest();
     try {
       const headers = new Headers(requestOptions.headers || {});
+      headers.set('X-Device-Id', deviceId());
       if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
       if (requestOptions.body && !(requestOptions.body instanceof FormData)) {
         headers.set('Content-Type', 'application/json');
@@ -57,17 +69,85 @@ export function request(path, options = {}) {
   inFlightRequests.set(key, activeRequest);
   return activeRequest;
 }
+
+async function downloadWithdrawalFile(path) {
+  const response = await fetch(`/api/admin${path}`, {
+    method: path.endsWith('/export') ? 'POST' : 'GET',
+    headers: {
+      Authorization: `Bearer ${token.get()}`,
+      'X-Device-Id': deviceId(),
+    },
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.message || '导出失败');
+  }
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/)?.[1];
+  return {
+    blob: await response.blob(),
+    filename: encodedName ? decodeURIComponent(encodedName) : '支付宝提现.xlsx',
+  };
+}
+
 export const adminApi = {
   setupStatus: () => request('/auth/setup-status'),
   setup: (body) => request('/auth/setup', { method: 'POST', body: JSON.stringify(body) }),
   login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   me: () => request('/auth/me'),
+  adminUsers: ({ keyword = '', page = 0, size = 20 } = {}) => request(
+    `/admin-users?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${size}`,
+  ),
+  createAdminUser: (body) => request('/admin-users', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  updateAdminUser: (id, body) => request(`/admin-users/${id}`, {
+    method: 'PUT', body: JSON.stringify(body),
+  }),
+  assignAdminUserRoles: (id, ids) => request(`/admin-users/${id}/roles`, {
+    method: 'PUT', body: JSON.stringify({ ids }),
+  }),
+  deleteAdminUser: (id) => request(`/admin-users/${id}`, { method: 'DELETE' }),
+  resetAdminPassword: (id) => request(`/admin-users/${id}/reset-password`, { method: 'POST' }),
+  adminRoles: ({ keyword = '', page = 0, size = 20 } = {}) => request(
+    `/roles?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${size}`,
+  ),
+  adminRoleOptions: () => request('/roles/options'),
+  createAdminRole: (body) => request('/roles', { method: 'POST', body: JSON.stringify(body) }),
+  updateAdminRole: (id, body) => request(`/roles/${id}`, {
+    method: 'PUT', body: JSON.stringify(body),
+  }),
+  assignRolePermissions: (id, ids) => request(`/roles/${id}/permissions`, {
+    method: 'PUT', body: JSON.stringify({ ids }),
+  }),
+  deleteAdminRole: (id) => request(`/roles/${id}`, { method: 'DELETE' }),
+  adminPermissions: ({ keyword = '', module = '', page = 0, size = 20 } = {}) => request(
+    `/permissions?keyword=${encodeURIComponent(keyword)}&module=${encodeURIComponent(module)}&page=${page}&size=${size}`,
+  ),
+  adminPermissionOptions: () => request('/permissions/options'),
+  adminPermissionModules: () => request('/permissions/modules'),
+  createAdminPermission: (body) => request('/permissions', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  updateAdminPermission: (id, body) => request(`/permissions/${id}`, {
+    method: 'PUT', body: JSON.stringify(body),
+  }),
+  deleteAdminPermission: (id) => request(`/permissions/${id}`, { method: 'DELETE' }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   realtimeTicket: () => request('/auth/realtime-ticket', {
     method: 'POST',
     globalLoading: false,
   }),
   dashboard: () => request('/dashboard'),
+  exportWithdrawals: () => downloadWithdrawalFile('/withdrawals/export'),
+  downloadWithdrawalBatch: (batchNo) => downloadWithdrawalFile(
+    `/withdrawals/export/${encodeURIComponent(batchNo)}`,
+  ),
+  platformFee: () => request('/platform-fee'),
+  updatePlatformFee: (androidRatePercent, iosRatePercent) => request('/platform-fee', {
+    method: 'PUT',
+    body: JSON.stringify({ androidRatePercent, iosRatePercent }),
+  }),
   appTestAccounts: (page = 0, size = 20) =>
     request(`/app-test-accounts?page=${page}&size=${size}`),
   createAppTestAccount: (body) => request('/app-test-accounts', {
@@ -167,6 +247,9 @@ export const adminApi = {
   recordStatus: (type, id, status) =>
     request(`/${type}/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   logs: (query = '') => request(`/audit-logs?${query}`),
+  securityEvents: ({ severity = '', status = '', type = '', page = 0, size = 20 }) =>
+    request(`/security-events?${new URLSearchParams({ severity, status, type, page, size })}`),
+  reviewSecurityEvent: (id) => request(`/security-events/${id}/review`, { method: 'PATCH' }),
   customerServiceConversations: ({ silent = false } = {}) => request(
     '/customer-service/conversations',
     { globalLoading: !silent },
@@ -185,6 +268,7 @@ export const adminApi = {
       body: JSON.stringify({ content }),
     }),
   discovery: () => request('/discovery'),
+  experienceLibrary: () => request('/experience-library'),
   createDiscoveryCategory: (body) =>
     request('/discovery/categories', { method: 'POST', body: JSON.stringify(body) }),
   updateDiscoveryCategory: (id, body) =>

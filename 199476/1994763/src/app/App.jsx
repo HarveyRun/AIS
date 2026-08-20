@@ -91,7 +91,7 @@ function inquiryFromApi(item) {
     avatar: item.otherAvatar,
     title: item.topic || item.question,
     question: item.question,
-    amount: Number(item.amount),
+    amount: Number(item.role === 'ANSWERER' ? item.answererIncomeAmount : item.amount),
     inquiryStatus: item.status === 'COMPLETED' ? 'ended' : item.status.toLowerCase(),
     settlementStatus: item.fundsStatus === 'SETTLED' ? 'settled' : item.fundsStatus.toLowerCase(),
     responseDeadline: item.responseDeadline,
@@ -536,21 +536,20 @@ function App() {
       return;
     }
     if (screen === 'wallet') {
-      const [wallet, transactions, withdrawalItems, bankCard] = await Promise.all([
+      const [wallet, transactions, withdrawalItems, alipayAccount] = await Promise.all([
         api.wallet(),
         api.walletTransactions(),
         api.withdrawals(),
-        api.bankCard(),
+        api.alipayAccount(),
       ]);
       setBalance(Number(wallet.availableBalance));
       setFrozenAmount(Number(wallet.frozenBalance));
       setAccountStats({
         totalWithdrawn: Number(wallet.totalWithdrawn),
-        bankCard: bankCard
+        alipayAccount: alipayAccount
           ? {
-              holderName: bankCard.holderName,
-              bankName: bankCard.bankName,
-              cardNumber: bankCard.lastFour,
+              displayName: alipayAccount.displayName,
+              accountMasked: alipayAccount.accountMasked,
             }
           : null,
       });

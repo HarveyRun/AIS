@@ -56,6 +56,9 @@ public class User {
     @Column(name = "account_status", nullable = false, length = 30)
     private String accountStatus = "ACTIVE";
 
+    @Column(name = "account_type", nullable = false, length = 20)
+    private String accountType = "NORMAL";
+
     @Column(name = "ban_reason", length = 300)
     private String banReason;
 

@@ -28,7 +28,10 @@ import java.util.Map;
 public class RechargeController {
     private final RechargeService service;
     @Value("${app.payment.mock-return-url:http://localhost:5173/profile/wallet}") private String mockReturnUrl;
-    @GetMapping("/capability") public ApiResponse<PaymentGateway.PaymentCapability> capability() { return ApiResponse.ok(service.capability()); }
+    @GetMapping("/capability")
+    public ApiResponse<PaymentGateway.PaymentCapability> capability(@CurrentUser User user) {
+        return ApiResponse.ok(service.capability(user.getId()));
+    }
     @PostMapping public ApiResponse<RechargeService.RechargeView> create(@CurrentUser User user, @Valid @RequestBody Request request) { return ApiResponse.ok(service.create(user.getId(), request.amount(), request.requestId())); }
     @GetMapping public ApiResponse<List<RechargeService.RechargeView>> list(@CurrentUser User user) { return ApiResponse.ok(service.list(user.getId())); }
     @GetMapping("/{orderNo}") public ApiResponse<RechargeService.RechargeView> find(@CurrentUser User user, @PathVariable String orderNo) { return ApiResponse.ok(service.find(user.getId(), orderNo)); }

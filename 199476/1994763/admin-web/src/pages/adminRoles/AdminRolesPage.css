@@ -1,0 +1,59 @@
+.permission-groups {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.permission-groups section {
+  padding: 13px;
+  background: #f7f7f8;
+  border-radius: 8px;
+}
+
+.permission-groups section header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 11px;
+}
+
+.permission-groups header button {
+  border: 0;
+  background: transparent;
+  color: #d33a2c;
+  cursor: pointer;
+}
+
+.permission-groups section > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.permission-groups label {
+  display: grid;
+  grid-template-columns: 18px 70px 1fr;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 7px 9px;
+  background: #fff;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.permission-groups input {
+  width: 16px;
+  height: 16px;
+  accent-color: #d33a2c;
+}
+
+.permission-groups label span {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.permission-groups label small {
+  color: #898f98;
+  font-size: 12px;
+}

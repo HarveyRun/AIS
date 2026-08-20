@@ -16,15 +16,27 @@ import java.util.UUID;
 @ConditionalOnProperty(name = "app.storage.provider", havingValue = "local", matchIfMissing = true)
 public class LocalFileStorage implements FileStorage {
     private final Path root;
+    private final FileTypeDetector fileTypeDetector;
+    private final LocalMediaSigner localMediaSigner;
 
-    public LocalFileStorage(@Value("${app.storage.root}") String root) {
+    public LocalFileStorage(
+        @Value("${app.storage.root}") String root,
+        FileTypeDetector fileTypeDetector,
+        LocalMediaSigner localMediaSigner
+    ) {
         this.root = Path.of(root).toAbsolutePath().normalize();
+        this.fileTypeDetector = fileTypeDetector;
+        this.localMediaSigner = localMediaSigner;
     }
 
     @Override
     public StoredFile store(MultipartFile file, String folder, StorageVisibility visibility) {
         if (file.isEmpty()) throw BusinessException.badRequest("文件不能为空");
-        String extension = extensionOf(file.getOriginalFilename());
+        FileTypeDetector.DetectedFile detected = fileTypeDetector.detect(file);
+        if ("UNKNOWN".equals(detected.kind())) {
+            throw BusinessException.badRequest("不支持该文件类型");
+        }
+        String extension = detected.extension();
         String key = visibility.folder() + "/" + folder + "/"
             + UUID.randomUUID().toString().replace("-", "") + extension;
         Path target = root.resolve(key).normalize();
@@ -36,7 +48,7 @@ public class LocalFileStorage implements FileStorage {
             String accessUrl = visibility == StorageVisibility.PUBLIC
                 ? accessUrl(key, visibility)
                 : null;
-            return new StoredFile(key, accessUrl, file.getContentType(), file.getSize());
+            return new StoredFile(key, accessUrl, detected.contentType(), file.getSize());
         } catch (IOException exception) {
             throw new IllegalStateException("文件保存失败", exception);
         }
@@ -44,14 +56,10 @@ public class LocalFileStorage implements FileStorage {
 
     @Override
     public String accessUrl(String storageKey, StorageVisibility visibility) {
-        return "/uploads/" + storageKey.replace('\\', '/');
+        String normalized = storageKey.replace('\\', '/');
+        return visibility == StorageVisibility.PUBLIC
+            ? "/uploads/" + normalized
+            : localMediaSigner.signedUrl(normalized);
     }
 
-    private static String extensionOf(String filename) {
-        if (filename == null) return "";
-        int index = filename.lastIndexOf('.');
-        if (index < 0 || index == filename.length() - 1) return "";
-        String extension = filename.substring(index).toLowerCase();
-        return extension.matches("\\.[a-z0-9]{1,10}") ? extension : "";
-    }
 }

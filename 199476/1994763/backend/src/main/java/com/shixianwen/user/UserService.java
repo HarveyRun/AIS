@@ -58,7 +58,7 @@ public class UserService {
         if (avatar.getSize() > 2L * 1024 * 1024) throw BusinessException.badRequest("头像图片不能超过2MB");
         user.setAvatarUrl(fileStorage.store(
             avatar,
-            "avatars/" + user.getId(),
+            ("TEST".equals(user.getAccountType()) ? "test/" : "") + "avatars/" + user.getId(),
             StorageVisibility.PUBLIC
         ).publicUrl());
         return AuthService.UserView.from(userRepository.save(user));

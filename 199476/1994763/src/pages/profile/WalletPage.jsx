@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ChevronRight, Landmark, X } from 'lucide-react';
+import { BadgeDollarSign, ChevronRight } from 'lucide-react';
 import Page from '../../components/layout/Page.jsx';
 import './ProfilePages.css';
 import { api } from '../../api/http.js';
 import { walletTransactionFromApi, withdrawalFromApi } from '../../utils/walletView.js';
+
+function createRequestId() {
+  return `withdraw_${crypto.randomUUID().replaceAll('-', '')}`;
+}
 
 export default function WalletPage({
   go,
@@ -20,19 +24,8 @@ export default function WalletPage({
 }) {
   const [mode, setMode] = useState('ledger');
   const [amount, setAmount] = useState('');
-  const [editingBank, setEditingBank] = useState(false);
-  const [bankDraft, setBankDraft] = useState({
-    bankName: '',
-    cardNumber: '',
-    holderName: '',
-  });
-  const boundBank = accountStats.bankCard || null;
-  const numericAmount = Number(amount || 0);
-  const remainingFree = Math.max(0, 10000 - Number(accountStats.totalWithdrawn || 0));
-  const commissionBase = Math.max(0, numericAmount - remainingFree);
-  const commission = Number((commissionBase * 0.2).toFixed(2));
-  const arrivalAmount = Number(Math.max(0, numericAmount - commission).toFixed(2));
-  const bankLabel = boundBank ? `${boundBank.bankName}（${boundBank.cardNumber.slice(-4)}）` : '';
+  const [withdrawalCode, setWithdrawalCode] = useState('');
+  const boundAlipay = accountStats.alipayAccount || null;
 
   useEffect(() => {
     const parameters = new URLSearchParams(window.location.search);
@@ -79,49 +72,14 @@ export default function WalletPage({
     }
   };
 
-  const openBankEditor = () => {
-    setBankDraft(
-      boundBank || {
-        bankName: '',
-        cardNumber: '',
-        holderName: '',
-      },
-    );
-    setEditingBank(true);
+  const openAlipayEditor = () => {
+    notify('请在事先问 App 内完成支付宝授权', 'default');
   };
 
-  const saveBank = async () => {
-    const cardNumber = bankDraft.cardNumber.replace(/\s/g, '');
-    if (!bankDraft.holderName.trim()) {
-      notify('请填写持卡人姓名', 'warning');
-      return;
-    }
-    if (!bankDraft.bankName) {
-      notify('请选择开户银行', 'warning');
-      return;
-    }
-    if (!/^\d{12,19}$/.test(cardNumber)) {
-      notify('请输入正确的银行卡号', 'warning');
-      return;
-    }
-
+  const sendWalletCode = async (purpose) => {
     try {
-      await api.bindBankCard({
-        ...bankDraft,
-        cardNumber,
-        holderName: bankDraft.holderName.trim(),
-      });
-      const saved = await api.bankCard();
-      setAccountStats((current) => ({
-        ...current,
-        bankCard: {
-          holderName: saved.holderName,
-          bankName: saved.bankName,
-          cardNumber: saved.lastFour,
-        },
-      }));
-      setEditingBank(false);
-      notify(boundBank ? '银行卡已修改' : '银行卡已绑定', 'success');
+      await api.sendWalletCode(purpose);
+      notify('验证码已发送', 'success');
     } catch (requestError) {
       notify(requestError.message, 'error');
     }
@@ -129,7 +87,11 @@ export default function WalletPage({
 
   const submitMoney = async () => {
     const value = Number(amount);
-    if (!Number.isFinite(value) || value <= 0) return;
+    if (!Number.isInteger(value) || value < 1 || value > 9999) {
+      notify('金额必须是1至9999的整数', 'warning');
+      return;
+    }
+
     if (mode === 'recharge') {
       try {
         const order = await api.createRecharge(value);
@@ -143,13 +105,20 @@ export default function WalletPage({
         return;
       }
     } else {
+      if (!boundAlipay) {
+        openAlipayEditor();
+        return;
+      }
+      if (!/^\d{4}$/.test(withdrawalCode)) {
+        notify('请输入4位验证码', 'warning');
+        return;
+      }
       try {
-        const currentBankCard = await api.bankCard();
-        if (!currentBankCard) {
-          openBankEditor();
-          return;
-        }
-        await api.withdraw(value);
+        await api.withdraw({
+          amount: value,
+          requestId: createRequestId(),
+          verificationCode: withdrawalCode,
+        });
         const [wallet, transactionItems, withdrawalItems] = await Promise.all([
           api.wallet(),
           api.walletTransactions(),
@@ -162,18 +131,18 @@ export default function WalletPage({
         }));
         setRecords(transactionItems.map(walletTransactionFromApi));
         setWithdrawals(withdrawalItems.map(withdrawalFromApi));
-        notify(
-          commission > 0 ? `提现已提交，手续费 ¥${commission.toFixed(2)}` : '提现申请已经提交',
-          'success',
-        );
+        setWithdrawalCode('');
+        notify('提现申请已经提交', 'success');
       } catch (requestError) {
         notify(requestError.message, 'error');
         return;
       }
     }
+
     setAmount('');
     setMode(mode === 'recharge' ? 'ledger' : 'history');
   };
+
   return (
     <Page title="账户余额" back={() => go('profile', 'profile')}>
       <section className="balance-card">
@@ -187,11 +156,9 @@ export default function WalletPage({
             <strong>¥{frozenAmount.toFixed(2)}</strong>
           </div>
         </div>
-        <p>
-          累计已提现 ¥{Number(accountStats.totalWithdrawn || 0).toFixed(2)} · 剩余免费提现额度 ¥
-          {remainingFree.toFixed(2)}
-        </p>
+        <p>累计已提现 ¥{Number(accountStats.totalWithdrawn || 0).toFixed(2)}</p>
       </section>
+
       <div className="wallet-tabs four">
         <button className={mode === 'ledger' ? 'active' : ''} onClick={() => setMode('ledger')}>
           收支明细
@@ -206,37 +173,44 @@ export default function WalletPage({
           提现
         </button>
       </div>
+
       {mode === 'ledger' && (
         <section className="ledger-list">
-          {records.map((r, i) => (
-            <article key={i}>
-              <i className={r[0] === '收入' ? 'income' : r[0] === '冻结' || r[0] === '解冻' ? 'frozen' : 'expense'}>
-                {r[0] === '收入' ? '收' : r[0] === '冻结' ? '冻' : r[0] === '解冻' ? '解' : '支'}
+          {records.map((record, index) => (
+            <article key={index}>
+              <i className={record[0] === '收入' ? 'income' : record[0] === '冻结' || record[0] === '解冻' ? 'frozen' : 'expense'}>
+                {record[0] === '收入' ? '收' : record[0] === '冻结' ? '冻' : record[0] === '解冻' ? '解' : '支'}
               </i>
               <div>
-                <b>{r[1]}</b>
-                <small>{r[3]}</small>
+                <b>{record[1]}</b>
+                <small>{record[3]}</small>
               </div>
-              <strong className={r[0] === '收入' ? 'income' : r[0] === '冻结' || r[0] === '解冻' ? 'frozen' : ''}>{r[2]}</strong>
+              <strong className={record[0] === '收入' ? 'income' : record[0] === '冻结' || record[0] === '解冻' ? 'frozen' : ''}>
+                {record[2]}
+              </strong>
             </article>
           ))}
         </section>
       )}
+
       {mode === 'history' && (
         <section className="withdraw-list">
-          {withdrawals.map((r, i) => (
-            <article key={i}>
+          {withdrawals.map((record, index) => (
+            <article key={index}>
               <div>
-                <b>提现至{r[4]}</b>
-                <small>{r[2]}</small>
-                {r[3] && <small>{r[3]}</small>}
+                <b>提现至{record[4]}</b>
+                <small>{record[2]}</small>
+                {record[3] && <small>{record[3]}</small>}
               </div>
-              <strong>{r[0]}</strong>
-              <span className={r[1] === '处理中' ? 'pending' : ''}>{r[1]}</span>
+              <strong>{record[0]}</strong>
+              <span className={['处理中', '支付处理中'].includes(record[1]) ? 'pending' : ''}>
+                {record[1]}
+              </span>
             </article>
           ))}
         </section>
       )}
+
       {['recharge', 'withdraw'].includes(mode) && (
         <>
           <section className="cash-form">
@@ -244,15 +218,13 @@ export default function WalletPage({
             <div className="cash-input">
               <b>¥</b>
               <input
-                inputMode="decimal"
+                inputMode="numeric"
                 value={amount}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  if (/^\d*(\.\d{0,2})?$/.test(next)) setAmount(next);
-                }}
-                placeholder="0.00"
+                onChange={(event) => setAmount(event.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="0"
               />
             </div>
+
             {mode === 'recharge' ? (
               <>
                 <div className="recharge-channel">
@@ -262,101 +234,46 @@ export default function WalletPage({
                     <small>仅支持支付宝充值</small>
                   </span>
                 </div>
-                <p>充值到账后，平台内所有消费将直接从余额扣除。</p>
+                <p>充值到账后，平台内消费将直接从余额扣除。</p>
               </>
             ) : (
               <>
-                <button className="bank-row" type="button" onClick={openBankEditor}>
-                  <Landmark />
+                <button className="bank-row" type="button" onClick={openAlipayEditor}>
+                  <BadgeDollarSign />
                   <span>
-                    <b>到账银行卡</b>
-                    <small>{boundBank ? bankLabel : '尚未绑定，点击添加'}</small>
+                    <b>支付宝收款账户</b>
+                    <small>
+                      {boundAlipay
+                        ? `${boundAlipay.displayName} · ${boundAlipay.accountMasked}`
+                        : '尚未授权，点击前往 App 授权'}
+                    </small>
                   </span>
-                  <em>{boundBank ? '修改' : '添加'}</em>
+                  <em>{boundAlipay ? '重新授权' : '去授权'}</em>
                   <ChevronRight />
                 </button>
-                <p>
-                  本次手续费 ¥{commission.toFixed(2)}，预计到账 ¥{arrivalAmount.toFixed(2)}。
-                  累计提现10,000元以内免费，超出部分收取20%。
-                </p>
+                <label className="wallet-code-field">
+                  <span>短信验证码</span>
+                  <input
+                    inputMode="numeric"
+                    value={withdrawalCode}
+                    onChange={(event) => setWithdrawalCode(event.target.value.replace(/\D/g, '').slice(0, 4))}
+                    placeholder="请输入4位验证码"
+                  />
+                  <button type="button" onClick={() => sendWalletCode('WITHDRAWAL')}>
+                    获取验证码
+                  </button>
+                </label>
+                <p>只有回答收入可以提现，充值余额不可提现。</p>
               </>
             )}
           </section>
-          <button
-            disabled={!Number(amount)}
-            className="sticky-primary"
-            onClick={submitMoney}
-          >
-            {mode === 'recharge' ? '支付宝充值' : boundBank ? '确认提现' : '绑定银行卡并提现'}
+
+          <button disabled={!Number(amount)} className="sticky-primary" onClick={submitMoney}>
+            {mode === 'recharge' ? '支付宝充值' : boundAlipay ? '确认提现' : '先授权支付宝'}
           </button>
         </>
       )}
 
-      {editingBank && (
-        <>
-          <button className="sheet-mask" type="button" onClick={() => setEditingBank(false)} />
-          <section className="bank-editor-sheet">
-            <header>
-              <div>
-                <h2>{boundBank ? '修改银行卡' : '添加银行卡'}</h2>
-                <p>仅可绑定一张银行卡</p>
-              </div>
-              <button type="button" onClick={() => setEditingBank(false)} aria-label="关闭">
-                <X />
-              </button>
-            </header>
-            <label>
-              <span>持卡人</span>
-              <input
-                value={bankDraft.holderName}
-                onChange={(event) => {
-                  setBankDraft((current) => ({
-                    ...current,
-                    holderName: event.target.value,
-                  }));
-                }}
-                placeholder="请输入持卡人姓名"
-              />
-            </label>
-            <label>
-              <span>开户银行</span>
-              <select
-                value={bankDraft.bankName}
-                onChange={(event) => {
-                  setBankDraft((current) => ({
-                    ...current,
-                    bankName: event.target.value,
-                  }));
-                }}
-              >
-                <option value="">请选择开户银行</option>
-                <option>中国工商银行</option>
-                <option>中国农业银行</option>
-                <option>中国银行</option>
-                <option>中国建设银行</option>
-                <option>交通银行</option>
-                <option>招商银行</option>
-                <option>中国邮政储蓄银行</option>
-              </select>
-            </label>
-            <label>
-              <span>银行卡号</span>
-              <input
-                inputMode="numeric"
-                value={bankDraft.cardNumber}
-                onChange={(event) => {
-                  const cardNumber = event.target.value.replace(/\D/g, '').slice(0, 19);
-                  setBankDraft((current) => ({ ...current, cardNumber }));
-                }}
-                placeholder="请输入银行卡号"
-              />
-            </label>
-            <button className="bank-editor-save" type="button" onClick={saveBank}>
-              {boundBank ? '保存修改' : '确认绑定'}
-            </button>
-          </section>
-        </>
-      )}
     </Page>
   );
 }

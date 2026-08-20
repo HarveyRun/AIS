@@ -6,6 +6,7 @@ import {
   X,
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
+import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
 import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
 import { message } from '../../components/feedback/message.js';
@@ -26,6 +27,7 @@ const PENALTY_DURATIONS = [
 ];
 
 export default function UsersPage() {
+  const { can } = useAdminAccess();
   const [data, setData] = useState({ items: [], total: 0 });
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState('');
@@ -162,7 +164,10 @@ export default function UsersPage() {
             {data.items.map((user) => (
               <tr key={user.id}>
                 <td>
-                  <b>{user.nickname || `UID ${user.uid}`}</b>
+                  <b>
+                    {user.nickname || `UID ${user.uid}`}
+                    {user.accountType === 'TEST' && <span className="test-data-badge">测试账号</span>}
+                  </b>
                   <small>UID {user.uid}</small>
                 </td>
                 <td>{user.phone}</td>
@@ -177,7 +182,7 @@ export default function UsersPage() {
                 </td>
                 <td>{date(user.createdAt)}</td>
                 <td>
-                  {user.accountStatus === 'ACTIVE' ? (
+                  {can('USER_STATUS') && (user.accountStatus === 'ACTIVE' ? (
                     <button
                       className="danger user-action"
                       type="button"
@@ -195,7 +200,7 @@ export default function UsersPage() {
                       <ShieldCheck />
                       解除封禁
                     </button>
-                  )}
+                  ))}
                 </td>
               </tr>
             ))}
