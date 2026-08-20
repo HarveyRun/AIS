@@ -1,5 +1,6 @@
 package com.shixianwen.inquiry;
 
+import com.shixianwen.common.BusinessException;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.network.ClientNetworkInfo;
 import com.shixianwen.notification.NotificationService;
@@ -15,6 +16,7 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -66,6 +68,46 @@ class InquiryServiceTest {
         verify(eligibility).requireAvailable(2L);
         verify(eligibility, never()).requireAvailable(1L);
         verify(eligibility, never()).requireQualified(1L);
+    }
+
+    @Test
+    void creatingInquiryRejectsAmountOutsideAnswererRangeBeforeFreezingFunds() {
+        InquiryRepository inquiries = mock(InquiryRepository.class);
+        UserRepository users = mock(UserRepository.class);
+        WalletService wallet = mock(WalletService.class);
+        InquiryService service = new InquiryService(
+            inquiries,
+            mock(InquiryMessageRepository.class),
+            users,
+            wallet,
+            mock(NotificationService.class),
+            mock(RealtimePublisher.class),
+            mock(FileStorage.class),
+            mock(AnswererEligibilityService.class),
+            mock(SensitiveWordService.class)
+        );
+        User questioner = user(1L, "1000001");
+        User answerer = user(2L, "2000002");
+        answerer.setInquiryPriceMin(50);
+        answerer.setInquiryPriceMax(200);
+        when(users.findById(1L)).thenReturn(Optional.of(questioner));
+        when(users.findById(2L)).thenReturn(Optional.of(answerer));
+
+        assertThrows(
+            BusinessException.class,
+            () -> service.create(
+                1L,
+                new InquiryService.CreateCommand(
+                    2L,
+                    "水暖工",
+                    "PROFILE",
+                    "家里漏水该怎么处理",
+                    new BigDecimal("20")
+                ),
+                new ClientNetworkInfo("127.0.0.1", "内网")
+            )
+        );
+        verify(wallet, never()).freeze(any(), any(), any());
     }
 
     private User user(Long id, String uid) {

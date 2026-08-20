@@ -3,6 +3,8 @@ class WalletInfo {
     required this.availableBalance,
     required this.frozenBalance,
     required this.totalWithdrawn,
+    required this.freeWithdrawalLimit,
+    required this.withdrawalFeeRate,
   });
 
   factory WalletInfo.fromJson(Map<String, dynamic> json) {
@@ -10,12 +12,19 @@ class WalletInfo {
       availableBalance: _double(json['availableBalance']),
       frozenBalance: _double(json['frozenBalance']),
       totalWithdrawn: _double(json['totalWithdrawn']),
+      freeWithdrawalLimit: _double(
+        json['freeWithdrawalLimit'],
+        fallback: 30000,
+      ),
+      withdrawalFeeRate: _double(json['withdrawalFeeRate'], fallback: .2),
     );
   }
 
   final double availableBalance;
   final double frozenBalance;
   final double totalWithdrawn;
+  final double freeWithdrawalLimit;
+  final double withdrawalFeeRate;
 }
 
 class WalletTransaction {
@@ -111,9 +120,29 @@ class WithdrawalRecord {
   final DateTime? createdAt;
 }
 
+class WithdrawalQuote {
+  const WithdrawalQuote({
+    required this.amount,
+    required this.fee,
+    required this.arrivalAmount,
+  });
+
+  factory WithdrawalQuote.fromJson(Map<String, dynamic> json) {
+    return WithdrawalQuote(
+      amount: _double(json['amount']),
+      fee: _double(json['fee']),
+      arrivalAmount: _double(json['arrivalAmount']),
+    );
+  }
+
+  final double amount;
+  final double fee;
+  final double arrivalAmount;
+}
+
 int _int(Object? value) =>
     value is num ? value.toInt() : int.tryParse('$value') ?? 0;
-double _double(Object? value) =>
-    value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
+double _double(Object? value, {double fallback = 0}) =>
+    value is num ? value.toDouble() : double.tryParse('$value') ?? fallback;
 DateTime? _date(Object? value) =>
     value == null ? null : DateTime.tryParse('$value')?.toLocal();

@@ -6,6 +6,10 @@ class AppUser {
     required this.nickname,
     required this.avatarUrl,
     required this.acceptingInquiries,
+    required this.acceptingInquiriesUpdatedAt,
+    required this.inquiryPriceMin,
+    required this.inquiryPriceMax,
+    required this.inquiryPriceUpdatedAt,
     required this.answererStatus,
   });
 
@@ -17,6 +21,12 @@ class AppUser {
       nickname: json['nickname']?.toString() ?? '',
       avatarUrl: json['avatarUrl']?.toString() ?? '',
       acceptingInquiries: json['acceptingInquiries'] == true,
+      acceptingInquiriesUpdatedAt: _dateTime(
+        json['acceptingInquiriesUpdatedAt'],
+      ),
+      inquiryPriceMin: _boundedInt(json['inquiryPriceMin'], 1),
+      inquiryPriceMax: _boundedInt(json['inquiryPriceMax'], 5000),
+      inquiryPriceUpdatedAt: _dateTime(json['inquiryPriceUpdatedAt']),
       answererStatus: json['answererStatus']?.toString() ?? '',
     );
   }
@@ -27,6 +37,10 @@ class AppUser {
   final String nickname;
   final String avatarUrl;
   final bool acceptingInquiries;
+  final DateTime? acceptingInquiriesUpdatedAt;
+  final int inquiryPriceMin;
+  final int inquiryPriceMax;
+  final DateTime? inquiryPriceUpdatedAt;
   final String answererStatus;
 
   String get displayName => nickname.trim().isEmpty ? 'UID $uid' : nickname;
@@ -35,6 +49,10 @@ class AppUser {
     String? nickname,
     String? avatarUrl,
     bool? acceptingInquiries,
+    DateTime? acceptingInquiriesUpdatedAt,
+    int? inquiryPriceMin,
+    int? inquiryPriceMax,
+    DateTime? inquiryPriceUpdatedAt,
     String? answererStatus,
   }) {
     return AppUser(
@@ -44,6 +62,12 @@ class AppUser {
       nickname: nickname ?? this.nickname,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       acceptingInquiries: acceptingInquiries ?? this.acceptingInquiries,
+      acceptingInquiriesUpdatedAt:
+          acceptingInquiriesUpdatedAt ?? this.acceptingInquiriesUpdatedAt,
+      inquiryPriceMin: inquiryPriceMin ?? this.inquiryPriceMin,
+      inquiryPriceMax: inquiryPriceMax ?? this.inquiryPriceMax,
+      inquiryPriceUpdatedAt:
+          inquiryPriceUpdatedAt ?? this.inquiryPriceUpdatedAt,
       answererStatus: answererStatus ?? this.answererStatus,
     );
   }
@@ -65,3 +89,14 @@ class LoginResult {
 
 int _int(Object? value) =>
     value is num ? value.toInt() : int.tryParse('$value') ?? 0;
+
+int _boundedInt(Object? value, int fallback) {
+  final parsed = value is num ? value.toInt() : int.tryParse('$value');
+  if (parsed == null) return fallback;
+  if (parsed < 1) return 1;
+  if (parsed > 5000) return 5000;
+  return parsed;
+}
+
+DateTime? _dateTime(Object? value) =>
+    value == null ? null : DateTime.tryParse(value.toString());

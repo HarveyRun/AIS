@@ -163,7 +163,9 @@ export default function AppTestAccountPage() {
       <div className="app-test-account-layout">
         <section className="app-test-account-card app-test-account-list-card">
           <header>
-            <span className="app-test-account-icon"><Smartphone /></span>
+            <span className="app-test-account-icon">
+              <Smartphone />
+            </span>
             <div>
               <h2>账号列表</h2>
               <p>共 {accounts.length} 个，启停和验证码均可单独维护。</p>
@@ -184,7 +186,9 @@ export default function AppTestAccountPage() {
               <tbody>
                 {accounts.map((account) => (
                   <tr key={account.id}>
-                    <td><b>{account.phone}</b></td>
+                    <td>
+                      <b>{account.phone}</b>
+                    </td>
                     <td>
                       <button
                         className="app-test-account-copy"
@@ -213,14 +217,16 @@ export default function AppTestAccountPage() {
                     <td>
                       <div className="table-actions">
                         <button type="button" onClick={() => openEdit(account)}>
-                          <Pencil />编辑
+                          <Pencil />
+                          编辑
                         </button>
                         <button
                           className="danger"
                           type="button"
                           onClick={() => setDeleteTarget(account)}
                         >
-                          <Trash2 />删除
+                          <Trash2 />
+                          删除
                         </button>
                       </div>
                     </td>
@@ -230,12 +236,7 @@ export default function AppTestAccountPage() {
             </table>
             {!accounts.length && <div className="empty">暂无App超级账号</div>}
           </div>
-          <Pagination
-            page={page}
-            size={PAGE_SIZE}
-            total={total}
-            onChange={loadAccounts}
-          />
+          <Pagination page={page} size={PAGE_SIZE} total={total} onChange={loadAccounts} />
         </section>
 
         <aside className="app-test-account-notes">
@@ -243,15 +244,24 @@ export default function AppTestAccountPage() {
           <ul>
             <li>
               <Check />
-              <div><b>平台功能验证</b><span>稳定登录指定 App 账号，检查完整业务流程。</span></div>
+              <div>
+                <b>平台功能验证</b>
+                <span>稳定登录指定 App 账号，检查完整业务流程。</span>
+              </div>
             </li>
             <li>
               <MessageSquareOff />
-              <div><b>减少短信消耗</b><span>启用的账号不会调用短信渠道。</span></div>
+              <div>
+                <b>减少短信消耗</b>
+                <span>启用的账号不会调用短信渠道。</span>
+              </div>
             </li>
             <li>
               <Smartphone />
-              <div><b>应用商店审核</b><span>可分别准备多个审核账号和验证码。</span></div>
+              <div>
+                <b>应用商店审核</b>
+                <span>可分别准备多个审核账号和验证码。</span>
+              </div>
             </li>
           </ul>
           <p>这些账号在 App 内仍是普通用户，不具备后台管理权限。</p>
@@ -267,7 +277,9 @@ export default function AppTestAccountPage() {
                 <h2>{editingId ? '编辑App超级账号' : '新增App超级账号'}</h2>
                 <p>每个手机号对应一套独立的固定验证码。</p>
               </div>
-              <button type="button" aria-label="关闭" onClick={closeEditor}><X /></button>
+              <button type="button" aria-label="关闭" onClick={closeEditor}>
+                <X />
+              </button>
             </header>
             <form onSubmit={save}>
               <label>
@@ -279,10 +291,12 @@ export default function AppTestAccountPage() {
                     inputMode="numeric"
                     maxLength={11}
                     value={form.phone}
-                    onChange={(event) => setForm((current) => ({
-                      ...current,
-                      phone: event.target.value.replace(/\D/g, '').slice(0, 11),
-                    }))}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        phone: event.target.value.replace(/\D/g, '').slice(0, 11),
+                      }))
+                    }
                     placeholder="请输入11位手机号"
                   />
                 </div>
@@ -295,10 +309,12 @@ export default function AppTestAccountPage() {
                     inputMode="numeric"
                     maxLength={4}
                     value={form.verificationCode}
-                    onChange={(event) => setForm((current) => ({
-                      ...current,
-                      verificationCode: event.target.value.replace(/\D/g, '').slice(0, 4),
-                    }))}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        verificationCode: event.target.value.replace(/\D/g, '').slice(0, 4),
+                      }))
+                    }
                     placeholder="请输入4位数字"
                   />
                 </div>
@@ -319,7 +335,9 @@ export default function AppTestAccountPage() {
                 </button>
               </div>
               <footer>
-                <button className="plain" type="button" disabled={saving} onClick={closeEditor}>取消</button>
+                <button className="plain" type="button" disabled={saving} onClick={closeEditor}>
+                  取消
+                </button>
                 <button className="primary" type="submit" disabled={saving}>
                   {saving ? '保存中…' : '保存'}
                 </button>

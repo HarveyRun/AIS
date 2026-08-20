@@ -14,6 +14,7 @@ import ExperiencesPage from '../pages/experiences/ExperiencesPage.jsx';
 import AppTestAccountPage from '../pages/appTestAccount/AppTestAccountPage.jsx';
 import AppVersionPage from '../pages/appVersion/AppVersionPage.jsx';
 import AnnouncementsPage from '../pages/announcements/AnnouncementsPage.jsx';
+import BannersPage from '../pages/banners/BannersPage.jsx';
 import GlobalLoading from '../components/feedback/GlobalLoading.jsx';
 import useAdminRealtimeConnection from '../hooks/useAdminRealtimeConnection.js';
 export default function App() {
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/announcements" element={<AnnouncementsPage />} />
+        <Route path="/banners" element={<BannersPage />} />
         <Route path="/jobs" element={<JobsPage />} />
         <Route path="/experiences" element={<ExperiencesPage />} />
         <Route path="/certifications" element={<RecordsPage type="certifications" />} />

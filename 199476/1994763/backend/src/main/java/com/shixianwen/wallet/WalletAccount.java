@@ -25,13 +25,13 @@ public class WalletAccount {
     private User user;
 
     @Column(name = "available_balance", nullable = false, precision = 14, scale = 2)
-    private BigDecimal availableBalance = BigDecimal.ZERO;
+    private BigDecimal availableBalance = MoneyAmounts.ZERO;
 
     @Column(name = "frozen_balance", nullable = false, precision = 14, scale = 2)
-    private BigDecimal frozenBalance = BigDecimal.ZERO;
+    private BigDecimal frozenBalance = MoneyAmounts.ZERO;
 
     @Column(name = "total_withdrawn", nullable = false, precision = 14, scale = 2)
-    private BigDecimal totalWithdrawn = BigDecimal.ZERO;
+    private BigDecimal totalWithdrawn = MoneyAmounts.ZERO;
 
     @Version
     private long version;

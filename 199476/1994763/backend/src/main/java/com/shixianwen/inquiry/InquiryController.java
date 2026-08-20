@@ -42,6 +42,6 @@ public class InquiryController {
 
     public record CreateRequest(@NotNull Long answererId, @Size(max=120) String topic, @Size(max=30) String sourceType,
                                 @NotBlank @Size(max=300) String question,
-                                @NotNull @DecimalMin("1") @DecimalMax("999") @Digits(integer=3, fraction=0) BigDecimal amount) {}
+                                @NotNull @DecimalMin("1") @DecimalMax("5000") @Digits(integer=4, fraction=0) BigDecimal amount) {}
     public record MessageRequest(@NotBlank @Size(max=500) String content) {}
 }

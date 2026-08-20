@@ -26,6 +26,7 @@ public class AuthService {
     private final UserLoginRecordRepository loginRecordRepository;
     private final AppTestLoginAccountService appTestLoginAccountService;
     private final VerificationCodeService verificationCodeService;
+    private final UidAllocator uidAllocator;
     private final SecureRandom secureRandom = new SecureRandom();
     private final int tokenValidDays;
 
@@ -36,6 +37,7 @@ public class AuthService {
         UserLoginRecordRepository loginRecordRepository,
         AppTestLoginAccountService appTestLoginAccountService,
         VerificationCodeService verificationCodeService,
+        UidAllocator uidAllocator,
         @Value("${app.auth.token-valid-days}") int tokenValidDays
     ) {
         this.userRepository = userRepository;
@@ -44,6 +46,7 @@ public class AuthService {
         this.loginRecordRepository = loginRecordRepository;
         this.appTestLoginAccountService = appTestLoginAccountService;
         this.verificationCodeService = verificationCodeService;
+        this.uidAllocator = uidAllocator;
         this.tokenValidDays = tokenValidDays;
     }
 
@@ -85,7 +88,7 @@ public class AuthService {
 
     private User createUser(String phone, ClientNetworkInfo network) {
         User user = new User();
-        user.setUid(generateUid());
+        user.setUid(uidAllocator.allocate());
         user.setPhone(phone);
         user.setRegisterIp(network.ipAddress());
         user.setRegisterLocation(network.location());
@@ -149,16 +152,6 @@ public class AuthService {
         throw new AccountPenaltyException(reason, user.getBanUntil());
     }
 
-    private String generateUid() {
-        for (int attempt = 0; attempt < 20; attempt++) {
-            String uid = String.valueOf(1_000_000 + secureRandom.nextInt(9_000_000));
-            if (userRepository.findByUidAndAccountStatus(uid, "ACTIVE").isEmpty()) {
-                return uid;
-            }
-        }
-        throw new IllegalStateException("无法生成用户UID");
-    }
-
     private static String hash(String value) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -178,12 +171,18 @@ public class AuthService {
         String nickname,
         String avatarUrl,
         boolean acceptingInquiries,
+        LocalDateTime acceptingInquiriesUpdatedAt,
+        int inquiryPriceMin,
+        int inquiryPriceMax,
+        LocalDateTime inquiryPriceUpdatedAt,
         String answererStatus
     ) {
         public static UserView from(User user) {
             return new UserView(
                 user.getId(), user.getUid(), user.getPhone(), user.getNickname(), user.getAvatarUrl(),
-                user.isAcceptingInquiries(), user.getAnswererStatus()
+                user.isAcceptingInquiries(), user.getAcceptingInquiriesUpdatedAt(),
+                user.getInquiryPriceMin(), user.getInquiryPriceMax(), user.getInquiryPriceUpdatedAt(),
+                user.getAnswererStatus()
             );
         }
     }

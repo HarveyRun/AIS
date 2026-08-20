@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StorageVisibility;
@@ -18,6 +20,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class UserService {
+    private static final DateTimeFormatter ADJUSTMENT_TIME =
+        DateTimeFormatter.ofPattern("M月d日 HH:mm");
     private static final List<String> ACTIVE_INQUIRY_STATUSES =
         List.of("PENDING", "ACTIVE", "AWAITING_CONFIRMATION", "DISPUTED");
 
@@ -73,10 +77,55 @@ public class UserService {
     public AuthService.UserView setAcceptingInquiries(User user, boolean accepting) {
         User current = userRepository.findById(user.getId())
             .orElseThrow(() -> BusinessException.notFound("用户不存在"));
+        if (accepting && current.getInquiryPriceUpdatedAt() == null) {
+            throw BusinessException.badRequest("请先设置可接受金额");
+        }
+        if (current.isAcceptingInquiries() == accepting) {
+            return AuthService.UserView.from(current);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime nextAdjustment = current.getAcceptingInquiriesUpdatedAt() == null
+            ? null
+            : current.getAcceptingInquiriesUpdatedAt().plusHours(6);
+        if (nextAdjustment != null && nextAdjustment.isAfter(now)) {
+            throw BusinessException.badRequest(
+                "接受新询问每6小时可切换一次，下次可在" +
+                    nextAdjustment.format(ADJUSTMENT_TIME) + "切换"
+            );
+        }
         if (accepting) {
             answererEligibility.requireQualified(current.getId());
         }
         current.setAcceptingInquiries(accepting);
+        current.setAcceptingInquiriesUpdatedAt(now);
+        return AuthService.UserView.from(userRepository.save(current));
+    }
+
+    @Transactional
+    public AuthService.UserView setInquiryPriceRange(User user, int minimum, int maximum) {
+        if (minimum < 1 || maximum > 5000 || minimum > maximum) {
+            throw BusinessException.badRequest("最低金额不能高于最高金额，且须在1至5000元之间");
+        }
+        User current = userRepository.findById(user.getId())
+            .orElseThrow(() -> BusinessException.notFound("用户不存在"));
+        if (current.getInquiryPriceUpdatedAt() != null &&
+            current.getInquiryPriceMin() == minimum &&
+            current.getInquiryPriceMax() == maximum) {
+            return AuthService.UserView.from(current);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime nextAdjustment = current.getInquiryPriceUpdatedAt() == null
+            ? null
+            : current.getInquiryPriceUpdatedAt().plusMonths(3);
+        if (nextAdjustment != null && nextAdjustment.isAfter(now)) {
+            throw BusinessException.badRequest(
+                "可接受金额每3个月可调整一次，下次可在" +
+                    nextAdjustment.format(ADJUSTMENT_TIME) + "调整"
+            );
+        }
+        current.setInquiryPriceMin(minimum);
+        current.setInquiryPriceMax(maximum);
+        current.setInquiryPriceUpdatedAt(now);
         return AuthService.UserView.from(userRepository.save(current));
     }
 

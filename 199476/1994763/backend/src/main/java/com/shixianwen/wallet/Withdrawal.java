@@ -25,6 +25,8 @@ public class Withdrawal {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "bank_card_id", nullable = false)
     private BankCard bankCard;
+    @Column(name = "request_no", length = 64)
+    private String requestNo;
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
     @Column(nullable = false, precision = 14, scale = 2)

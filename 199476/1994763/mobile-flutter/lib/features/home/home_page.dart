@@ -1,16 +1,19 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
+import '../../core/config/app_config.dart';
 import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/answerer_card.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/answerer_models.dart';
+import '../../data/models/home_banner_models.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -25,6 +28,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   final _scrollController = ScrollController();
   final _pageController = PageController();
   final List<Answerer> _items = [];
+  List<HomeBannerItem> _banners = const [];
   Timer? _bannerTimer;
   Timer? _searchTimer;
   bool _loading = true;
@@ -33,18 +37,18 @@ class _HomePageState extends ConsumerState<HomePage> {
   int _page = 0;
   int _banner = 0;
 
-  static const _banners = [
-    ('买房装修', '大多数人都绕不开', '先问过来人，别稀里糊涂花钱'),
-    ('职场变动', '谁都可能碰上', '先听听别人怎么走过来的，心里就有底了'),
-    ('家庭照顾', '没人天生就会照顾', '听听过来人的经验'),
-  ];
-
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
     _load(reset: true);
+    _loadBanners();
     _refreshNoticeCount();
+  }
+
+  void _restartBannerTimer() {
+    _bannerTimer?.cancel();
+    if (_banners.length < 2) return;
     _bannerTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (!mounted || !_pageController.hasClients) return;
       _banner = (_banner + 1) % _banners.length;
@@ -54,6 +58,28 @@ class _HomePageState extends ConsumerState<HomePage> {
         curve: Curves.easeOutCubic,
       );
     });
+  }
+
+  Future<void> _loadBanners() async {
+    try {
+      final banners = await ref.read(repositoryProvider).homeBanners();
+      if (!mounted) return;
+      setState(() {
+        _banners = banners;
+        _banner = banners.isEmpty ? 0 : min(_banner, banners.length - 1);
+      });
+      if (_pageController.hasClients && banners.isNotEmpty) {
+        _pageController.jumpToPage(_banner);
+      }
+      _restartBannerTimer();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _banners = const [];
+        _banner = 0;
+      });
+      _restartBannerTimer();
+    }
   }
 
   @override
@@ -142,7 +168,11 @@ class _HomePageState extends ConsumerState<HomePage> {
         bottom: false,
         child: RefreshIndicator(
           onRefresh: () async {
-            await Future.wait([_load(reset: true), _refreshNoticeCount()]);
+            await Future.wait([
+              _load(reset: true),
+              _loadBanners(),
+              _refreshNoticeCount(),
+            ]);
           },
           child: CustomScrollView(
             controller: _scrollController,
@@ -222,15 +252,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ],
                 ),
               ),
-              SliverToBoxAdapter(
-                child: _Banner(
-                  controller: _pageController,
-                  banners: _banners,
-                  active: _banner,
-                  onChanged: (value) => setState(() => _banner = value),
-                  onTap: _openRandomDiscovery,
+              if (_banners.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: _Banner(
+                    controller: _pageController,
+                    banners: _banners,
+                    active: _banner,
+                    onChanged: (value) => setState(() => _banner = value),
+                    onTap: _openRandomDiscovery,
+                  ),
                 ),
-              ),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -308,7 +339,7 @@ class _Banner extends StatelessWidget {
     required this.onTap,
   });
   final PageController controller;
-  final List<(String, String, String)> banners;
+  final List<HomeBannerItem> banners;
   final int active;
   final ValueChanged<int> onChanged;
   final VoidCallback onTap;
@@ -316,7 +347,6 @@ class _Banner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
     return SizedBox(
       height: 174,
       child: Stack(
@@ -335,101 +365,189 @@ class _Banner extends StatelessWidget {
                   onTap: onTap,
                   child: Container(
                     margin: const EdgeInsets.fromLTRB(10, 14, 10, 4),
-                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
                     clipBehavior: Clip.antiAlias,
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _BannerDecorationPainter(
-                              color: dark
-                                  ? theme.colorScheme.primary.withValues(
-                                      alpha: .13,
-                                    )
-                                  : const Color(0xFFF5E9E7),
-                            ),
-                          ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 9,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFB86F5D),
-                                borderRadius: BorderRadius.circular(7),
-                              ),
-                              child: Text(
-                                '✣  ${item.$1}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              item.$2,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    color: theme.colorScheme.onSurface,
-                                    fontSize: 20,
-                                    height: 1.32,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 7),
-                            Text(
-                              item.$3,
-                              style: TextStyle(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontSize: 10,
-                                height: 1.35,
-                              ),
-                              maxLines: 2,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                    child: _BannerContent(item: item),
                   ),
                 ),
               );
             },
           ),
-          Positioned(
-            left: 35,
-            bottom: 16,
-            child: Row(
-              children: List.generate(
-                banners.length,
-                (index) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: active == index ? 18 : 5,
-                  height: 5,
-                  margin: const EdgeInsets.only(right: 5),
-                  decoration: BoxDecoration(
-                    color: active == index
-                        ? const Color(0xFFD7473E)
-                        : theme.colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(3),
+          if (banners.length > 1)
+            Positioned(
+              left: 35,
+              bottom: 16,
+              child: Row(
+                children: List.generate(
+                  banners.length,
+                  (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: active == index ? 18 : 5,
+                    height: 5,
+                    margin: const EdgeInsets.only(right: 5),
+                    decoration: BoxDecoration(
+                      color: active == index
+                          ? const Color(0xFFD7473E)
+                          : theme.colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
+    );
+  }
+}
+
+class _BannerContent extends StatelessWidget {
+  const _BannerContent({required this.item});
+
+  final HomeBannerItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final imageUrl = AppConfig.resolveImage(item.imageUrl).toString();
+
+    if (item.displayMode == 'IMAGE_ONLY') {
+      return _BannerImage(imageUrl: imageUrl);
+    }
+
+    if (item.displayMode == 'IMAGE_TEXT') {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          _BannerImage(imageUrl: imageUrl),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  Color(0xC9000000),
+                  Color(0x59000000),
+                  Colors.transparent,
+                ],
+                stops: [0, .62, 1],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 120, 16),
+            child: _BannerText(item: item, onImage: true),
+          ),
+        ],
+      );
+    }
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _BannerDecorationPainter(
+              color: theme.brightness == Brightness.dark
+                  ? theme.colorScheme.primary.withValues(alpha: .13)
+                  : const Color(0xFFF5E9E7),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+          child: _BannerText(item: item),
+        ),
+      ],
+    );
+  }
+}
+
+class _BannerImage extends StatelessWidget {
+  const _BannerImage({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    if (imageUrl.isEmpty) {
+      return ColoredBox(color: Theme.of(context).colorScheme.surfaceContainer);
+    }
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      fit: BoxFit.cover,
+      placeholder: (_, _) =>
+          ColoredBox(color: Theme.of(context).colorScheme.surfaceContainer),
+      errorWidget: (_, _, _) => ColoredBox(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+class _BannerText extends StatelessWidget {
+  const _BannerText({required this.item, this.onImage = false});
+
+  final HomeBannerItem item;
+  final bool onImage;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foreground = onImage ? Colors.white : theme.colorScheme.onSurface;
+    final secondary = onImage
+        ? Colors.white.withValues(alpha: .82)
+        : theme.colorScheme.onSurfaceVariant;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (item.labelText.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(
+              color: onImage
+                  ? Colors.black.withValues(alpha: .35)
+                  : const Color(0xFFB86F5D),
+              borderRadius: BorderRadius.circular(7),
+            ),
+            child: Text(
+              '✣  ${item.labelText}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        Text(
+          item.title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: foreground,
+            fontSize: 20,
+            height: 1.32,
+            fontWeight: FontWeight.w800,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (item.description.isNotEmpty) ...[
+          const SizedBox(height: 7),
+          Text(
+            item.description,
+            style: TextStyle(color: secondary, fontSize: 10, height: 1.35),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
     );
   }
 }

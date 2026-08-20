@@ -85,7 +85,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
                 answererTitle: _joined ? '答主信息' : '成为答主',
                 onSettings: () => context.push('/profile/settings'),
-                onAnswerer: () => context.push('/profile/certifications'),
+                onAnswerer: () => context.push(
+                  _joined
+                      ? '/profile/certifications'
+                      : '/profile/certifications/basic',
+                ),
                 onWallet: () => context.push('/profile/wallet'),
               ),
               const SizedBox(height: 20),
@@ -97,6 +101,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 clipBehavior: Clip.antiAlias,
                 child: Column(
                   children: [
+                    _MenuItem(
+                      icon: Icons.route_outlined,
+                      title: '我的经历',
+                      onTap: () =>
+                          context.push('/profile/certifications/experiences'),
+                    ),
                     _MenuItem(
                       icon: Icons.help_outline_rounded,
                       title: '常见问题',

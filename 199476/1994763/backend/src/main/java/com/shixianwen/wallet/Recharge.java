@@ -24,7 +24,9 @@ public class Recharge {
     private User user;
     @Column(name = "order_no", nullable = false, unique = true, length = 64)
     private String orderNo;
-    @Column(name = "provider_trade_no", length = 100)
+    @Column(name = "request_no", length = 64)
+    private String requestNo;
+    @Column(name = "provider_trade_no", unique = true, length = 100)
     private String providerTradeNo;
     @Column(nullable = false, length = 30)
     private String channel = "ALIPAY";

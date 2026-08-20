@@ -406,13 +406,18 @@ class _InquirySheetState extends ConsumerState<_InquirySheet> {
 
   Future<void> _submit() async {
     final question = _question.text.trim();
-    final amount = double.tryParse(_amount.text);
+    final amount = int.tryParse(_amount.text);
     if (question.isEmpty) {
       AppMessage.show(context, '请先写下你想问的事情');
       return;
     }
-    if (amount == null || amount <= 0) {
-      AppMessage.show(context, '请输入有效金额');
+    if (amount == null ||
+        amount < widget.answerer.inquiryPriceMin ||
+        amount > widget.answerer.inquiryPriceMax) {
+      AppMessage.show(
+        context,
+        '请输入¥${widget.answerer.inquiryPriceMin}—¥${widget.answerer.inquiryPriceMax}之间的金额',
+      );
       return;
     }
     setState(() => _submitting = true);
@@ -424,7 +429,7 @@ class _InquirySheetState extends ConsumerState<_InquirySheet> {
             topic: widget.answerer.mainJob,
             sourceType: 'PROFILE',
             question: question,
-            amount: double.parse(amount.toStringAsFixed(2)),
+            amount: amount,
           );
       if (!mounted) return;
       Navigator.pop(context);
@@ -483,13 +488,19 @@ class _InquirySheetState extends ConsumerState<_InquirySheet> {
           ),
           const SizedBox(height: 14),
           Text('你打算给多少钱', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 3),
+          Text(
+            '对方可接受 ¥${widget.answerer.inquiryPriceMin}—¥${widget.answerer.inquiryPriceMax}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: 7),
           TextField(
             controller: _amount,
             keyboardType: TextInputType.number,
-            inputFormatters: AppInputFormatters.positiveInteger(max: 999),
-            decoration: const InputDecoration(
-              hintText: '请输入1—999',
+            inputFormatters: AppInputFormatters.positiveInteger(max: 5000),
+            decoration: InputDecoration(
+              hintText:
+                  '请输入${widget.answerer.inquiryPriceMin}—${widget.answerer.inquiryPriceMax}',
               prefixText: '¥ ',
             ),
           ),

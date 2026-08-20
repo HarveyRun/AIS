@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -27,21 +26,36 @@ public class RechargeService {
 
     @Transactional
     public RechargeView create(Long userId, BigDecimal rawAmount) {
+        return create(userId, rawAmount, UUID.randomUUID().toString());
+    }
+
+    @Transactional
+    public RechargeView create(Long userId, BigDecimal rawAmount, String requestId) {
         if (!gateway.capability().available()) {
             throw BusinessException.serviceUnavailable(gateway.capability().message());
         }
-        if (rawAmount == null) throw BusinessException.badRequest("请输入充值金额");
-        try {
-            rawAmount.setScale(0, RoundingMode.UNNECESSARY);
-        } catch (ArithmeticException exception) {
-            throw BusinessException.badRequest("充值金额只支持整数");
+        BigDecimal amount = MoneyAmounts.requireWholeAmount(
+            rawAmount,
+            BigDecimal.ONE,
+            new BigDecimal("9999"),
+            "充值金额"
+        );
+        String normalizedRequestId = requireRequestId(requestId);
+        User user = users.findWithLockById(userId)
+            .orElseThrow(() -> BusinessException.notFound("用户不存在"));
+        Recharge existing = recharges.findByUserIdAndRequestNo(userId, normalizedRequestId).orElse(null);
+        if (existing != null) {
+            if (!MoneyAmounts.same(existing.getAmount(), amount)) {
+                throw BusinessException.badRequest("重复充值请求的金额不一致");
+            }
+            if ("PAID".equals(existing.getStatus())) return RechargeView.of(existing, null);
+            PaymentGateway.PaymentOrder existingOrder = gateway.createOrder(
+                existing.getOrderNo(), existing.getAmount(), "事先问账户充值"
+            );
+            return RechargeView.of(existing, existingOrder.paymentPayload());
         }
-        if (rawAmount.compareTo(BigDecimal.ONE) < 0 || rawAmount.compareTo(new BigDecimal("9999")) > 0) {
-            throw BusinessException.badRequest("充值金额必须在1至9999之间");
-        }
-        BigDecimal amount = rawAmount.setScale(2, RoundingMode.UNNECESSARY);
-        User user = users.findById(userId).orElseThrow(() -> BusinessException.notFound("用户不存在"));
         Recharge item = new Recharge(); item.setUser(user); item.setAmount(amount);
+        item.setRequestNo(normalizedRequestId);
         item.setOrderNo("SXW" + UUID.randomUUID().toString().replace("-", "").toUpperCase()); item.setStatus("PENDING");
         item = recharges.save(item);
         PaymentGateway.PaymentOrder order = gateway.createOrder(item.getOrderNo(), amount, "事先问账户充值");
@@ -58,6 +72,8 @@ public class RechargeService {
         if ("PENDING".equals(item.getStatus()) && !(gateway instanceof MockAlipayGateway)) {
             PaymentGateway.PaymentStatus status = gateway.queryOrder(orderNo);
             if ("PAID".equals(status.status())) {
+                item = recharges.findWithLockByOrderNo(orderNo)
+                    .orElseThrow(() -> BusinessException.notFound("充值订单不存在"));
                 applyPaid(item, status.providerTradeNo(), status.paidAmount(), status.paidAt());
             }
         }
@@ -74,7 +90,7 @@ public class RechargeService {
     @Transactional
     public void completeMockPayment(String orderNo) {
         ensureMockGateway();
-        Recharge item = recharges.findByOrderNo(orderNo)
+        Recharge item = recharges.findWithLockByOrderNo(orderNo)
             .orElseThrow(() -> BusinessException.notFound("充值订单不存在"));
         applyPaid(item, null, item.getAmount(), LocalDateTime.now());
     }
@@ -83,7 +99,10 @@ public class RechargeService {
     public void paidCallback(String payload, java.util.Map<String, String> headers) {
         PaymentGateway.PaymentNotification notification = gateway.verifyNotification(payload, headers);
         if (!"PAID".equals(notification.status())) return;
-        Recharge item = recharges.findByOrderNo(notification.orderNo())
+        if (notification.orderNo() == null || notification.orderNo().isBlank()) {
+            throw BusinessException.badRequest("支付回调缺少平台订单号");
+        }
+        Recharge item = recharges.findWithLockByOrderNo(notification.orderNo())
             .orElseThrow(() -> BusinessException.notFound("充值订单不存在"));
         applyPaid(
             item,
@@ -99,9 +118,16 @@ public class RechargeService {
         BigDecimal paidAmount,
         LocalDateTime paidAt
     ) {
-        if ("PAID".equals(item.getStatus())) return;
+        BigDecimal normalizedPaidAmount = MoneyAmounts.requireExactPositive(paidAmount, "实付金额");
+        verifyProviderTradeNo(item, providerTradeNo);
+        if ("PAID".equals(item.getStatus())) {
+            if (!MoneyAmounts.same(item.getAmount(), normalizedPaidAmount)) {
+                throw BusinessException.badRequest("重复支付通知的金额不一致");
+            }
+            return;
+        }
         if (!"PENDING".equals(item.getStatus())) throw BusinessException.badRequest("订单状态异常");
-        if (paidAmount == null || item.getAmount().compareTo(paidAmount) != 0) {
+        if (!MoneyAmounts.same(item.getAmount(), normalizedPaidAmount)) {
             throw BusinessException.badRequest("支付金额与充值订单不一致");
         }
         item.setStatus("PAID");
@@ -110,10 +136,34 @@ public class RechargeService {
         wallet.creditRecharge(item.getUser().getId(), item.getAmount(), item.getId());
     }
 
+    private void verifyProviderTradeNo(Recharge item, String providerTradeNo) {
+        boolean mockPayment = gateway instanceof MockAlipayGateway;
+        if (!mockPayment && (providerTradeNo == null || providerTradeNo.isBlank())) {
+            throw BusinessException.badRequest("支付回调缺少支付宝交易号");
+        }
+        if (providerTradeNo == null || providerTradeNo.isBlank()) return;
+        if (item.getProviderTradeNo() != null && !item.getProviderTradeNo().equals(providerTradeNo)) {
+            throw BusinessException.badRequest("重复支付通知的支付宝交易号不一致");
+        }
+        recharges.findByProviderTradeNo(providerTradeNo)
+            .filter(existing -> !existing.getId().equals(item.getId()))
+            .ifPresent(existing -> {
+                throw BusinessException.badRequest("支付宝交易号已被其他订单使用");
+            });
+    }
+
     private void ensureMockGateway() {
         if (!(gateway instanceof MockAlipayGateway)) {
             throw BusinessException.notFound("页面不存在");
         }
+    }
+
+    private String requireRequestId(String requestId) {
+        String value = requestId == null ? "" : requestId.trim();
+        if (!value.matches("[A-Za-z0-9_-]{12,64}")) {
+            throw BusinessException.badRequest("充值请求标识无效");
+        }
+        return value;
     }
 
     public record RechargeView(Long id, String orderNo, String providerTradeNo, String channel,

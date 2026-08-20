@@ -7,6 +7,7 @@ import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
 import com.shixianwen.user.AnswererEligibilityService;
 import com.shixianwen.wallet.WalletService;
+import com.shixianwen.wallet.MoneyAmounts;
 import com.shixianwen.network.ClientNetworkInfo;
 import com.shixianwen.realtime.RealtimePublisher;
 import com.shixianwen.storage.FileStorage;
@@ -43,6 +44,10 @@ public class InquiryService {
         User questioner = user(questionerId);
         User answerer = user(command.answererId());
         answererEligibility.requireAvailable(answerer.getId());
+        BigDecimal amount = MoneyAmounts.requireWholeAmount(
+            command.amount(), BigDecimal.ONE, new BigDecimal("5000"), "询问金额"
+        );
+        requirePriceInRange(answerer, amount);
         if (inquiries.existsByQuestionerIdAndAnswererIdAndStatusIn(questionerId, answerer.getId(), OPEN))
             throw BusinessException.badRequest("你们已有一条进行中的询问");
         Inquiry item = new Inquiry();
@@ -51,7 +56,7 @@ public class InquiryService {
         item.setQuestion(sensitiveWords.mask(required(command.question(), "请填写想问的事情", 300)));
         item.setRequestIp(network.ipAddress());
         item.setRequestLocation(network.location());
-        item.setAmount(command.amount()); item.setStatus("PENDING"); item.setFundsStatus("FROZEN");
+        item.setAmount(amount); item.setStatus("PENDING"); item.setFundsStatus("FROZEN");
         item.setAnswererUnreadCount(1);
         item.setResponseDeadline(LocalDateTime.now().plusHours(24));
         item = inquiries.save(item);
@@ -59,6 +64,17 @@ public class InquiryService {
         notifications.send(answerer, "收到新的询问", displayName(questioner) + "：" + notificationSubject(item), "/inquiries/" + item.getId());
         publishInquiryChanged(answerer.getId(), item);
         return view(item, questionerId);
+    }
+
+    private void requirePriceInRange(User answerer, BigDecimal amount) {
+        if (amount == null ||
+            amount.compareTo(BigDecimal.valueOf(answerer.getInquiryPriceMin())) < 0 ||
+            amount.compareTo(BigDecimal.valueOf(answerer.getInquiryPriceMax())) > 0) {
+            throw BusinessException.badRequest(
+                "对方可接受的询问金额为¥" + answerer.getInquiryPriceMin() + "—¥" +
+                    answerer.getInquiryPriceMax()
+            );
+        }
     }
 
     @Transactional(readOnly = true)

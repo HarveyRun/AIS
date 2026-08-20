@@ -31,7 +31,7 @@ class RechargeServiceTest {
         );
 
         User user = new User();
-        when(users.findById(1L)).thenReturn(Optional.of(user));
+        when(users.findWithLockById(1L)).thenReturn(Optional.of(user));
         when(recharges.save(any(Recharge.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         RechargeService.RechargeView created = service.create(1L, new BigDecimal("12"));
@@ -43,7 +43,7 @@ class RechargeServiceTest {
         stored.setOrderNo(created.orderNo());
         stored.setAmount(created.amount());
         stored.setStatus("PENDING");
-        when(recharges.findByOrderNo(created.orderNo())).thenReturn(Optional.of(stored));
+        when(recharges.findWithLockByOrderNo(created.orderNo())).thenReturn(Optional.of(stored));
 
         service.completeMockPayment(created.orderNo());
         service.completeMockPayment(created.orderNo());

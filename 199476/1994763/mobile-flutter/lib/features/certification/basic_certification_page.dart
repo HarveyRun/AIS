@@ -6,6 +6,8 @@ import '../../app/providers.dart';
 import '../../core/theme/app_status_style.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/certification_models.dart';
+import 'certification_notice_card.dart';
+import 'job_certification_notice_dialog.dart';
 
 class BasicCertificationPage extends ConsumerStatefulWidget {
   const BasicCertificationPage({super.key});
@@ -43,22 +45,46 @@ class _BasicCertificationPageState
     return null;
   }
 
+  bool get _basicCertificationCompleted =>
+      _find('IDENTITY')?.approved == true &&
+      _find('MAIN_JOB')?.approved == true;
+
   Future<void> _open(String type) async {
+    final record = _find(type);
+    if (type == 'MAIN_JOB' && record?.approved != true) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => const JobCertificationNoticeDialog(),
+      );
+      if (confirmed != true || !mounted) return;
+    }
     await context.push(
       '/profile/certifications/basic/$type/apply',
-      extra: _find(type),
+      extra: record,
     );
     await _load();
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('基础信息')),
+    appBar: AppBar(title: const Text('基础认证')),
     body: _loading
         ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
         : ListView(
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
             children: [
+              if (!_basicCertificationCompleted) ...[
+                const CertificationNoticeCard(
+                  tone: CertificationNoticeTone.warning,
+                  title: '申请前先看一眼',
+                  description: '提前了解清楚，能少花些不必要的时间。',
+                  items: [
+                    CertificationNoticeItem(value: '年满25周岁', label: '年龄'),
+                    CertificationNoticeItem(value: '5年以上', label: '岗位经验'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
               Card(
                 child: Column(
                   children: [

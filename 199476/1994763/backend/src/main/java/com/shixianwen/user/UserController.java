@@ -4,6 +4,9 @@ import com.shixianwen.auth.AuthService;
 import com.shixianwen.auth.CurrentUser;
 import com.shixianwen.common.ApiResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,6 +46,16 @@ public class UserController {
         return ApiResponse.ok(userService.setAcceptingInquiries(user, request.accepting()));
     }
 
+    @PatchMapping("/inquiry-price-range")
+    public ApiResponse<AuthService.UserView> updateInquiryPriceRange(
+        @CurrentUser User user,
+        @Valid @RequestBody InquiryPriceRangeRequest request
+    ) {
+        return ApiResponse.ok(
+            userService.setInquiryPriceRange(user, request.minimum(), request.maximum())
+        );
+    }
+
     @GetMapping("/answerer-eligibility")
     public ApiResponse<AnswererEligibilityService.Eligibility> answererEligibility(
         @CurrentUser User user
@@ -63,5 +76,11 @@ public class UserController {
     }
 
     public record AcceptingRequest(boolean accepting) {
+    }
+
+    public record InquiryPriceRangeRequest(
+        @NotNull @Min(1) @Max(5000) Integer minimum,
+        @NotNull @Min(1) @Max(5000) Integer maximum
+    ) {
     }
 }

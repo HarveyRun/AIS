@@ -31,7 +31,9 @@ export function request(path, options = {}) {
     try {
       const headers = new Headers(requestOptions.headers || {});
       if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
-      if (requestOptions.body) headers.set('Content-Type', 'application/json');
+      if (requestOptions.body && !(requestOptions.body instanceof FormData)) {
+        headers.set('Content-Type', 'application/json');
+      }
 
       const response = await fetch(`/api/admin${path}`, { ...requestOptions, headers });
       const payload = await response.json().catch(() => null);
@@ -96,6 +98,28 @@ export const adminApi = {
     method: 'POST',
   }),
   deleteAppVersion: (id) => request(`/app-versions/${id}`, {
+    method: 'DELETE',
+  }),
+  banners: (page = 0, size = 20) =>
+    request(`/banners?page=${page}&size=${size}`),
+  uploadBannerImage: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    return request('/banners/images', { method: 'POST', body: form });
+  },
+  createBanner: (body) => request('/banners', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
+  updateBanner: (id, body) => request(`/banners/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  }),
+  setBannerEnabled: (id, enabled) => request(`/banners/${id}/enabled`, {
+    method: 'PATCH',
+    body: JSON.stringify({ enabled }),
+  }),
+  deleteBanner: (id) => request(`/banners/${id}`, {
     method: 'DELETE',
   }),
   announcements: (page = 0, size = 20) =>

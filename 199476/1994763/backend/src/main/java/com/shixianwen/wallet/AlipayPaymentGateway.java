@@ -109,8 +109,12 @@ public class AlipayPaymentGateway implements PaymentGateway {
                 case "TRADE_CLOSED" -> "CLOSED";
                 default -> "WAITING_FOR_PAYMENT";
             };
+            String returnedOrderNo = response.getOutTradeNo();
+            if (hasText(returnedOrderNo) && !orderNo.equals(returnedOrderNo)) {
+                throw BusinessException.badRequest("支付宝返回的订单号与平台订单不一致");
+            }
             return new PaymentStatus(
-                orderNo,
+                hasText(returnedOrderNo) ? returnedOrderNo : orderNo,
                 response.getTradeNo(),
                 status,
                 decimal(response.getTotalAmount()),
@@ -138,6 +142,11 @@ public class AlipayPaymentGateway implements PaymentGateway {
         String status = ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus))
             ? "PAID"
             : "IGNORED";
+        if ("PAID".equals(status)) {
+            requireCallbackValue(parameters, "out_trade_no", "平台订单号");
+            requireCallbackValue(parameters, "trade_no", "支付宝交易号");
+            requireCallbackValue(parameters, "total_amount", "实付金额");
+        }
         return new PaymentNotification(
             parameters.get("out_trade_no"),
             parameters.get("trade_no"),
@@ -171,7 +180,12 @@ public class AlipayPaymentGateway implements PaymentGateway {
     }
 
     private static BigDecimal decimal(String value) {
-        return hasText(value) ? new BigDecimal(value) : null;
+        if (!hasText(value)) return null;
+        try {
+            return new BigDecimal(value);
+        } catch (NumberFormatException exception) {
+            throw BusinessException.badRequest("支付宝返回的金额格式不正确");
+        }
     }
 
     private static LocalDateTime dateTime(String value) {
@@ -180,5 +194,15 @@ public class AlipayPaymentGateway implements PaymentGateway {
 
     private static boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private static void requireCallbackValue(
+        Map<String, String> parameters,
+        String name,
+        String label
+    ) {
+        if (!hasText(parameters.get(name))) {
+            throw BusinessException.badRequest("支付宝回调缺少" + label);
+        }
     }
 }

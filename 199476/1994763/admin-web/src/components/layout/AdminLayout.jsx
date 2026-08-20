@@ -21,6 +21,7 @@ import {
   Smartphone,
   RefreshCw,
   BellRing,
+  Images,
 } from 'lucide-react';
 import { adminApi, token } from '../../api/adminApi.js';
 import './AdminLayout.css';
@@ -40,6 +41,7 @@ const secondaryGroups = [
     label: '业务配置',
     icon: Settings2,
     items: [
+      ['/banners', '首页轮播', Images],
       ['/jobs', '岗位管理', BriefcaseBusiness],
       ['/experiences', '经历管理', Footprints],
       ['/discovery', '分类管理', Tags],

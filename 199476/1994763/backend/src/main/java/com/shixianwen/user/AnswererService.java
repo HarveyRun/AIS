@@ -67,6 +67,7 @@ public class AnswererService {
             .toList();
         return new AnswererView(
             user.getId(), user.getUid(), user.getNickname(), user.getAvatarUrl(), user.isAcceptingInquiries(),
+            user.getInquiryPriceMin(), user.getInquiryPriceMax(),
             job == null ? null : job.name(), job == null ? null : job.years(), job == null ? null : job.description(), experiences
         );
     }
@@ -123,6 +124,8 @@ public class AnswererService {
         String nickname,
         String avatarUrl,
         boolean acceptingInquiries,
+        int inquiryPriceMin,
+        int inquiryPriceMax,
         String mainJob,
         Integer mainJobYears,
         String capabilityDescription,

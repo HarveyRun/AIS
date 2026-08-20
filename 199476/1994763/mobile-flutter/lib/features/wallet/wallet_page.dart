@@ -11,6 +11,7 @@ import '../../core/formatters/money_formatter.dart';
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_status_style.dart';
 import '../../core/input/app_input_formatters.dart';
+import '../../core/network/request_id.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/wallet_models.dart';
 
@@ -31,6 +32,8 @@ class _WalletPageState extends ConsumerState<WalletPage> {
   final _amount = TextEditingController();
   bool _loading = true;
   bool _submitting = false;
+  String? _rechargeRequestId;
+  String? _withdrawalRequestId;
 
   @override
   void initState() {
@@ -96,9 +99,11 @@ class _WalletPageState extends ConsumerState<WalletPage> {
           );
           return;
         }
+        final requestId = _rechargeRequestId ?? RequestId.create('recharge');
+        _rechargeRequestId = requestId;
         final order = await ref
             .read(repositoryProvider)
-            .createRecharge(amount.toDouble());
+            .createRecharge(amount, requestId);
         final paymentPayload = order['paymentPayload']?.toString() ?? '';
         final paymentMode = capability['paymentMode']?.toString() ?? '';
         if (paymentPayload.isEmpty) {
@@ -125,16 +130,56 @@ class _WalletPageState extends ConsumerState<WalletPage> {
           await _bindCard();
           if (_bankCard == null) return;
         }
-        await ref.read(repositoryProvider).withdraw(amount.toDouble());
+        final quote = await ref
+            .read(repositoryProvider)
+            .withdrawalQuote(amount);
+        if (!mounted || !await _confirmWithdrawal(quote)) return;
+        final requestId =
+            _withdrawalRequestId ?? RequestId.create('withdrawal');
+        _withdrawalRequestId = requestId;
+        await ref.read(repositoryProvider).withdraw(amount, requestId);
         if (mounted) AppMessage.show(context, '提现申请已经提交');
       }
       _amount.clear();
+      _rechargeRequestId = null;
+      _withdrawalRequestId = null;
       await _load();
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  Future<bool> _confirmWithdrawal(WithdrawalQuote quote) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认提现'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('提现金额  ¥${formatMoney(quote.amount)}'),
+            const SizedBox(height: 8),
+            Text('手续费  ¥${formatMoney(quote.fee)}'),
+            const SizedBox(height: 8),
+            Text('预计到账  ¥${formatMoney(quote.arrivalAmount)}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确认'),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
   }
 
   Future<void> _payWithAlipayApp(
@@ -173,12 +218,9 @@ class _WalletPageState extends ConsumerState<WalletPage> {
   @override
   Widget build(BuildContext context) {
     final wallet = _wallet;
-    final amount = double.tryParse(_amount.text) ?? 0;
-    final remainingFree = wallet == null
-        ? 10000.0
-        : (10000 - wallet.totalWithdrawn).clamp(0, 10000).toDouble();
-    final fee = ((amount - remainingFree).clamp(0, double.infinity) * .2)
-        .toDouble();
+    final amount = int.tryParse(_amount.text) ?? 0;
+    final freeWithdrawalLimit = wallet?.freeWithdrawalLimit ?? 30000;
+    final withdrawalFeeRate = wallet?.withdrawalFeeRate ?? .2;
     return Scaffold(
       appBar: AppBar(title: const Text('账户余额')),
       body: _loading
@@ -244,7 +286,10 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                       controller: _amount,
                       label: _tab == WalletTab.recharge ? '充值金额' : '提现金额',
                       maxAmount: 9999,
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (_) => setState(() {
+                        _rechargeRequestId = null;
+                        _withdrawalRequestId = null;
+                      }),
                     ),
                     const SizedBox(height: 12),
                     if (_tab == WalletTab.recharge)
@@ -302,7 +347,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        '本次手续费 ¥${formatMoney(fee)}，预计到账 ¥${formatMoney((amount - fee).clamp(0, double.infinity))}。累计提现10,000元以内免费，超出部分收取20%。',
+                        '累计提现${formatMoney(freeWithdrawalLimit)}元以内免费，超出部分收取${formatMoney(withdrawalFeeRate * 100)}%。',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

@@ -34,6 +34,8 @@ class Answerer {
     required this.nickname,
     required this.avatarUrl,
     required this.acceptingInquiries,
+    required this.inquiryPriceMin,
+    required this.inquiryPriceMax,
     required this.mainJob,
     required this.mainJobYears,
     required this.capabilityDescription,
@@ -48,6 +50,8 @@ class Answerer {
       nickname: json['nickname']?.toString() ?? '',
       avatarUrl: json['avatarUrl']?.toString() ?? '',
       acceptingInquiries: json['acceptingInquiries'] == true,
+      inquiryPriceMin: _boundedInt(json['inquiryPriceMin'], 1),
+      inquiryPriceMax: _boundedInt(json['inquiryPriceMax'], 5000),
       mainJob: json['mainJob']?.toString() ?? '-',
       mainJobYears: _nullableInt(json['mainJobYears']) ?? 0,
       capabilityDescription: json['capabilityDescription']?.toString() ?? '',
@@ -63,6 +67,8 @@ class Answerer {
   final String nickname;
   final String avatarUrl;
   final bool acceptingInquiries;
+  final int inquiryPriceMin;
+  final int inquiryPriceMax;
   final String mainJob;
   final int mainJobYears;
   final String capabilityDescription;
@@ -97,3 +103,11 @@ class AnswererPageData {
 int _int(Object? value) =>
     value is num ? value.toInt() : int.tryParse('$value') ?? 0;
 int? _nullableInt(Object? value) => value == null ? null : _int(value);
+
+int _boundedInt(Object? value, int fallback) {
+  final parsed = value is num ? value.toInt() : int.tryParse('$value');
+  if (parsed == null) return fallback;
+  if (parsed < 1) return 1;
+  if (parsed > 5000) return 5000;
+  return parsed;
+}

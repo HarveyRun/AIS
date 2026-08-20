@@ -8,6 +8,8 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,7 +29,7 @@ public class RechargeController {
     private final RechargeService service;
     @Value("${app.payment.mock-return-url:http://localhost:5173/profile/wallet}") private String mockReturnUrl;
     @GetMapping("/capability") public ApiResponse<PaymentGateway.PaymentCapability> capability() { return ApiResponse.ok(service.capability()); }
-    @PostMapping public ApiResponse<RechargeService.RechargeView> create(@CurrentUser User user, @Valid @RequestBody Request request) { return ApiResponse.ok(service.create(user.getId(), request.amount())); }
+    @PostMapping public ApiResponse<RechargeService.RechargeView> create(@CurrentUser User user, @Valid @RequestBody Request request) { return ApiResponse.ok(service.create(user.getId(), request.amount(), request.requestId())); }
     @GetMapping public ApiResponse<List<RechargeService.RechargeView>> list(@CurrentUser User user) { return ApiResponse.ok(service.list(user.getId())); }
     @GetMapping("/{orderNo}") public ApiResponse<RechargeService.RechargeView> find(@CurrentUser User user, @PathVariable String orderNo) { return ApiResponse.ok(service.find(user.getId(), orderNo)); }
     @PostMapping("/payment-callback")
@@ -53,5 +55,8 @@ public class RechargeController {
             .location(URI.create(mockReturnUrl + "?recharge=success&orderNo=" + orderNo))
             .build();
     }
-    public record Request(@NotNull @DecimalMin("1") @DecimalMax("9999") @Digits(integer=4, fraction=0) BigDecimal amount) {}
+    public record Request(
+        @NotNull @DecimalMin("1") @DecimalMax("9999") @Digits(integer=4, fraction=0) BigDecimal amount,
+        @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{12,64}") String requestId
+    ) {}
 }

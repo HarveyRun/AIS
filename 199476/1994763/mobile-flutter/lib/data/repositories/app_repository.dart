@@ -5,6 +5,7 @@ import '../models/answerer_models.dart';
 import '../models/app_version_models.dart';
 import '../models/certification_models.dart';
 import '../models/discovery_models.dart';
+import '../models/home_banner_models.dart';
 import '../models/inquiry_models.dart';
 import '../models/support_models.dart';
 import '../models/user_models.dart';
@@ -28,6 +29,14 @@ class AppRepository {
       query: {'platform': 'ANDROID', 'currentVersionCode': currentVersionCode},
     );
     return AppUpdateInfo.fromJson(data);
+  }
+
+  Future<List<HomeBannerItem>> homeBanners() async {
+    final data = await _api.get<List<dynamic>>('/public/banners');
+    return data
+        .whereType<Map>()
+        .map((item) => HomeBannerItem.fromJson(Map<String, dynamic>.from(item)))
+        .toList(growable: false);
   }
 
   Future<void> sendVerificationCode(String phone) {
@@ -76,6 +85,17 @@ class AppRepository {
     final data = await _api.patch<Map<String, dynamic>>(
       '/users/me/accepting-inquiries',
       data: {'accepting': accepting},
+    );
+    return AppUser.fromJson(data);
+  }
+
+  Future<AppUser> setInquiryPriceRange({
+    required int minimum,
+    required int maximum,
+  }) async {
+    final data = await _api.patch<Map<String, dynamic>>(
+      '/users/me/inquiry-price-range',
+      data: {'minimum': minimum, 'maximum': maximum},
     );
     return AppUser.fromJson(data);
   }
@@ -173,7 +193,7 @@ class AppRepository {
     required String topic,
     required String sourceType,
     required String question,
-    required double amount,
+    required int amount,
   }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/inquiries',
@@ -182,7 +202,7 @@ class AppRepository {
         'topic': topic,
         'sourceType': sourceType,
         'question': question,
-        'amount': amount.toInt(),
+        'amount': amount,
       },
     );
     return InquirySummary.fromJson(data);
@@ -268,21 +288,30 @@ class AppRepository {
         .toList(growable: false);
   }
 
-  Future<void> withdraw(double amount) {
-    return _api.post<Object?>(
-      '/wallet/withdrawals',
-      data: {'amount': amount.toInt()},
+  Future<WithdrawalQuote> withdrawalQuote(int amount) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/wallet/withdrawals/quote',
+      data: {'amount': amount},
     );
+    return WithdrawalQuote.fromJson(data);
+  }
+
+  Future<WithdrawalRecord> withdraw(int amount, String requestId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/wallet/withdrawals',
+      data: {'amount': amount, 'requestId': requestId},
+    );
+    return WithdrawalRecord.fromJson(data);
   }
 
   Future<Map<String, dynamic>> rechargeCapability() {
     return _api.get<Map<String, dynamic>>('/recharges/capability');
   }
 
-  Future<Map<String, dynamic>> createRecharge(double amount) {
+  Future<Map<String, dynamic>> createRecharge(int amount, String requestId) {
     return _api.post<Map<String, dynamic>>(
       '/recharges',
-      data: {'amount': amount.toInt()},
+      data: {'amount': amount, 'requestId': requestId},
     );
   }
 

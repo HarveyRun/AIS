@@ -38,6 +38,18 @@ public class User {
     @Column(name = "accepting_inquiries", nullable = false)
     private boolean acceptingInquiries = false;
 
+    @Column(name = "accepting_inquiries_updated_at")
+    private LocalDateTime acceptingInquiriesUpdatedAt;
+
+    @Column(name = "inquiry_price_min", nullable = false)
+    private int inquiryPriceMin = 1;
+
+    @Column(name = "inquiry_price_max", nullable = false)
+    private int inquiryPriceMax = 5000;
+
+    @Column(name = "inquiry_price_updated_at")
+    private LocalDateTime inquiryPriceUpdatedAt;
+
     @Column(name = "answerer_status", nullable = false, length = 30)
     private String answererStatus = "NOT_APPLIED";
 

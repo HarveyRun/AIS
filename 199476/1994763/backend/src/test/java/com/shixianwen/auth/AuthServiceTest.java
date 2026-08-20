@@ -32,6 +32,7 @@ class AuthServiceTest {
             mock(UserLoginRecordRepository.class),
             testAccountService,
             verificationCodeService,
+            mock(UidAllocator.class),
             30
         );
     }
