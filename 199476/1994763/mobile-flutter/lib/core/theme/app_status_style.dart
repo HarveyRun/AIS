@@ -31,10 +31,12 @@ AppStatusStyle appStatusStyle(BuildContext context, String rawStatus) {
 
   if ({
     'PENDING',
+    'BOOKED',
     'PROCESSING',
     'AWAITING_CONFIRMATION',
     'SUBMITTED',
     '审核中',
+    '已预约',
     '待处理',
     '处理中',
     '等待接受',

@@ -86,7 +86,7 @@ export default function AdminUsersPage() {
       setSaving(true);
       if (editor.mode === 'create') {
         await adminApi.createAdminUser(form);
-        message.success('后台账号已创建');
+        message.success(`后台账号已创建，初始密码：${form.password}`);
       } else {
         await adminApi.updateAdminUser(editor.item.id, {
           phone: form.phone,
@@ -114,7 +114,7 @@ export default function AdminUsersPage() {
     try {
       setSaving(true);
       await adminApi.assignAdminUserRoles(roleTarget.id, selectedRoleIds);
-      message.success('账号角色已更新，下次登录生效');
+      message.success('账号角色已更新，关联账号需重新登录');
       setRoleTarget(null);
       await load(page);
     } catch (error) {
@@ -203,8 +203,8 @@ export default function AdminUsersPage() {
           <form className="rbac-form" onSubmit={saveUser}>
             <label><span>手机号</span><input maxLength={20} value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
             <label><span>管理员名称</span><input maxLength={60} value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} /></label>
-            {editor.mode === 'create' && <label><span>初始密码</span><input value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /><small>未修改时使用平台默认密码</small></label>}
-            <label><span>状态</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="ACTIVE">启用</option><option value="DISABLED">停用</option></select></label>
+            {editor.mode === 'create' && <label><span>初始密码</span><input type="password" maxLength={128} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /><small>首次登录后必须修改，仅用于初始化账号</small></label>}
+            <label><span>状态</span><select value={form.status} disabled={editor.mode === 'edit' && editor.item?.id === admin?.id} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="ACTIVE">启用</option><option value="DISABLED">停用</option></select>{editor.mode === 'edit' && editor.item?.id === admin?.id && <small>当前登录账号不能停用自身</small>}</label>
             {editor.mode === 'create' && <RoleChecks roles={roles} value={form.roleIds} onChange={(roleIds) => setForm({ ...form, roleIds })} />}
             <div className="rbac-form-actions"><button className="plain" type="button" onClick={() => setEditor(null)}>取消</button><button className="primary" disabled={saving}>保存</button></div>
           </form>

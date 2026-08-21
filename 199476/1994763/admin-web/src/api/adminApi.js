@@ -95,6 +95,9 @@ export const adminApi = {
   setup: (body) => request('/auth/setup', { method: 'POST', body: JSON.stringify(body) }),
   login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   me: () => request('/auth/me'),
+  changePassword: (body) => request('/auth/change-password', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
   adminUsers: ({ keyword = '', page = 0, size = 20 } = {}) => request(
     `/admin-users?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${size}`,
   ),
@@ -147,6 +150,21 @@ export const adminApi = {
   updatePlatformFee: (androidRatePercent, iosRatePercent) => request('/platform-fee', {
     method: 'PUT',
     body: JSON.stringify({ androidRatePercent, iosRatePercent }),
+  }),
+  invitationCampaign: () => request('/invitation-campaign'),
+  updateInvitationCampaign: (enabled, rewardAmount) => request('/invitation-campaign', {
+    method: 'PUT',
+    body: JSON.stringify({ enabled, rewardAmount }),
+  }),
+  invitationReviews: ({ keyword = '', status = '', page = 0, size = 20 } = {}) => request(
+    `/invitations?keyword=${encodeURIComponent(keyword)}&status=${encodeURIComponent(status)}&page=${page}&size=${size}`,
+  ),
+  invitationIdentityMaterials: (id) => request(`/invitations/${id}/identity-materials`),
+  invitationInviteeHandheldMaterial: (id) =>
+    request(`/invitations/${id}/invitee-handheld-material`),
+  reviewInvitation: (id, approved, reason = '') => request(`/invitations/${id}/review`, {
+    method: 'POST',
+    body: JSON.stringify({ approved, reason }),
   }),
   appTestAccounts: (page = 0, size = 20) =>
     request(`/app-test-accounts?page=${page}&size=${size}`),
@@ -240,6 +258,28 @@ export const adminApi = {
   updateCertification: (id, body) =>
     request(`/certifications/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteCertification: (id) => request(`/certifications/${id}`, { method: 'DELETE' }),
+  offlineCertificationAppointments: ({ keyword = '', status = '', page = 0, size = 20 } = {}) =>
+    request(
+      `/job-certification-appointments?keyword=${encodeURIComponent(keyword)}`
+      + `&status=${encodeURIComponent(status)}&page=${page}&size=${size}`,
+    ),
+  offlineCertificationAppointmentMaterials: (id) =>
+    request(`/job-certification-appointments/${id}/materials`),
+  processOfflineCertificationAppointment: (id, payload) => {
+    const form = new FormData();
+    form.append('status', payload.status);
+    form.append('reason', payload.reason || '');
+    if (payload.jobId) form.append('jobId', String(payload.jobId));
+    if (payload.years) form.append('years', String(payload.years));
+    if (payload.authenticityPercent !== null && payload.authenticityPercent !== undefined) {
+      form.append('authenticityPercent', String(payload.authenticityPercent));
+    }
+    if (payload.evidence) form.append('evidence', payload.evidence);
+    return request(`/job-certification-appointments/${id}/process`, {
+      method: 'POST',
+      body: form,
+    });
+  },
   userStatus: (id, body) =>
     request(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify(body) }),
   withdrawalStatus: (id, status) =>

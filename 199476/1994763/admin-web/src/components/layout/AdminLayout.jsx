@@ -3,12 +3,15 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BellRing,
   BriefcaseBusiness,
+  CalendarCheck2,
   ChevronDown,
   Ellipsis,
   Footprints,
+  Gift,
   Handshake,
   Headset,
   Images,
+  ListChecks,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -36,6 +39,8 @@ const primaryItems = [
   ['/users', '用户管理', Users, 'USER_VIEW'],
   ['/announcements', '通知管理', BellRing, 'ANNOUNCEMENT_VIEW'],
   ['/certifications', '认证审核', ShieldCheck, 'CERTIFICATION_VIEW'],
+  ['/offline-certifications', '线下认证', CalendarCheck2, 'OFFLINE_APPOINTMENT_VIEW'],
+  ['/invitation-reviews', '邀请审核', ListChecks, 'INVITATION_REVIEW_VIEW'],
   ['/inquiries', '询问管理', MessagesSquare, 'INQUIRY_VIEW'],
   ['/withdrawals', '提现处理', WalletCards, 'WITHDRAWAL_VIEW'],
   ['/customer-service', '在线客服', Headset, 'CUSTOMER_SERVICE_VIEW'],
@@ -48,6 +53,7 @@ const secondaryGroups = [
     icon: Settings2,
     items: [
       ['/platform-fee', '平台服务费', Percent, 'PLATFORM_FEE_VIEW'],
+      ['/invitation-campaign', '邀请答主活动', Gift, 'INVITATION_CAMPAIGN_VIEW'],
       ['/banners', '首页轮播', Images, 'BANNER_VIEW'],
       ['/jobs', '岗位管理', BriefcaseBusiness, 'JOB_VIEW'],
       ['/experiences', '经历管理', Footprints, 'EXPERIENCE_VIEW'],
@@ -69,7 +75,7 @@ const secondaryGroups = [
     icon: ShieldCog,
     items: [
       ['/app-versions', 'App版本管理', RefreshCw, 'APP_VERSION_VIEW'],
-      ['/app-test-account', 'App超级账号', Smartphone, 'APP_TEST_ACCOUNT_VIEW'],
+      ['/app-test-account', '测试账号', Smartphone, 'APP_TEST_ACCOUNT_VIEW'],
       ['/admin-users', '后台账号', UserRoundCog, 'ADMIN_USER_VIEW'],
       ['/admin-roles', '角色管理', ShieldCog, 'ROLE_VIEW'],
       ['/admin-permissions', '权限管理', KeyRound, 'PERMISSION_VIEW'],
@@ -140,7 +146,9 @@ export default function AdminLayout({ adminData, onLoggedOut, customerServiceUnr
               </NavLink>
             ))}
             {visibleGroups.length > 0 && (
-              <div className="nav-divider"><span>更多管理</span></div>
+              <div className="nav-divider">
+                <span>更多管理</span>
+              </div>
             )}
             {visibleGroups.map((group) => {
               const GroupIcon = group.icon;

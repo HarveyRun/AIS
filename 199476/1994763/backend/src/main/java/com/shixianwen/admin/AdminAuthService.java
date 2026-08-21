@@ -63,6 +63,7 @@ public class AdminAuthService {
         AdminUser user = new AdminUser();
         user.setPhone(phone.trim());
         user.setPasswordHash(passwords.encode(password));
+        user.setMustChangePassword(false);
         user.setDisplayName(displayName == null || displayName.isBlank() ? "管理员" : displayName.trim());
         user = users.save(user);
         securityEvents.recordSafely(null, null, "ADMIN_CREATED", "HIGH", ip, deviceId, "phoneSuffix=" + phone.substring(7));
@@ -79,19 +80,24 @@ public class AdminAuthService {
     ) {
         String safeDevice = LoginAttemptService.safeDevice(deviceId);
         loginAttempts.requireAllowed("ADMIN", phone, ip, safeDevice);
-        try {
-            AdminUser user = users.findByPhoneAndStatusAndDeletedAtIsNull(phone, "ACTIVE")
-                .orElseThrow(() -> unauthorized());
-            if (!passwords.matches(password, user.getPasswordHash())) throw unauthorized();
-            user.setLastLoginAt(LocalDateTime.now());
-            loginAttempts.record("ADMIN", phone, ip, safeDevice, true);
-            securityEvents.recordSafely(null, user.getId(), "ADMIN_LOGIN_SUCCESS", "MEDIUM", ip, safeDevice, null);
-            return session(user, ip, safeDevice);
-        } catch (BusinessException exception) {
+        AdminUser user = users.findByPhoneAndStatusAndDeletedAtIsNull(phone, "ACTIVE").orElse(null);
+        if (!passwords.matches(password, user == null ? null : user.getPasswordHash())) {
             loginAttempts.record("ADMIN", phone, ip, safeDevice, false);
             securityEvents.recordSafely(null, null, "ADMIN_LOGIN_FAILED", "HIGH", ip, safeDevice, "登录校验失败");
-            throw exception.getStatus() == HttpStatus.TOO_MANY_REQUESTS ? exception : unauthorized();
+            throw unauthorized();
         }
+        if (authorization.roles(user.getId()).isEmpty()) {
+            securityEvents.recordSafely(
+                null, user.getId(), "ADMIN_LOGIN_NO_ACTIVE_ROLE", "HIGH", ip, safeDevice,
+                "账号没有可用角色"
+            );
+            throw BusinessException.forbidden("账号没有可用角色，请联系超级管理员");
+        }
+        user.setLastLoginAt(LocalDateTime.now());
+        LoginResult result = session(user, ip, safeDevice);
+        loginAttempts.record("ADMIN", phone, ip, safeDevice, true);
+        securityEvents.recordSafely(null, user.getId(), "ADMIN_LOGIN_SUCCESS", "MEDIUM", ip, safeDevice, null);
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -116,7 +122,39 @@ public class AdminAuthService {
         sessions.deleteByTokenHash(hash(token));
     }
 
+    @Transactional
+    public void changePassword(
+        AdminUser user,
+        String currentPassword,
+        String newPassword,
+        String ip,
+        String deviceId
+    ) {
+        validatePassword(newPassword);
+        if (!passwords.matches(currentPassword, user.getPasswordHash())) {
+            securityEvents.recordSafely(
+                null, user.getId(), "ADMIN_PASSWORD_CHANGE_FAILED", "HIGH", ip,
+                LoginAttemptService.safeDevice(deviceId), "当前密码校验失败"
+            );
+            throw BusinessException.badRequest("当前密码不正确");
+        }
+        if (passwords.matches(newPassword, user.getPasswordHash())) {
+            throw BusinessException.badRequest("新密码不能与当前密码相同");
+        }
+        if (AdminAccountManagementService.DEFAULT_RESET_PASSWORD.equals(newPassword)) {
+            throw BusinessException.badRequest("新密码不能继续使用平台默认密码");
+        }
+        user.setPasswordHash(passwords.encode(newPassword));
+        user.setMustChangePassword(false);
+        users.save(user);
+        securityEvents.recordSafely(
+            null, user.getId(), "ADMIN_PASSWORD_CHANGED", "HIGH", ip,
+            LoginAttemptService.safeDevice(deviceId), null
+        );
+    }
+
     private LoginResult session(AdminUser user, String ip, String deviceId) {
+        sessions.deleteByExpiresAtBefore(LocalDateTime.now());
         sessions.deleteByAdminUserId(user.getId());
         sessions.flush();
         byte[] bytes = new byte[32];
@@ -153,9 +191,13 @@ public class AdminAuthService {
         if (phone == null || !phone.matches("^1\\d{10}$")) {
             throw BusinessException.badRequest("请输入正确的手机号");
         }
-        if (password == null || password.length() < 10
+        validatePassword(password);
+    }
+
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 10 || password.length() > 128
             || !password.matches(".*[A-Za-z].*") || !password.matches(".*\\d.*")) {
-            throw BusinessException.badRequest("密码至少10位，并包含字母和数字");
+            throw BusinessException.badRequest("密码需为10至128位，并包含字母和数字");
         }
     }
 
@@ -182,6 +224,7 @@ public class AdminAuthService {
         String phone,
         String displayName,
         String role,
+        boolean mustChangePassword,
         java.util.List<AdminAuthorizationService.AdminRoleSummary> roles,
         java.util.Set<String> permissions
     ) {
@@ -191,7 +234,8 @@ public class AdminAuthService {
             java.util.Set<String> permissions
         ) {
             return new AdminView(
-                user.getId(), user.getPhone(), user.getDisplayName(), user.getRole(), roles, permissions
+                user.getId(), user.getPhone(), user.getDisplayName(), user.getRole(),
+                user.isMustChangePassword(), roles, permissions
             );
         }
     }

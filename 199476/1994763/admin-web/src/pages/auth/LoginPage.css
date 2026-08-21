@@ -74,6 +74,10 @@
   font-weight: 700;
   cursor: pointer;
 }
+.admin-login form > button.admin-login-secondary {
+  background: #f3f4f6;
+  color: #4f555e;
+}
 .admin-code-field {
   display: grid;
   grid-template-columns: 1fr 112px;

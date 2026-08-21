@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { adminApi, token } from '../api/adminApi.js';
 import AdminLayout from '../components/layout/AdminLayout.jsx';
 import LoginPage from '../pages/auth/LoginPage.jsx';
+import ForcePasswordChangePage from '../pages/auth/ForcePasswordChangePage.jsx';
 import DashboardPage from '../pages/dashboard/DashboardPage.jsx';
 import UsersPage from '../pages/users/UsersPage.jsx';
 import RecordsPage from '../pages/records/RecordsPage.jsx';
@@ -17,10 +18,14 @@ import AnnouncementsPage from '../pages/announcements/AnnouncementsPage.jsx';
 import BannersPage from '../pages/banners/BannersPage.jsx';
 import SecurityEventsPage from '../pages/security/SecurityEventsPage.jsx';
 import PlatformFeePage from '../pages/platformFee/PlatformFeePage.jsx';
+import InvitationCampaignPage from '../pages/invitationCampaign/InvitationCampaignPage.jsx';
+import InvitationReviewsPage from '../pages/invitationReviews/InvitationReviewsPage.jsx';
+import OfflineCertificationsPage from '../pages/offlineCertifications/OfflineCertificationsPage.jsx';
 import AdminUsersPage from '../pages/adminUsers/AdminUsersPage.jsx';
 import AdminRolesPage from '../pages/adminRoles/AdminRolesPage.jsx';
 import AdminPermissionsPage from '../pages/adminPermissions/AdminPermissionsPage.jsx';
 import GlobalLoading from '../components/feedback/GlobalLoading.jsx';
+import { message } from '../components/feedback/message.js';
 import useAdminRealtimeConnection from '../hooks/useAdminRealtimeConnection.js';
 import { useAdminAccess } from './AdminAccessContext.jsx';
 export default function App() {
@@ -46,19 +51,33 @@ export default function App() {
 
   const permissions = new Set(admin?.permissions || []);
   const canUseCustomerService = permissions.has('*') || permissions.has('CUSTOMER_SERVICE_VIEW');
-  useAdminRealtimeConnection(authed && canUseCustomerService, handleRealtimeEvent);
+  useAdminRealtimeConnection(
+    authed && canUseCustomerService && !admin?.mustChangePassword,
+    handleRealtimeEvent,
+  );
   useEffect(() => {
     if (!authed) {
       setAdmin(null);
       return;
     }
-    adminApi.me().then(setAdmin).catch(() => {});
+    adminApi.me().then(setAdmin).catch((error) => message.error(error.message));
   }, [authed]);
   useEffect(() => {
     const unauthorized = () => setAuthed(false);
     window.addEventListener('shixianwen-admin-unauthorized', unauthorized);
     return () => window.removeEventListener('shixianwen-admin-unauthorized', unauthorized);
   }, []);
+  if (authed && admin?.mustChangePassword) {
+    return (
+      <>
+        <ForcePasswordChangePage
+          onChanged={async () => setAdmin(await adminApi.me())}
+          onLoggedOut={() => setAuthed(false)}
+        />
+        <GlobalLoading />
+      </>
+    );
+  }
   return (
     <>
       <Routes>
@@ -91,9 +110,12 @@ export default function App() {
         <Route path="/announcements" element={<Guard permission="ANNOUNCEMENT_VIEW"><AnnouncementsPage /></Guard>} />
         <Route path="/banners" element={<Guard permission="BANNER_VIEW"><BannersPage /></Guard>} />
         <Route path="/platform-fee" element={<Guard permission="PLATFORM_FEE_VIEW"><PlatformFeePage /></Guard>} />
+        <Route path="/invitation-campaign" element={<Guard permission="INVITATION_CAMPAIGN_VIEW"><InvitationCampaignPage /></Guard>} />
         <Route path="/jobs" element={<Guard permission="JOB_VIEW"><JobsPage /></Guard>} />
         <Route path="/experiences" element={<Guard permission="EXPERIENCE_VIEW"><ExperiencesPage /></Guard>} />
         <Route path="/certifications" element={<Guard permission="CERTIFICATION_VIEW"><RecordsPage type="certifications" /></Guard>} />
+        <Route path="/offline-certifications" element={<Guard permission="OFFLINE_APPOINTMENT_VIEW"><OfflineCertificationsPage /></Guard>} />
+        <Route path="/invitation-reviews" element={<Guard permission="INVITATION_REVIEW_VIEW"><InvitationReviewsPage /></Guard>} />
         <Route path="/discovery" element={<Guard permission="DISCOVERY_VIEW"><DiscoveryManagementPage /></Guard>} />
         <Route path="/inquiries" element={<Guard permission="INQUIRY_VIEW"><RecordsPage type="inquiries" /></Guard>} />
         <Route path="/withdrawals" element={<Guard permission="WITHDRAWAL_VIEW"><RecordsPage type="withdrawals" /></Guard>} />

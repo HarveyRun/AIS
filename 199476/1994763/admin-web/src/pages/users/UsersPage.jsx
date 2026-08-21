@@ -1,10 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  Search,
-  ShieldBan,
-  ShieldCheck,
-  X,
-} from 'lucide-react';
+import { Search, ShieldBan, ShieldCheck, X } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
 import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
 import Pagination from '../../components/data/Pagination.jsx';
@@ -131,18 +126,12 @@ export default function UsersPage() {
             placeholder="搜索UID、手机号或昵称"
           />
         </label>
-        <select
-          value={status}
-          onChange={(event) => setStatus(event.target.value)}
-        >
+        <select value={status} onChange={(event) => setStatus(event.target.value)}>
           <option value="">全部状态</option>
           <option value="ACTIVE">正常</option>
           <option value="SUSPENDED">封禁中</option>
         </select>
-        <button
-          type="button"
-          onClick={() => load(0)}
-        >
+        <button type="button" onClick={() => load(0)}>
           查询
         </button>
       </div>
@@ -166,7 +155,9 @@ export default function UsersPage() {
                 <td>
                   <b>
                     {user.nickname || `UID ${user.uid}`}
-                    {user.accountType === 'TEST' && <span className="test-data-badge">测试账号</span>}
+                    {user.accountType === 'TEST' && (
+                      <span className="test-data-badge">测试账号</span>
+                    )}
                   </b>
                   <small>UID {user.uid}</small>
                 </td>
@@ -182,37 +173,33 @@ export default function UsersPage() {
                 </td>
                 <td>{date(user.createdAt)}</td>
                 <td>
-                  {can('USER_STATUS') && (user.accountStatus === 'ACTIVE' ? (
-                    <button
-                      className="danger user-action"
-                      type="button"
-                      onClick={() => openPenalty(user)}
-                    >
-                      <ShieldBan />
-                      违规处理
-                    </button>
-                  ) : (
-                    <button
-                      className="plain user-action"
-                      type="button"
-                      onClick={() => setRestoreTarget(user)}
-                    >
-                      <ShieldCheck />
-                      解除封禁
-                    </button>
-                  ))}
+                  {can('USER_STATUS') &&
+                    (user.accountStatus === 'ACTIVE' ? (
+                      <button
+                        className="danger user-action"
+                        type="button"
+                        onClick={() => openPenalty(user)}
+                      >
+                        <ShieldBan />
+                        违规处理
+                      </button>
+                    ) : (
+                      <button
+                        className="plain user-action"
+                        type="button"
+                        onClick={() => setRestoreTarget(user)}
+                      >
+                        <ShieldCheck />
+                        解除封禁
+                      </button>
+                    ))}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
         {!data.items.length && <Empty />}
-        <Pagination
-          page={page}
-          size={PAGE_SIZE}
-          total={data.total}
-          onChange={load}
-        />
+        <Pagination page={page} size={PAGE_SIZE} total={data.total} onChange={load} />
       </div>
 
       {penaltyTarget && (
@@ -233,11 +220,7 @@ export default function UsersPage() {
               <div className="user-penalty-icon">
                 <ShieldBan />
               </div>
-              <button
-                type="button"
-                aria-label="关闭"
-                onClick={closePenalty}
-              >
+              <button type="button" aria-label="关闭" onClick={closePenalty}>
                 <X />
               </button>
             </header>
@@ -257,10 +240,12 @@ export default function UsersPage() {
                       key={item.value}
                       className={penalty.duration === item.value ? 'selected' : ''}
                       type="button"
-                      onClick={() => setPenalty((current) => ({
-                        ...current,
-                        duration: item.value,
-                      }))}
+                      onClick={() =>
+                        setPenalty((current) => ({
+                          ...current,
+                          duration: item.value,
+                        }))
+                      }
                     >
                       {item.label}
                     </button>
@@ -275,10 +260,12 @@ export default function UsersPage() {
                   rows="5"
                   placeholder="请填写用户违反的规则及处罚说明"
                   value={penalty.reason}
-                  onChange={(event) => setPenalty((current) => ({
-                    ...current,
-                    reason: event.target.value,
-                  }))}
+                  onChange={(event) =>
+                    setPenalty((current) => ({
+                      ...current,
+                      reason: event.target.value,
+                    }))
+                  }
                 />
                 <small>{penalty.reason.length}/300</small>
               </label>
@@ -286,19 +273,10 @@ export default function UsersPage() {
                 确认后立即生效，该用户会退出登录并看到处罚内容。
               </p>
               <footer>
-                <button
-                  className="plain"
-                  type="button"
-                  disabled={saving}
-                  onClick={closePenalty}
-                >
+                <button className="plain" type="button" disabled={saving} onClick={closePenalty}>
                   取消
                 </button>
-                <button
-                  className="danger-confirm"
-                  type="submit"
-                  disabled={saving}
-                >
+                <button className="danger-confirm" type="submit" disabled={saving}>
                   {saving ? '处理中…' : '确认处罚'}
                 </button>
               </footer>
@@ -327,9 +305,7 @@ function AccountStatus({ user }) {
 
   return (
     <div className="user-penalty-status">
-      <span className="status suspended">
-        {user.banUntil ? '限期封禁' : '永久封禁'}
-      </span>
+      <span className="status suspended">{user.banUntil ? '限期封禁' : '永久封禁'}</span>
       <small>
         {user.banUntil ? `至 ${date(user.banUntil)}` : user.banReason || '违反平台规则'}
       </small>
@@ -337,9 +313,7 @@ function AccountStatus({ user }) {
   );
 }
 
-export const date = (value) => (
-  value ? new Date(value).toLocaleString() : '—'
-);
+export const date = (value) => (value ? new Date(value).toLocaleString() : '—');
 
 export const Status = ({ value }) => (
   <span className={`status ${String(value).toLowerCase()}`}>
@@ -359,9 +333,13 @@ export const Status = ({ value }) => (
       REFUNDED: '已退款',
       SETTLED: '已结算',
       CANCELLED: '已撤销',
+      BOOKED: '已预约',
+      NO_SHOW: '未到场',
       EXPIRED: '已过期',
       AWAITING_CONFIRMATION: '待确认结束',
-    }[value] || value || '—'}
+    }[value] ||
+      value ||
+      '—'}
   </span>
 );
 

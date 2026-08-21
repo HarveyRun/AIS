@@ -77,6 +77,7 @@ export default function LoginPage({ onAuthenticated }) {
             密码
             <input
               type="password"
+              maxLength={128}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               placeholder="至少10位，包含字母和数字"

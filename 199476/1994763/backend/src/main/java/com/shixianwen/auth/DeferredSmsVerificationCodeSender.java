@@ -4,7 +4,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * 短信供应商接入点。接入真实短信服务时替换此实现即可，测试账号的绕过逻辑位于 AuthService。
+ * 短信供应商接入点。接入真实短信服务时替换此实现即可，测试账号的固定验证码逻辑位于 AuthService。
  */
 @Component
 @ConditionalOnProperty(name = "app.sms.provider", havingValue = "mock")

@@ -15,6 +15,8 @@ import com.shixianwen.security.SecurityEventService;
 import com.shixianwen.network.ClientIpExtractor;
 import com.shixianwen.user.User;
 import com.shixianwen.auth.AuthInterceptor;
+import com.shixianwen.admin.AdminAuthInterceptor;
+import com.shixianwen.admin.AdminUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -47,10 +49,15 @@ public class GlobalExceptionHandler {
         if (exception.getStatus() == HttpStatus.FORBIDDEN) {
             Object current = request.getAttribute(AuthInterceptor.CURRENT_USER_ATTRIBUTE);
             Long userId = current instanceof User user ? user.getId() : null;
-            securityEvents.recordSafely(
-                userId, null, "ACCESS_DENIED", "HIGH", clientIpExtractor.extract(request),
-                request.getHeader("X-Device-Id"), "path=" + request.getRequestURI()
-            );
+            Object currentAdmin = request.getAttribute(AdminAuthInterceptor.ATTRIBUTE);
+            Long adminId = currentAdmin instanceof AdminUser admin ? admin.getId() : null;
+            if (userId != null || adminId != null) {
+                securityEvents.recordSafely(
+                    userId, adminId, adminId == null ? "ACCESS_DENIED" : "ADMIN_ACCESS_DENIED", "HIGH",
+                    clientIpExtractor.extract(request),
+                    request.getHeader("X-Device-Id"), "path=" + request.getRequestURI()
+                );
+            }
         }
         return ResponseEntity.status(exception.getStatus()).body(ApiResponse.error(exception.getMessage()));
     }

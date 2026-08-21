@@ -7,14 +7,20 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/certifications")
 public class CertificationController {
     private final CertificationService certificationService;
+    private final JobCertificationAppointmentService appointmentService;
 
-    public CertificationController(CertificationService certificationService) {
+    public CertificationController(
+        CertificationService certificationService,
+        JobCertificationAppointmentService appointmentService
+    ) {
         this.certificationService = certificationService;
+        this.appointmentService = appointmentService;
     }
 
     @GetMapping("/me")
@@ -45,6 +51,32 @@ public class CertificationController {
         return ApiResponse.ok(certificationService.submitExperience(
             user, existingId, title, description, years, files == null ? List.of() : files
         ));
+    }
+
+    @GetMapping("/job/offline-appointment")
+    public ApiResponse<JobCertificationAppointmentService.AppointmentView> currentOfflineAppointment(
+        @CurrentUser User user
+    ) {
+        return ApiResponse.ok(appointmentService.current(user));
+    }
+
+    @PostMapping("/job/offline-appointment")
+    public ApiResponse<JobCertificationAppointmentService.AppointmentView> bookOfflineAppointment(
+        @CurrentUser User user,
+        @RequestBody OfflineAppointmentRequest request
+    ) {
+        return ApiResponse.ok(appointmentService.book(user, request.appointmentAt()));
+    }
+
+    @GetMapping("/job/offline-appointment/availability")
+    public ApiResponse<JobCertificationAppointmentService.AvailabilityView> offlineAppointmentAvailability(
+        @CurrentUser User user,
+        @RequestParam LocalDateTime appointmentAt
+    ) {
+        return ApiResponse.ok(appointmentService.availability(appointmentAt));
+    }
+
+    public record OfflineAppointmentRequest(LocalDateTime appointmentAt) {
     }
 
 }

@@ -188,7 +188,7 @@ public class AdminManagementService {
         );
         return item;
     }
-    @Transactional public void reviewCertification(AdminUser admin,Long id,boolean approved,String reason,Long jobId,Integer years,Long experienceId,String ip) {
+    @Transactional public void reviewCertification(AdminUser admin,Long id,boolean approved,String reason,Long jobId,Integer years,Long experienceId,Integer authenticityPercent,String ip) {
         if(!approved && (reason==null||reason.isBlank())) throw BusinessException.badRequest("驳回时请填写原因");
         Map<String,Object> certification=jdbc.queryForMap("SELECT user_id AS userId,certification_type AS type,title,status FROM certifications WHERE id=? AND deleted_at IS NULL FOR UPDATE",id);
         if(!"PENDING".equals(certification.get("status"))) throw BusinessException.badRequest("该认证已经处理");
@@ -201,7 +201,7 @@ public class AdminManagementService {
             );
             if(jobNames.isEmpty()) throw BusinessException.badRequest("所选岗位不存在或已停用");
             if(years==null) throw BusinessException.badRequest("请填写工龄");
-            if(years<1||years>80) throw BusinessException.badRequest("工龄必须是1至80之间的整数");
+            if(years<5||years>80) throw BusinessException.badRequest("工龄必须是5至80之间的整数");
             String selectedJobName=jobNames.get(0);
             jdbc.update("UPDATE certifications SET title=?,years=? WHERE id=?",selectedJobName,years,id);
             certification.put("title",selectedJobName);
@@ -213,6 +213,19 @@ public class AdminManagementService {
                 experienceId,id
             );
         }
+        if("MAIN_JOB".equals(certification.get("type"))){
+            LocalDateTime reviewedAt=LocalDateTime.now();
+            com.shixianwen.certification.JobCertificationAuthenticityPolicy.Rule authenticity=
+                com.shixianwen.certification.JobCertificationAuthenticityPolicy.resolve(authenticityPercent,reviewedAt);
+            jdbc.update(
+                "UPDATE certifications SET authenticity_percent=?,job_reapply_available_at=? WHERE id=?",
+                authenticity.authenticityPercent(),authenticity.availableAt(),id
+            );
+            jdbc.update(
+                "UPDATE users SET job_certification_blocked_until=? WHERE id=?",
+                authenticity.availableAt(),certification.get("userId")
+            );
+        }
         certifications.review(id,approved,reason);
         if("MAIN_JOB".equals(certification.get("type"))){
             if(approved){
@@ -222,7 +235,19 @@ public class AdminManagementService {
                 jdbc.update("UPDATE users SET answerer_status='PENDING',accepting_inquiries=FALSE WHERE id=?",certification.get("userId"));
             }
         }
-        audit(admin,"REVIEW_CERTIFICATION","CERTIFICATION",id,String.valueOf(approved),ip);
+        audit(
+            admin,"REVIEW_CERTIFICATION","CERTIFICATION",id,
+            String.valueOf(approved)+("MAIN_JOB".equals(certification.get("type"))?",真实性="+authenticityPercent+"%":""),ip
+        );
+        realtime.afterCommit(
+            ((Number) certification.get("userId")).longValue(),
+            "CERTIFICATION_UPDATED",
+            Map.of(
+                "id", id,
+                "type", certification.get("type"),
+                "status", approved ? "APPROVED" : "REJECTED"
+            )
+        );
     }
     @Transactional public void setCertificationEnabled(AdminUser admin,Long id,boolean enabled,String ip){
         Map<String,Object> item=certificationForUpdate(id);
@@ -249,7 +274,7 @@ public class AdminManagementService {
             if(jobId==null) throw BusinessException.badRequest("请选择岗位");
             String jobName=jdbc.query("SELECT name FROM jobs WHERE id=? AND active=TRUE AND deleted_at IS NULL",rs->rs.next()?rs.getString(1):null,jobId);
             if(jobName==null) throw BusinessException.badRequest("所选岗位不存在或已停用");
-            if(years==null||years<1||years>80) throw BusinessException.badRequest("工龄必须是1至80之间的整数");
+            if(years==null||years<5||years>80) throw BusinessException.badRequest("工龄必须是5至80之间的整数");
             jdbc.update("UPDATE certifications SET title=?,description=?,years=? WHERE id=?",jobName,cleanDescription(description),years,id);
             if("APPROVED".equals(item.get("status"))){
                 jdbc.update("UPDATE user_jobs SET job_id=? WHERE certification_id=?",jobId,id);
@@ -600,7 +625,7 @@ public class AdminManagementService {
         case "certifications" -> new TableSpec(
             "certifications",
             "certifications t JOIN users u ON u.id=t.user_id",
-            "SELECT t.id,t.category,t.certification_type AS type,t.title,t.description,t.years,t.status,t.enabled,t.rejection_reason AS rejectionReason,t.submitted_at AS submittedAt,u.uid,u.nickname,(u.account_type='TEST') AS testData FROM certifications t JOIN users u ON u.id=t.user_id",
+            "SELECT t.id,t.category,t.certification_type AS type,t.title,t.description,t.years,t.authenticity_percent AS authenticityPercent,t.job_reapply_available_at AS jobReapplyAvailableAt,t.status,t.enabled,t.rejection_reason AS rejectionReason,t.submitted_at AS submittedAt,u.uid,u.nickname,(u.account_type='TEST') AS testData FROM certifications t JOIN users u ON u.id=t.user_id",
             List.of("u")
         );
         case "inquiries" -> new TableSpec(

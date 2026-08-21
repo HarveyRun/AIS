@@ -52,8 +52,23 @@ class _ExperienceCertificationPageState
           .answererEligibility();
       final eligible = eligibility['identityApproved'] == true;
       if (!eligible) {
-        if (mounted) {
-          AppMessage.show(context, '完成实名认证后才能添加亲身经历');
+        if (!mounted) return;
+        final goToIdentity = await _showIdentityRequiredDialog();
+        if (goToIdentity == true && mounted) {
+          final records = await ref.read(repositoryProvider).certifications();
+          CertificationRecord? identityRecord;
+          for (final record in records) {
+            if (record.type == 'IDENTITY') {
+              identityRecord = record;
+              break;
+            }
+          }
+          if (!mounted) return;
+          await context.push(
+            '/profile/certifications/basic/IDENTITY/apply',
+            extra: identityRecord,
+          );
+          await _load();
         }
         return;
       }
@@ -69,6 +84,30 @@ class _ExperienceCertificationPageState
       if (mounted) AppMessage.show(context, '$error');
     }
   }
+
+  Future<bool?> _showIdentityRequiredDialog() => showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text(
+        '需实名认证',
+        style: TextStyle(
+          color: Colors.black,
+          fontWeight: FontWeight.w700,
+          fontSize: 22,
+        ),
+      ),
+      content: const Text('需先完成实名认证，且认证年龄须年满 25 周岁。'),
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('去实名认证'),
+          ),
+        ),
+      ],
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => Scaffold(

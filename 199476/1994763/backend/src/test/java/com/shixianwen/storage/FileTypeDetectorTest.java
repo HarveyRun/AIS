@@ -36,4 +36,20 @@ class FileTypeDetectorTest {
         assertThatThrownBy(() -> detector.requireImage(file))
             .isInstanceOf(BusinessException.class);
     }
+
+    @Test
+    void detectsAudioFromBytesInsteadOfFilename() {
+        MockMultipartFile file = new MockMultipartFile(
+            "evidence",
+            "现场认证.exe",
+            "application/x-msdownload",
+            new byte[] {'I', 'D', '3', 4, 0, 0, 0, 0, 0, 0}
+        );
+
+        FileTypeDetector.DetectedFile result = detector.requireAudioOrVideo(file);
+
+        assertThat(result.kind()).isEqualTo("AUDIO");
+        assertThat(result.contentType()).isEqualTo("audio/mpeg");
+        assertThat(result.extension()).isEqualTo(".mp3");
+    }
 }

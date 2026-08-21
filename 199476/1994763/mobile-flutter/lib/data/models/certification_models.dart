@@ -35,6 +35,8 @@ class CertificationRecord {
     required this.title,
     required this.description,
     required this.years,
+    required this.authenticityPercent,
+    required this.jobReapplyAvailableAt,
     required this.required,
     required this.status,
     required this.enabled,
@@ -50,6 +52,8 @@ class CertificationRecord {
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       years: _nullableInt(json['years']),
+      authenticityPercent: _nullableInt(json['authenticityPercent']),
+      jobReapplyAvailableAt: _nullableDateTime(json['jobReapplyAvailableAt']),
       required: json['required'] == true,
       status: json['status']?.toString() ?? '',
       enabled: json['enabled'] != false,
@@ -70,6 +74,8 @@ class CertificationRecord {
   final String title;
   final String description;
   final int? years;
+  final int? authenticityPercent;
+  final DateTime? jobReapplyAvailableAt;
   final bool required;
   final String status;
   final bool enabled;
@@ -80,6 +86,31 @@ class CertificationRecord {
   bool get pending => status.toUpperCase() == 'PENDING' || status == '审核中';
 }
 
+class JobCertificationAppointment {
+  const JobCertificationAppointment({
+    required this.id,
+    required this.appointmentAt,
+    required this.city,
+    required this.status,
+  });
+
+  factory JobCertificationAppointment.fromJson(Map<String, dynamic> json) {
+    return JobCertificationAppointment(
+      id: _int(json['id']),
+      appointmentAt: DateTime.parse(json['appointmentAt'].toString()),
+      city: json['city']?.toString() ?? '北京',
+      status: json['status']?.toString() ?? '',
+    );
+  }
+
+  final int id;
+  final DateTime appointmentAt;
+  final String city;
+  final String status;
+}
+
 int _int(Object? value) =>
     value is num ? value.toInt() : int.tryParse('$value') ?? 0;
 int? _nullableInt(Object? value) => value == null ? null : _int(value);
+DateTime? _nullableDateTime(Object? value) =>
+    value == null ? null : DateTime.tryParse(value.toString());

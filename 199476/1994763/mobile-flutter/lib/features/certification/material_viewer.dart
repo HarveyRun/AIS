@@ -11,7 +11,7 @@ Future<void> openMaterial(
 ) async {
   final kind = material.kind.toUpperCase();
   final uri = AppConfig.resolveResource(material.url);
-  if (kind == 'ARCHIVE') {
+  if (kind == 'ARCHIVE' || kind == 'AUDIO') {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
     return;
   }

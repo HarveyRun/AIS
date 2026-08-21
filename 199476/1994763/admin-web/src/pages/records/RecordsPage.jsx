@@ -32,6 +32,7 @@ export default function RecordsPage({ type }) {
   const [selectedExperienceId, setSelectedExperienceId] = useState('');
   const [experienceKeyword, setExperienceKeyword] = useState('');
   const [workYears, setWorkYears] = useState('');
+  const [authenticityPercent, setAuthenticityPercent] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [page, setPage] = useState(0);
@@ -114,6 +115,11 @@ export default function RecordsPage({ type }) {
       setSelectedExperienceId('');
       setExperienceKeyword('');
       setWorkYears(row.type === 'MAIN_JOB' && row.years != null ? String(row.years) : '');
+      setAuthenticityPercent(
+        row.type === 'MAIN_JOB' && row.authenticityPercent != null
+          ? String(row.authenticityPercent)
+          : '',
+      );
       setEditTitle(row.title || '');
       setEditDescription(row.description || '');
       setMaterials([]);
@@ -154,6 +160,10 @@ export default function RecordsPage({ type }) {
         message.warning('请选择审核判定的岗位');
         return;
       }
+      if (selected.type === 'MAIN_JOB' && !authenticityPercent) {
+        message.warning('请选择材料真实程度');
+        return;
+      }
       if (approved && selected.type === 'EXPERIENCE' && !selectedExperienceId) {
         message.warning('请选择审核判定的标准经历');
         return;
@@ -163,8 +173,8 @@ export default function RecordsPage({ type }) {
         return;
       }
       const numericYears = Number(workYears);
-      if (approved && selected.type === 'MAIN_JOB' && (numericYears < 1 || numericYears > 80)) {
-        message.warning('工龄必须是1至80之间的整数');
+      if (approved && selected.type === 'MAIN_JOB' && (numericYears < 5 || numericYears > 80)) {
+        message.warning('工龄必须是5至80之间的整数');
         return;
       }
       await adminApi.review(selected.id, {
@@ -173,6 +183,9 @@ export default function RecordsPage({ type }) {
         jobId: selected.type === 'MAIN_JOB' ? Number(selectedJobId) : null,
         years: selected.type === 'MAIN_JOB' ? numericYears : null,
         experienceId: selected.type === 'EXPERIENCE' ? Number(selectedExperienceId) : null,
+        authenticityPercent: selected.type === 'MAIN_JOB'
+          ? Number(authenticityPercent)
+          : null,
       });
       setSelected(null);
       await load();
@@ -199,8 +212,8 @@ export default function RecordsPage({ type }) {
         return;
       }
       const numericYears = Number(workYears);
-      if (selected.type === 'MAIN_JOB' && (!/^\d+$/.test(workYears) || numericYears < 1 || numericYears > 80)) {
-        message.warning('工龄必须是1至80之间的整数');
+      if (selected.type === 'MAIN_JOB' && (!/^\d+$/.test(workYears) || numericYears < 5 || numericYears > 80)) {
+        message.warning('工龄必须是5至80之间的整数');
         return;
       }
       await adminApi.updateCertification(selected.id, {
@@ -404,7 +417,7 @@ export default function RecordsPage({ type }) {
                             {visibleJobs.map((job) => <button type="button" className={selectedJobId === String(job.id) ? 'selected' : ''} key={job.id} onClick={() => { setSelectedJobId(String(job.id)); setJobKeyword(job.name); }}><b>{job.name}</b>{job.description && <small>{job.description}</small>}</button>)}
                           </div>
                         </label>
-                        <label className="review-job-field"><span>工龄</span><input type="number" min="1" max="80" value={workYears} onChange={(event) => setWorkYears(event.target.value)} /></label>
+                        <label className="review-job-field"><span>工龄</span><input type="number" min="5" max="80" value={workYears} onChange={(event) => setWorkYears(event.target.value)} /></label>
                       </>
                     )}
                     <label className="review-job-field"><span>说明</span><input value={editDescription} onChange={(event) => setEditDescription(event.target.value)} placeholder="选填" /></label>
@@ -415,6 +428,10 @@ export default function RecordsPage({ type }) {
                   <>
                     {selected.type === 'MAIN_JOB' && (
                       <>
+                        <AuthenticitySelector
+                          value={authenticityPercent}
+                          onChange={setAuthenticityPercent}
+                        />
                         <label className="review-job-field">
                           <span>审核判定岗位</span>
                           <input
@@ -450,7 +467,7 @@ export default function RecordsPage({ type }) {
                           <span>工龄</span>
                           <input
                             type="number"
-                            min="1"
+                            min="5"
                             max="80"
                             step="1"
                             value={workYears}
@@ -594,6 +611,8 @@ const labels = {
   years: '年限',
   status: '状态',
   rejectionReason: '驳回原因',
+  authenticityPercent: '材料真实程度',
+  jobReapplyAvailableAt: '可再次申请时间',
   submittedAt: '提交时间',
   topic: '主题',
   question: '询问内容',
@@ -768,9 +787,43 @@ function processPermission(type) {
 
 function formatDetailValue(key, value, recordType) {
   if (value == null || value === '') return '—';
+  if (key === 'authenticityPercent') return `${value}%`;
   if (key.toLowerCase().includes('time') || key.endsWith('At')) return date(value);
   if (key === 'enabled') return value ? '已启用' : '已停用';
   if (typeof value === 'boolean') return value ? '是' : '否';
   if (key === 'status' && recordType === 'certifications' && value === 'PENDING') return '待审核';
   return DETAIL_VALUE_LABELS[String(value)] || String(value);
+}
+
+const AUTHENTICITY_LEVELS = [
+  [100, 0],
+  [90, 6],
+  [80, 12],
+  [60, 18],
+  [51, 24],
+  [40, 30],
+  [20, 36],
+  [0, 42],
+];
+
+function AuthenticitySelector({ value, onChange }) {
+  return (
+    <div className="review-job-field authenticity-selector">
+      <span>材料真实程度</span>
+      <div>
+        {AUTHENTICITY_LEVELS.map(([percent, months]) => (
+          <button
+            type="button"
+            className={value === String(percent) ? 'selected' : ''}
+            key={percent}
+            onClick={() => onChange(String(percent))}
+          >
+            <b>{percent}%</b>
+            <small>{months === 0 ? '不限制' : `${months}个月`}</small>
+          </button>
+        ))}
+      </div>
+      <small>认证通过或不通过都必须选择；下方时间为再次申请岗位认证的间隔</small>
+    </div>
+  );
 }

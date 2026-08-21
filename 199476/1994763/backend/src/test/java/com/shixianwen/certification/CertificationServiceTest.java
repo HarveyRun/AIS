@@ -31,7 +31,8 @@ class CertificationServiceTest {
             users,
             mock(FileStorage.class),
             mock(SensitiveWordService.class),
-            mock(FileTypeDetector.class)
+            mock(FileTypeDetector.class),
+            mock(JobCertificationAppointmentRepository.class)
         );
         User user = new User();
         user.setId(7L);
@@ -64,7 +65,8 @@ class CertificationServiceTest {
             mock(UserRepository.class),
             storage,
             sensitiveWords,
-            fileTypeDetector
+            fileTypeDetector,
+            mock(JobCertificationAppointmentRepository.class)
         );
         User user = new User();
         user.setId(7L);

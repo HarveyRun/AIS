@@ -95,8 +95,20 @@ public class SecurityRateLimitFilter extends OncePerRequestFilter {
         if ("/api/auth/login".equals(path) && "POST".equals(method)) {
             return new Rule("USER_LOGIN", 10, 60_000);
         }
-        if (path.startsWith("/api/admin/auth/") && "POST".equals(method)) {
-            return new Rule("ADMIN_AUTH", 5, 15 * 60_000L);
+        if ("/api/admin/auth/setup".equals(path) && "POST".equals(method)) {
+            return new Rule("ADMIN_SETUP", 5, 15 * 60_000L);
+        }
+        if ("/api/admin/auth/login".equals(path) && "POST".equals(method)) {
+            return new Rule("ADMIN_LOGIN", 20, 60_000L);
+        }
+        if ("/api/admin/auth/change-password".equals(path) && "POST".equals(method)) {
+            return new Rule("ADMIN_PASSWORD_CHANGE", 10, 15 * 60_000L);
+        }
+        if ((path.startsWith("/api/admin/admin-users")
+            || path.startsWith("/api/admin/roles")
+            || path.startsWith("/api/admin/permissions"))
+            && !"GET".equals(method) && !"HEAD".equals(method)) {
+            return new Rule("ADMIN_RBAC_MUTATION", 30, 60_000L);
         }
         if ((path.contains("/images") || path.contains("/materials") || path.contains("/avatar"))
             && "POST".equals(method)) {

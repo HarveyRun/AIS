@@ -67,6 +67,7 @@ public class AdminAccountManagementService {
         user.setPhone(normalizedPhone);
         user.setDisplayName(required(displayName, "请输入管理员名称", 60));
         user.setPasswordHash(passwords.encode(validPassword(password, true)));
+        user.setMustChangePassword(true);
         user.setStatus(status(status));
         user.setRole(primaryRoleCode(normalizedRoles));
         user = users.saveAndFlush(user);
@@ -137,6 +138,7 @@ public class AdminAccountManagementService {
         AdminUser target = activeUser(targetId);
         ensureUserManageable(operator, targetId, true);
         target.setPasswordHash(passwords.encode(DEFAULT_RESET_PASSWORD));
+        target.setMustChangePassword(true);
         users.save(target);
         sessions.deleteByAdminUserId(targetId);
         audit(operator, "RESET_ADMIN_PASSWORD", "ADMIN_USER", targetId, "重置为默认密码", ipAddress);
@@ -178,8 +180,19 @@ public class AdminAccountManagementService {
         }
         return jdbc.queryForList(
             "SELECT id,code,name,level_no AS level FROM admin_roles " +
-                "WHERE active=TRUE AND deleted_at IS NULL AND level_no>? ORDER BY level_no,id",
-            operatorLevel(operator)
+                "WHERE active=TRUE AND deleted_at IS NULL AND level_no>? " +
+                "AND NOT EXISTS (" +
+                " SELECT 1 FROM admin_role_permissions target_rp " +
+                " JOIN admin_permissions target_p ON target_p.id=target_rp.permission_id " +
+                "  AND target_p.active=TRUE AND target_p.deleted_at IS NULL " +
+                " WHERE target_rp.role_id=admin_roles.id AND NOT EXISTS (" +
+                "  SELECT 1 FROM admin_user_roles own_ur " +
+                "  JOIN admin_roles own_r ON own_r.id=own_ur.role_id " +
+                "   AND own_r.active=TRUE AND own_r.deleted_at IS NULL " +
+                "  JOIN admin_role_permissions own_rp ON own_rp.role_id=own_r.id " +
+                "  WHERE own_ur.admin_user_id=? AND own_rp.permission_id=target_rp.permission_id" +
+                " )) ORDER BY level_no,id",
+            operatorLevel(operator), operator.getId()
         );
     }
 
@@ -226,6 +239,7 @@ public class AdminAccountManagementService {
     ) {
         Map<String, Object> existing = roleRow(id);
         ensureRoleManageable(operator, existing);
+        ensureRolePermissionsManageable(operator, id);
         String existingCode = String.valueOf(existing.get("code"));
         String normalizedCode = roleCode(code);
         ensureRoleLevelManageable(operator, safeLevel(level));
@@ -241,6 +255,8 @@ public class AdminAccountManagementService {
             normalizedCode, required(name, "请输入角色名称", 80), safeLevel(level), optional(description, 300),
             active == null || active, id
         );
+        refreshPrimaryRolesForRole(id);
+        expireSessionsForRole(id);
         audit(operator, "UPDATE_ADMIN_ROLE", "ADMIN_ROLE", id, normalizedCode, ipAddress);
         return roleView(id);
     }
@@ -254,6 +270,7 @@ public class AdminAccountManagementService {
     ) {
         Map<String, Object> role = roleRow(id);
         ensureRoleManageable(operator, role);
+        ensureRolePermissionsManageable(operator, id);
         if ("SUPER_ADMIN".equals(role.get("code"))) {
             throw BusinessException.badRequest("超级管理员始终拥有全部权限，无需单独配置");
         }
@@ -268,6 +285,7 @@ public class AdminAccountManagementService {
     public void deleteRole(AdminUser operator, Long id, String ipAddress) {
         Map<String, Object> role = roleRow(id);
         ensureRoleManageable(operator, role);
+        ensureRolePermissionsManageable(operator, id);
         if (Boolean.TRUE.equals(role.get("systemRole"))) {
             throw BusinessException.badRequest("系统预置角色不能删除");
         }
@@ -490,11 +508,11 @@ public class AdminAccountManagementService {
     }
 
     private void ensureUserManageable(AdminUser operator, Long targetId, boolean allowSelf) {
-        if (authorization.isSuperAdmin(operator.getId())) return;
         if (Objects.equals(operator.getId(), targetId)) {
             if (allowSelf) return;
             throw BusinessException.forbidden("不能修改当前账号的角色");
         }
+        if (authorization.isSuperAdmin(operator.getId())) return;
         Integer targetLevel = jdbc.queryForObject(
             "SELECT MIN(r.level_no) FROM admin_user_roles ur JOIN admin_roles r ON r.id=ur.role_id " +
                 "WHERE ur.admin_user_id=? AND r.active=TRUE AND r.deleted_at IS NULL",
@@ -517,6 +535,45 @@ public class AdminAccountManagementService {
         );
         if (forbidden != null && forbidden > 0) {
             throw BusinessException.forbidden("不能分配同级或更高级别的角色");
+        }
+        Long unavailablePermissions = jdbc.queryForObject(
+            "SELECT COUNT(DISTINCT target_rp.permission_id) FROM admin_role_permissions target_rp " +
+                "JOIN admin_permissions target_p ON target_p.id=target_rp.permission_id " +
+                " AND target_p.active=TRUE AND target_p.deleted_at IS NULL " +
+                "WHERE target_rp.role_id IN (" + placeholders(roleIds.size()) + ") " +
+                "AND NOT EXISTS (" +
+                " SELECT 1 FROM admin_user_roles own_ur " +
+                " JOIN admin_roles own_r ON own_r.id=own_ur.role_id " +
+                "  AND own_r.active=TRUE AND own_r.deleted_at IS NULL " +
+                " JOIN admin_role_permissions own_rp ON own_rp.role_id=own_r.id " +
+                " WHERE own_ur.admin_user_id=? AND own_rp.permission_id=target_rp.permission_id" +
+                ")",
+            Long.class,
+            append(roleIds, operator.getId())
+        );
+        if (unavailablePermissions != null && unavailablePermissions > 0) {
+            throw BusinessException.forbidden("不能分配包含当前账号未拥有权限的角色");
+        }
+    }
+
+    private void ensureRolePermissionsManageable(AdminUser operator, Long roleId) {
+        if (authorization.isSuperAdmin(operator.getId())) return;
+        Long unavailable = jdbc.queryForObject(
+            "SELECT COUNT(DISTINCT target_rp.permission_id) FROM admin_role_permissions target_rp " +
+                "JOIN admin_permissions target_p ON target_p.id=target_rp.permission_id " +
+                " AND target_p.active=TRUE AND target_p.deleted_at IS NULL " +
+                "WHERE target_rp.role_id=? AND NOT EXISTS (" +
+                " SELECT 1 FROM admin_user_roles own_ur " +
+                " JOIN admin_roles own_r ON own_r.id=own_ur.role_id " +
+                "  AND own_r.active=TRUE AND own_r.deleted_at IS NULL " +
+                " JOIN admin_role_permissions own_rp ON own_rp.role_id=own_r.id " +
+                " WHERE own_ur.admin_user_id=? AND own_rp.permission_id=target_rp.permission_id" +
+                ")",
+            Long.class,
+            roleId, operator.getId()
+        );
+        if (unavailable != null && unavailable > 0) {
+            throw BusinessException.forbidden("不能管理包含当前账号未拥有权限的角色");
         }
     }
 
@@ -574,6 +631,7 @@ public class AdminAccountManagementService {
     }
 
     private void protectLastSuperAdmin(Long userId, List<Long> newRoleIds, String newStatus) {
+        jdbc.queryForObject("SELECT id FROM admin_system_state WHERE id=1 FOR UPDATE", Integer.class);
         boolean currentlySuper = userRoles(userId).stream().anyMatch(role -> "SUPER_ADMIN".equals(role.get("code")));
         if (!currentlySuper) return;
         boolean remainsSuper = "ACTIVE".equals(newStatus) && !newRoleIds.isEmpty() && jdbc.queryForObject(
@@ -608,6 +666,28 @@ public class AdminAccountManagementService {
                 "JOIN admin_role_permissions rp ON rp.role_id=ur.role_id WHERE rp.permission_id=?",
             permissionId
         );
+    }
+
+    private void refreshPrimaryRolesForRole(Long roleId) {
+        List<Long> userIds = jdbc.queryForList(
+            "SELECT admin_user_id FROM admin_user_roles WHERE role_id=?",
+            Long.class,
+            roleId
+        );
+        for (Long userId : userIds) {
+            List<String> roleCodes = jdbc.queryForList(
+                "SELECT r.code FROM admin_user_roles ur JOIN admin_roles r ON r.id=ur.role_id " +
+                    "WHERE ur.admin_user_id=? AND r.active=TRUE AND r.deleted_at IS NULL " +
+                    "ORDER BY r.level_no,r.id LIMIT 1",
+                String.class,
+                userId
+            );
+            jdbc.update(
+                "UPDATE admin_users SET role=? WHERE id=?",
+                roleCodes.isEmpty() ? "NO_ACTIVE_ROLE" : roleCodes.get(0),
+                userId
+            );
+        }
     }
 
     private AdminUser activeUser(Long id) {
@@ -700,8 +780,9 @@ public class AdminAccountManagementService {
     private String validPassword(String value, boolean defaultWhenBlank) {
         String result = clean(value);
         if (result.isEmpty() && defaultWhenBlank) return DEFAULT_RESET_PASSWORD;
-        if (result.length() < 10 || !result.matches(".*[A-Za-z].*") || !result.matches(".*\\d.*")) {
-            throw BusinessException.badRequest("密码至少10位，并包含字母和数字");
+        if (result.length() < 10 || result.length() > 128
+            || !result.matches(".*[A-Za-z].*") || !result.matches(".*\\d.*")) {
+            throw BusinessException.badRequest("密码需为10至128位，并包含字母和数字");
         }
         return result;
     }

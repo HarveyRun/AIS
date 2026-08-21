@@ -55,7 +55,7 @@ public class AdminManagementController {
         );
     }
     @GetMapping("/certifications/{id}/materials") public ApiResponse<List<Map<String,Object>>> materials(@PathVariable Long id){return ApiResponse.ok(service.certificationMaterials(id));}
-    @PostMapping("/certifications/{id}/review") public ApiResponse<Void> review(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody ReviewRequest r,HttpServletRequest req){service.reviewCertification(a,id,r.approved(),r.reason(),r.jobId(),r.years(),r.experienceId(),ip(req));return ApiResponse.ok();}
+    @PostMapping("/certifications/{id}/review") public ApiResponse<Void> review(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody ReviewRequest r,HttpServletRequest req){service.reviewCertification(a,id,r.approved(),r.reason(),r.jobId(),r.years(),r.experienceId(),r.authenticityPercent(),ip(req));return ApiResponse.ok();}
     @PatchMapping("/certifications/{id}/enabled") public ApiResponse<Void> certificationEnabled(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody EnabledRequest r,HttpServletRequest req){service.setCertificationEnabled(a,id,r.enabled(),ip(req));return ApiResponse.ok();}
     @PutMapping("/certifications/{id}") public ApiResponse<Void> editCertification(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody CertificationEditRequest r,HttpServletRequest req){service.editCertification(a,id,r.title(),r.description(),r.jobId(),r.years(),ip(req));return ApiResponse.ok();}
     @DeleteMapping("/certifications/{id}") public ApiResponse<Void> deleteCertification(@CurrentAdmin AdminUser a,@PathVariable Long id,HttpServletRequest req){service.deleteCertification(a,id,ip(req));return ApiResponse.ok();}
@@ -93,7 +93,7 @@ public class AdminManagementController {
     public record StatusRequest(String status){}
     public record PlatformFeeRequest(BigDecimal androidRatePercent, BigDecimal iosRatePercent){}
     public record UserPenaltyRequest(String status, String duration, String reason){}
-    public record EnabledRequest(boolean enabled){} public record ReviewRequest(boolean approved,String reason,Long jobId,Integer years,Long experienceId){} public record CertificationEditRequest(String title,String description,Long jobId,Integer years){} public record ReplyRequest(String content){}
+    public record EnabledRequest(boolean enabled){} public record ReviewRequest(boolean approved,String reason,Long jobId,Integer years,Long experienceId,Integer authenticityPercent){} public record CertificationEditRequest(String title,String description,Long jobId,Integer years){} public record ReplyRequest(String content){}
     public record JobRequest(String name,String description,Boolean active){}
     public record CategoryRequest(String mainCategory,String name,Integer sortOrder,Boolean active){}
     public record MatterRequest(Long categoryId,String title,Integer sortOrder,Boolean active,List<MatterJobRequest> jobs){}

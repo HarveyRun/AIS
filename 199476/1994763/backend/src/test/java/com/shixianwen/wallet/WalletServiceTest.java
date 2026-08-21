@@ -103,6 +103,32 @@ class WalletServiceTest {
         assertEquals(new BigDecimal("95.00"), feeCaptor.getValue().getAnswererIncomeAmount());
     }
 
+    @Test
+    void invitationRewardCreditsRechargeBalanceAndIsIdempotent() {
+        WalletAccountRepository wallets = mock(WalletAccountRepository.class);
+        WalletTransactionRepository transactions = mock(WalletTransactionRepository.class);
+        WalletAccount account = wallet(2L, "0.00", "0.00");
+        AtomicReference<WalletTransaction> recorded = new AtomicReference<>();
+
+        when(wallets.findWithLockByUserId(2L)).thenReturn(Optional.of(account));
+        when(transactions.findByUserIdAndTransactionTypeAndReferenceTypeAndReferenceId(
+            2L, "INVITATION_REWARD", "USER_INVITATION", 18L
+        )).thenAnswer(invocation -> Optional.ofNullable(recorded.get()));
+        when(transactions.save(any(WalletTransaction.class))).thenAnswer(invocation -> {
+            WalletTransaction transaction = invocation.getArgument(0);
+            recorded.set(transaction);
+            return transaction;
+        });
+
+        WalletService service = service(wallets, transactions);
+        service.creditInvitationReward(2L, new BigDecimal("3"), 18L);
+        service.creditInvitationReward(2L, new BigDecimal("3.00"), 18L);
+
+        assertEquals(new BigDecimal("3.00"), account.getIncomeBalance());
+        assertEquals(new BigDecimal("3.00"), account.getAvailableBalance());
+        verify(transactions, times(1)).save(any(WalletTransaction.class));
+    }
+
     private WalletService service(
         WalletAccountRepository wallets,
         WalletTransactionRepository transactions

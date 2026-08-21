@@ -11,6 +11,21 @@ public class AdminPermissionResolver {
         if (path.equals("/api/admin/platform-fee")) {
             return isGet(method) ? "PLATFORM_FEE_VIEW" : "PLATFORM_FEE_EDIT";
         }
+        if (path.equals("/api/admin/invitation-campaign")) {
+            return isGet(method) ? "INVITATION_CAMPAIGN_VIEW" : "INVITATION_CAMPAIGN_EDIT";
+        }
+        if (path.equals("/api/admin/invitations") && isGet(method)) {
+            return "INVITATION_REVIEW_VIEW";
+        }
+        if (path.matches("/api/admin/invitations/\\d+/identity-materials") && isGet(method)) {
+            return "INVITATION_REVIEW_VIEW";
+        }
+        if (path.matches("/api/admin/invitations/\\d+/invitee-handheld-material") && isGet(method)) {
+            return "INVITATION_REVIEW_VIEW";
+        }
+        if (path.matches("/api/admin/invitations/\\d+/review") && "POST".equals(method)) {
+            return "INVITATION_REVIEW";
+        }
         if (path.equals("/api/admin/users") && isGet(method)) return "USER_VIEW";
         if (path.matches("/api/admin/users/\\d+/status") && "PATCH".equals(method)) return "USER_STATUS";
 
@@ -18,7 +33,8 @@ public class AdminPermissionResolver {
         if (path.equals("/api/admin/jobs") && "POST".equals(method)) return "JOB_CREATE";
         if (path.matches("/api/admin/jobs/\\d+") && "PUT".equals(method)) return "JOB_EDIT";
         if (path.matches("/api/admin/jobs/\\d+") && "DELETE".equals(method)) return "JOB_DELETE";
-        if (path.equals("/api/admin/job-options") || path.equals("/api/admin/job-users")) return "JOB_VIEW";
+        if (path.equals("/api/admin/job-options")) return "JOB_VIEW|OFFLINE_APPOINTMENT_PROCESS";
+        if (path.equals("/api/admin/job-users")) return "JOB_VIEW";
         if (path.equals("/api/admin/experience-options")) return "EXPERIENCE_VIEW";
 
         if (path.equals("/api/admin/certifications") && isGet(method)) return "CERTIFICATION_VIEW";
@@ -27,6 +43,16 @@ public class AdminPermissionResolver {
         if (path.matches("/api/admin/certifications/\\d+/enabled") && "PATCH".equals(method)) return "CERTIFICATION_TOGGLE";
         if (path.matches("/api/admin/certifications/\\d+") && "PUT".equals(method)) return "CERTIFICATION_EDIT";
         if (path.matches("/api/admin/certifications/\\d+") && "DELETE".equals(method)) return "CERTIFICATION_DELETE";
+
+        if (path.equals("/api/admin/job-certification-appointments") && isGet(method)) {
+            return "OFFLINE_APPOINTMENT_VIEW";
+        }
+        if (path.matches("/api/admin/job-certification-appointments/\\d+/materials") && isGet(method)) {
+            return "OFFLINE_APPOINTMENT_VIEW";
+        }
+        if (path.matches("/api/admin/job-certification-appointments/\\d+/process") && "POST".equals(method)) {
+            return "OFFLINE_APPOINTMENT_PROCESS";
+        }
 
         if (path.equals("/api/admin/inquiries") && isGet(method)) return "INQUIRY_VIEW";
         if (path.equals("/api/admin/withdrawals") && isGet(method)) return "WITHDRAWAL_VIEW";

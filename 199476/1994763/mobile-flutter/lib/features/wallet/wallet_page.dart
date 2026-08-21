@@ -332,7 +332,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                               ),
                             ),
                             Text(
-                              '回答收入 ¥${formatMoney(wallet?.withdrawableIncome ?? 0)} · 可提现',
+                              '其它收入 ¥${formatMoney(wallet?.withdrawableIncome ?? 0)} · 可提现',
                               style: const TextStyle(
                                 color: Color(0xBFFFFFFF),
                                 fontSize: 10,
@@ -367,7 +367,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                     if (_tab == WalletTab.withdraw) ...[
                       const SizedBox(height: 7),
                       Text(
-                        '只有回答收入可以提现，充值余额不可提现。',
+                        '只有平台收入类可以提现，充值余额不可提现。',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

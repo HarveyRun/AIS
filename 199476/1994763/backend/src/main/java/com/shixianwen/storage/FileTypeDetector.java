@@ -23,16 +23,36 @@ public class FileTypeDetector {
 
     public DetectedFile detect(MultipartFile file) {
         if (file == null || file.isEmpty()) throw BusinessException.badRequest("文件不能为空");
-        byte[] header = readHeader(file, 16);
+        byte[] header = readHeader(file, 32);
         if (startsWith(header, 0xFF, 0xD8, 0xFF)) return image(file, "image/jpeg", ".jpg", true);
         if (startsWith(header, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) {
             return image(file, "image/png", ".png", true);
         }
-        if (header.length >= 12 && ascii(header, 0, "RIFF") && ascii(header, 8, "WEBP")) {
-            return image(file, "image/webp", ".webp", false);
+        if (header.length >= 12 && ascii(header, 0, "RIFF")) {
+            if (ascii(header, 8, "WEBP")) {
+                return image(file, "image/webp", ".webp", false);
+            }
+            if (ascii(header, 8, "WAVE")) {
+                return new DetectedFile("AUDIO", "audio/wav", ".wav");
+            }
         }
         if (header.length >= 12 && ascii(header, 4, "ftyp")) {
+            if (ascii(header, 8, "M4A ") || ascii(header, 8, "M4B ")) {
+                return new DetectedFile("AUDIO", "audio/mp4", ".m4a");
+            }
             return new DetectedFile("VIDEO", "video/mp4", ".mp4");
+        }
+        if (ascii(header, 0, "ID3") || isMp3Frame(header)) {
+            return new DetectedFile("AUDIO", "audio/mpeg", ".mp3");
+        }
+        if (ascii(header, 0, "fLaC")) {
+            return new DetectedFile("AUDIO", "audio/flac", ".flac");
+        }
+        if (ascii(header, 0, "OggS")) {
+            return new DetectedFile("AUDIO", "audio/ogg", ".ogg");
+        }
+        if (isAacFrame(header)) {
+            return new DetectedFile("AUDIO", "audio/aac", ".aac");
         }
         if (startsWith(header, 0x1A, 0x45, 0xDF, 0xA3)) {
             return new DetectedFile("VIDEO", "video/webm", ".webm");
@@ -76,6 +96,14 @@ public class FileTypeDetector {
     public DetectedFile requireVideo(MultipartFile file) {
         DetectedFile detected = detect(file);
         if (!"VIDEO".equals(detected.kind())) throw BusinessException.badRequest("文件内容不是受支持的录像");
+        return detected;
+    }
+
+    public DetectedFile requireAudioOrVideo(MultipartFile file) {
+        DetectedFile detected = detect(file);
+        if (!"AUDIO".equals(detected.kind()) && !"VIDEO".equals(detected.kind())) {
+            throw BusinessException.badRequest("认证凭证必须是录音或录像文件");
+        }
         return detected;
     }
 
@@ -133,6 +161,19 @@ public class FileTypeDetector {
         if (bytes.length < offset + value.length()) return false;
         byte[] expected = value.getBytes(java.nio.charset.StandardCharsets.US_ASCII);
         return Arrays.equals(Arrays.copyOfRange(bytes, offset, offset + expected.length), expected);
+    }
+
+    private static boolean isMp3Frame(byte[] bytes) {
+        return bytes.length >= 2
+            && (bytes[0] & 0xFF) == 0xFF
+            && ((bytes[1] & 0xE0) == 0xE0)
+            && ((bytes[1] & 0x06) != 0);
+    }
+
+    private static boolean isAacFrame(byte[] bytes) {
+        return bytes.length >= 2
+            && (bytes[0] & 0xFF) == 0xFF
+            && ((bytes[1] & 0xF6) == 0xF0);
     }
 
     private static String safeName(String value) {

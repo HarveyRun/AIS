@@ -67,16 +67,34 @@ public class AdminAuthController {
         return ApiResponse.ok();
     }
 
+    @PostMapping("/change-password")
+    public ApiResponse<Void> changePassword(
+        @CurrentAdmin AdminUser user,
+        @Valid @RequestBody ChangePasswordRequest body,
+        @RequestHeader(value = "X-Device-Id", required = false) String deviceId,
+        HttpServletRequest request
+    ) {
+        String ip = clientNetworkService.resolve(request).ipAddress();
+        service.changePassword(user, body.currentPassword(), body.newPassword(), ip, deviceId);
+        return ApiResponse.ok();
+    }
+
     public record SetupRequest(
         @NotBlank @Pattern(regexp = "^1\\d{10}$", message = "请输入正确的手机号") String phone,
-        @NotBlank @Size(min = 10, message = "密码至少10位") String password,
+        @NotBlank @Size(min = 10, max = 128, message = "密码需为10至128位") String password,
         @Size(max = 60, message = "显示名称最多60个字") String displayName
     ) {
     }
 
     public record LoginRequest(
         @NotBlank @Pattern(regexp = "^1\\d{10}$", message = "请输入正确的手机号") String phone,
-        @NotBlank @Size(min = 10, message = "密码至少10位") String password
+        @NotBlank @Size(min = 10, max = 128, message = "密码需为10至128位") String password
+    ) {
+    }
+
+    public record ChangePasswordRequest(
+        @NotBlank @Size(max = 128, message = "当前密码不正确") String currentPassword,
+        @NotBlank @Size(min = 10, max = 128, message = "新密码需为10至128位") String newPassword
     ) {
     }
 }

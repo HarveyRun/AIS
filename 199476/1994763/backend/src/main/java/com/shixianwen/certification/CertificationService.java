@@ -26,18 +26,21 @@ public class CertificationService {
     private final FileStorage fileStorage;
     private final SensitiveWordService sensitiveWords;
     private final FileTypeDetector fileTypeDetector;
+    private final JobCertificationAppointmentRepository jobAppointments;
 
     public CertificationService(
             CertificationRepository certificationRepository,
             UserRepository userRepository,
             FileStorage fileStorage,
             SensitiveWordService sensitiveWords,
-            FileTypeDetector fileTypeDetector) {
+            FileTypeDetector fileTypeDetector,
+            JobCertificationAppointmentRepository jobAppointments) {
         this.certificationRepository = certificationRepository;
         this.userRepository = userRepository;
         this.fileStorage = fileStorage;
         this.sensitiveWords = sensitiveWords;
         this.fileTypeDetector = fileTypeDetector;
+        this.jobAppointments = jobAppointments;
     }
 
     @Transactional(readOnly = true)
@@ -63,6 +66,18 @@ public class CertificationService {
             throw BusinessException.badRequest("身份信息认证需要按要求提交3张图片");
         }
         if ("MAIN_JOB".equals(normalizedType)) {
+            user = userRepository.findWithLockById(user.getId())
+                .orElseThrow(() -> BusinessException.notFound("用户不存在"));
+            JobCertificationAuthenticityPolicy.requireCanApply(user, LocalDateTime.now());
+            boolean hasAppointment = jobAppointments
+                .findFirstByUserIdAndStatusOrderByAppointmentAtDesc(
+                    user.getId(),
+                    "BOOKED"
+                )
+                .isPresent();
+            if (hasAppointment) {
+                throw BusinessException.badRequest("您已有待进行的线下认证预约");
+            }
             validateJobFiles(files);
         }
         Certification existing = certificationRepository
@@ -209,10 +224,10 @@ public class CertificationService {
     private void validateJobFiles(List<MultipartFile> files) {
         long videos = files.stream().filter(this::isVideo).count();
         long images = files.stream().filter(this::isImage).count();
-        if (videos + images == 0)
-            throw BusinessException.badRequest("岗位认证至少需要一段录像或一张照片");
-        if (videos > 1 || images > 5 || videos + images != files.size()) {
-            throw BusinessException.badRequest("岗位材料只支持1段录像和最多5张照片");
+        boolean validVideo = videos == 1 && images == 0;
+        boolean validPhotos = videos == 0 && images >= 1 && images <= 5;
+        if ((!validVideo && !validPhotos) || videos + images != files.size()) {
+            throw BusinessException.badRequest("岗位认证请选择录像、照片或线下认证中的一种");
         }
         files.stream().filter(this::isVideo).filter(file -> file.getSize() > FIVE_HUNDRED_MB).findAny()
                 .ifPresent(file -> {
@@ -273,6 +288,8 @@ public class CertificationService {
             String title,
             String description,
             Integer years,
+            Integer authenticityPercent,
+            LocalDateTime jobReapplyAvailableAt,
             boolean required,
             String status,
             boolean enabled,
@@ -282,6 +299,7 @@ public class CertificationService {
             return new CertificationView(
                     certification.getId(), certification.getCategory(), certification.getCertificationType(),
                     certification.getTitle(), certification.getDescription(), certification.getYears(),
+                    certification.getAuthenticityPercent(), certification.getJobReapplyAvailableAt(),
                     certification.isRequiredItem(), certification.getStatus(), certification.isEnabled(),
                     certification.getRejectionReason(),
                     certification.getMaterials().stream().filter(material -> material.getDeletedAt() == null)

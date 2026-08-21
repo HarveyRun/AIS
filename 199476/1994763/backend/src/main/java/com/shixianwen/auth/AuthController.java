@@ -53,8 +53,12 @@ public class AuthController {
         ));
     }
 
-    private boolean isAppClient(String clientPlatform) {
-        return "app".equalsIgnoreCase(clientPlatform);
+    static boolean isAppClient(String clientPlatform) {
+        if (clientPlatform == null) return false;
+        return switch (clientPlatform.trim().toLowerCase()) {
+            case "app", "android", "ios" -> true;
+            default -> false;
+        };
     }
 
     @PostMapping("/logout")

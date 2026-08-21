@@ -11,6 +11,7 @@ public class AdminPasswordEncoder {
     private static final int ITERATIONS = 210_000;
     private static final int KEY_LENGTH = 256;
     private final SecureRandom random = new SecureRandom();
+    private final String dummyHash = encode("shixianwen-admin-dummy-password");
 
     public String encode(String password) {
         byte[] salt = new byte[16]; random.nextBytes(salt);
@@ -19,7 +20,7 @@ public class AdminPasswordEncoder {
     }
     public boolean matches(String password, String encoded) {
         try {
-            String[] parts = encoded.split("\\$");
+            String[] parts = (encoded == null ? dummyHash : encoded).split("\\$");
             byte[] expected = Base64.getDecoder().decode(parts[3]);
             byte[] actual = derive(password, Base64.getDecoder().decode(parts[2]), Integer.parseInt(parts[1]));
             return java.security.MessageDigest.isEqual(expected, actual);

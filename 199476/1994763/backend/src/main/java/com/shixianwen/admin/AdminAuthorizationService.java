@@ -34,11 +34,11 @@ public class AdminAuthorizationService {
     public Set<String> permissionCodes(Long adminUserId) {
         if (isSuperAdmin(adminUserId)) return Set.of("*");
         return new LinkedHashSet<>(jdbc.queryForList(
-            "SELECT DISTINCT p.code FROM admin_user_roles ur " +
+            "SELECT p.code FROM admin_user_roles ur " +
                 "JOIN admin_roles r ON r.id=ur.role_id AND r.active=TRUE AND r.deleted_at IS NULL " +
                 "JOIN admin_role_permissions rp ON rp.role_id=r.id " +
                 "JOIN admin_permissions p ON p.id=rp.permission_id AND p.active=TRUE AND p.deleted_at IS NULL " +
-                "WHERE ur.admin_user_id=? ORDER BY p.sort_order,p.id",
+                "WHERE ur.admin_user_id=? GROUP BY p.code ORDER BY MIN(p.sort_order),MIN(p.id)",
             String.class,
             adminUserId
         ));
@@ -48,7 +48,7 @@ public class AdminAuthorizationService {
     public List<AdminRoleSummary> roles(Long adminUserId) {
         return jdbc.query(
             "SELECT r.id,r.code,r.name,r.level_no FROM admin_user_roles ur " +
-                "JOIN admin_roles r ON r.id=ur.role_id AND r.deleted_at IS NULL " +
+                "JOIN admin_roles r ON r.id=ur.role_id AND r.active=TRUE AND r.deleted_at IS NULL " +
                 "WHERE ur.admin_user_id=? ORDER BY r.level_no,r.id",
             (result, row) -> new AdminRoleSummary(
                 result.getLong("id"), result.getString("code"), result.getString("name"),

@@ -65,7 +65,7 @@ public class AppTestLoginAccountService {
             .orElseGet(AppTestLoginAccount::new);
 
         if (account.getId() == null && repository.findByPhone(normalizedPhone).isPresent()) {
-            throw BusinessException.badRequest("该手机号已经配置为App超级账号");
+            throw BusinessException.badRequest("该手机号已经配置为测试账号");
         }
 
         account.setPhone(normalizedPhone);
@@ -97,7 +97,7 @@ public class AppTestLoginAccountService {
         repository.findByPhone(normalizedPhone)
             .filter(existing -> !existing.getId().equals(id))
             .ifPresent(existing -> {
-                throw BusinessException.badRequest("该手机号已经配置为App超级账号");
+                throw BusinessException.badRequest("该手机号已经配置为测试账号");
             });
 
         account.setPhone(normalizedPhone);
@@ -140,7 +140,7 @@ public class AppTestLoginAccountService {
 
     private AppTestLoginAccount activeAccount(Long id) {
         return repository.findByIdAndDeletedFalse(id)
-            .orElseThrow(() -> BusinessException.badRequest("App超级账号不存在"));
+            .orElseThrow(() -> BusinessException.badRequest("测试账号不存在"));
     }
 
     private void recordAudit(

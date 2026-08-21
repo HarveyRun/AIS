@@ -7,6 +7,7 @@ import '../models/certification_models.dart';
 import '../models/discovery_models.dart';
 import '../models/home_banner_models.dart';
 import '../models/inquiry_models.dart';
+import '../models/invitation_models.dart';
 import '../models/support_models.dart';
 import '../models/user_models.dart';
 import '../models/wallet_models.dart';
@@ -102,6 +103,22 @@ class AppRepository {
 
   Future<Map<String, dynamic>> answererEligibility() {
     return _api.get<Map<String, dynamic>>('/users/me/answerer-eligibility');
+  }
+
+  Future<InvitationCampaignStatus> invitationCampaignStatus() async {
+    final data = await _api.get<Map<String, dynamic>>('/invitations/status');
+    return InvitationCampaignStatus.fromJson(data);
+  }
+
+  Future<InvitationCampaignStatus> bindInvitationCode(
+    String code,
+    String inviterRealName,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/invitations/bind',
+      data: {'invitationCode': code, 'inviterRealName': inviterRealName},
+    );
+    return InvitationCampaignStatus.fromJson(data);
   }
 
   Future<AnswererPageData> answerers({
@@ -350,6 +367,37 @@ class AppRepository {
         ),
       }),
     );
+  }
+
+  Future<JobCertificationAppointment?>
+  currentJobCertificationAppointment() async {
+    final data = await _api.get<Object?>(
+      '/certifications/job/offline-appointment',
+    );
+    if (data is! Map) return null;
+    return JobCertificationAppointment.fromJson(
+      Map<String, dynamic>.from(data),
+    );
+  }
+
+  Future<JobCertificationAppointment> bookJobCertificationAppointment(
+    DateTime appointmentAt,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/certifications/job/offline-appointment',
+      data: {'appointmentAt': appointmentAt.toIso8601String()},
+    );
+    return JobCertificationAppointment.fromJson(data);
+  }
+
+  Future<bool> jobCertificationAppointmentAvailable(
+    DateTime appointmentAt,
+  ) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/certifications/job/offline-appointment/availability',
+      query: {'appointmentAt': appointmentAt.toIso8601String()},
+    );
+    return data['available'] == true;
   }
 
   Future<void> submitExperienceCertification({

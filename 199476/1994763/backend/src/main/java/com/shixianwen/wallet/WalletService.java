@@ -317,6 +317,33 @@ public class WalletService {
         );
     }
 
+    @Transactional
+    public void creditInvitationReward(Long userId, BigDecimal amount, Long invitationId) {
+        WalletAccount wallet = lock(userId);
+        ensureSources(wallet);
+        amount = MoneyAmounts.requirePositive(amount);
+        if (alreadyRecorded(
+            wallet,
+            "INVITATION_REWARD",
+            "USER_INVITATION",
+            invitationId,
+            amount
+        )) {
+            return;
+        }
+        wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), amount));
+        syncTotals(wallet);
+        record(
+            wallet,
+            "INVITATION_REWARD",
+            "IN",
+            amount,
+            "USER_INVITATION",
+            invitationId,
+            "邀请答主红包"
+        );
+    }
+
     private User user(Long userId) {
         return users.findById(userId).orElseThrow(() -> BusinessException.notFound("用户不存在"));
     }

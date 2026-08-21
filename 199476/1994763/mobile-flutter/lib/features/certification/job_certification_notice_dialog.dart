@@ -45,7 +45,7 @@ class JobCertificationNoticeDialog extends StatelessWidget {
                 child: FilledButton(
                   style: FilledButton.styleFrom(backgroundColor: success),
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('继续认证'),
+                  child: const Text('我知道了'),
                 ),
               ),
             ],
@@ -75,25 +75,14 @@ class _JobCertificationNoticeContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text.rich(
-          TextSpan(
-            style: normal,
-            children: [
-              const TextSpan(text: '平台'),
-              TextSpan(text: '不要求必须提交某一种证明材料', style: strong),
-              const TextSpan(text: '。您可以根据自己的实际情况，提交能够证明相关职业经历的材料。'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
         Text('为了更容易通过审核，建议优先提交以下材料：', style: normal),
         const SizedBox(height: 10),
         _RecommendationItem(
           number: '1',
           children: [
             TextSpan(text: '优先推荐', style: strong),
-            const TextSpan(text: '：劳动合同、在职证明、离职证明等，能够直接体现'),
-            TextSpan(text: '岗位/职业 + 任职时间', style: strong),
+            const TextSpan(text: '：劳动合同、在职证明、离职证明等，能够直接'),
+            TextSpan(text: '证明岗位', style: strong),
             const TextSpan(text: '的材料。'),
           ],
         ),
@@ -102,8 +91,8 @@ class _JobCertificationNoticeContent extends StatelessWidget {
           number: '2',
           children: [
             TextSpan(text: '其次推荐', style: strong),
-            const TextSpan(text: '：社保、个税、公积金、工资流水等，能够证明'),
-            TextSpan(text: '工作单位 + 工作时间', style: strong),
+            const TextSpan(text: '：社保、个税、公积金、工资流水等，能够'),
+            TextSpan(text: '证明任职时间', style: strong),
             const TextSpan(text: '的材料，并搭配其他能够证明岗位的材料。'),
           ],
         ),
@@ -118,13 +107,12 @@ class _JobCertificationNoticeContent extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        Text('材料可以组合提交，不要求覆盖全部工作经历，也不要求提供每一份工作合同。', style: strong),
-        const SizedBox(height: 12),
         Text.rich(
           TextSpan(
             style: normal,
             children: [
-              const TextSpan(text: '相关职业累计经历达到 '),
+              TextSpan(text: '岗位', style: strong),
+              const TextSpan(text: '累计经历达到 '),
               TextSpan(text: '5 年及以上', style: strong),
               const TextSpan(text: '，即可满足职业年限审核要求。审核通过后，平台将根据您提交的有效材料展示您的'),
               TextSpan(text: '真实职业工龄', style: strong),
@@ -134,6 +122,8 @@ class _JobCertificationNoticeContent extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text('如部分过往经历已经无法提供材料，也无需担心，优先提交您目前能够找到、证明力较强的材料即可。', style: normal),
+        const SizedBox(height: 12),
+        Text('自由职业者请提供可证明收入来源的相关材料。', style: strong),
       ],
     );
   }

@@ -360,6 +360,30 @@ button.primary {
 .review-job-options button small { display: block; }
 .review-job-options button small { margin-top: 3px; overflow: hidden; color: #858a93; text-overflow: ellipsis; white-space: nowrap; }
 .review-job-options p { margin: 0; padding: 16px 12px; color: #8a8f98; text-align: center; }
+.authenticity-selector > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.authenticity-selector button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  border-radius: 8px;
+  background: #f3f4f6;
+  padding: 9px 10px;
+  color: #4d525a;
+  cursor: pointer;
+}
+.authenticity-selector button.selected {
+  background: #d33a2c;
+  color: #fff;
+}
+.authenticity-selector button small {
+  color: inherit;
+  opacity: 0.72;
+}
 .certification-edit-panel {
   display: grid;
   gap: 12px;

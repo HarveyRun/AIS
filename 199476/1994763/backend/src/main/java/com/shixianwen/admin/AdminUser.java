@@ -16,8 +16,9 @@ public class AdminUser {
     @Column(nullable=false, unique=true, length=20) private String phone;
     @Column(name="password_hash", nullable=false) private String passwordHash;
     @Column(name="display_name", nullable=false, length=60) private String displayName;
-    @Column(nullable=false, length=30) private String role = "SUPER_ADMIN";
+    @Column(nullable=false, length=80) private String role = "SUPER_ADMIN";
     @Column(nullable=false, length=20) private String status = "ACTIVE";
+    @Column(name="must_change_password", nullable=false) private boolean mustChangePassword;
     @Column(name="last_login_at") private LocalDateTime lastLoginAt;
     @CreationTimestamp @Column(name="created_at", updatable=false) private LocalDateTime createdAt;
     @UpdateTimestamp @Column(name="updated_at") private LocalDateTime updatedAt;

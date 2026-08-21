@@ -94,10 +94,10 @@ export default function AppTestAccountPage() {
     try {
       if (editingId) {
         await adminApi.updateAppTestAccount(editingId, form);
-        message.success('App超级账号已更新');
+        message.success('测试账号已更新');
       } else {
         await adminApi.createAppTestAccount(form);
-        message.success('App超级账号已新增');
+        message.success('测试账号已新增');
       }
       setEditorOpen(false);
       setEditingId(null);
@@ -129,7 +129,7 @@ export default function AppTestAccountPage() {
     try {
       await adminApi.deleteAppTestAccount(deleteTarget.id);
       setDeleteTarget(null);
-      message.success('App超级账号已删除');
+      message.success('测试账号已删除');
       const nextPage = accounts.length === 1 && page > 0 ? page - 1 : page;
       await loadAccounts(nextPage);
     } catch (error) {
@@ -153,7 +153,7 @@ export default function AppTestAccountPage() {
     <>
       <div className="page-title app-test-account-title">
         <div>
-          <h1>App超级账号</h1>
+          <h1>App测试账号</h1>
           <p>维护 App 测试与商店审核使用的固定登录账号</p>
         </div>
         {can('APP_TEST_ACCOUNT_CREATE') && (
@@ -250,7 +250,7 @@ export default function AppTestAccountPage() {
                 ))}
               </tbody>
             </table>
-            {!accounts.length && <div className="empty">暂无App超级账号</div>}
+            {!accounts.length && <div className="empty">暂无测试账号</div>}
           </div>
           <Pagination page={page} size={PAGE_SIZE} total={total} onChange={loadAccounts} />
         </section>
@@ -292,7 +292,7 @@ export default function AppTestAccountPage() {
           <section className="detail-modal app-test-account-editor" role="dialog" aria-modal="true">
             <header>
               <div>
-                <h2>{editingId ? '编辑App超级账号' : '新增App超级账号'}</h2>
+                <h2>{editingId ? '编辑测试账号' : '新增测试账号'}</h2>
                 <p>每个手机号对应一套独立的固定验证码。</p>
               </div>
               <button type="button" aria-label="关闭" onClick={closeEditor}>
@@ -367,7 +367,7 @@ export default function AppTestAccountPage() {
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}
-        title="删除App超级账号"
+        title="删除测试账号"
         message={`确定删除手机号“${deleteTarget?.phone || ''}”吗？删除后将不能再使用固定验证码登录。`}
         confirmText="删除"
         danger

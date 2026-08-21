@@ -23,6 +23,7 @@ class CertificationNoticeCard extends StatelessWidget {
   const CertificationNoticeCard({
     super.key,
     required this.tone,
+    this.label = '温馨提示',
     this.title,
     this.description,
     this.items = const [],
@@ -31,6 +32,7 @@ class CertificationNoticeCard extends StatelessWidget {
   });
 
   final String? title;
+  final String label;
   final String? description;
   final List<CertificationNoticeItem> items;
   final List<CertificationNoticeParagraph> paragraphs;
@@ -75,7 +77,7 @@ class CertificationNoticeCard extends StatelessWidget {
                       Icon(_toneIcon, size: 16, color: toneColor),
                       const SizedBox(width: 6),
                       Text(
-                        '温馨提示',
+                        label,
                         style: TextStyle(
                           color: toneColor,
                           fontSize: 11,

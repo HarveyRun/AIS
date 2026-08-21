@@ -53,6 +53,9 @@ public class User {
     @Column(name = "answerer_status", nullable = false, length = 30)
     private String answererStatus = "NOT_APPLIED";
 
+    @Column(name = "job_certification_blocked_until")
+    private LocalDateTime jobCertificationBlockedUntil;
+
     @Column(name = "account_status", nullable = false, length = 30)
     private String accountStatus = "ACTIVE";
 

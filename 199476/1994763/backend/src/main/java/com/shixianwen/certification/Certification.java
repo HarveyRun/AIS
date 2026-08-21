@@ -48,6 +48,12 @@ public class Certification {
 
     private Integer years;
 
+    @Column(name = "authenticity_percent")
+    private Integer authenticityPercent;
+
+    @Column(name = "job_reapply_available_at")
+    private LocalDateTime jobReapplyAvailableAt;
+
     @Column(name = "required_item", nullable = false)
     private boolean requiredItem;
 
