@@ -135,6 +135,14 @@ public class UserService {
     }
 
     @Transactional
+    public AuthService.UserView dismissPlatformIntroduction(User user) {
+        User current = userRepository.findById(user.getId())
+            .orElseThrow(() -> BusinessException.notFound("用户不存在"));
+        current.setPlatformIntroRequired(false);
+        return AuthService.UserView.from(userRepository.save(current));
+    }
+
+    @Transactional
     public void deleteAccount(User user) {
         WalletAccount wallet = walletAccountRepository.findWithLockByUserId(user.getId())
             .orElseThrow(() -> BusinessException.notFound("账户余额不存在"));

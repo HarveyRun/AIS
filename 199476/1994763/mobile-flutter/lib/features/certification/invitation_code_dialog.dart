@@ -1,10 +1,89 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-class InvitationCodeDialog extends StatefulWidget {
-  const InvitationCodeDialog({required this.rewardAmount, super.key});
+class InvitationRulesDialog extends StatelessWidget {
+  const InvitationRulesDialog({required this.rewardAmount, super.key});
 
   final double rewardAmount;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final reward = _formatAmount(rewardAmount);
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 30),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 420,
+          maxHeight: MediaQuery.sizeOf(context).height * .72,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 10, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '活动规则',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    tooltip: '关闭',
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: .08),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _NoticeLine(text: '邀请码就是对方的 UID'),
+                      const _NoticeLine(text: '填写确认后无法更改'),
+                      const _NoticeLine(text: '你和对方均需通过实名和岗位认证'),
+                      _NoticeLine(text: '每成功邀请 1 人得 $reward 元红包，人数不限'),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('去填写'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class InvitationCodeDialog extends StatefulWidget {
+  const InvitationCodeDialog({super.key});
 
   @override
   State<InvitationCodeDialog> createState() => _InvitationCodeDialogState();
@@ -36,14 +115,11 @@ class _InvitationCodeDialogState extends State<InvitationCodeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final reward = _formatAmount(widget.rewardAmount);
     final valid =
         RegExp(r'^\d{7}$').hasMatch(_codeController.text.trim()) &&
         _validName(_nameController.text.trim());
 
     return Dialog(
-      insetAnimationDuration: Duration.zero,
       insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 30),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
@@ -67,24 +143,6 @@ class _InvitationCodeDialogState extends State<InvitationCodeDialog> {
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: scheme.primary.withValues(alpha: .08),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _NoticeLine(text: '邀请码就是对方的 UID'),
-                    const _NoticeLine(text: '填写确认后无法更改'),
-                    const _NoticeLine(text: '你和对方均需通过实名和岗位认证'),
-                    _NoticeLine(text: '每成功邀请 1 人得 $reward 元红包，人数不限'),
-                  ],
-                ),
               ),
               const SizedBox(height: 18),
               TextField(

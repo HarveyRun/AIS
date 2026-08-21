@@ -135,6 +135,7 @@ public class AuthService {
         User user = new User();
         user.setUid(uidAllocator.allocate());
         user.setPhone(phone);
+        user.setPlatformIntroRequired(true);
         user.setRegisterIp(network.ipAddress());
         user.setRegisterLocation(network.location());
         user = userRepository.save(user);
@@ -217,14 +218,15 @@ public class AuthService {
         int inquiryPriceMin,
         int inquiryPriceMax,
         LocalDateTime inquiryPriceUpdatedAt,
-        String answererStatus
+        String answererStatus,
+        boolean platformIntroductionRequired
     ) {
         public static UserView from(User user) {
             return new UserView(
                 user.getId(), user.getUid(), user.getPhone(), user.getNickname(), user.getAvatarUrl(),
                 user.isAcceptingInquiries(), user.getAcceptingInquiriesUpdatedAt(),
                 user.getInquiryPriceMin(), user.getInquiryPriceMax(), user.getInquiryPriceUpdatedAt(),
-                user.getAnswererStatus()
+                user.getAnswererStatus(), user.isPlatformIntroRequired()
             );
         }
     }

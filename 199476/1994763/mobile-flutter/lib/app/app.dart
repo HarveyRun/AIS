@@ -8,6 +8,7 @@ import '../core/theme/app_theme.dart';
 import '../core/widgets/account_penalty_gate.dart';
 import '../core/widgets/app_update_gate.dart';
 import '../core/widgets/notification_realtime_gate.dart';
+import '../core/widgets/platform_introduction_gate.dart';
 import '../features/auth/pre_privacy_page.dart';
 import 'providers.dart';
 import 'router.dart';
@@ -99,7 +100,9 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
           AppUpdateGate(
             child: NotificationRealtimeGate(
               child: AccountPenaltyGate(
-                child: child ?? const SizedBox.shrink(),
+                child: PlatformIntroductionGate(
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           ),

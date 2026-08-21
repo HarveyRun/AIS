@@ -20,8 +20,7 @@ class BasicCertificationPage extends ConsumerStatefulWidget {
       _BasicCertificationPageState();
 }
 
-class _BasicCertificationPageState
-    extends ConsumerState<BasicCertificationPage>
+class _BasicCertificationPageState extends ConsumerState<BasicCertificationPage>
     with WidgetsBindingObserver {
   List<CertificationRecord> _items = const [];
   InvitationCampaignStatus? _invitation;
@@ -29,6 +28,7 @@ class _BasicCertificationPageState
   StreamSubscription<RealtimeEvent>? _realtimeSubscription;
   bool _loading = true;
   bool _requesting = false;
+  bool _openingInvitation = false;
 
   @override
   void initState() {
@@ -36,10 +36,11 @@ class _BasicCertificationPageState
     WidgetsBinding.instance.addObserver(this);
     _realtimeSubscription = ref.read(realtimeProvider).events.listen((event) {
       final certificationType = event.payload['type']?.toString();
-      final certificationUpdated = event.type == 'CERTIFICATION_UPDATED' &&
-          (certificationType == 'IDENTITY' ||
-              certificationType == 'MAIN_JOB');
-      final appointmentUpdated = event.type == 'NOTIFICATION_CREATED' &&
+      final certificationUpdated =
+          event.type == 'CERTIFICATION_UPDATED' &&
+          (certificationType == 'IDENTITY' || certificationType == 'MAIN_JOB');
+      final appointmentUpdated =
+          event.type == 'NOTIFICATION_CREATED' &&
           event.payload['targetPath']?.toString() ==
               '/profile/certifications/basic';
       if (certificationUpdated || appointmentUpdated) {
@@ -111,24 +112,45 @@ class _BasicCertificationPageState
 
   Future<void> _openInvitation() async {
     final invitation = _invitation;
-    if (invitation == null || !invitation.active) return;
+    if (invitation == null || !invitation.active || _openingInvitation) return;
     if (invitation.submitted) {
       AppMessage.show(context, '邀请码已填写，确认后无法更改');
       return;
     }
-    if (!invitation.eligible || !_basicCertificationCompleted) {
-      AppMessage.show(context, '完成实名认证和岗位认证后才可以填写邀请码');
-      return;
-    }
 
-    final input = await showDialog<InvitationCodeInput>(
+    final continueToFill = await showDialog<bool>(
       context: context,
       builder: (context) =>
-          InvitationCodeDialog(rewardAmount: invitation.rewardAmount),
+          InvitationRulesDialog(rewardAmount: invitation.rewardAmount),
     );
-    if (input == null || !mounted) return;
+    if (continueToFill != true || !mounted) return;
 
+    setState(() => _openingInvitation = true);
     try {
+      final repository = ref.read(repositoryProvider);
+      final latest = await repository.invitationCampaignStatus();
+      if (!mounted) return;
+      setState(() => _invitation = latest);
+
+      if (!latest.active) {
+        AppMessage.show(context, '活动已结束');
+        return;
+      }
+      if (latest.submitted) {
+        AppMessage.show(context, '邀请码已填写，确认后无法更改');
+        return;
+      }
+      if (!latest.eligible) {
+        AppMessage.show(context, '完成实名认证和岗位认证后才可以填写邀请码');
+        return;
+      }
+
+      final input = await showDialog<InvitationCodeInput>(
+        context: context,
+        builder: (context) => const InvitationCodeDialog(),
+      );
+      if (input == null || !mounted) return;
+
       final result = await ref
           .read(repositoryProvider)
           .bindInvitationCode(input.code, input.inviterRealName);
@@ -140,6 +162,8 @@ class _BasicCertificationPageState
       );
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
+    } finally {
+      if (mounted) setState(() => _openingInvitation = false);
     }
   }
 
@@ -152,7 +176,7 @@ class _BasicCertificationPageState
       actions: [
         if (_invitation?.active == true)
           TextButton(
-            onPressed: _loading ? null : _openInvitation,
+            onPressed: _loading || _openingInvitation ? null : _openInvitation,
             child: Text(
               _invitation?.submitted == true
                   ? _invitationStatusLabel(_invitation!.status)

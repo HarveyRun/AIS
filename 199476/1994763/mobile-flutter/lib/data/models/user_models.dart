@@ -11,6 +11,7 @@ class AppUser {
     required this.inquiryPriceMax,
     required this.inquiryPriceUpdatedAt,
     required this.answererStatus,
+    required this.platformIntroductionRequired,
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
@@ -28,6 +29,8 @@ class AppUser {
       inquiryPriceMax: _boundedInt(json['inquiryPriceMax'], 5000),
       inquiryPriceUpdatedAt: _dateTime(json['inquiryPriceUpdatedAt']),
       answererStatus: json['answererStatus']?.toString() ?? '',
+      platformIntroductionRequired:
+          json['platformIntroductionRequired'] == true,
     );
   }
 
@@ -42,6 +45,7 @@ class AppUser {
   final int inquiryPriceMax;
   final DateTime? inquiryPriceUpdatedAt;
   final String answererStatus;
+  final bool platformIntroductionRequired;
 
   String get displayName => nickname.trim().isEmpty ? 'UID $uid' : nickname;
 
@@ -54,6 +58,7 @@ class AppUser {
     int? inquiryPriceMax,
     DateTime? inquiryPriceUpdatedAt,
     String? answererStatus,
+    bool? platformIntroductionRequired,
   }) {
     return AppUser(
       id: id,
@@ -69,6 +74,8 @@ class AppUser {
       inquiryPriceUpdatedAt:
           inquiryPriceUpdatedAt ?? this.inquiryPriceUpdatedAt,
       answererStatus: answererStatus ?? this.answererStatus,
+      platformIntroductionRequired:
+          platformIntroductionRequired ?? this.platformIntroductionRequired,
     );
   }
 }

@@ -169,6 +169,11 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> dismissPlatformIntroduction() async {
+    user = await _repository.dismissPlatformIntroduction();
+    notifyListeners();
+  }
+
   void acknowledgePenalty() {
     penaltyNotice = null;
     notifyListeners();

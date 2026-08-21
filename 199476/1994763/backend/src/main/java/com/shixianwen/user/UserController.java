@@ -63,6 +63,13 @@ public class UserController {
         return ApiResponse.ok(userService.answererEligibility(user));
     }
 
+    @PostMapping("/platform-introduction/dismiss")
+    public ApiResponse<AuthService.UserView> dismissPlatformIntroduction(
+        @CurrentUser User user
+    ) {
+        return ApiResponse.ok(userService.dismissPlatformIntroduction(user));
+    }
+
     @DeleteMapping
     public ApiResponse<Void> delete(@CurrentUser User user) {
         userService.deleteAccount(user);

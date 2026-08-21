@@ -82,6 +82,13 @@ class AppRepository {
 
   Future<void> deleteAccount() => _api.delete<Object?>('/users/me');
 
+  Future<AppUser> dismissPlatformIntroduction() async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/users/me/platform-introduction/dismiss',
+    );
+    return AppUser.fromJson(data);
+  }
+
   Future<AppUser> setAcceptingInquiries(bool accepting) async {
     final data = await _api.patch<Map<String, dynamic>>(
       '/users/me/accepting-inquiries',
