@@ -1,5 +1,6 @@
 package com.shixianwen.wallet;
 
+import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
@@ -19,6 +20,7 @@ public class RechargeService {
     private final UserRepository users;
     private final WalletService wallet;
     private final PaymentGateway gateway;
+    private final AnalyticsEventService analytics;
 
     public PaymentGateway.PaymentCapability capability(Long userId) {
         User user = users.findById(userId)
@@ -162,6 +164,11 @@ public class RechargeService {
         item.setProviderTradeNo(providerTradeNo);
         item.setPaidAt(paidAt == null ? LocalDateTime.now() : paidAt);
         wallet.creditRecharge(item.getUser().getId(), item.getAmount(), item.getId());
+        analytics.recordBusinessAfterCommit(item.getUser(), "recharge_success", analytics.properties(
+            "recharge_id", item.getId(),
+            "channel", item.getChannel(),
+            "amount_bucket", amountBucket(item.getAmount())
+        ));
     }
 
     private void verifyProviderTradeNo(Recharge item, String providerTradeNo) {
@@ -192,6 +199,13 @@ public class RechargeService {
             throw BusinessException.badRequest("充值请求标识无效");
         }
         return value;
+    }
+
+    private String amountBucket(BigDecimal amount) {
+        if (amount.compareTo(new BigDecimal("50")) <= 0) return "1-50";
+        if (amount.compareTo(new BigDecimal("200")) <= 0) return "51-200";
+        if (amount.compareTo(new BigDecimal("1000")) <= 0) return "201-1000";
+        return "1001-9999";
     }
 
     public record RechargeView(Long id, String orderNo, String providerTradeNo, String channel,

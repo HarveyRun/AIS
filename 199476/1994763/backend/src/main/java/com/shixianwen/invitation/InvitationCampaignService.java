@@ -1,5 +1,6 @@
 package com.shixianwen.invitation;
 
+import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.admin.AdminAuditLog;
 import com.shixianwen.admin.AdminAuditLogRepository;
 import com.shixianwen.admin.AdminUser;
@@ -41,6 +42,7 @@ public class InvitationCampaignService {
     private final NotificationService notificationService;
     private final AdminAuditLogRepository auditLogs;
     private final FileStorage fileStorage;
+    private final AnalyticsEventService analytics;
 
     @Transactional(readOnly = true)
     public UserStatusView userStatus(User user) {
@@ -93,7 +95,11 @@ public class InvitationCampaignService {
         invitation.setInviterRealName(normalizeRealName(inviterRealName));
         invitation.setRewardAmount(reward);
         invitation.setStatus(PENDING);
-        invitations.save(invitation);
+        invitation = invitations.save(invitation);
+        analytics.recordBusinessAfterCommit(invitee, "invitation_submit", java.util.Map.of(
+            "invitation_id", invitation.getId(),
+            "inviter_user_id", inviter.getId()
+        ));
         return userStatus(invitee);
     }
 
@@ -210,6 +216,13 @@ public class InvitationCampaignService {
                 "邀请关系已确认，对方的红包已发放。",
                 ""
             );
+            analytics.recordBusinessAfterCommit(invitation.getInvitee(), "invitation_approved", java.util.Map.of(
+                "invitation_id", invitation.getId()
+            ));
+            analytics.recordBusinessAfterCommit(invitation.getInviter(), "invitation_rewarded", java.util.Map.of(
+                "invitation_id", invitation.getId(),
+                "reward_bucket", invitation.getRewardAmount().stripTrailingZeros().toPlainString()
+            ));
         } else {
             notificationService.send(
                 invitation.getInvitee(),
@@ -217,6 +230,9 @@ public class InvitationCampaignService {
                 reviewReason,
                 ""
             );
+            analytics.recordBusinessAfterCommit(invitation.getInvitee(), "invitation_rejected", java.util.Map.of(
+                "invitation_id", invitation.getId()
+            ));
         }
 
         auditReview(admin, invitation, approved, reviewReason, ipAddress);

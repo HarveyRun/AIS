@@ -52,7 +52,7 @@ class _CustomerServicePageState extends ConsumerState<CustomerServicePage> {
     try {
       final messages = await ref
           .read(repositoryProvider)
-          .customerServiceMessages();
+          .customerServiceMessages(showLoading: !silent);
       await ref.read(repositoryProvider).readCustomerServiceMessages();
       if (!mounted) return;
       setState(() => _messages = messages);
@@ -132,7 +132,7 @@ class _CustomerServicePageState extends ConsumerState<CustomerServicePage> {
       children: [
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox.shrink()
               : Container(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? const Color(0xFF151619)

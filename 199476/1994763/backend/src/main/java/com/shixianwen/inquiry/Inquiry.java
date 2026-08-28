@@ -38,6 +38,9 @@ public class Inquiry {
     @Column(nullable = false, length = 1000)
     private String question;
 
+    @Column(name = "question_raw_encrypted", columnDefinition = "MEDIUMTEXT")
+    private String questionRawEncrypted;
+
     @Column(name = "request_ip", length = 45, updatable = false)
     private String requestIp;
 
@@ -46,6 +49,21 @@ public class Inquiry {
 
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
+
+    @Column(name = "settleable_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal settleableAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
+
+    @Column(name = "timeout_refunded_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal timeoutRefundedAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
+
+    @Column(name = "timeout_refunded_recharge_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal timeoutRefundedRechargeAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
+
+    @Column(name = "timeout_refunded_income_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal timeoutRefundedIncomeAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
+
+    @Column(name = "timeout_count", nullable = false)
+    private int timeoutCount;
 
     @Column(name = "client_platform", nullable = false, length = 20)
     private String clientPlatform = "ANDROID";
@@ -85,6 +103,24 @@ public class Inquiry {
 
     @Column(name = "accepted_at")
     private LocalDateTime acceptedAt;
+
+    @Column(name = "first_questioner_message_at")
+    private LocalDateTime firstQuestionerMessageAt;
+
+    @Column(name = "first_answerer_reply_at")
+    private LocalDateTime firstAnswererReplyAt;
+
+    @Column(name = "reply_cycle_started_at")
+    private LocalDateTime replyCycleStartedAt;
+
+    @Column(name = "reply_deadline")
+    private LocalDateTime replyDeadline;
+
+    @Column(name = "end_requested_at")
+    private LocalDateTime endRequestedAt;
+
+    @Column(name = "end_reminder_stage", nullable = false)
+    private int endReminderStage;
 
     @Column(name = "ended_at")
     private LocalDateTime endedAt;

@@ -1,5 +1,6 @@
 package com.shixianwen.support;
 
+import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.storage.FileStorage;
@@ -25,6 +26,7 @@ public class SupportService {
     private final RealtimePublisher realtime;
     private final FileStorage fileStorage;
     private final SensitiveWordService sensitiveWords;
+    private final AnalyticsEventService analytics;
 
     @Transactional
     public FeedbackView feedback(Long userId, String type, String category, String content, Long targetUserId) {
@@ -32,7 +34,13 @@ public class SupportService {
         item.setUser(user(userId)); item.setFeedbackType(required(type)); item.setCategory(required(category));
         item.setContent(required(content));
         if (targetUserId != null) item.setTargetUser(user(targetUserId));
-        return FeedbackView.of(feedback.save(item));
+        item = feedback.save(item);
+        analytics.recordBusinessAfterCommit(item.getUser(), "feedback_submitted", java.util.Map.of(
+            "feedback_id", item.getId(),
+            "feedback_type", item.getFeedbackType(),
+            "category", item.getCategory()
+        ));
+        return FeedbackView.of(item);
     }
     public List<FeedbackView> feedbackList(Long userId) { return feedback.findByUserIdOrderByCreatedAtDesc(userId).stream().map(FeedbackView::of).toList(); }
     @Transactional

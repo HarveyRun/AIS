@@ -51,7 +51,7 @@ public class InquiryController {
         return ApiResponse.ok(service.sendImage(user.getId(), id, image));
     }
     @PostMapping("/{id}/request-end") public ApiResponse<InquiryService.InquiryView> requestEnd(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.requestEnd(u.getId(), id)); }
-    @PostMapping("/{id}/continue") public ApiResponse<InquiryService.InquiryView> continueChat(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.continueChat(u.getId(), id)); }
+    @PostMapping("/{id}/disagree-end") public ApiResponse<InquiryService.InquiryView> disagreeEnd(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.disagreeEnd(u.getId(), id)); }
     @PostMapping("/{id}/confirm-end") public ApiResponse<InquiryService.InquiryView> confirmEnd(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.confirmEnd(u.getId(), id)); }
 
     public record CreateRequest(@NotNull Long answererId, @Size(max=120) String topic, @Size(max=30) String sourceType,

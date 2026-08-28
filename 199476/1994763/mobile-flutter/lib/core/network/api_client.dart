@@ -6,9 +6,10 @@ import 'package:dio/dio.dart';
 import '../config/app_config.dart';
 import '../storage/app_storage.dart';
 import 'api_exception.dart';
+import 'request_loading_controller.dart';
 
 class ApiClient {
-  ApiClient(this._storage)
+  ApiClient(this._storage, this._loading)
     : _dio = Dio(
         BaseOptions(
           baseUrl: AppConfig.apiBaseUrl,
@@ -60,6 +61,7 @@ class ApiClient {
 
   final Dio _dio;
   final AppStorage _storage;
+  final RequestLoadingController _loading;
   final StreamController<void> _unauthorizedController =
       StreamController<void>.broadcast();
   final StreamController<AccountPenaltyNotice> _accountPenaltyController =
@@ -71,24 +73,39 @@ class ApiClient {
   Stream<AccountPenaltyNotice> get accountPenaltyEvents =>
       _accountPenaltyController.stream;
 
-  Future<T> get<T>(String path, {Map<String, dynamic>? query}) {
-    return _request<T>('GET', path, query: query);
+  Future<T> get<T>(
+    String path, {
+    Map<String, dynamic>? query,
+    bool showLoading = true,
+  }) {
+    return _request<T>('GET', path, query: query, showLoading: showLoading);
   }
 
-  Future<T> post<T>(String path, {Object? data, Map<String, dynamic>? query}) {
-    return _request<T>('POST', path, data: data, query: query);
+  Future<T> post<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? query,
+    bool showLoading = true,
+  }) {
+    return _request<T>(
+      'POST',
+      path,
+      data: data,
+      query: query,
+      showLoading: showLoading,
+    );
   }
 
-  Future<T> put<T>(String path, {Object? data}) {
-    return _request<T>('PUT', path, data: data);
+  Future<T> put<T>(String path, {Object? data, bool showLoading = true}) {
+    return _request<T>('PUT', path, data: data, showLoading: showLoading);
   }
 
-  Future<T> patch<T>(String path, {Object? data}) {
-    return _request<T>('PATCH', path, data: data);
+  Future<T> patch<T>(String path, {Object? data, bool showLoading = true}) {
+    return _request<T>('PATCH', path, data: data, showLoading: showLoading);
   }
 
-  Future<T> delete<T>(String path) {
-    return _request<T>('DELETE', path);
+  Future<T> delete<T>(String path, {bool showLoading = true}) {
+    return _request<T>('DELETE', path, showLoading: showLoading);
   }
 
   Future<T> _request<T>(
@@ -96,6 +113,7 @@ class ApiClient {
     String path, {
     Object? data,
     Map<String, dynamic>? query,
+    bool showLoading = true,
   }) {
     final key = '$method:$path:${query ?? const {}}:${_dataKey(data)}';
     final running = _inFlight[key];
@@ -103,7 +121,13 @@ class ApiClient {
       return running.then((value) => value as T);
     }
 
-    final request = _perform<T>(method, path, data: data, query: query);
+    final request = _perform<T>(
+      method,
+      path,
+      data: data,
+      query: query,
+      showLoading: showLoading,
+    );
     _inFlight[key] = request;
     request.whenComplete(() => _inFlight.remove(key));
     return request;
@@ -114,7 +138,9 @@ class ApiClient {
     String path, {
     Object? data,
     Map<String, dynamic>? query,
+    required bool showLoading,
   }) async {
+    if (showLoading) _loading.begin();
     try {
       final response = await _dio.request<Object?>(
         path,
@@ -146,6 +172,8 @@ class ApiClient {
       );
     } catch (_) {
       throw const ApiException('数据处理失败，请稍后重试');
+    } finally {
+      if (showLoading) _loading.end();
     }
   }
 

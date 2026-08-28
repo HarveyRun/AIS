@@ -64,6 +64,11 @@ public class DiscoveryService {
             long matterId = ((Number) row.get("matterId")).longValue();
             jobMap.computeIfAbsent(matterId, ignored -> new ArrayList<>()).add(new JobView(
                 ((Number) row.get("jobId")).longValue(), String.valueOf(row.get("name")),
+                row.get("description") == null ? null : String.valueOf(row.get("description")),
+                row.get("mainWork") == null ? null : String.valueOf(row.get("mainWork")),
+                row.get("canHelpWith") == null ? null : String.valueOf(row.get("canHelpWith")),
+                row.get("notResponsibleFor") == null ? null : String.valueOf(row.get("notResponsibleFor")),
+                row.get("roleDescription") == null ? null : String.valueOf(row.get("roleDescription")),
                 ((Number) row.get("answererCount")).longValue()
             ));
         }
@@ -105,13 +110,23 @@ public class DiscoveryService {
             "SELECT id,title FROM discovery_matters WHERE id=? AND active=TRUE AND deleted_at IS NULL", id
         ).stream().findFirst().orElseThrow(() -> BusinessException.notFound("事情不存在"));
         List<JobView> jobs = jdbc.query(
-            "SELECT j.id,j.name," +
+            "SELECT j.id,j.name,j.description,j.main_work,j.can_help_with,j.not_responsible_for,mj.role_description," +
                 "COUNT(DISTINCT CASE WHEN uj.verified=TRUE AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED_USER + "THEN u.id END) AS answererCount " +
                 "FROM discovery_matter_jobs mj JOIN jobs j ON j.id=mj.job_id " +
                 "LEFT JOIN user_jobs uj ON uj.job_id=j.id AND uj.deleted_at IS NULL LEFT JOIN users u ON u.id=uj.user_id " +
-                "WHERE mj.matter_id=? AND mj.active=TRUE AND mj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL GROUP BY j.id,j.name,mj.sort_order " +
+                "WHERE mj.matter_id=? AND mj.active=TRUE AND mj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL " +
+                "GROUP BY j.id,j.name,j.description,j.main_work,j.can_help_with,j.not_responsible_for,mj.role_description,mj.sort_order " +
                 "ORDER BY mj.sort_order,j.name",
-            (rs, index) -> new JobView(rs.getLong("id"), rs.getString("name"), rs.getLong("answererCount")), id
+            (rs, index) -> new JobView(
+                rs.getLong("id"),
+                rs.getString("name"),
+                rs.getString("description"),
+                rs.getString("main_work"),
+                rs.getString("can_help_with"),
+                rs.getString("not_responsible_for"),
+                rs.getString("role_description"),
+                rs.getLong("answererCount")
+            ), id
         );
         List<ParticipantView> participants = jdbc.query(
             "SELECT u.uid," +
@@ -216,7 +231,7 @@ public class DiscoveryService {
     public record MainCategoryView(String code, String name, List<SubcategoryView> subcategories) {}
     public record SubcategoryView(Long id, String name, List<MatterView> matters, List<ExperienceView> experiences) {}
     public record MatterView(Long id, String title, List<JobView> jobs, List<ParticipantView> participants) {}
-    public record JobView(Long id, String name, long answererCount) {}
+    public record JobView(Long id,String name,String description,String mainWork,String canHelpWith,String notResponsibleFor,String roleDescription,long answererCount) {}
     public record ParticipantView(String uid, String jobNames) {}
     public record ExperienceView(Long id, String title, long answererCount) {}
     public record MatterSearchView(Long id, String title, Long categoryId, String categoryName) {}

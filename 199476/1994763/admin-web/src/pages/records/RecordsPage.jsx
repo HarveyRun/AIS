@@ -10,7 +10,7 @@ import { message } from '../../components/feedback/message.js';
 const meta = {
   certifications: ['认证审核', '核对用户提交的身份、岗位与经历材料'],
   inquiries: ['询问管理', '查看询问状态和资金流转'],
-  withdrawals: ['提现处理', '核对并处理支付宝提现申请'],
+  withdrawals: ['普通提现处理', '核对并处理用户主动提交的提现申请'],
   feedback: ['投诉反馈', '处理产品反馈与用户投诉'],
   cooperations: ['商务合作', '查看并跟进商务合作申请'],
 };
@@ -90,7 +90,7 @@ export default function RecordsPage({ type }) {
       const file = await adminApi.exportWithdrawals();
       saveFile(file);
       await load();
-      message.success('待处理提现已导出');
+      message.success('普通提现批次已导出');
     } catch (error) {
       message.error(error.message);
     } finally {
@@ -271,7 +271,7 @@ export default function RecordsPage({ type }) {
               disabled={exportingWithdrawals}
               onClick={exportWithdrawals}
             >
-              {exportingWithdrawals ? '导出中' : '导出待处理提现'}
+              {exportingWithdrawals ? '导出中' : '导出普通提现'}
             </button>
           )}
         </div>

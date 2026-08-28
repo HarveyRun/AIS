@@ -275,7 +275,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('账户余额')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          ? const SizedBox.shrink()
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
@@ -437,15 +437,9 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: amount > 0 && !_submitting ? _submit : null,
-                      child: _submitting
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(_tab == WalletTab.recharge ? '支付宝充值' : '确认提现'),
+                      child: Text(
+                        _tab == WalletTab.recharge ? '支付宝充值' : '确认提现',
+                      ),
                     ),
                   ],
                 ],

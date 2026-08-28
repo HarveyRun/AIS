@@ -4,6 +4,7 @@ import {
   BellRing,
   BriefcaseBusiness,
   CalendarCheck2,
+  ChartNoAxesCombined,
   ChevronDown,
   Ellipsis,
   Footprints,
@@ -29,6 +30,10 @@ import {
   UserRoundCog,
   Users,
   WalletCards,
+  Scale,
+  BadgeCheck,
+  Gavel,
+  BadgeDollarSign,
 } from 'lucide-react';
 import { AdminAccessProvider } from '../../app/AdminAccessContext.jsx';
 import { adminApi, token } from '../../api/adminApi.js';
@@ -36,13 +41,18 @@ import './AdminLayout.css';
 
 const primaryItems = [
   ['/dashboard', '概览', LayoutDashboard, 'DASHBOARD_VIEW'],
+  ['/analytics', '运营分析', ChartNoAxesCombined, 'ANALYTICS_VIEW'],
   ['/users', '用户管理', Users, 'USER_VIEW'],
   ['/announcements', '通知管理', BellRing, 'ANNOUNCEMENT_VIEW'],
   ['/certifications', '认证审核', ShieldCheck, 'CERTIFICATION_VIEW'],
   ['/offline-certifications', '线下认证', CalendarCheck2, 'OFFLINE_APPOINTMENT_VIEW'],
   ['/invitation-reviews', '邀请审核', ListChecks, 'INVITATION_REVIEW_VIEW'],
   ['/inquiries', '询问管理', MessagesSquare, 'INQUIRY_VIEW'],
-  ['/withdrawals', '提现处理', WalletCards, 'WITHDRAWAL_VIEW'],
+  ['/inquiry-disputes', '询问纠纷', Gavel, 'INQUIRY_DISPUTE_VIEW'],
+  ['/answer-quality', '回答质量', BadgeCheck, 'ANSWER_QUALITY_VIEW'],
+  ['/withdrawals', '普通提现', WalletCards, 'WITHDRAWAL_VIEW'],
+  ['/permanent-ban-payouts', '封禁余额处理', BadgeDollarSign, 'PERMANENT_BAN_PAYOUT_VIEW'],
+  ['/finance-reconciliation', '资金对账', Scale, 'FINANCE_RECONCILIATION_VIEW'],
   ['/customer-service', '在线客服', Headset, 'CUSTOMER_SERVICE_VIEW'],
 ];
 

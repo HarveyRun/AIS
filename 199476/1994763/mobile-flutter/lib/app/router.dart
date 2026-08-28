@@ -22,10 +22,14 @@ import '../features/support/feedback_page.dart';
 import '../features/wallet/wallet_page.dart';
 import '../data/models/certification_models.dart';
 import 'providers.dart';
+import '../core/analytics/analytics_navigator_observer.dart';
+import '../core/analytics/analytics_service.dart';
+import 'app_route_observer.dart';
 import 'shell_page.dart';
 
-GoRouter createAppRouter(AuthController auth) {
+GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
   return GoRouter(
+    observers: [AnalyticsNavigatorObserver(analytics), appRouteObserver],
     initialLocation: '/home',
     refreshListenable: auth,
     redirect: (context, state) {
@@ -35,31 +39,44 @@ GoRouter createAppRouter(AuthController auth) {
       return null;
     },
     routes: [
-      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      GoRoute(
+        name: 'login',
+        path: '/login',
+        builder: (context, state) => const LoginPage(),
+      ),
       ShellRoute(
         builder: (context, state, child) =>
             AppShellPage(location: state.uri.path, child: child),
         routes: [
-          GoRoute(path: '/home', builder: (context, state) => const HomePage()),
           GoRoute(
+            name: 'home',
+            path: '/home',
+            builder: (context, state) => const HomePage(),
+          ),
+          GoRoute(
+            name: 'inquiries',
             path: '/inquiries',
             builder: (context, state) => const InquiriesPage(),
           ),
           GoRoute(
+            name: 'profile',
             path: '/profile',
             builder: (context, state) => const ProfilePage(),
           ),
           GoRoute(
+            name: 'answererDetail',
             path: '/answerers/:uid',
             builder: (context, state) =>
                 AnswererDetailPage(uid: state.pathParameters['uid']!),
           ),
           GoRoute(
+            name: 'discoveryList',
             path: '/discover/:type',
             builder: (context, state) =>
                 DiscoveryListPage(type: state.pathParameters['type']!),
           ),
           GoRoute(
+            name: 'discoveryResults',
             path: '/discover/:type/:id/results',
             builder: (context, state) => DiscoveryResultsPage(
               type: state.pathParameters['type']!,
@@ -68,26 +85,32 @@ GoRouter createAppRouter(AuthController auth) {
             ),
           ),
           GoRoute(
+            name: 'notifications',
             path: '/notices',
             builder: (context, state) => const NotificationsPage(),
           ),
           GoRoute(
+            name: 'accountSettings',
             path: '/profile/settings',
             builder: (context, state) => const AccountSettingsPage(),
           ),
           GoRoute(
+            name: 'wallet',
             path: '/profile/wallet',
             builder: (context, state) => const WalletPage(),
           ),
           GoRoute(
+            name: 'certifications',
             path: '/profile/certifications',
             builder: (context, state) => const CertificationHomePage(),
           ),
           GoRoute(
+            name: 'basicCertification',
             path: '/profile/certifications/basic',
             builder: (context, state) => const BasicCertificationPage(),
           ),
           GoRoute(
+            name: 'basicCertificationApply',
             path: '/profile/certifications/basic/:type/apply',
             builder: (context, state) => BasicCertificationApplyPage(
               type: state.pathParameters['type']!,
@@ -95,38 +118,46 @@ GoRouter createAppRouter(AuthController auth) {
             ),
           ),
           GoRoute(
+            name: 'experienceCertifications',
             path: '/profile/certifications/experiences',
             builder: (context, state) => const ExperienceCertificationPage(),
           ),
           GoRoute(
+            name: 'experienceCreate',
             path: '/profile/certifications/experiences/new',
             builder: (context, state) => const ExperienceFormPage(),
           ),
           GoRoute(
+            name: 'experienceDetail',
             path: '/profile/certifications/experiences/:id',
             builder: (context, state) =>
                 ExperienceFormPage(id: int.parse(state.pathParameters['id']!)),
           ),
           GoRoute(
+            name: 'feedback',
             path: '/profile/feedback',
             builder: (context, state) => const FeedbackPage(),
           ),
           GoRoute(
+            name: 'faq',
             path: '/profile/faq',
             builder: (context, state) => const FaqPage(),
           ),
           GoRoute(
+            name: 'business',
             path: '/profile/business',
             builder: (context, state) => const BusinessPage(),
           ),
         ],
       ),
       GoRoute(
+        name: 'chat',
         path: '/chat/:id',
         builder: (context, state) =>
             ChatPage(id: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(
+        name: 'customerService',
         path: '/profile/customer-service',
         builder: (context, state) => const CustomerServicePage(),
       ),

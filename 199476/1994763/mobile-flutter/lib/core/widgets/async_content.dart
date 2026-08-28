@@ -17,7 +17,7 @@ class AsyncContent<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (value.connectionState == ConnectionState.waiting) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+      return const SizedBox.shrink();
     }
     if (value.hasError) {
       return Center(

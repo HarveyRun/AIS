@@ -94,8 +94,63 @@ class LoginResult {
   final AppUser user;
 }
 
+class ViolationCounter {
+  const ViolationCounter({
+    required this.level,
+    required this.usedCount,
+    required this.thresholdCount,
+    required this.remainingCount,
+  });
+
+  factory ViolationCounter.fromJson(Map<String, dynamic> json) {
+    return ViolationCounter(
+      level: _int(json['level']),
+      usedCount: _int(json['usedCount']),
+      thresholdCount: _int(json['thresholdCount']),
+      remainingCount: _int(json['remainingCount']),
+    );
+  }
+
+  final int level;
+  final int usedCount;
+  final int thresholdCount;
+  final int remainingCount;
+}
+
+class AccountDeletionEligibility {
+  const AccountDeletionEligibility({
+    required this.eligible,
+    required this.availableBalanceCleared,
+    required this.frozenBalanceCleared,
+    required this.noActiveInquiries,
+    required this.availableBalance,
+    required this.frozenBalance,
+  });
+
+  factory AccountDeletionEligibility.fromJson(Map<String, dynamic> json) {
+    return AccountDeletionEligibility(
+      eligible: json['eligible'] == true,
+      availableBalanceCleared: json['availableBalanceCleared'] == true,
+      frozenBalanceCleared: json['frozenBalanceCleared'] == true,
+      noActiveInquiries: json['noActiveInquiries'] == true,
+      availableBalance: _amount(json['availableBalance']),
+      frozenBalance: _amount(json['frozenBalance']),
+    );
+  }
+
+  final bool eligible;
+  final bool availableBalanceCleared;
+  final bool frozenBalanceCleared;
+  final bool noActiveInquiries;
+  final double availableBalance;
+  final double frozenBalance;
+}
+
 int _int(Object? value) =>
     value is num ? value.toInt() : int.tryParse('$value') ?? 0;
+
+double _amount(Object? value) =>
+    value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
 
 int _boundedInt(Object? value, int fallback) {
   final parsed = value is num ? value.toInt() : int.tryParse('$value');

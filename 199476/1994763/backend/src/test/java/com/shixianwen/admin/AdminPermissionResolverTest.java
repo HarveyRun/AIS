@@ -65,10 +65,32 @@ class AdminPermissionResolverTest {
         GET;/api/admin/job-certification-appointments/8/materials;OFFLINE_APPOINTMENT_VIEW
         POST;/api/admin/job-certification-appointments/8/process;OFFLINE_APPOINTMENT_PROCESS
         GET;/api/admin/inquiries;INQUIRY_VIEW
+        GET;/api/admin/inquiry-disputes/end-requests;INQUIRY_DISPUTE_VIEW
+        PUT;/api/admin/inquiry-disputes/end-requests/8;INQUIRY_DISPUTE_PROCESS
+        GET;/api/admin/inquiry-disputes/message-reports;INQUIRY_DISPUTE_VIEW
+        PUT;/api/admin/inquiry-disputes/message-reports/8;MESSAGE_REPORT_PROCESS
+        GET;/api/admin/inquiry-disputes/message-reports/details/8/original;SENSITIVE_ORIGINAL_VIEW
+        GET;/api/admin/inquiry-disputes/risk-watch;RISK_WATCH_VIEW
+        PUT;/api/admin/inquiry-disputes/risk-watch/8;RISK_WATCH_PROCESS
         GET;/api/admin/withdrawals;WITHDRAWAL_VIEW
         PATCH;/api/admin/withdrawals/8/status;WITHDRAWAL_PROCESS
         POST;/api/admin/withdrawals/export;WITHDRAWAL_EXPORT
         GET;/api/admin/withdrawals/export/BATCH1;WITHDRAWAL_EXPORT
+        GET;/api/admin/permanent-ban-payouts;PERMANENT_BAN_PAYOUT_VIEW
+        POST;/api/admin/permanent-ban-payouts/export;PERMANENT_BAN_PAYOUT_EXPORT
+        GET;/api/admin/permanent-ban-payouts/export/SXW-PB-1;PERMANENT_BAN_PAYOUT_EXPORT
+        POST;/api/admin/permanent-ban-payouts/results;PERMANENT_BAN_PAYOUT_PROCESS
+        PATCH;/api/admin/permanent-ban-payouts/8/retry;PERMANENT_BAN_PAYOUT_PROCESS
+        GET;/api/admin/finance-reconciliation/summary;FINANCE_RECONCILIATION_VIEW
+        GET;/api/admin/finance-reconciliation/vouchers;FINANCE_RECONCILIATION_VIEW
+        POST;/api/admin/finance-reconciliation/run;FINANCE_RECONCILIATION_RUN
+        POST;/api/admin/finance-reconciliation/alipay-bills;FINANCE_RECONCILIATION_IMPORT
+        POST;/api/admin/finance-reconciliation/withdrawal-results;FINANCE_RECONCILIATION_IMPORT
+        POST;/api/admin/finance-reconciliation/differences/8/resolve;FINANCE_RECONCILIATION_RESOLVE
+        GET;/api/admin/answer-quality;ANSWER_QUALITY_VIEW
+        GET;/api/admin/answer-quality/evaluations;ANSWER_QUALITY_VIEW
+        GET;/api/admin/answer-quality/8/evidence;ANSWER_QUALITY_EVIDENCE
+        POST;/api/admin/answer-quality/8/resolve;ANSWER_QUALITY_REVIEW
         GET;/api/admin/feedback;FEEDBACK_VIEW
         PATCH;/api/admin/feedback/8/status;FEEDBACK_PROCESS
         GET;/api/admin/cooperations;COOPERATION_VIEW

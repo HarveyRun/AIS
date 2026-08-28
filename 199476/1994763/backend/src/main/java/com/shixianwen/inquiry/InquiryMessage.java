@@ -23,8 +23,8 @@ public class InquiryMessage {
     @JoinColumn(name = "inquiry_id", nullable = false)
     private Inquiry inquiry;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "sender_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sender_id")
     private User sender;
 
     @Column(name = "message_type", nullable = false, length = 30)
@@ -32,6 +32,9 @@ public class InquiryMessage {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @Column(name = "raw_content_encrypted", columnDefinition = "MEDIUMTEXT")
+    private String rawContentEncrypted;
 
     @Column(name = "attachment_url", length = 500)
     private String attachmentUrl;

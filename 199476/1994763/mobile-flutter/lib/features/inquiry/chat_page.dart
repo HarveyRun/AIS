@@ -16,6 +16,7 @@ import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/inquiry_models.dart';
 import '../../data/repositories/app_repository.dart';
+import 'inquiry_quality_sheet.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
   const ChatPage({super.key, required this.id});
@@ -36,30 +37,106 @@ class _ChatPageState extends ConsumerState<ChatPage>
   bool _loading = true;
   bool _emojiOpen = false;
   bool _moreOpen = false;
+  InquiryQualityOptions? _quality;
 
   static const _emojis = [
     '😀',
+    '😃',
     '😄',
+    '😁',
+    '😆',
+    '😅',
     '😂',
+    '🤣',
     '😊',
+    '😇',
+    '🙂',
+    '🙃',
+    '😉',
+    '😌',
+    '😍',
     '🥰',
+    '😘',
+    '😋',
+    '😛',
+    '😜',
+    '🤪',
     '😎',
+    '🤓',
+    '🧐',
     '🤔',
+    '🤭',
+    '🤫',
+    '🤗',
+    '🫡',
+    '😐',
+    '😑',
+    '😶',
+    '🙄',
+    '😏',
+    '😒',
+    '😔',
+    '😢',
+    '😭',
+    '😤',
+    '😠',
+    '😡',
+    '🤯',
+    '😳',
+    '🥺',
+    '😴',
+    '🤢',
+    '🤮',
+    '🤧',
+    '😷',
+    '🤒',
+    '😱',
+    '😨',
+    '😰',
+    '😥',
+    '😓',
+    '🫣',
+    '🫠',
     '👍',
+    '👎',
+    '✌️',
+    '🤞',
     '👏',
+    '🙌',
+    '👐',
     '🙏',
     '💪',
+    '👀',
     '🎉',
+    '🎊',
+    '✨',
+    '⭐',
+    '🔥',
+    '💯',
     '❤️',
+    '🧡',
+    '💛',
+    '💚',
+    '💙',
+    '💜',
+    '🖤',
+    '🤍',
+    '💔',
+    '💕',
     '👌',
     '🌹',
     '🤝',
+    '🎁',
+    '☕',
+    '🍺',
+    '🍻',
   ];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _composerFocusNode.addListener(_handleComposerFocusChanged);
     _load();
     _subscription = ref.read(realtimeProvider).events.listen((event) {
       final inquiryId = int.tryParse(
@@ -76,6 +153,7 @@ class _ChatPageState extends ConsumerState<ChatPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
+    _composerFocusNode.removeListener(_handleComposerFocusChanged);
     _textController.dispose();
     _composerFocusNode.dispose();
     _scrollController.dispose();
@@ -87,12 +165,78 @@ class _ChatPageState extends ConsumerState<ChatPage>
     _scheduleScrollToEnd(animate: false);
   }
 
+  void _handleComposerFocusChanged() {
+    if (!_composerFocusNode.hasFocus || (!_emojiOpen && !_moreOpen)) return;
+    setState(() {
+      _emojiOpen = false;
+      _moreOpen = false;
+    });
+  }
+
+  void _toggleEmojiPanel() {
+    if (_emojiOpen) {
+      setState(() => _emojiOpen = false);
+      _composerFocusNode.requestFocus();
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _emojiOpen = true;
+      _moreOpen = false;
+    });
+    _scheduleScrollToEnd(animate: false);
+  }
+
+  void _toggleMorePanel() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _moreOpen = !_moreOpen;
+      _emojiOpen = false;
+    });
+    _scheduleScrollToEnd(animate: false);
+  }
+
+  void _dismissInputPanels() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (!_emojiOpen && !_moreOpen) return;
+    setState(() {
+      _emojiOpen = false;
+      _moreOpen = false;
+    });
+  }
+
   Future<void> _load({bool silent = false}) async {
     if (!silent) setState(() => _loading = true);
     try {
-      final detail = await ref.read(repositoryProvider).inquiry(widget.id);
+      InquiryDetail? detail;
+      InquiryQualityOptions? quality;
+
+      Future<void> fetchDetail() async {
+        final repository = ref.read(repositoryProvider);
+        detail = await repository.inquiry(widget.id, showLoading: false);
+        if (!detail!.inquiry.isIncoming &&
+            [
+              'COMPLETED',
+              'QUALITY_REFUNDED',
+              'DISPUTED',
+            ].contains(detail!.inquiry.status.toUpperCase())) {
+          quality = await repository.inquiryQualityOptions(
+            widget.id,
+            showLoading: false,
+          );
+        }
+      }
+
+      if (silent) {
+        await fetchDetail();
+      } else {
+        await ref.read(requestLoadingProvider).run(fetchDetail);
+      }
       if (!mounted) return;
-      setState(() => _detail = detail);
+      setState(() {
+        _detail = detail;
+        _quality = quality;
+      });
       _scheduleScrollToEnd(animate: false);
       await ref.read(repositoryProvider).markInquiryRead(widget.id);
     } catch (error) {
@@ -147,6 +291,7 @@ class _ChatPageState extends ConsumerState<ChatPage>
       attachmentName: '',
       attachmentSize: 0,
       createdAt: DateTime.now(),
+      reportable: false,
       sending: true,
     );
     _textController.clear();
@@ -254,6 +399,37 @@ class _ChatPageState extends ConsumerState<ChatPage>
     }
   }
 
+  Future<void> _reportMessage(ChatMessage chatMessage) async {
+    if (!chatMessage.reportable) return;
+    try {
+      final reported = await ref
+          .read(repositoryProvider)
+          .hasReportedInquiryMessage(widget.id, chatMessage.id);
+      if (!mounted) return;
+      if (reported) {
+        AppMessage.show(context, '你已经举报过这条消息');
+        return;
+      }
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+      return;
+    }
+    final reportType = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const _MessageReportDialog(),
+    );
+    if (reportType == null || !mounted) return;
+    try {
+      await ref
+          .read(repositoryProvider)
+          .reportInquiryMessage(widget.id, chatMessage.id, reportType);
+      if (mounted) AppMessage.show(context, '举报已提交');
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final detail = _detail;
@@ -271,7 +447,7 @@ class _ChatPageState extends ConsumerState<ChatPage>
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          ? const SizedBox.shrink()
           : detail == null
           ? const Center(child: Text('询问不存在'))
           : Column(
@@ -281,40 +457,58 @@ class _ChatPageState extends ConsumerState<ChatPage>
                       ? const Color(0xFF151619)
                       : const Color(0xFFF2F2F2),
                   padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                  child: _ChatStatus(inquiry: inquiry!, onAction: _action),
+                  child: _ChatStatus(
+                    inquiry: inquiry!,
+                    quality: _quality,
+                    onAction: _action,
+                    onEvaluate: _evaluate,
+                  ),
                 ),
                 Expanded(
-                  child: Container(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF151619)
-                        : const Color(0xFFF2F2F2),
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      keyboardDismissBehavior:
-                          ScrollViewKeyboardDismissBehavior.onDrag,
-                      padding: const EdgeInsets.fromLTRB(10, 18, 10, 18),
-                      itemCount: detail.messages.length,
-                      itemBuilder: (context, index) {
-                        final message = detail.messages[index];
-                        final previous = index == 0
-                            ? null
-                            : detail.messages[index - 1];
-                        final showTime =
-                            previous == null ||
-                            (message.createdAt != null &&
-                                previous.createdAt != null &&
-                                message.createdAt!
-                                        .difference(previous.createdAt!)
-                                        .inMinutes >=
-                                    10);
-                        return _MessageBubble(
-                          message: message,
-                          showTime: showTime,
-                          onRetry: message.failed
-                              ? () => _retryMessage(message)
-                              : null,
-                        );
-                      },
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: _dismissInputPanels,
+                    child: Container(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF151619)
+                          : const Color(0xFFF2F2F2),
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: const EdgeInsets.fromLTRB(10, 18, 10, 18),
+                        itemCount: detail.messages.length,
+                        itemBuilder: (context, index) {
+                          final message = detail.messages[index];
+                          final previous = index == 0
+                              ? null
+                              : detail.messages[index - 1];
+                          final showTime =
+                              previous == null ||
+                              (message.createdAt != null &&
+                                  previous.createdAt != null &&
+                                  message.createdAt!
+                                          .difference(previous.createdAt!)
+                                          .inMinutes >=
+                                      10);
+                          return _MessageBubble(
+                            message: message,
+                            showTime: showTime,
+                            onReport:
+                                message.reportable &&
+                                    message.senderId !=
+                                        ref
+                                            .read(authControllerProvider)
+                                            .user
+                                            ?.id
+                                ? () => _reportMessage(message)
+                                : null,
+                            onRetry: message.failed
+                                ? () => _retryMessage(message)
+                                : null,
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -325,14 +519,8 @@ class _ChatPageState extends ConsumerState<ChatPage>
                   emojiOpen: _emojiOpen,
                   moreOpen: _moreOpen,
                   onSubmitted: _sendText,
-                  onEmoji: () => setState(() {
-                    _emojiOpen = !_emojiOpen;
-                    _moreOpen = false;
-                  }),
-                  onMore: () => setState(() {
-                    _moreOpen = !_moreOpen;
-                    _emojiOpen = false;
-                  }),
+                  onEmoji: _toggleEmojiPanel,
+                  onMore: _toggleMorePanel,
                 ),
                 if (_emojiOpen && canChat)
                   _EmojiPanel(
@@ -383,23 +571,48 @@ class _ChatPageState extends ConsumerState<ChatPage>
     );
     if (confirmed == true) _action(repository.confirmInquiryEnd, '本次交流已结束');
   }
+
+  Future<void> _evaluate() async {
+    final data = await showInquiryEvaluationSheet(context);
+    if (data == null || !mounted) return;
+    try {
+      await ref.read(repositoryProvider).evaluateInquiry(widget.id, data);
+      await _load(silent: true);
+      if (mounted) AppMessage.show(context, '评价已提交');
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+    }
+  }
 }
 
 class _ChatStatus extends ConsumerWidget {
-  const _ChatStatus({required this.inquiry, required this.onAction});
+  const _ChatStatus({
+    required this.inquiry,
+    required this.quality,
+    required this.onAction,
+    required this.onEvaluate,
+  });
   final InquirySummary inquiry;
+  final InquiryQualityOptions? quality;
   final void Function(Future<void> Function(int), String) onAction;
+  final VoidCallback onEvaluate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repository = ref.read(repositoryProvider);
     final status = inquiry.status.toUpperCase();
     final statusStyle = appStatusStyle(context, status);
+    final amountLabel = _amountLabel(inquiry, status);
+    final amountValue = _amountValue(inquiry, status);
     final text = switch (status) {
       'PENDING' => inquiry.isIncoming ? '等待你的决定' : '等待对方接受',
       'ACTIVE' => '交流进行中',
       'AWAITING_CONFIRMATION' => inquiry.isIncoming ? '等待提问者确认结束' : '对方申请结束',
       'COMPLETED' || 'ENDED' => '本次交流已经结束',
+      'DISPUTED' => '平台正在核对本次交流',
+      'QUALITY_REFUNDED' => '本次询问已经全额退款',
+      'TIMEOUT_REFUNDED' => '本次询问已因超时全额退款',
+      'END_DISPUTE_REFUNDED' => '平台已退回本次询问剩余金额',
       'REJECTED' => '本次询问未接受',
       'CANCELLED' => '本次询问已撤销',
       'EXPIRED' => '本次询问已超时',
@@ -438,7 +651,7 @@ class _ChatStatus extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  '${inquiry.isIncoming ? '预计收入' : '询问金额'} ¥${formatMoney(inquiry.visibleAmount)}',
+                  '$amountLabel ¥${formatMoney(amountValue)}',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: Theme.of(context).colorScheme.primary,
@@ -446,6 +659,38 @@ class _ChatStatus extends ConsumerWidget {
                 ),
               ],
             ),
+            if (status == 'PENDING') ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      inquiry.isIncoming ? '用户想问：' : '我要问的：',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      inquiry.question.isEmpty ? '未填写' : inquiry.question,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(height: 1.45),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (status == 'PENDING' && inquiry.isIncoming) ...[
               const SizedBox(height: 10),
               Row(
@@ -486,8 +731,8 @@ class _ChatStatus extends ConsumerWidget {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () =>
-                          onAction(repository.continueInquiry, '已继续交流'),
-                      child: const Text('继续交流'),
+                          onAction(repository.disagreeInquiryEnd, '已提交平台处理'),
+                      child: const Text('不同意'),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -501,10 +746,70 @@ class _ChatStatus extends ConsumerWidget {
                 ],
               ),
             ],
+            if (!inquiry.isIncoming && quality?.canEvaluate == true) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onEvaluate,
+                      child: const Text('评价本次交流'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  String _amountLabel(InquirySummary inquiry, String status) {
+    if (inquiry.isIncoming) {
+      return switch (status) {
+        'COMPLETED' || 'ENDED' => '实际收入',
+        'DISPUTED' => '待结算',
+        'REJECTED' ||
+        'CANCELLED' ||
+        'EXPIRED' ||
+        'QUALITY_REFUNDED' ||
+        'TIMEOUT_REFUNDED' ||
+        'END_DISPUTE_REFUNDED' => '实际收入',
+        _ => '预计收入',
+      };
+    }
+    return switch (status) {
+      'COMPLETED' || 'ENDED' => '实际支付',
+      'DISPUTED' => '待处理金额',
+      'REJECTED' ||
+      'CANCELLED' ||
+      'EXPIRED' ||
+      'QUALITY_REFUNDED' ||
+      'TIMEOUT_REFUNDED' ||
+      'END_DISPUTE_REFUNDED' => '已退款',
+      _ when inquiry.timeoutCount > 0 => '剩余金额',
+      _ => '询问金额',
+    };
+  }
+
+  double _amountValue(InquirySummary inquiry, String status) {
+    const noIncomeStatuses = {
+      'REJECTED',
+      'CANCELLED',
+      'EXPIRED',
+      'QUALITY_REFUNDED',
+      'TIMEOUT_REFUNDED',
+      'END_DISPUTE_REFUNDED',
+    };
+    if (inquiry.isIncoming) {
+      return noIncomeStatuses.contains(status)
+          ? 0
+          : inquiry.answererIncomeAmount;
+    }
+    return noIncomeStatuses.contains(status)
+        ? inquiry.amount
+        : inquiry.settleableAmount;
   }
 }
 
@@ -512,162 +817,302 @@ class _MessageBubble extends ConsumerWidget {
   const _MessageBubble({
     required this.message,
     required this.showTime,
+    this.onReport,
     this.onRetry,
   });
   final ChatMessage message;
   final bool showTime;
+  final VoidCallback? onReport;
   final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final me = message.senderId == ref.read(authControllerProvider).user?.id;
     final name = message.senderName.trim().isEmpty ? '用户' : message.senderName;
-    return Column(
-      children: [
-        if (showTime && message.createdAt != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 14),
+    final systemMessage =
+        message.senderId == 0 ||
+        const {'SYSTEM', 'TIMEOUT_NOTICE'}.contains(message.type.toUpperCase());
+    if (systemMessage) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 310),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(9),
+            ),
             child: Text(
-              DateFormat('M月d日 HH:mm').format(message.createdAt!),
-              style: Theme.of(context).textTheme.bodySmall,
+              message.content,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: me
-              ? MainAxisAlignment.end
-              : MainAxisAlignment.start,
-          children: [
-            if (!me) ...[
-              AppAvatar(url: message.senderAvatar, name: name, radius: 19),
-              const SizedBox(width: 8),
-            ],
-            Flexible(
-              child: Column(
-                crossAxisAlignment: me
-                    ? CrossAxisAlignment.end
-                    : CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (me && message.sending) ...[
-                        const SizedBox.square(
-                          dimension: 13,
-                          child: CircularProgressIndicator(strokeWidth: 1.5),
-                        ),
-                        const SizedBox(width: 6),
-                      ],
-                      if (me && message.failed) ...[
-                        InkWell(
-                          onTap: onRetry,
-                          borderRadius: BorderRadius.circular(10),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.error_rounded,
-                                  size: 17,
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  '发送失败',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.error,
-                                      ),
-                                ),
-                              ],
+        ),
+      );
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onLongPress: onReport,
+      child: Column(
+        children: [
+          if (showTime && message.createdAt != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Text(
+                DateFormat('M月d日 HH:mm').format(message.createdAt!),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: me
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
+            children: [
+              if (!me) ...[
+                AppAvatar(url: message.senderAvatar, name: name, radius: 19),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: me
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: Theme.of(context).textTheme.bodySmall),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (me && message.sending) ...[
+                          const SizedBox.square(
+                            dimension: 13,
+                            child: CircularProgressIndicator(strokeWidth: 1.5),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        if (me && message.failed) ...[
+                          InkWell(
+                            onTap: onRetry,
+                            borderRadius: BorderRadius.circular(10),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.error_rounded,
+                                    size: 17,
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '发送失败',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.error,
+                                        ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                      ],
-                      Flexible(
-                        child: Container(
-                          padding: message.type.toUpperCase() == 'IMAGE'
-                              ? const EdgeInsets.all(3)
-                              : const EdgeInsets.symmetric(
-                                  horizontal: 13,
-                                  vertical: 10,
-                                ),
-                          decoration: BoxDecoration(
-                            color: me
-                                ? Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? const Color(0xFF263746)
-                                      : const Color(0xFFDFE9F2)
-                                : Theme.of(context).colorScheme.surface,
-                            borderRadius: me
-                                ? const BorderRadius.only(
-                                    topLeft: Radius.circular(14),
-                                    bottomLeft: Radius.circular(14),
-                                    bottomRight: Radius.circular(14),
-                                    topRight: Radius.circular(4),
-                                  )
-                                : const BorderRadius.only(
-                                    topLeft: Radius.circular(4),
-                                    topRight: Radius.circular(14),
-                                    bottomLeft: Radius.circular(14),
-                                    bottomRight: Radius.circular(14),
+                          const SizedBox(width: 6),
+                        ],
+                        Flexible(
+                          child: Container(
+                            padding: message.type.toUpperCase() == 'IMAGE'
+                                ? const EdgeInsets.all(3)
+                                : const EdgeInsets.symmetric(
+                                    horizontal: 13,
+                                    vertical: 10,
                                   ),
-                          ),
-                          child:
-                              message.type.toUpperCase() == 'IMAGE' &&
-                                  message.attachmentUrl.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) => _ChatImageViewer(
-                                          imageUrl: AppConfig.resolveImage(
-                                            message.attachmentUrl,
-                                          ).toString(),
-                                        ),
-                                      ),
+                            decoration: BoxDecoration(
+                              color: me
+                                  ? Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? const Color(0xFF263746)
+                                        : const Color(0xFFDFE9F2)
+                                  : Theme.of(context).colorScheme.surface,
+                              borderRadius: me
+                                  ? const BorderRadius.only(
+                                      topLeft: Radius.circular(14),
+                                      bottomLeft: Radius.circular(14),
+                                      bottomRight: Radius.circular(14),
+                                      topRight: Radius.circular(4),
+                                    )
+                                  : const BorderRadius.only(
+                                      topLeft: Radius.circular(4),
+                                      topRight: Radius.circular(14),
+                                      bottomLeft: Radius.circular(14),
+                                      bottomRight: Radius.circular(14),
                                     ),
-                                    child: Image.network(
-                                      AppConfig.resolveImage(
-                                        message.attachmentUrl,
-                                      ).toString(),
-                                      width: 180,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) => const SizedBox(
-                                        width: 180,
-                                        height: 120,
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.broken_image_outlined,
+                            ),
+                            child:
+                                message.type.toUpperCase() == 'IMAGE' &&
+                                    message.attachmentUrl.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: GestureDetector(
+                                      onTap: () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => _ChatImageViewer(
+                                            imageUrl: AppConfig.resolveImage(
+                                              message.attachmentUrl,
+                                            ).toString(),
                                           ),
                                         ),
                                       ),
+                                      child: Image.network(
+                                        AppConfig.resolveImage(
+                                          message.attachmentUrl,
+                                        ).toString(),
+                                        width: 180,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) =>
+                                            const SizedBox(
+                                              width: 180,
+                                              height: 120,
+                                              child: Center(
+                                                child: Icon(
+                                                  Icons.broken_image_outlined,
+                                                ),
+                                              ),
+                                            ),
+                                      ),
                                     ),
-                                  ),
-                                )
-                              : Text(message.content),
+                                  )
+                                : Text(message.content),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            if (me) ...[
-              const SizedBox(width: 8),
-              AppAvatar(url: message.senderAvatar, name: name, radius: 19),
+              if (me) ...[
+                const SizedBox(width: 8),
+                AppAvatar(url: message.senderAvatar, name: name, radius: 19),
+              ],
             ],
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class _MessageReportDialog extends StatefulWidget {
+  const _MessageReportDialog();
+
+  @override
+  State<_MessageReportDialog> createState() => _MessageReportDialogState();
+}
+
+class _MessageReportDialogState extends State<_MessageReportDialog> {
+  String? _selected;
+
+  static const _options = <(String, String)>[
+    ('LOW_RELEVANCE', '回复内容与原始提问基本无关'),
+    ('PORN_GAMBLING_DRUGS', '黄赌毒内容'),
+    ('NATIONAL_SECURITY', '危害国家安全、破坏社会稳定的言论'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        titlePadding: const EdgeInsets.fromLTRB(24, 14, 10, 8),
+        title: Row(
+          children: [
+            const Expanded(child: Text('举报这条消息')),
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              tooltip: '关闭',
+              icon: const Icon(Icons.close_rounded),
+            ),
           ],
         ),
-        const SizedBox(height: 16),
-      ],
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _options
+                .map(
+                  (option) => _ReportOption(
+                    label: option.$2,
+                    selected: _selected == option.$1,
+                    onTap: () => setState(() => _selected = option.$1),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: _selected == null
+                ? null
+                : () => Navigator.pop(context, _selected),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportOption extends StatelessWidget {
+  const _ReportOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: selected
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: selected
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : Theme.of(context).colorScheme.onSurface,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -796,7 +1241,7 @@ class _EmojiPanel extends StatelessWidget {
   final ValueChanged<String> onTap;
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 168,
+    height: 232,
     child: GridView.count(
       padding: const EdgeInsets.all(12),
       crossAxisCount: 8,
@@ -825,7 +1270,7 @@ class _MorePanel extends StatelessWidget {
   final VoidCallback onEnd;
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 140,
+    height: 190,
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

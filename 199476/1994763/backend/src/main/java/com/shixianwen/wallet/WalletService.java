@@ -1,8 +1,10 @@
 package com.shixianwen.wallet;
 
+import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.auth.VerificationCodeService;
 import com.shixianwen.auth.AppTestLoginAccountService;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.finance.FinancialLedgerService;
 import com.shixianwen.inquiry.Inquiry;
 import com.shixianwen.security.SecurityEventService;
 import com.shixianwen.user.User;
@@ -16,6 +18,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+
+import static com.shixianwen.finance.FinancialLedgerService.entry;
+import static com.shixianwen.finance.FinancialLedgerService.negative;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +39,8 @@ public class WalletService {
     private final VerificationCodeService verificationCodes;
     private final AppTestLoginAccountService appTestAccounts;
     private final SecurityEventService securityEvents;
+    private final AnalyticsEventService analytics;
+    private final FinancialLedgerService ledger;
 
     public WalletView get(Long userId) {
         WalletAccount wallet = wallets.findByUserId(userId)
@@ -132,16 +139,44 @@ public class WalletService {
         if (isTest(user)) item.setCompletedAt(LocalDateTime.now());
         item = withdrawals.save(item);
         record(wallet, "WITHDRAWAL", "OUT", amount, "WITHDRAWAL", item.getId(), "提现到支付宝");
+        ledger.record(
+            "WITHDRAWAL", item.getId(), "REQUEST", "提现申请",
+            List.of(
+                entry("USER_INCOME_LIABILITY", userId, amount),
+                entry("WITHDRAWAL_PAYABLE", userId, negative(amount))
+            )
+        );
+        if (isTest(user)) {
+            ledger.record(
+                "WITHDRAWAL", item.getId(), "SUCCESS", "测试提现完成",
+                List.of(
+                    entry("WITHDRAWAL_PAYABLE", userId, amount),
+                    entry("TEST_CLEARING", null, negative(amount))
+                )
+            );
+        }
         securityEvents.recordSafely(
             userId, null, isTest(user) ? "TEST_WITHDRAWAL_COMPLETED" : "WITHDRAWAL_CREATED",
             isTest(user) ? "MEDIUM" : "CRITICAL", ip, deviceId,
             "withdrawalId=" + item.getId() + ", amount=" + amount.toPlainString()
         );
+        analytics.recordBusinessAfterCommit(user, "withdrawal_submit", java.util.Map.of(
+            "withdrawal_id", item.getId(),
+            "test_account", isTest(user),
+            "amount_bucket", withdrawalAmountBucket(amount)
+        ));
         return WithdrawalView.of(item);
     }
 
     public List<WithdrawalView> withdrawals(Long userId) {
         return withdrawals.findByUserIdOrderByCreatedAtDesc(userId).stream().map(WithdrawalView::of).toList();
+    }
+
+    private String withdrawalAmountBucket(BigDecimal amount) {
+        if (amount.compareTo(new BigDecimal("100")) <= 0) return "1-100";
+        if (amount.compareTo(new BigDecimal("500")) <= 0) return "101-500";
+        if (amount.compareTo(new BigDecimal("2000")) <= 0) return "501-2000";
+        return "2001-9999";
     }
 
     public PlatformServiceFeePolicy.SettlementQuote quoteInquirySettlement(
@@ -171,6 +206,14 @@ public class WalletService {
         wallet.setFrozenIncomeBalance(MoneyAmounts.add(wallet.getFrozenIncomeBalance(), incomeAmount));
         syncTotals(wallet);
         record(wallet, "INQUIRY_FREEZE", "FREEZE", amount, "INQUIRY", referenceId, "询问金额冻结");
+        ledger.record(
+            "INQUIRY", referenceId, "FREEZE", "询问金额冻结",
+            List.of(
+                entry("USER_RECHARGE_LIABILITY", userId, rechargeAmount),
+                entry("USER_INCOME_LIABILITY", userId, incomeAmount),
+                entry("INQUIRY_FROZEN", null, negative(amount))
+            )
+        );
         return new FrozenAllocation(rechargeAmount, incomeAmount);
     }
 
@@ -187,6 +230,58 @@ public class WalletService {
         wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), incomeAmount));
         syncTotals(wallet);
         record(wallet, "INQUIRY_REFUND", "IN", total, "INQUIRY", referenceId, "询问金额退回");
+        ledger.record(
+            "INQUIRY", referenceId, "REFUND", "询问金额退回",
+            List.of(
+                entry("INQUIRY_FROZEN", null, total),
+                entry("USER_RECHARGE_LIABILITY", userId, negative(rechargeAmount)),
+                entry("USER_INCOME_LIABILITY", userId, negative(incomeAmount))
+            )
+        );
+    }
+
+    @Transactional
+    public void refundInquiryTimeout(
+        Long userId,
+        BigDecimal rechargeAmount,
+        BigDecimal incomeAmount,
+        Long inquiryId,
+        int timeoutNo
+    ) {
+        if (timeoutNo < 1 || timeoutNo > 5) {
+            throw BusinessException.badRequest("询问超时次数不正确");
+        }
+        WalletAccount wallet = lock(userId);
+        ensureSources(wallet);
+        BigDecimal total = MoneyAmounts.add(rechargeAmount, incomeAmount);
+        String transactionType = "INQUIRY_TIMEOUT_REFUND_" + timeoutNo;
+        if (alreadyRecorded(wallet, transactionType, "INQUIRY", inquiryId, total)) return;
+        ensureSourceFrozen(wallet, rechargeAmount, incomeAmount);
+        wallet.setFrozenRechargeBalance(MoneyAmounts.subtract(wallet.getFrozenRechargeBalance(), rechargeAmount));
+        wallet.setFrozenIncomeBalance(MoneyAmounts.subtract(wallet.getFrozenIncomeBalance(), incomeAmount));
+        wallet.setRechargeBalance(MoneyAmounts.add(wallet.getRechargeBalance(), rechargeAmount));
+        wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), incomeAmount));
+        syncTotals(wallet);
+        record(
+            wallet,
+            transactionType,
+            "IN",
+            total,
+            "INQUIRY",
+            inquiryId,
+            "回答超时退款（第" + timeoutNo + "次）"
+        );
+        ledger.record(
+            "INQUIRY",
+            inquiryId,
+            "TIMEOUT_REFUND_" + timeoutNo,
+            "回答超时退回20%询问金额",
+            List.of(
+                entry("INQUIRY_FROZEN", null, total),
+                entry("USER_RECHARGE_LIABILITY", userId, negative(rechargeAmount)),
+                entry("USER_INCOME_LIABILITY", userId, negative(incomeAmount))
+            )
+        );
     }
 
     @Transactional
@@ -219,7 +314,13 @@ public class WalletService {
             receiver, receiverTransactionType, "INQUIRY", inquiry.getId(), answererIncome
         );
         if (payerRecorded && receiverRecorded) {
-            savePlatformFeeRecord(inquiry, amount, serviceFee, answererIncome);
+            savePlatformFeeRecord(
+                inquiry,
+                amount,
+                serviceFee,
+                answererIncome,
+                isTest(receiver.getUser()) ? "EARNED" : "PENDING"
+            );
             return;
         }
         if (payerRecorded || receiverRecorded) {
@@ -238,7 +339,15 @@ public class WalletService {
                 receiver, "TEST_INQUIRY_INCOME", "IN", answererIncome,
                 "INQUIRY", inquiry.getId(), "测试询问净收入"
             );
-            savePlatformFeeRecord(inquiry, amount, serviceFee, answererIncome);
+            savePlatformFeeRecord(inquiry, amount, serviceFee, answererIncome, "EARNED");
+            ledger.record(
+                "INQUIRY", inquiry.getId(), "SETTLE", "测试询问结算",
+                List.of(
+                    entry("INQUIRY_FROZEN", null, amount),
+                    entry("USER_INCOME_LIABILITY", answererId, negative(answererIncome)),
+                    entry("PLATFORM_SERVICE_FEE", null, negative(serviceFee))
+                )
+            );
             return;
         }
 
@@ -253,14 +362,23 @@ public class WalletService {
         hold.setAmount(answererIncome);
         hold.setReleaseAt(LocalDateTime.now().plusHours(24));
         incomeHolds.save(hold);
-        savePlatformFeeRecord(inquiry, amount, serviceFee, answererIncome);
+        savePlatformFeeRecord(inquiry, amount, serviceFee, answererIncome, "PENDING");
+        ledger.record(
+            "INQUIRY", inquiry.getId(), "SETTLE", "询问结算待解冻",
+            List.of(
+                entry("INQUIRY_FROZEN", null, amount),
+                entry("ANSWERER_PENDING", answererId, negative(answererIncome)),
+                entry("PLATFORM_FEE_PENDING", null, negative(serviceFee))
+            )
+        );
     }
 
     private void savePlatformFeeRecord(
         Inquiry inquiry,
         BigDecimal grossAmount,
         BigDecimal serviceFeeAmount,
-        BigDecimal answererIncomeAmount
+        BigDecimal answererIncomeAmount,
+        String status
     ) {
         if (platformFeeRecords.existsByInquiryId(inquiry.getId())) return;
         PlatformFeeRecord record = new PlatformFeeRecord();
@@ -270,6 +388,8 @@ public class WalletService {
         record.setServiceFeeRate(inquiry.getServiceFeeRate());
         record.setServiceFeeAmount(serviceFeeAmount);
         record.setAnswererIncomeAmount(answererIncomeAmount);
+        record.setStatus(status);
+        if ("EARNED".equals(status)) record.setFinalizedAt(LocalDateTime.now());
         platformFeeRecords.save(record);
     }
 
@@ -280,24 +400,7 @@ public class WalletService {
             .forEach(candidate -> {
                 WalletIncomeHold hold = incomeHolds.findWithLockById(candidate.getId()).orElse(null);
                 if (hold == null || !"PENDING".equals(hold.getStatus())) return;
-                WalletAccount wallet = lock(hold.getUser().getId());
-                ensureSources(wallet);
-                if (wallet.getPendingIncomeBalance().compareTo(hold.getAmount()) < 0) {
-                    securityEvents.recordSafely(
-                        wallet.getUser().getId(), null, "INCOME_HOLD_MISMATCH", "CRITICAL", null, null,
-                        "holdId=" + hold.getId()
-                    );
-                    return;
-                }
-                wallet.setPendingIncomeBalance(MoneyAmounts.subtract(wallet.getPendingIncomeBalance(), hold.getAmount()));
-                wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), hold.getAmount()));
-                syncTotals(wallet);
-                hold.setStatus("RELEASED");
-                hold.setReleasedAt(LocalDateTime.now());
-                record(
-                    wallet, "INQUIRY_INCOME_RELEASE", "IN", hold.getAmount(), "INQUIRY",
-                    hold.getInquiry().getId(), "回答收入已解冻"
-                );
+                releaseHold(hold);
             });
     }
 
@@ -314,6 +417,13 @@ public class WalletService {
         record(
             wallet, transactionType, "IN", amount, "RECHARGE", referenceId,
             isTest(user) ? "测试余额充值" : "支付宝充值"
+        );
+        ledger.record(
+            "RECHARGE", referenceId, "PAID", isTest(user) ? "测试充值到账" : "支付宝充值到账",
+            List.of(
+                entry(isTest(user) ? "TEST_CLEARING" : "ALIPAY_CLEARING", null, amount),
+                entry("USER_RECHARGE_LIABILITY", userId, negative(amount))
+            )
         );
     }
 
@@ -341,6 +451,108 @@ public class WalletService {
             "USER_INVITATION",
             invitationId,
             "邀请答主红包"
+        );
+        ledger.record(
+            "USER_INVITATION", invitationId, "REWARD", "邀请答主红包",
+            List.of(
+                entry("MARKETING_EXPENSE", null, amount),
+                entry("USER_INCOME_LIABILITY", userId, negative(amount))
+            )
+        );
+    }
+
+    @Transactional
+    public void holdForQualityReview(Long inquiryId) {
+        WalletIncomeHold hold = incomeHolds.findWithLockByInquiryId(inquiryId)
+            .orElseThrow(() -> BusinessException.badRequest("该询问没有待解冻收入"));
+        if (!"PENDING".equals(hold.getStatus()) || !hold.getReleaseAt().isAfter(LocalDateTime.now())) {
+            throw BusinessException.badRequest("该笔收入已解冻，不能再申请资金复核");
+        }
+        hold.setStatus("DISPUTED");
+    }
+
+    @Transactional
+    public void resolveQualitySettlement(Inquiry inquiry) {
+        WalletIncomeHold hold = incomeHolds.findWithLockByInquiryId(inquiry.getId())
+            .orElseThrow(() -> BusinessException.badRequest("待解冻收入不存在"));
+        if (!"DISPUTED".equals(hold.getStatus())) {
+            throw BusinessException.badRequest("该笔收入不在质量复核中");
+        }
+        releaseHold(hold);
+    }
+
+    @Transactional
+    public void resolveQualityRefund(Inquiry inquiry) {
+        WalletIncomeHold hold = incomeHolds.findWithLockByInquiryId(inquiry.getId())
+            .orElseThrow(() -> BusinessException.badRequest("待解冻收入不存在"));
+        if (!"DISPUTED".equals(hold.getStatus())) {
+            throw BusinessException.badRequest("该笔收入不在质量复核中");
+        }
+        WalletPair pair = lockPair(inquiry.getQuestioner().getId(), inquiry.getAnswerer().getId());
+        WalletAccount questioner = pair.forUser(inquiry.getQuestioner().getId());
+        WalletAccount answerer = pair.forUser(inquiry.getAnswerer().getId());
+        ensureSources(questioner);
+        ensureSources(answerer);
+        if (answerer.getPendingIncomeBalance().compareTo(hold.getAmount()) < 0) {
+            throw BusinessException.badRequest("回答收入冻结金额异常");
+        }
+        answerer.setPendingIncomeBalance(MoneyAmounts.subtract(answerer.getPendingIncomeBalance(), hold.getAmount()));
+        syncTotals(answerer);
+        questioner.setRechargeBalance(MoneyAmounts.add(questioner.getRechargeBalance(), inquiry.getFrozenRechargeAmount()));
+        questioner.setIncomeBalance(MoneyAmounts.add(questioner.getIncomeBalance(), inquiry.getFrozenIncomeAmount()));
+        syncTotals(questioner);
+        hold.setStatus("REFUNDED");
+        hold.setReleasedAt(LocalDateTime.now());
+        record(answerer, "INQUIRY_INCOME_REVERSED", "OUT", hold.getAmount(), "INQUIRY", inquiry.getId(), "质量复核退款，回答收入撤回");
+        record(questioner, "INQUIRY_QUALITY_REFUND", "IN", inquiry.getAmount(), "INQUIRY", inquiry.getId(), "质量复核退款");
+        platformFeeRecords.findByInquiryId(inquiry.getId()).ifPresent(record -> {
+            record.setStatus("REVERSED");
+            record.setFinalizedAt(LocalDateTime.now());
+        });
+        ledger.record(
+            "INQUIRY", inquiry.getId(), "QUALITY_REFUND", "质量复核全额退款",
+            List.of(
+                entry("ANSWERER_PENDING", inquiry.getAnswerer().getId(), hold.getAmount()),
+                entry("PLATFORM_FEE_PENDING", null, inquiry.getServiceFeeAmount()),
+                entry("USER_RECHARGE_LIABILITY", inquiry.getQuestioner().getId(), negative(inquiry.getFrozenRechargeAmount())),
+                entry("USER_INCOME_LIABILITY", inquiry.getQuestioner().getId(), negative(inquiry.getFrozenIncomeAmount()))
+            )
+        );
+    }
+
+    private void releaseHold(WalletIncomeHold hold) {
+        WalletAccount wallet = lock(hold.getUser().getId());
+        ensureSources(wallet);
+        if (wallet.getPendingIncomeBalance().compareTo(hold.getAmount()) < 0) {
+            securityEvents.recordSafely(
+                wallet.getUser().getId(), null, "INCOME_HOLD_MISMATCH", "CRITICAL", null, null,
+                "holdId=" + hold.getId()
+            );
+            throw BusinessException.badRequest("待解冻收入金额异常");
+        }
+        wallet.setPendingIncomeBalance(MoneyAmounts.subtract(wallet.getPendingIncomeBalance(), hold.getAmount()));
+        wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), hold.getAmount()));
+        syncTotals(wallet);
+        hold.setStatus("RELEASED");
+        hold.setReleasedAt(LocalDateTime.now());
+        record(
+            wallet, "INQUIRY_INCOME_RELEASE", "IN", hold.getAmount(), "INQUIRY",
+            hold.getInquiry().getId(), "回答收入已解冻"
+        );
+        PlatformFeeRecord fee = platformFeeRecords.findByInquiryId(hold.getInquiry().getId()).orElse(null);
+        if (fee != null && "PENDING".equals(fee.getStatus())) {
+            fee.setStatus("EARNED");
+            fee.setFinalizedAt(LocalDateTime.now());
+        }
+        BigDecimal serviceFee = fee == null ? hold.getInquiry().getServiceFeeAmount() : fee.getServiceFeeAmount();
+        ledger.record(
+            "INQUIRY", hold.getInquiry().getId(), "RELEASE", "回答收入解冻",
+            List.of(
+                entry("ANSWERER_PENDING", hold.getUser().getId(), hold.getAmount()),
+                entry("PLATFORM_FEE_PENDING", null, serviceFee),
+                entry("USER_INCOME_LIABILITY", hold.getUser().getId(), negative(hold.getAmount())),
+                entry("PLATFORM_SERVICE_FEE", null, negative(serviceFee))
+            )
         );
     }
 

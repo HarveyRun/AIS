@@ -5,6 +5,7 @@ import com.shixianwen.user.UserRepository;
 import com.shixianwen.wallet.WalletAccountRepository;
 import com.shixianwen.security.LoginAttemptService;
 import com.shixianwen.security.SecurityEventService;
+import com.shixianwen.network.ClientNetworkInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,14 +22,16 @@ import static org.mockito.Mockito.when;
 class AuthServiceTest {
     private AppTestLoginAccountService testAccountService;
     private VerificationCodeService verificationCodeService;
+    private UserRepository userRepository;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         testAccountService = mock(AppTestLoginAccountService.class);
         verificationCodeService = mock(VerificationCodeService.class);
+        userRepository = mock(UserRepository.class);
         authService = new AuthService(
-            mock(UserRepository.class),
+            userRepository,
             mock(AuthSessionRepository.class),
             mock(WalletAccountRepository.class),
             mock(UserLoginRecordRepository.class),
@@ -37,6 +40,7 @@ class AuthServiceTest {
             mock(UidAllocator.class),
             mock(LoginAttemptService.class),
             mock(SecurityEventService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
             30
         );
     }
@@ -105,5 +109,37 @@ class AuthServiceTest {
 
         verify(verificationCodeService).send("19900000000", "LOGIN", "127.0.0.1", "device-001");
         verify(testAccountService, never()).activeVerificationCode("19900000000");
+    }
+
+    @Test
+    void deletedPhoneCannotReceiveCodeOrLoginAgain() {
+        when(userRepository.existsByDeletedPhoneHash(PhoneIdentityHash.of("18800000000")))
+            .thenReturn(true);
+
+        assertThrows(
+            BusinessException.class,
+            () -> authService.sendVerificationCode(
+                "18800000000",
+                "127.0.0.1",
+                "device-001",
+                true
+            )
+        );
+        assertThrows(
+            BusinessException.class,
+            () -> authService.login(
+                "18800000000",
+                "1234",
+                new ClientNetworkInfo("127.0.0.1", "内网"),
+                "device-001",
+                true
+            )
+        );
+        verify(verificationCodeService, never()).send(
+            "18800000000",
+            "LOGIN",
+            "127.0.0.1",
+            "device-001"
+        );
     }
 }

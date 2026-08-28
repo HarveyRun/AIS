@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,7 +32,21 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
     setState(() => _loading = true);
     try {
       final person = await ref.read(repositoryProvider).answerer(widget.uid);
-      if (mounted) setState(() => _answerer = person);
+      if (mounted) {
+        setState(() => _answerer = person);
+        unawaited(
+          ref
+              .read(analyticsProvider)
+              .track(
+                'profile_view',
+                properties: {
+                  'answerer_user_id': person.id,
+                  'answerer_uid': person.uid,
+                  'job_name': person.mainJob,
+                },
+              ),
+        );
+      }
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     } finally {
@@ -41,6 +57,16 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
   Future<void> _ask() async {
     final person = _answerer!;
     if (!person.acceptingInquiries) return;
+    await ref
+        .read(analyticsProvider)
+        .track(
+          'inquiry_start',
+          properties: {
+            'answerer_user_id': person.id,
+            'answerer_uid': person.uid,
+            'job_name': person.mainJob,
+          },
+        );
     try {
       final existing = await ref.read(repositoryProvider).inquiries();
       for (final inquiry in existing) {
@@ -73,7 +99,7 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('个人信息')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          ? const SizedBox.shrink()
           : _answerer == null
           ? const Center(child: Text('档案不存在'))
           : RefreshIndicator(
@@ -422,6 +448,16 @@ class _InquirySheetState extends ConsumerState<_InquirySheet> {
     }
     setState(() => _submitting = true);
     try {
+      await ref
+          .read(analyticsProvider)
+          .track(
+            'inquiry_submit_click',
+            properties: {
+              'answerer_user_id': widget.answerer.id,
+              'job_name': widget.answerer.mainJob,
+              'amount_bucket': _amountBucket(amount),
+            },
+          );
       final created = await ref
           .read(repositoryProvider)
           .createInquiry(
@@ -439,6 +475,15 @@ class _InquirySheetState extends ConsumerState<_InquirySheet> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  String _amountBucket(int amount) {
+    if (amount <= 20) return '1-20';
+    if (amount <= 50) return '21-50';
+    if (amount <= 100) return '51-100';
+    if (amount <= 300) return '101-300';
+    if (amount <= 1000) return '301-1000';
+    return '1001-5000';
   }
 
   @override
@@ -512,15 +557,7 @@ class _InquirySheetState extends ConsumerState<_InquirySheet> {
           const SizedBox(height: 18),
           FilledButton(
             onPressed: _submitting ? null : _submit,
-            child: _submitting
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text('确认发起'),
+            child: const Text('确认发起'),
           ),
         ],
       ),

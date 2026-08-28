@@ -7,6 +7,8 @@ import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StorageVisibility;
 import com.shixianwen.security.SecurityEventService;
 import com.shixianwen.wallet.PlatformServiceFeePolicy;
+import com.shixianwen.wallet.PermanentBanPayoutService;
+import com.shixianwen.finance.FinancialLedgerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,8 @@ public class AdminManagementService {
     private final FileStorage fileStorage;
     private final SecurityEventService securityEvents;
     private final PlatformServiceFeePolicy platformServiceFeePolicy;
+    private final FinancialLedgerService financialLedger;
+    private final PermanentBanPayoutService permanentBanPayouts;
 
     public Map<String,Object> dashboard() {
         Map<String,Object> result=new LinkedHashMap<>();
@@ -328,6 +332,10 @@ public class AdminManagementService {
             case "DAYS_3" -> LocalDateTime.now().plusDays(3);
             case "DAYS_7" -> LocalDateTime.now().plusDays(7);
             case "DAYS_15" -> LocalDateTime.now().plusDays(15);
+            case "MONTHS_1" -> LocalDateTime.now().plusMonths(1);
+            case "MONTHS_3" -> LocalDateTime.now().plusMonths(3);
+            case "MONTHS_6" -> LocalDateTime.now().plusMonths(6);
+            case "YEARS_1" -> LocalDateTime.now().plusYears(1);
             case "PERMANENT" -> null;
             default -> throw BusinessException.badRequest("请选择封禁时长");
         };
@@ -342,8 +350,12 @@ public class AdminManagementService {
         );
         if (affected != 1) throw BusinessException.notFound("用户不存在");
 
+        if (banUntil == null) {
+            permanentBanPayouts.captureForPermanentBan(id);
+        }
+
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("reason", cleanReason);
+        payload.put("reason", "违反平台规则");
         payload.put("duration", cleanDuration);
         payload.put("banUntil", banUntil);
         payload.put("permanent", banUntil == null);
@@ -362,19 +374,20 @@ public class AdminManagementService {
         String like="%"+keyword+"%";
         Long total=jdbc.queryForObject("SELECT COUNT(*) FROM jobs WHERE deleted_at IS NULL AND (?='' OR name LIKE ?)",Long.class,keyword,like);
         List<Map<String,Object>> items=jdbc.queryForList(
-            "SELECT j.id,j.name,j.description,j.active,j.created_at AS createdAt,"+
+            "SELECT j.id,j.name,j.description,j.main_work AS mainWork,j.can_help_with AS canHelpWith,"+
+                "j.not_responsible_for AS notResponsibleFor,j.active,j.created_at AS createdAt,"+
                 "COUNT(DISTINCT uj.user_id) AS userCount,COUNT(DISTINCT mj.matter_id) AS matterCount "+
                 "FROM jobs j LEFT JOIN user_jobs uj ON uj.job_id=j.id AND uj.deleted_at IS NULL "+
                 "LEFT JOIN discovery_matter_jobs mj ON mj.job_id=j.id AND mj.deleted_at IS NULL "+
                 "WHERE j.deleted_at IS NULL AND (?='' OR j.name LIKE ?) "+
-                "GROUP BY j.id,j.name,j.description,j.active,j.created_at "+
+                "GROUP BY j.id,j.name,j.description,j.main_work,j.can_help_with,j.not_responsible_for,j.active,j.created_at "+
                 "ORDER BY j.active DESC,j.name,j.id LIMIT ? OFFSET ?",
             keyword,like,size,page*size
         );
         return new PageResult(items,total,page,size);
     }
     public List<Map<String,Object>> jobOptions(){
-        return jdbc.queryForList("SELECT j.id,j.name,j.description,j.active,COUNT(DISTINCT uj.user_id) AS userCount FROM jobs j LEFT JOIN user_jobs uj ON uj.job_id=j.id AND uj.deleted_at IS NULL WHERE j.deleted_at IS NULL GROUP BY j.id,j.name,j.description,j.active ORDER BY j.active DESC,j.name,j.id");
+        return jdbc.queryForList("SELECT j.id,j.name,j.description,j.main_work AS mainWork,j.can_help_with AS canHelpWith,j.not_responsible_for AS notResponsibleFor,j.active,COUNT(DISTINCT uj.user_id) AS userCount FROM jobs j LEFT JOIN user_jobs uj ON uj.job_id=j.id AND uj.deleted_at IS NULL WHERE j.deleted_at IS NULL GROUP BY j.id,j.name,j.description,j.main_work,j.can_help_with,j.not_responsible_for,j.active ORDER BY j.active DESC,j.name,j.id");
     }
     public List<Map<String,Object>> experienceOptions(){
         return jdbc.queryForList("SELECT e.id,e.name,e.category_id AS categoryId,c.name AS categoryName,c.main_category AS mainCategory,e.active FROM discovery_experiences e JOIN discovery_categories c ON c.id=e.category_id WHERE e.active=TRUE AND e.deleted_at IS NULL AND c.active=TRUE AND c.deleted_at IS NULL ORDER BY FIELD(c.main_category,'GENERAL','LIFE','WORK','ENTERTAINMENT'),c.sort_order,e.name,e.id");
@@ -396,8 +409,25 @@ public class AdminManagementService {
         );
         return new PageResult(items,total,page,size);
     }
-    @Transactional public void createJob(AdminUser admin,String name,String description,String ip){String value=required(name,"岗位名称不能为空");ensureJobName(value,null);jdbc.update("INSERT INTO jobs(name,description,active) VALUES (?,?,TRUE)",value,cleanDescription(description));Long id=jdbc.queryForObject("SELECT LAST_INSERT_ID()",Long.class);audit(admin,"CREATE_JOB","JOB",id,value,ip);}
-    @Transactional public void updateJob(AdminUser admin,Long id,String name,String description,Boolean active,String ip){String value=required(name,"岗位名称不能为空");ensureJobName(value,id);if(jdbc.update("UPDATE jobs SET name=?,description=?,active=? WHERE id=?",value,cleanDescription(description),active==null||active,id)!=1)throw BusinessException.notFound("岗位不存在");audit(admin,"UPDATE_JOB","JOB",id,value,ip);}
+    @Transactional public void createJob(AdminUser admin,String name,String description,String mainWork,String canHelpWith,String notResponsibleFor,String ip){
+        String value=required(name,"岗位名称不能为空");
+        ensureJobName(value,null);
+        jdbc.update(
+            "INSERT INTO jobs(name,description,main_work,can_help_with,not_responsible_for,active) VALUES (?,?,?,?,?,TRUE)",
+            value,cleanDescription(description),cleanJobGuidance(mainWork,"主要工作"),cleanJobGuidance(canHelpWith,"可以帮你判断"),cleanJobGuidance(notResponsibleFor,"一般不处理")
+        );
+        Long id=jdbc.queryForObject("SELECT LAST_INSERT_ID()",Long.class);
+        audit(admin,"CREATE_JOB","JOB",id,value,ip);
+    }
+    @Transactional public void updateJob(AdminUser admin,Long id,String name,String description,String mainWork,String canHelpWith,String notResponsibleFor,Boolean active,String ip){
+        String value=required(name,"岗位名称不能为空");
+        ensureJobName(value,id);
+        if(jdbc.update(
+            "UPDATE jobs SET name=?,description=?,main_work=?,can_help_with=?,not_responsible_for=?,active=? WHERE id=?",
+            value,cleanDescription(description),cleanJobGuidance(mainWork,"主要工作"),cleanJobGuidance(canHelpWith,"可以帮你判断"),cleanJobGuidance(notResponsibleFor,"一般不处理"),active==null||active,id
+        )!=1)throw BusinessException.notFound("岗位不存在");
+        audit(admin,"UPDATE_JOB","JOB",id,value,ip);
+    }
     @Transactional public void deleteJob(AdminUser admin,Long id,String ip){if(count("user_jobs","job_id="+id+" AND deleted_at IS NULL")>0||count("discovery_matter_jobs","job_id="+id+" AND deleted_at IS NULL")>0)throw BusinessException.badRequest("该岗位仍关联用户或事情，请先解除关联");if(jdbc.update("UPDATE jobs SET active=FALSE,deleted_at=NOW(6) WHERE id=? AND deleted_at IS NULL",id)!=1)throw BusinessException.notFound("岗位不存在");audit(admin,"DELETE_JOB","JOB",id,"SOFT_DELETE",ip);}
     @Transactional public void processWithdrawal(AdminUser admin,Long id,String status,String ip) {
         if(!List.of("COMPLETED","FAILED").contains(status)) throw BusinessException.badRequest("提现状态不正确");
@@ -419,6 +449,25 @@ public class AdminManagementService {
                 row.get("amount"),row.get("amount"),row.get("amount"),row.get("user_id")
             );
             jdbc.update("INSERT INTO wallet_transactions(user_id,transaction_type,direction,amount,available_after,frozen_after,reference_type,reference_id,description) SELECT ?, 'WITHDRAWAL_REFUND','IN',?,available_balance,frozen_balance,'WITHDRAWAL',?,'提现失败退款' FROM wallet_accounts WHERE user_id=?",row.get("user_id"),row.get("amount"),id,row.get("user_id"));
+            BigDecimal amount=(BigDecimal)row.get("amount");
+            Long userId=((Number)row.get("user_id")).longValue();
+            financialLedger.record(
+                "WITHDRAWAL",id,"FAILED","提现失败退回",
+                List.of(
+                    FinancialLedgerService.entry("WITHDRAWAL_PAYABLE",userId,amount),
+                    FinancialLedgerService.entry("USER_INCOME_LIABILITY",userId,FinancialLedgerService.negative(amount))
+                )
+            );
+        } else {
+            BigDecimal amount=(BigDecimal)row.get("amount");
+            Long userId=((Number)row.get("user_id")).longValue();
+            financialLedger.record(
+                "WITHDRAWAL",id,"SUCCESS","提现完成",
+                List.of(
+                    FinancialLedgerService.entry("WITHDRAWAL_PAYABLE",userId,amount),
+                    FinancialLedgerService.entry("ALIPAY_CLEARING",null,FinancialLedgerService.negative(amount))
+                )
+            );
         }
         audit(admin,"PROCESS_WITHDRAWAL","WITHDRAWAL",id,status,ip);
         securityEvents.recordSafely(
@@ -471,7 +520,7 @@ public class AdminManagementService {
         Map<String,Object> result=new LinkedHashMap<>();
         result.put("categories",jdbc.queryForList("SELECT id,main_category AS mainCategory,name,content_scope AS contentScope,sort_order AS sortOrder,active FROM discovery_categories WHERE deleted_at IS NULL ORDER BY FIELD(main_category,'GENERAL','LIFE','WORK','ENTERTAINMENT'),sort_order,id"));
         result.put("matters",jdbc.queryForList("SELECT m.id,m.category_id AS categoryId,m.title,m.sort_order AS sortOrder,m.active,c.main_category AS mainCategory,c.name AS categoryName FROM discovery_matters m JOIN discovery_categories c ON c.id=m.category_id WHERE m.deleted_at IS NULL AND c.deleted_at IS NULL ORDER BY FIELD(c.main_category,'GENERAL','LIFE','WORK','ENTERTAINMENT'),c.sort_order,m.sort_order,m.id"));
-        result.put("matterJobs",jdbc.queryForList("SELECT mj.matter_id AS matterId,mj.job_id AS jobId,mj.sort_order AS sortOrder,j.name AS jobName FROM discovery_matter_jobs mj JOIN jobs j ON j.id=mj.job_id WHERE mj.active=TRUE AND mj.deleted_at IS NULL AND j.deleted_at IS NULL ORDER BY mj.matter_id,mj.sort_order,j.name"));
+        result.put("matterJobs",jdbc.queryForList("SELECT mj.matter_id AS matterId,mj.job_id AS jobId,mj.sort_order AS sortOrder,mj.role_description AS roleDescription,j.name AS jobName FROM discovery_matter_jobs mj JOIN jobs j ON j.id=mj.job_id WHERE mj.active=TRUE AND mj.deleted_at IS NULL AND j.deleted_at IS NULL ORDER BY mj.matter_id,mj.sort_order,j.name"));
         result.put("jobs",jobOptions());
         result.put("experienceCatalogs",jdbc.queryForList("SELECT e.id,e.category_id AS categoryId,e.name,e.active,c.main_category AS mainCategory,c.name AS categoryName,COUNT(DISTINCT t.user_id) AS userCount FROM discovery_experiences e JOIN discovery_categories c ON c.id=e.category_id LEFT JOIN certifications t ON t.discovery_experience_id=e.id AND t.category='EXPERIENCE' AND t.status='APPROVED' AND t.deleted_at IS NULL WHERE e.deleted_at IS NULL AND c.deleted_at IS NULL GROUP BY e.id,e.category_id,e.name,e.active,c.main_category,c.name ORDER BY FIELD(c.main_category,'GENERAL','LIFE','WORK','ENTERTAINMENT'),c.sort_order,e.name,e.id"));
         return result;
@@ -599,12 +648,19 @@ public class AdminManagementService {
             if(job==null||job.jobId()==null) continue;
             if(!seen.add(job.jobId())) throw BusinessException.badRequest("同一岗位不能重复配置");
             if(count("jobs","id="+job.jobId()+" AND active=TRUE")==0) throw BusinessException.badRequest("所选岗位不存在或已停用");
-            jdbc.update("INSERT INTO discovery_matter_jobs(matter_id,job_id,sort_order,active,deleted_at) VALUES (?,?,?,TRUE,NULL) ON DUPLICATE KEY UPDATE sort_order=VALUES(sort_order),active=TRUE,deleted_at=NULL",matterId,job.jobId(),order++);
+            jdbc.update(
+                "INSERT INTO discovery_matter_jobs(matter_id,job_id,sort_order,role_description,active,deleted_at) VALUES (?,?,?,?,TRUE,NULL) " +
+                    "ON DUPLICATE KEY UPDATE sort_order=VALUES(sort_order),role_description=VALUES(role_description),active=TRUE,deleted_at=NULL",
+                matterId,job.jobId(),order++,cleanMatterRole(job.roleDescription())
+            );
         }
         if(order==1) throw BusinessException.badRequest("每件事情至少设置一个岗位");
     }
     private void ensureJobName(String name,Long excludedId){Long total=excludedId==null?jdbc.queryForObject("SELECT COUNT(*) FROM jobs WHERE name=?",Long.class,name):jdbc.queryForObject("SELECT COUNT(*) FROM jobs WHERE name=? AND id<>?",Long.class,name,excludedId);if(total!=null&&total>0)throw BusinessException.badRequest("岗位名称已存在");}
     private String cleanDescription(String value){if(value==null||value.isBlank())return null;String result=sensitiveWords.mask(value.trim());if(result.length()>240)throw BusinessException.badRequest("介绍不能超过240个字");return result;}
+    private String cleanJobGuidance(String value,String label){return cleanOptionalText(value,500,label+"不能超过500个字");}
+    private String cleanMatterRole(String value){return cleanOptionalText(value,500,"事情中的作用不能超过500个字");}
+    private String cleanOptionalText(String value,int maxLength,String message){if(value==null||value.isBlank())return null;String result=sensitiveWords.mask(value.trim());if(result.length()>maxLength)throw BusinessException.badRequest(message);return result;}
     private String mainCategory(String value){String result=value==null?"":value.trim().toUpperCase(Locale.ROOT);if(!List.of("GENERAL","LIFE","WORK","ENTERTAINMENT").contains(result)) throw BusinessException.badRequest("主分类不正确");return result;}
     private String required(String value,String message){if(value==null||value.isBlank()) throw BusinessException.badRequest(message);return sensitiveWords.mask(value.trim());}
     private void reorderCategories(String main,Long movingId,int requestedPosition){

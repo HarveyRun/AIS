@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +22,7 @@ class _DiscoveryListPageState extends ConsumerState<DiscoveryListPage> {
   final _searchController = TextEditingController();
   List<DiscoverySearchItem> _all = const [];
   bool _loading = true;
+  Timer? _searchTimer;
 
   bool get _experiences => widget.type == 'experiences';
 
@@ -31,8 +34,65 @@ class _DiscoveryListPageState extends ConsumerState<DiscoveryListPage> {
 
   @override
   void dispose() {
+    _searchTimer?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _searchChanged(String _) {
+    setState(() {});
+    _searchTimer?.cancel();
+    _searchTimer = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+      final keyword = _searchController.text.trim();
+      if (keyword.isEmpty) return;
+      final lower = keyword.toLowerCase();
+      final count = _all
+          .where(
+            (item) => '${item.categoryName} ${item.title}'
+                .toLowerCase()
+                .contains(lower),
+          )
+          .length;
+      unawaited(
+        ref
+            .read(analyticsProvider)
+            .track(
+              'search_submit',
+              properties: {
+                'search_type': _experiences ? 'EXPERIENCE' : 'MATTER',
+                'search_term': keyword,
+                'result_count': count,
+              },
+            ),
+      );
+    });
+  }
+
+  void _openItem(DiscoverySearchItem item) {
+    unawaited(
+      ref
+          .read(analyticsProvider)
+          .track(
+            _experiences ? 'experience_select' : 'matter_select',
+            properties: _experiences
+                ? {
+                    'experience_id': item.id,
+                    'experience_name': item.title,
+                    'category_id': item.categoryId,
+                    'category_name': item.categoryName,
+                  }
+                : {
+                    'matter_id': item.id,
+                    'matter_name': item.title,
+                    'category_id': item.categoryId,
+                    'category_name': item.categoryName,
+                  },
+          ),
+    );
+    context.push(
+      '/discover/${widget.type}/${item.id}/results?title=${Uri.encodeQueryComponent(item.title)}',
+    );
   }
 
   Future<void> _load() async {
@@ -75,7 +135,7 @@ class _DiscoveryListPageState extends ConsumerState<DiscoveryListPage> {
         surfaceTintColor: Colors.transparent,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          ? const SizedBox.shrink()
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
@@ -84,7 +144,7 @@ class _DiscoveryListPageState extends ConsumerState<DiscoveryListPage> {
                 children: [
                   TextField(
                     controller: _searchController,
-                    onChanged: (_) => setState(() {}),
+                    onChanged: _searchChanged,
                     inputFormatters: AppInputFormatters.search,
                     decoration: InputDecoration(
                       filled: true,
@@ -139,9 +199,7 @@ class _DiscoveryListPageState extends ConsumerState<DiscoveryListPage> {
                                 width: itemWidth,
                                 child: _DiscoveryRow(
                                   title: item.title,
-                                  onPressed: () => context.push(
-                                    '/discover/${widget.type}/${item.id}/results?title=${Uri.encodeQueryComponent(item.title)}',
-                                  ),
+                                  onPressed: () => _openItem(item),
                                 ),
                               ),
                           ],

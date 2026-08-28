@@ -1,7 +1,9 @@
 package com.shixianwen.user;
 
+import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.auth.AuthSessionRepository;
 import com.shixianwen.auth.AuthService;
+import com.shixianwen.auth.PhoneIdentityHash;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.inquiry.InquiryRepository;
@@ -32,6 +34,7 @@ public class UserService {
     private final FileStorage fileStorage;
     private final AnswererEligibilityService answererEligibility;
     private final SensitiveWordService sensitiveWords;
+    private final AnalyticsEventService analytics;
 
     public UserService(
         UserRepository userRepository,
@@ -40,7 +43,8 @@ public class UserService {
         AuthSessionRepository authSessionRepository,
         FileStorage fileStorage,
         AnswererEligibilityService answererEligibility,
-        SensitiveWordService sensitiveWords
+        SensitiveWordService sensitiveWords,
+        AnalyticsEventService analytics
     ) {
         this.userRepository = userRepository;
         this.walletAccountRepository = walletAccountRepository;
@@ -49,6 +53,7 @@ public class UserService {
         this.fileStorage = fileStorage;
         this.answererEligibility = answererEligibility;
         this.sensitiveWords = sensitiveWords;
+        this.analytics = analytics;
     }
 
     @Transactional
@@ -98,6 +103,11 @@ public class UserService {
         }
         current.setAcceptingInquiries(accepting);
         current.setAcceptingInquiriesUpdatedAt(now);
+        analytics.recordBusinessAfterCommit(current, "answerer_setting_saved", java.util.Map.of(
+            "accepting_inquiries", accepting,
+            "price_min", current.getInquiryPriceMin(),
+            "price_max", current.getInquiryPriceMax()
+        ));
         return AuthService.UserView.from(userRepository.save(current));
     }
 
@@ -126,6 +136,11 @@ public class UserService {
         current.setInquiryPriceMin(minimum);
         current.setInquiryPriceMax(maximum);
         current.setInquiryPriceUpdatedAt(now);
+        analytics.recordBusinessAfterCommit(current, "answerer_setting_saved", java.util.Map.of(
+            "accepting_inquiries", current.isAcceptingInquiries(),
+            "price_min", minimum,
+            "price_max", maximum
+        ));
         return AuthService.UserView.from(userRepository.save(current));
     }
 
@@ -142,6 +157,23 @@ public class UserService {
         return AuthService.UserView.from(userRepository.save(current));
     }
 
+    @Transactional(readOnly = true)
+    public AccountDeletionEligibility accountDeletionEligibility(User user) {
+        WalletAccount wallet = walletAccountRepository.findByUserId(user.getId())
+            .orElseThrow(() -> BusinessException.notFound("账户余额不存在"));
+        boolean availableBalanceCleared = wallet.getAvailableBalance().compareTo(BigDecimal.ZERO) == 0;
+        boolean frozenBalanceCleared = wallet.getFrozenBalance().compareTo(BigDecimal.ZERO) == 0;
+        boolean noActiveInquiries = !hasActiveInquiry(user.getId());
+        return new AccountDeletionEligibility(
+            availableBalanceCleared && frozenBalanceCleared && noActiveInquiries,
+            availableBalanceCleared,
+            frozenBalanceCleared,
+            noActiveInquiries,
+            wallet.getAvailableBalance(),
+            wallet.getFrozenBalance()
+        );
+    }
+
     @Transactional
     public void deleteAccount(User user) {
         WalletAccount wallet = walletAccountRepository.findWithLockByUserId(user.getId())
@@ -152,9 +184,7 @@ public class UserService {
         if (wallet.getFrozenBalance().compareTo(BigDecimal.ZERO) > 0) {
             throw BusinessException.badRequest("仍有冻结金额，暂时不能注销");
         }
-        boolean hasActiveInquiry = inquiryRepository.existsByQuestionerIdAndStatusIn(user.getId(), ACTIVE_INQUIRY_STATUSES)
-            || inquiryRepository.existsByAnswererIdAndStatusIn(user.getId(), ACTIVE_INQUIRY_STATUSES);
-        if (hasActiveInquiry) {
+        if (hasActiveInquiry(user.getId())) {
             throw BusinessException.badRequest("仍有未结束询问，暂时不能注销");
         }
 
@@ -165,7 +195,28 @@ public class UserService {
         user.setNickname(null);
         user.setAvatarUrl(null);
         user.setCapabilityDescription(null);
-        user.setPhone("deleted-" + user.getId() + "-" + System.currentTimeMillis());
+        user.setDeletedPhoneHash(PhoneIdentityHash.of(user.getPhone()));
+        user.setPhone(deletedPhone(user.getId()));
         userRepository.save(user);
+        analytics.recordBusinessAfterCommit(user, "account_deleted", java.util.Map.of());
+    }
+
+    private static String deletedPhone(Long userId) {
+        return "d" + userId;
+    }
+
+    private boolean hasActiveInquiry(Long userId) {
+        return inquiryRepository.existsByQuestionerIdAndStatusIn(userId, ACTIVE_INQUIRY_STATUSES)
+            || inquiryRepository.existsByAnswererIdAndStatusIn(userId, ACTIVE_INQUIRY_STATUSES);
+    }
+
+    public record AccountDeletionEligibility(
+        boolean eligible,
+        boolean availableBalanceCleared,
+        boolean frozenBalanceCleared,
+        boolean noActiveInquiries,
+        BigDecimal availableBalance,
+        BigDecimal frozenBalance
+    ) {
     }
 }

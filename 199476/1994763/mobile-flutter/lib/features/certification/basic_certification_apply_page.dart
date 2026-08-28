@@ -39,8 +39,11 @@ class _BasicCertificationApplyPageState
   bool get _identity => widget.type == 'IDENTITY';
   bool get _temporarilyBlocked {
     final availableAt = widget.record?.jobReapplyAvailableAt;
-    return !_identity && availableAt != null && DateTime.now().isBefore(availableAt);
+    return !_identity &&
+        availableAt != null &&
+        DateTime.now().isBefore(availableAt);
   }
+
   bool get _editable =>
       !_temporarilyBlocked &&
       (widget.record == null ||
@@ -184,14 +187,7 @@ class _BasicCertificationApplyPageState
           ],
           if (!_identity) ...[
             if (_loadingAppointment)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 30),
-                  child: Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-              )
+              const SizedBox.shrink()
             else if (_appointment != null)
               Card(
                 child: Padding(
@@ -382,15 +378,7 @@ class _BasicCertificationApplyPageState
               minimum: const EdgeInsets.fromLTRB(10, 8, 10, 12),
               child: FilledButton(
                 onPressed: _submitting ? null : _submit,
-                child: _submitting
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('提交认证'),
+                child: const Text('提交认证'),
               ),
             ),
     );
@@ -750,15 +738,7 @@ class _OfflineAppointmentSheetState
               onPressed: _available == true && !_checkingAvailability
                   ? () => Navigator.pop(context, _selectedSlot)
                   : null,
-              child: _checkingAvailability
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('确认预约'),
+              child: const Text('确认预约'),
             ),
           ),
         ],

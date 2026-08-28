@@ -43,6 +43,7 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Theme.of(context).colorScheme.surface,
     appBar: AppBar(title: const Text('商务合作')),
     body: ListView(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
@@ -52,10 +53,7 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
         TextField(
           controller: _contact,
           inputFormatters: AppInputFormatters.description(50),
-          decoration: InputDecoration(
-            hintText: '请填写手机号、微信或邮箱',
-            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
+          decoration: InputDecoration(hintText: '请填写手机号、微信或邮箱'),
         ),
         const SizedBox(height: 18),
         Text('合作内容', style: Theme.of(context).textTheme.titleMedium),
@@ -65,10 +63,7 @@ class _BusinessPageState extends ConsumerState<BusinessPage> {
           inputFormatters: AppInputFormatters.description(500),
           minLines: 6,
           maxLines: 10,
-          decoration: InputDecoration(
-            hintText: '请简单说明合作想法',
-            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
+          decoration: InputDecoration(hintText: '请简单说明合作想法'),
         ),
         const SizedBox(height: 18),
         FilledButton(

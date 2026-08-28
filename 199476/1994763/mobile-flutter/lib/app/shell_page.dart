@@ -4,23 +4,51 @@ import 'package:go_router/go_router.dart';
 
 import 'providers.dart';
 
-class AppShellPage extends ConsumerWidget {
+class AppShellPage extends ConsumerStatefulWidget {
   const AppShellPage({super.key, required this.child, required this.location});
 
   final Widget child;
   final String location;
 
+  @override
+  ConsumerState<AppShellPage> createState() => _AppShellPageState();
+}
+
+class _AppShellPageState extends ConsumerState<AppShellPage> {
+  void _unfocusAfterEnteringHome() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      FocusManager.instance.primaryFocus?.unfocus();
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.location == '/home') {
+      _unfocusAfterEnteringHome();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AppShellPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location && widget.location == '/home') {
+      _unfocusAfterEnteringHome();
+    }
+  }
+
   int get _selectedIndex {
-    if (location.startsWith('/inquiries')) return 1;
-    if (location.startsWith('/profile')) return 2;
+    if (widget.location.startsWith('/inquiries')) return 1;
+    if (widget.location.startsWith('/profile')) return 2;
     return 0;
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final unread = ref.watch(inquiryUnreadCountProvider);
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: _AppBottomNavigation(
         selectedIndex: _selectedIndex,
         unread: unread,
@@ -62,7 +90,10 @@ class _AppBottomNavigation extends StatelessWidget {
                 icon: Icons.home_outlined,
                 selectedIcon: Icons.home_rounded,
                 selected: selectedIndex == 0,
-                onTap: () => context.go('/home'),
+                onTap: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  context.go('/home');
+                },
               ),
               _NavigationItem(
                 label: '我的询问',
@@ -70,14 +101,20 @@ class _AppBottomNavigation extends StatelessWidget {
                 selectedIcon: Icons.chat_bubble_rounded,
                 selected: selectedIndex == 1,
                 badge: unread,
-                onTap: () => context.go('/inquiries'),
+                onTap: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  context.go('/inquiries');
+                },
               ),
               _NavigationItem(
                 label: '我的',
                 icon: Icons.person_outline_rounded,
                 selectedIcon: Icons.person_rounded,
                 selected: selectedIndex == 2,
-                onTap: () => context.go('/profile'),
+                onTap: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  context.go('/profile');
+                },
               ),
             ],
           ),

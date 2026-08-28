@@ -43,8 +43,11 @@ class InquiryServiceTest {
             mock(FileStorage.class),
             mock(AnswererEligibilityService.class),
             mock(SensitiveWordService.class),
+            mock(com.shixianwen.content.SensitiveContentCipher.class),
             mock(ChatAbuseGuard.class),
-            mock(SecurityEventService.class)
+            mock(SecurityEventService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            mock(org.springframework.jdbc.core.JdbcTemplate.class)
         );
 
         assertThrows(BusinessException.class, () -> service.detail(3L, 11L));
@@ -67,8 +70,11 @@ class InquiryServiceTest {
             mock(FileStorage.class),
             eligibility,
             sensitiveWords,
+            mock(com.shixianwen.content.SensitiveContentCipher.class),
             mock(ChatAbuseGuard.class),
-            mock(SecurityEventService.class)
+            mock(SecurityEventService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            mock(org.springframework.jdbc.core.JdbcTemplate.class)
         );
         User questioner = user(1L, "1000001");
         User answerer = user(2L, "2000002");
@@ -125,8 +131,11 @@ class InquiryServiceTest {
             mock(FileStorage.class),
             mock(AnswererEligibilityService.class),
             mock(SensitiveWordService.class),
+            mock(com.shixianwen.content.SensitiveContentCipher.class),
             mock(ChatAbuseGuard.class),
-            mock(SecurityEventService.class)
+            mock(SecurityEventService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            mock(org.springframework.jdbc.core.JdbcTemplate.class)
         );
         User questioner = user(1L, "1000001");
         User answerer = user(2L, "2000002");
@@ -170,8 +179,11 @@ class InquiryServiceTest {
             mock(FileStorage.class),
             eligibility,
             sensitiveWords,
+            mock(com.shixianwen.content.SensitiveContentCipher.class),
             mock(ChatAbuseGuard.class),
-            mock(SecurityEventService.class)
+            mock(SecurityEventService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            mock(org.springframework.jdbc.core.JdbcTemplate.class)
         );
         User questioner = user(1L, "1000001");
         User answerer = user(2L, "2000002");
@@ -221,8 +233,11 @@ class InquiryServiceTest {
             mock(FileStorage.class),
             mock(AnswererEligibilityService.class),
             mock(SensitiveWordService.class),
+            mock(com.shixianwen.content.SensitiveContentCipher.class),
             mock(ChatAbuseGuard.class),
-            mock(SecurityEventService.class)
+            mock(SecurityEventService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            mock(org.springframework.jdbc.core.JdbcTemplate.class)
         );
         User questioner = user(1L, "1000001");
         User answerer = user(2L, "2000002");

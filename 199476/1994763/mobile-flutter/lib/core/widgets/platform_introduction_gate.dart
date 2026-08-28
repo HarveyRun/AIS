@@ -23,7 +23,7 @@ class _PlatformIntroductionGateState
   bool _visible = false;
   bool _submitting = false;
   bool _confirmingDeletion = false;
-  int _seconds = 15;
+  int _seconds = 30;
 
   @override
   void dispose() {
@@ -51,7 +51,7 @@ class _PlatformIntroductionGateState
     setState(() {
       _visible = true;
       _confirmingDeletion = false;
-      _seconds = 15;
+      _seconds = 30;
     });
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
@@ -175,7 +175,7 @@ class _IntroductionPanel extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '我们为什么做这个平台',
+                '我们的初衷',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -229,18 +229,18 @@ class _IntroductionContent extends StatelessWidget {
         style: style,
         children: [
           const TextSpan(text: '我们相信，每个人一路走来，都在自己的'),
-          TextSpan(text: '工作、事业和生活中', style: strong),
+          TextSpan(text: '工作、生活和事业中', style: strong),
           const TextSpan(
             text:
-                '积累了一些属于自己的能力和经验，也走过一些只有亲身经历过才真正明白的路；这些对自己来说也许早已习以为常，但当另一个人恰好遇到同样的问题时，就可能变得很有价值。\n\n我们希望做的，就是让这些真实的',
+                '积累了一些属于自己的能力和经验，也走过一些只有亲身经历过才真正明白的路；这些对自己来说也许早已习以为常，但当他人恰好遇到同样的问题时，就可能变得很有价值。\n\n我们想做的，就是让这些真实的',
           ),
           TextSpan(text: '能力、经验和经历', style: strong),
           const TextSpan(
             text:
-                '，在别人真正需要的时候，能够帮上一点忙。\n\n这个平台并不是为了让所有问题都必须在这里解决。如果您已经有更合适的人、更好的办法，或者能够自己解决，我们真心建议您选择更适合自己的方式。\n\n平台存在的意义，不是让人依赖我们，而是希望在您不知道该怎么办、身边又恰好没有合适的人可以问时，这里能够多一个选择。\n\n',
+                '，在他人不知道该怎么办、身边又恰好没有合适的人可以问时，真正帮上一把。\n\n当然，如果您有更合适的人、更好的办法，或者能够自己解决，我们真心建议您选择更适合自己的方式。因为这里即不是专业顾问平台，也不是兼职或接单平台。\n\n',
           ),
           TextSpan(
-            text: '我们始终相信，每个人都有能帮上别人的地方，而每个人也都会有需要别人帮一把的时候。',
+            text: '希望这里能让您多一份选择。',
             style: strong,
           ),
         ],

@@ -12,6 +12,9 @@ import '../shared/LibraryManagement.css';
 const emptyJob = {
   name: '',
   description: '',
+  mainWork: '',
+  canHelpWith: '',
+  notResponsibleFor: '',
   active: true,
 };
 
@@ -83,6 +86,9 @@ export default function JobsPage() {
     setDraft({
       name: job.name,
       description: job.description || '',
+      mainWork: job.mainWork || '',
+      canHelpWith: job.canHelpWith || '',
+      notResponsibleFor: job.notResponsibleFor || '',
       active: job.active,
     });
     setEditorOpen(true);
@@ -133,6 +139,9 @@ export default function JobsPage() {
       await adminApi.updateJob(job.id, {
         name: job.name,
         description: job.description || '',
+        mainWork: job.mainWork || '',
+        canHelpWith: job.canHelpWith || '',
+        notResponsibleFor: job.notResponsibleFor || '',
         active: !job.active,
       });
       message.success(job.active ? '岗位已停用' : '岗位已启用');
@@ -257,7 +266,7 @@ export default function JobsPage() {
             <header>
               <div>
                 <h2>{editingId ? '编辑岗位' : '新增岗位'}</h2>
-                <p>维护岗位名称和介绍</p>
+                <p>维护岗位的工作内容和能力边界</p>
               </div>
               <button type="button" aria-label="关闭" onClick={closeEditor}>
                 <X />
@@ -280,7 +289,39 @@ export default function JobsPage() {
                   maxLength="240"
                   value={draft.description}
                   onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-                  placeholder="说明这个岗位主要能提供什么帮助"
+                  placeholder="用一句话让用户认识这个岗位"
+                />
+              </label>
+              <label>
+                <span>主要工作</span>
+                <textarea
+                  maxLength="500"
+                  rows="3"
+                  value={draft.mainWork}
+                  onChange={(event) => setDraft({ ...draft, mainWork: event.target.value })}
+                  placeholder="例如：负责供水管、排水管、阀门、接口和地漏的安装、检修与故障排查"
+                />
+              </label>
+              <label>
+                <span>可以帮你判断</span>
+                <textarea
+                  maxLength="500"
+                  rows="3"
+                  value={draft.canHelpWith}
+                  onChange={(event) => setDraft({ ...draft, canHelpWith: event.target.value })}
+                  placeholder="说明用户问完后，大概可以弄清楚什么"
+                />
+              </label>
+              <label>
+                <span>一般不处理</span>
+                <textarea
+                  maxLength="500"
+                  rows="3"
+                  value={draft.notResponsibleFor}
+                  onChange={(event) =>
+                    setDraft({ ...draft, notResponsibleFor: event.target.value })
+                  }
+                  placeholder="说明哪些问题通常不属于这个岗位"
                 />
               </label>
               <footer>

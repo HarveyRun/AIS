@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -52,12 +54,39 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
         _matter = results[0] as DiscoveryMatter;
         _people = results[1] as List<Answerer>;
       }
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+        unawaited(
+          ref
+              .read(analyticsProvider)
+              .track(
+                _people.isEmpty ? 'people_result_empty' : 'people_result_view',
+                properties: {
+                  'content_id': widget.id,
+                  'content_name': _matter?.title ?? widget.title,
+                  'content_type': _experience ? 'EXPERIENCE' : 'MATTER',
+                  'result_count': _people.length,
+                },
+              ),
+        );
+      }
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _showJobDescriptions() async {
+    final jobs = _matter?.jobs ?? const <DiscoveryJob>[];
+    if (jobs.isEmpty) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => _JobDescriptionsSheet(jobs: jobs),
+    );
   }
 
   @override
@@ -68,7 +97,7 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('找人')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          ? const SizedBox.shrink()
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
@@ -112,9 +141,27 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                     const SizedBox(height: 18),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(
-                        '可能会问到',
-                        style: Theme.of(context).textTheme.titleMedium,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '可能会问到',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _showJobDescriptions,
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(0, 32),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 2,
+                                vertical: 4,
+                              ),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text('岗位说明'),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -141,11 +188,28 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                                       ? Theme.of(context).colorScheme.onPrimary
                                       : Theme.of(context).colorScheme.onSurface,
                                 ),
-                                onSelected: (_) => setState(
-                                  () => _selectedJob == job.name
-                                      ? _selectedJob = ''
-                                      : _selectedJob = job.name,
-                                ),
+                                onSelected: (_) {
+                                  final selecting = _selectedJob != job.name;
+                                  setState(
+                                    () => _selectedJob = selecting
+                                        ? job.name
+                                        : '',
+                                  );
+                                  if (selecting) {
+                                    unawaited(
+                                      ref
+                                          .read(analyticsProvider)
+                                          .track(
+                                            'job_filter_select',
+                                            properties: {
+                                              'job_id': job.id,
+                                              'job_name': job.name,
+                                              'matter_id': widget.id,
+                                            },
+                                          ),
+                                    );
+                                  }
+                                },
                               ),
                             )
                             .toList(),
@@ -177,8 +241,27 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                       child: AnswererCard(
                         answerer: people[index],
                         flat: true,
-                        onTap: () =>
-                            context.push('/answerers/${people[index].uid}'),
+                        onTap: () {
+                          final person = people[index];
+                          unawaited(
+                            ref
+                                .read(analyticsProvider)
+                                .track(
+                                  'answerer_card_click',
+                                  properties: {
+                                    'answerer_user_id': person.id,
+                                    'answerer_uid': person.uid,
+                                    'job_name': person.mainJob,
+                                    'position': index + 1,
+                                    'source': _experience
+                                        ? 'experience'
+                                        : 'matter',
+                                    'content_id': widget.id,
+                                  },
+                                ),
+                          );
+                          context.push('/answerers/${person.uid}');
+                        },
                       ),
                     ),
                     if (index != people.length - 1) const SizedBox(height: 12),
@@ -191,6 +274,146 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+class _JobDescriptionsSheet extends StatelessWidget {
+  const _JobDescriptionsSheet({required this.jobs});
+
+  final List<DiscoveryJob> jobs;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final maximumHeight = MediaQuery.sizeOf(context).height * 0.72;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maximumHeight),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 10),
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 10, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '岗位说明',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                  tooltip: '关闭',
+                ),
+              ],
+            ),
+          ),
+          Flexible(
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(18, 4, 18, 24),
+              itemCount: jobs.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 18),
+              itemBuilder: (context, index) {
+                final job = jobs[index];
+                final cardColor = theme.brightness == Brightness.dark
+                    ? theme.colorScheme.surfaceContainerHigh
+                    : const Color(0xFFFFF3D6);
+                return Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: _JobDescription(job: job),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JobDescription extends StatelessWidget {
+  const _JobDescription({required this.job});
+
+  final DiscoveryJob job;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mainWork = job.mainWork.isNotEmpty ? job.mainWork : job.description;
+    final sections = <({String label, String value})>[
+      if (job.roleDescription.isNotEmpty)
+        (label: '在这件事里', value: job.roleDescription),
+      if (mainWork.isNotEmpty) (label: '主要工作', value: mainWork),
+      if (job.canHelpWith.isNotEmpty) (label: '可以帮你判断', value: job.canHelpWith),
+      if (job.notResponsibleFor.isNotEmpty)
+        (label: '一般不处理', value: job.notResponsibleFor),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          job.name,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        if (job.mainWork.isNotEmpty && job.description.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            job.description,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.5,
+            ),
+          ),
+        ],
+        if (sections.isEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            '暂无岗位说明',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+        for (final section in sections) ...[
+          const SizedBox(height: 12),
+          Text(
+            section.label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            section.value,
+            style: theme.textTheme.bodyMedium?.copyWith(height: 1.55),
+          ),
+        ],
+      ],
     );
   }
 }

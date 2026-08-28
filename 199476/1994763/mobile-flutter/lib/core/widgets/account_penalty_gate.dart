@@ -51,15 +51,27 @@ class AccountPenaltyGate extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(height: 9),
-                            Text(
-                              '处罚原因：${notice.reason}',
-                              style: const TextStyle(
+                            const Text(
+                              '该账号因违反平台规则，当前无法继续使用平台服务。',
+                              style: TextStyle(
                                 color: CupertinoColors.black,
                                 fontSize: 14,
                                 height: 1.5,
                               ),
                               textAlign: TextAlign.start,
                             ),
+                            if (notice.permanent) ...[
+                              const SizedBox(height: 10),
+                              const Text(
+                                '账号内尚未提现的可提现收入，将在7个工作日内提现至您已绑定的支付宝账户。',
+                                style: TextStyle(
+                                  color: CupertinoColors.black,
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
+                                textAlign: TextAlign.start,
+                              ),
+                            ],
                           ],
                         ),
                       ),

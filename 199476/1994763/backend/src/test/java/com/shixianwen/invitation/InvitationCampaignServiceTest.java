@@ -160,7 +160,8 @@ class InvitationCampaignServiceTest {
             wallet,
             notifications,
             mock(AdminAuditLogRepository.class),
-            mock(FileStorage.class)
+            mock(FileStorage.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class)
         );
     }
 

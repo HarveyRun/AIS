@@ -67,7 +67,7 @@ public class WithdrawalBatchExportService {
         audit.setIpAddress(ipAddress);
         audits.save(audit);
 
-        return new ExportFile(batchNo + ".xlsx", content, rows.size());
+        return new ExportFile("普通提现-" + batchNo + ".xlsx", content, rows.size());
     }
 
     public ExportFile downloadBatch(String batchNo) {
@@ -84,13 +84,17 @@ public class WithdrawalBatchExportService {
             normalizedBatchNo
         );
         if (rows.isEmpty()) throw BusinessException.notFound("提现批次不存在");
-        return new ExportFile(normalizedBatchNo + ".xlsx", workbook(rows, normalizedBatchNo), rows.size());
+        return new ExportFile(
+            "普通提现-" + normalizedBatchNo + ".xlsx",
+            workbook(rows, normalizedBatchNo),
+            rows.size()
+        );
     }
 
     private byte[] workbook(List<Map<String, Object>> source, String batchNo) {
         try (XSSFWorkbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("支付宝提现");
+            Sheet sheet = workbook.createSheet("普通提现");
             CellStyle centered = workbook.createCellStyle();
             centered.setAlignment(HorizontalAlignment.CENTER);
 

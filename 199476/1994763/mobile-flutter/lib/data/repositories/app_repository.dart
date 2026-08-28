@@ -82,6 +82,23 @@ class AppRepository {
 
   Future<void> deleteAccount() => _api.delete<Object?>('/users/me');
 
+  Future<AccountDeletionEligibility> accountDeletionEligibility() async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/users/me/deletion-eligibility',
+    );
+    return AccountDeletionEligibility.fromJson(data);
+  }
+
+  Future<List<ViolationCounter>> violationCounters() async {
+    final data = await _api.get<List<dynamic>>('/users/me/violation-counters');
+    return data
+        .whereType<Map>()
+        .map(
+          (item) => ViolationCounter.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .toList(growable: false);
+  }
+
   Future<AppUser> dismissPlatformIntroduction() async {
     final data = await _api.post<Map<String, dynamic>>(
       '/users/me/platform-introduction/dismiss',
@@ -112,8 +129,13 @@ class AppRepository {
     return _api.get<Map<String, dynamic>>('/users/me/answerer-eligibility');
   }
 
-  Future<InvitationCampaignStatus> invitationCampaignStatus() async {
-    final data = await _api.get<Map<String, dynamic>>('/invitations/status');
+  Future<InvitationCampaignStatus> invitationCampaignStatus({
+    bool showLoading = true,
+  }) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/invitations/status',
+      showLoading: showLoading,
+    );
     return InvitationCampaignStatus.fromJson(data);
   }
 
@@ -199,16 +221,22 @@ class AppRepository {
     return DiscoveryMatter.fromJson(data);
   }
 
-  Future<List<InquirySummary>> inquiries() async {
-    final data = await _api.get<List<dynamic>>('/inquiries');
+  Future<List<InquirySummary>> inquiries({bool showLoading = true}) async {
+    final data = await _api.get<List<dynamic>>(
+      '/inquiries',
+      showLoading: showLoading,
+    );
     return data
         .whereType<Map>()
         .map((item) => InquirySummary.fromJson(Map<String, dynamic>.from(item)))
         .toList(growable: false);
   }
 
-  Future<InquiryDetail> inquiry(int id) async {
-    final data = await _api.get<Map<String, dynamic>>('/inquiries/$id');
+  Future<InquiryDetail> inquiry(int id, {bool showLoading = true}) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/inquiries/$id',
+      showLoading: showLoading,
+    );
     return InquiryDetail.fromJson(data);
   }
 
@@ -240,17 +268,32 @@ class AppRepository {
       _api.post<Object?>('/inquiries/$id/cancel');
   Future<void> requestInquiryEnd(int id) =>
       _api.post<Object?>('/inquiries/$id/request-end');
-  Future<void> continueInquiry(int id) =>
-      _api.post<Object?>('/inquiries/$id/continue');
+  Future<void> disagreeInquiryEnd(int id) =>
+      _api.post<Object?>('/inquiries/$id/disagree-end');
   Future<void> confirmInquiryEnd(int id) =>
       _api.post<Object?>('/inquiries/$id/confirm-end');
   Future<void> markInquiryRead(int id) =>
-      _api.put<Object?>('/inquiries/$id/read');
+      _api.put<Object?>('/inquiries/$id/read', showLoading: false);
+
+  Future<InquiryQualityOptions> inquiryQualityOptions(
+    int id, {
+    bool showLoading = true,
+  }) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/inquiries/$id/quality',
+      showLoading: showLoading,
+    );
+    return InquiryQualityOptions.fromJson(data);
+  }
+
+  Future<void> evaluateInquiry(int id, Map<String, dynamic> data) =>
+      _api.post<Object?>('/inquiries/$id/quality/evaluation', data: data);
 
   Future<ChatMessage> sendInquiryMessage(int id, String content) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/inquiries/$id/messages',
       data: {'content': content},
+      showLoading: false,
     );
     return ChatMessage.fromJson(data);
   }
@@ -263,6 +306,25 @@ class AppRepository {
       }),
     );
     return ChatMessage.fromJson(data);
+  }
+
+  Future<void> reportInquiryMessage(
+    int inquiryId,
+    String messageId,
+    String reportType,
+  ) => _api.post<Object?>(
+    '/inquiries/$inquiryId/messages/$messageId/reports',
+    data: {'reportType': reportType},
+  );
+
+  Future<bool> hasReportedInquiryMessage(
+    int inquiryId,
+    String messageId,
+  ) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/messages/$messageId/reports/status',
+    );
+    return data['reported'] == true;
   }
 
   Future<WalletInfo> wallet() async {
@@ -349,8 +411,13 @@ class AppRepository {
     return _api.get<Map<String, dynamic>>('/recharges/$orderNo');
   }
 
-  Future<List<CertificationRecord>> certifications() async {
-    final data = await _api.get<List<dynamic>>('/certifications/me');
+  Future<List<CertificationRecord>> certifications({
+    bool showLoading = true,
+  }) async {
+    final data = await _api.get<List<dynamic>>(
+      '/certifications/me',
+      showLoading: showLoading,
+    );
     return data
         .whereType<Map>()
         .map(
@@ -376,10 +443,12 @@ class AppRepository {
     );
   }
 
-  Future<JobCertificationAppointment?>
-  currentJobCertificationAppointment() async {
+  Future<JobCertificationAppointment?> currentJobCertificationAppointment({
+    bool showLoading = true,
+  }) async {
     final data = await _api.get<Object?>(
       '/certifications/job/offline-appointment',
+      showLoading: showLoading,
     );
     if (data is! Map) return null;
     return JobCertificationAppointment.fromJson(
@@ -428,8 +497,11 @@ class AppRepository {
     );
   }
 
-  Future<List<AppNotification>> notifications() async {
-    final data = await _api.get<List<dynamic>>('/notifications');
+  Future<List<AppNotification>> notifications({bool showLoading = true}) async {
+    final data = await _api.get<List<dynamic>>(
+      '/notifications',
+      showLoading: showLoading,
+    );
     return data
         .whereType<Map>()
         .map(
@@ -439,7 +511,10 @@ class AppRepository {
   }
 
   Future<int> notificationUnreadCount() async {
-    final data = await _api.get<Object?>('/notifications/unread-count');
+    final data = await _api.get<Object?>(
+      '/notifications/unread-count',
+      showLoading: false,
+    );
     if (data is num) return data.toInt();
     if (data is Map) return _int(data['count'] ?? data['unreadCount']);
     return _int(data);
@@ -448,6 +523,7 @@ class AppRepository {
   Future<void> readNotification(AppNotification notification) =>
       _api.put<Object?>(
         '/notifications/${notification.sourceType}/${notification.id}/read',
+        showLoading: false,
       );
   Future<void> readAllNotifications() =>
       _api.put<Object?>('/notifications/read-all');
@@ -475,9 +551,12 @@ class AppRepository {
     return _api.post<Object?>('/support/business-cooperations', data: data);
   }
 
-  Future<List<CustomerServiceMessage>> customerServiceMessages() async {
+  Future<List<CustomerServiceMessage>> customerServiceMessages({
+    bool showLoading = true,
+  }) async {
     final data = await _api.get<List<dynamic>>(
       '/support/customer-service/messages',
+      showLoading: showLoading,
     );
     return data
         .whereType<Map>()
@@ -513,6 +592,7 @@ class AppRepository {
   Future<int> customerServiceUnreadCount() async {
     final data = await _api.get<Object?>(
       '/support/customer-service/unread-count',
+      showLoading: false,
     );
     if (data is num) return data.toInt();
     if (data is Map) return _int(data['count'] ?? data['unreadCount']);
@@ -520,11 +600,17 @@ class AppRepository {
   }
 
   Future<void> readCustomerServiceMessages() {
-    return _api.put<Object?>('/support/customer-service/read');
+    return _api.put<Object?>(
+      '/support/customer-service/read',
+      showLoading: false,
+    );
   }
 
   Future<Map<String, dynamic>> realtimeTicket() {
-    return _api.post<Map<String, dynamic>>('/realtime/tickets');
+    return _api.post<Map<String, dynamic>>(
+      '/realtime/tickets',
+      showLoading: false,
+    );
   }
 
   List<Answerer> _answererList(List<dynamic> data) => data

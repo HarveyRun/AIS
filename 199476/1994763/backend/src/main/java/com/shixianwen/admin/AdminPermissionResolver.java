@@ -8,6 +8,8 @@ public class AdminPermissionResolver {
         if (path.equals("/api/admin/auth/realtime-ticket")) return "CUSTOMER_SERVICE_VIEW";
         if (path.startsWith("/api/admin/auth/")) return null;
         if (path.equals("/api/admin/dashboard") && isGet(method)) return "DASHBOARD_VIEW";
+        if (path.equals("/api/admin/analytics/raw") && isGet(method)) return "ANALYTICS_RAW_VIEW";
+        if (path.startsWith("/api/admin/analytics/") && isGet(method)) return "ANALYTICS_VIEW";
         if (path.equals("/api/admin/platform-fee")) {
             return isGet(method) ? "PLATFORM_FEE_VIEW" : "PLATFORM_FEE_EDIT";
         }
@@ -55,9 +57,41 @@ public class AdminPermissionResolver {
         }
 
         if (path.equals("/api/admin/inquiries") && isGet(method)) return "INQUIRY_VIEW";
+        if (path.startsWith("/api/admin/inquiry-disputes/end-requests")) {
+            return isGet(method) ? "INQUIRY_DISPUTE_VIEW" : "INQUIRY_DISPUTE_PROCESS";
+        }
+        if (path.matches("/api/admin/inquiry-disputes/message-reports/details/\\d+/original") && isGet(method)) {
+            return "SENSITIVE_ORIGINAL_VIEW";
+        }
+        if (path.startsWith("/api/admin/inquiry-disputes/message-reports")) {
+            return isGet(method) ? "INQUIRY_DISPUTE_VIEW" : "MESSAGE_REPORT_PROCESS";
+        }
+        if (path.startsWith("/api/admin/inquiry-disputes/risk-watch")) {
+            return isGet(method) ? "RISK_WATCH_VIEW" : "RISK_WATCH_PROCESS";
+        }
         if (path.equals("/api/admin/withdrawals") && isGet(method)) return "WITHDRAWAL_VIEW";
         if (path.matches("/api/admin/withdrawals/\\d+/status") && "PATCH".equals(method)) return "WITHDRAWAL_PROCESS";
         if (path.startsWith("/api/admin/withdrawals/export")) return "WITHDRAWAL_EXPORT";
+        if (path.startsWith("/api/admin/permanent-ban-payouts")) {
+            if (path.endsWith("/export") || path.matches(".*/export/[^/]+")) {
+                return "PERMANENT_BAN_PAYOUT_EXPORT";
+            }
+            if (path.endsWith("/results") || path.endsWith("/retry")) {
+                return "PERMANENT_BAN_PAYOUT_PROCESS";
+            }
+            return "PERMANENT_BAN_PAYOUT_VIEW";
+        }
+        if (path.startsWith("/api/admin/finance-reconciliation")) {
+            if (path.endsWith("/run")) return "FINANCE_RECONCILIATION_RUN";
+            if (path.endsWith("/alipay-bills") || path.endsWith("/withdrawal-results")) return "FINANCE_RECONCILIATION_IMPORT";
+            if (path.matches(".*/differences/\\d+/resolve")) return "FINANCE_RECONCILIATION_RESOLVE";
+            return "FINANCE_RECONCILIATION_VIEW";
+        }
+        if (path.startsWith("/api/admin/answer-quality")) {
+            if (path.endsWith("/evidence")) return "ANSWER_QUALITY_EVIDENCE";
+            if (path.endsWith("/resolve")) return "ANSWER_QUALITY_REVIEW";
+            return "ANSWER_QUALITY_VIEW";
+        }
         if (path.equals("/api/admin/feedback") && isGet(method)) return "FEEDBACK_VIEW";
         if (path.matches("/api/admin/feedback/\\d+/status")) return "FEEDBACK_PROCESS";
         if (path.equals("/api/admin/cooperations") && isGet(method)) return "COOPERATION_VIEW";

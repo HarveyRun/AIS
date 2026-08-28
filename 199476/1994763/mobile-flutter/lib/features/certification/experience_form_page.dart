@@ -151,7 +151,7 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(widget.id == null ? '添加经历' : '经历详情')),
     body: _loading
-        ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+        ? const SizedBox.shrink()
         : ListView(
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 110),
             children: [
@@ -308,15 +308,7 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
             minimum: const EdgeInsets.fromLTRB(10, 8, 10, 12),
             child: FilledButton(
               onPressed: _submitting ? null : _submit,
-              child: _submitting
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('提交认证'),
+              child: const Text('提交认证'),
             ),
           ),
   );

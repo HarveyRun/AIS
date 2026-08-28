@@ -8,6 +8,7 @@ class AppStorage {
   static const _themeKey = 'theme_mode';
   static const _privacyConsentKey = 'privacy_consent_accepted';
   static const _deviceIdKey = 'device_id';
+  static const _analyticsEventsKey = 'analytics_event_queue';
 
   const AppStorage({
     FlutterSecureStorage secureStorage = const FlutterSecureStorage(),
@@ -51,5 +52,31 @@ class AppStorage {
   Future<void> writePrivacyConsent(bool accepted) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_privacyConsentKey, accepted);
+  }
+
+  Future<List<Map<String, dynamic>>> readAnalyticsEvents() async {
+    final preferences = await SharedPreferences.getInstance();
+    final value = preferences.getString(_analyticsEventsKey);
+    if (value == null || value.isEmpty) return [];
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! List) return [];
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    } catch (_) {
+      await preferences.remove(_analyticsEventsKey);
+      return [];
+    }
+  }
+
+  Future<void> writeAnalyticsEvents(List<Map<String, dynamic>> events) async {
+    final preferences = await SharedPreferences.getInstance();
+    if (events.isEmpty) {
+      await preferences.remove(_analyticsEventsKey);
+      return;
+    }
+    await preferences.setString(_analyticsEventsKey, jsonEncode(events));
   }
 }

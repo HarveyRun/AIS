@@ -16,6 +16,7 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
+  static final RegExp _mainlandMobilePattern = RegExp(r'^1[3-9]\d{9}$');
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
   final _phoneFocus = FocusNode();
@@ -53,7 +54,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _sendCode() async {
-    if (!RegExp(r'^1\d{10}$').hasMatch(_phone)) {
+    if (!_mainlandMobilePattern.hasMatch(_phone)) {
       AppMessage.show(context, '请输入正确的手机号');
       return;
     }
@@ -105,8 +106,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final readyPhone = RegExp(r'^1\d{10}$').hasMatch(_phone);
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final readyPhone = _mainlandMobilePattern.hasMatch(_phone);
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.dark
           ? const Color(0xFF111214)
@@ -157,11 +157,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               style: const TextStyle(fontSize: 16),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: dark
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.surfaceContainerHigh
-                                    : const Color(0xFFF6F6F6),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 22,
                                 ),
@@ -232,18 +227,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 onPressed: readyPhone && !_sending
                                     ? _sendCode
                                     : null,
-                                child: _sending
-                                    ? const SizedBox.square(
-                                        dimension: 17,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons.arrow_forward_rounded,
-                                        size: 27,
-                                      ),
+                                child: const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 27,
+                                ),
                               ),
                             ),
                           ),

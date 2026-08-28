@@ -4,17 +4,37 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/network/api_client.dart';
+import '../core/analytics/analytics_service.dart';
 import '../core/network/realtime_service.dart';
+import '../core/network/request_loading_controller.dart';
 import '../core/storage/app_storage.dart';
 import '../data/models/user_models.dart';
 import '../data/repositories/app_repository.dart';
 
 final storageProvider = Provider<AppStorage>((ref) => const AppStorage());
 
+final requestLoadingProvider = ChangeNotifierProvider<RequestLoadingController>(
+  (ref) {
+    return RequestLoadingController();
+  },
+);
+
 final apiClientProvider = Provider<ApiClient>((ref) {
-  final client = ApiClient(ref.read(storageProvider));
+  final client = ApiClient(
+    ref.read(storageProvider),
+    ref.read(requestLoadingProvider),
+  );
   ref.onDispose(client.dispose);
   return client;
+});
+
+final analyticsProvider = Provider<AnalyticsService>((ref) {
+  final service = AnalyticsService(
+    ref.read(apiClientProvider),
+    ref.read(storageProvider),
+  );
+  ref.onDispose(service.dispose);
+  return service;
 });
 
 final repositoryProvider = Provider<AppRepository>(
@@ -33,6 +53,8 @@ final authControllerProvider = ChangeNotifierProvider<AuthController>((ref) {
     repository: ref.read(repositoryProvider),
     apiClient: ref.read(apiClientProvider),
     realtime: ref.read(realtimeProvider),
+    analytics: ref.read(analyticsProvider),
+    requestLoading: ref.read(requestLoadingProvider),
   );
   controller.initialize();
   ref.onDispose(controller.dispose);
@@ -72,15 +94,21 @@ class AuthController extends ChangeNotifier {
     required AppRepository repository,
     required ApiClient apiClient,
     required RealtimeService realtime,
+    required AnalyticsService analytics,
+    required RequestLoadingController requestLoading,
   }) : _storage = storage,
        _repository = repository,
        _apiClient = apiClient,
-       _realtime = realtime;
+       _realtime = realtime,
+       _analytics = analytics,
+       _requestLoading = requestLoading;
 
   final AppStorage _storage;
   final AppRepository _repository;
   final ApiClient _apiClient;
   final RealtimeService _realtime;
+  final AnalyticsService _analytics;
+  final RequestLoadingController _requestLoading;
   StreamSubscription<void>? _unauthorizedSubscription;
   StreamSubscription<AccountPenaltyNotice>? _penaltySubscription;
   StreamSubscription<RealtimeEvent>? _realtimeSubscription;
@@ -125,11 +153,15 @@ class AuthController extends ChangeNotifier {
     busy = true;
     notifyListeners();
     try {
-      final result = await _repository.login(phone, code);
-      await _storage.writeToken(result.token);
-      penaltyNotice = null;
-      user = result.user;
-      await _realtime.connect();
+      await _requestLoading.run(() async {
+        await _analytics.track('login_submit');
+        final result = await _repository.login(phone, code);
+        await _storage.writeToken(result.token);
+        penaltyNotice = null;
+        user = result.user;
+        await _realtime.connect();
+        await _analytics.flush();
+      });
     } finally {
       busy = false;
       notifyListeners();
@@ -149,14 +181,26 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    if (busy) return;
+    busy = true;
+    notifyListeners();
     try {
-      await _repository.logout();
-    } catch (_) {
-      // 退出登录以清除本地登录态为准，服务端暂时不可用时也应正常退出。
+      await _requestLoading.run(() async {
+        try {
+          await _analytics.track('logout_success');
+          await _analytics.flush();
+          await _repository.logout();
+        } catch (_) {
+          // 退出登录以清除本地登录态为准，服务端暂时不可用时也应正常退出。
+        } finally {
+          await _storage.deleteToken();
+          await _realtime.disconnect();
+          user = null;
+          notifyListeners();
+        }
+      });
     } finally {
-      await _storage.deleteToken();
-      await _realtime.disconnect();
-      user = null;
+      busy = false;
       notifyListeners();
     }
   }

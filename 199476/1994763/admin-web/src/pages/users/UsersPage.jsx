@@ -18,6 +18,10 @@ const PENALTY_DURATIONS = [
   { value: 'DAYS_3', label: '3天' },
   { value: 'DAYS_7', label: '7天' },
   { value: 'DAYS_15', label: '15天' },
+  { value: 'MONTHS_1', label: '1个月' },
+  { value: 'MONTHS_3', label: '3个月' },
+  { value: 'MONTHS_6', label: '6个月' },
+  { value: 'YEARS_1', label: '1年' },
   { value: 'PERMANENT', label: '永久' },
 ];
 

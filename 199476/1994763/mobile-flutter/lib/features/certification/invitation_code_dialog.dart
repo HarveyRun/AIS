@@ -59,7 +59,7 @@ class InvitationRulesDialog extends StatelessWidget {
                       const _NoticeLine(text: '邀请码就是对方的 UID'),
                       const _NoticeLine(text: '填写确认后无法更改'),
                       const _NoticeLine(text: '你和对方均需通过实名和岗位认证'),
-                      _NoticeLine(text: '每成功邀请 1 人得 $reward 元红包，人数不限'),
+                      _NoticeLine(text: '每成功邀请 1 人得 $reward 元平台奖金，人数不限'),
                     ],
                   ),
                 ),

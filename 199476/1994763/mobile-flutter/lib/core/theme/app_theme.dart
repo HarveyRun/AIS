@@ -131,7 +131,7 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: dark ? AppColors.darkSurfaceSubtle : const Color(0xFFEDEBE8),
+        fillColor: dark ? const Color(0xFF202126) : const Color(0xFFF7F7F8),
         hintStyle: TextStyle(color: secondary),
         labelStyle: TextStyle(color: secondary),
         contentPadding: const EdgeInsets.symmetric(

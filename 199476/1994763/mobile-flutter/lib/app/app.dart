@@ -32,11 +32,13 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
 
   Future<void> _loadPrivacyConsent() async {
     final accepted = await ref.read(storageProvider).readPrivacyConsent();
+    if (accepted) await ref.read(analyticsProvider).initialize();
     if (mounted) setState(() => _privacyAccepted = accepted);
   }
 
   Future<void> _acceptPrivacy() async {
     await ref.read(storageProvider).writePrivacyConsent(true);
+    await ref.read(analyticsProvider).initialize();
     if (mounted) setState(() => _privacyAccepted = true);
   }
 
@@ -74,6 +76,7 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
 
     final auth = ref.watch(authControllerProvider);
     final theme = ref.watch(themeControllerProvider);
+    final requestLoading = ref.watch(requestLoadingProvider);
 
     if (!auth.initialized || !theme.initialized) {
       return MaterialApp(
@@ -86,7 +89,7 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
       );
     }
 
-    _router ??= createAppRouter(auth);
+    _router ??= createAppRouter(auth, ref.read(analyticsProvider));
     return MaterialApp.router(
       title: '事先问',
       debugShowCheckedModeBanner: false,
@@ -97,11 +100,14 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
       builder: FlutterSmartDialog.init(
         builder: (context, child) => _systemChromeBuilder(
           context,
-          AppUpdateGate(
-            child: NotificationRealtimeGate(
-              child: AccountPenaltyGate(
-                child: PlatformIntroductionGate(
-                  child: child ?? const SizedBox.shrink(),
+          _GlobalRequestLoading(
+            loading: requestLoading.isLoading,
+            child: AppUpdateGate(
+              child: NotificationRealtimeGate(
+                child: AccountPenaltyGate(
+                  child: PlatformIntroductionGate(
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               ),
             ),
@@ -128,6 +134,52 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
         systemNavigationBarDividerColor: Colors.transparent,
       ),
       child: child ?? const SizedBox.shrink(),
+    );
+  }
+}
+
+class _GlobalRequestLoading extends StatelessWidget {
+  const _GlobalRequestLoading({required this.loading, required this.child});
+
+  final bool loading;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !loading,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          child,
+          if (loading) ...[
+            const ModalBarrier(dismissible: false, color: Color(0x12000000)),
+            Center(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x18000000),
+                      blurRadius: 18,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Padding(
+                    padding: EdgeInsets.all(14),
+                    child: CircularProgressIndicator(strokeWidth: 2.2),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

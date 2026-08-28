@@ -75,6 +75,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Theme.of(context).colorScheme.surface,
     appBar: AppBar(title: const Text('投诉与反馈')),
     body: ListView(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
@@ -89,9 +90,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
           const SizedBox(height: 7),
           DropdownButtonFormField<String>(
             value: _complaintCategory,
-            decoration: InputDecoration(
-              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
+            decoration: const InputDecoration(),
             items: _complaintCategories
                 .map((item) => DropdownMenuItem(value: item, child: Text(item)))
                 .toList(),
@@ -114,7 +113,6 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
           maxLines: 9,
           decoration: InputDecoration(
             hintText: _type == 'PRODUCT' ? '说说你希望事先问改进什么' : '请说明发生的时间、经过和诉求',
-            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
         ),
         const SizedBox(height: 12),
@@ -124,12 +122,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
         ),
         const SizedBox(height: 20),
         if (_loadingRecords)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          )
+          const SizedBox.shrink()
         else if (_records.isNotEmpty) ...[
           Text('我的提交', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),

@@ -51,8 +51,10 @@ public class SecurityRateLimitFilter extends OncePerRequestFilter {
         String ip = ipExtractor.extract(request);
         String device = LoginAttemptService.safeDevice(request.getHeader("X-Device-Id"));
         String identity = identity(request, ip, device);
-        Decision ipDecision = consume(rule, rule.name() + ":ip:" + ip, now);
-        Decision identityDecision = identity.equals("ip:" + ip)
+        boolean hasSeparateIdentity = !identity.equals("ip:" + ip);
+        Rule ipRule = sharedIpRule(rule, hasSeparateIdentity);
+        Decision ipDecision = consume(ipRule, ipRule.name() + ":ip:" + ip, now);
+        Decision identityDecision = !hasSeparateIdentity
             ? ipDecision
             : consume(rule, rule.name() + ':' + identity, now);
         opportunisticCleanup(now);
@@ -61,7 +63,9 @@ public class SecurityRateLimitFilter extends OncePerRequestFilter {
             if (ipDecision.firstExceeded() || identityDecision.firstExceeded()) {
                 securityEvents.recordSafely(
                     null, null, "API_RATE_LIMIT", "HIGH", ip, device,
-                    "rule=" + rule.name() + ", path=" + safePath(request.getRequestURI())
+                    "rule=" + rule.name()
+                        + ", dimension=" + (identityDecision.exceeded() ? "identity" : "shared-ip")
+                        + ", path=" + safePath(request.getRequestURI())
                 );
             }
             response.setStatus(429);
@@ -71,6 +75,13 @@ public class SecurityRateLimitFilter extends OncePerRequestFilter {
             return;
         }
         filterChain.doFilter(request, response);
+    }
+
+    private Rule sharedIpRule(Rule rule, boolean hasSeparateIdentity) {
+        if (!hasSeparateIdentity || !("READ".equals(rule.name()) || "SEARCH".equals(rule.name()))) {
+            return rule;
+        }
+        return new Rule(rule.name() + "_SHARED_IP", rule.limit() * 10, rule.windowMillis());
     }
 
     private Decision consume(Rule rule, String key, long now) {

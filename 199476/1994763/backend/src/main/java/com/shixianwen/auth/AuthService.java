@@ -1,5 +1,6 @@
 package com.shixianwen.auth;
 
+import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.network.ClientNetworkInfo;
 import com.shixianwen.security.LoginAttemptService;
@@ -31,6 +32,7 @@ public class AuthService {
     private final UidAllocator uidAllocator;
     private final LoginAttemptService loginAttempts;
     private final SecurityEventService securityEvents;
+    private final AnalyticsEventService analytics;
     private final SecureRandom secureRandom = new SecureRandom();
     private final int tokenValidDays;
 
@@ -44,6 +46,7 @@ public class AuthService {
         UidAllocator uidAllocator,
         LoginAttemptService loginAttempts,
         SecurityEventService securityEvents,
+        AnalyticsEventService analytics,
         @Value("${app.auth.token-valid-days}") int tokenValidDays
     ) {
         this.userRepository = userRepository;
@@ -55,14 +58,22 @@ public class AuthService {
         this.uidAllocator = uidAllocator;
         this.loginAttempts = loginAttempts;
         this.securityEvents = securityEvents;
+        this.analytics = analytics;
         this.tokenValidDays = tokenValidDays;
     }
 
     public void sendVerificationCode(String phone, String requestIp, String deviceId, boolean appClient) {
+        requirePhoneNotDeleted(phone);
         if (appClient && appTestLoginAccountService.activeVerificationCode(phone).isPresent()) {
+            analytics.recordBusinessSafely(null, "sms_code_request", java.util.Map.of(
+                "platform", "unknown", "test_account", true
+            ));
             return;
         }
         verificationCodeService.send(phone, "LOGIN", requestIp, deviceId);
+        analytics.recordBusinessSafely(null, "sms_code_request", java.util.Map.of(
+            "platform", appClient ? "unknown" : "server", "test_account", false
+        ));
     }
 
     public boolean validateCode(String phone, String code, boolean appClient) {
@@ -87,6 +98,7 @@ public class AuthService {
         String deviceId,
         boolean appClient
     ) {
+        requirePhoneNotDeleted(phone);
         String safeDevice = LoginAttemptService.safeDevice(deviceId);
         loginAttempts.requireAllowed("USER", phone, network.ipAddress(), safeDevice);
 
@@ -128,6 +140,15 @@ public class AuthService {
             testLogin ? "MEDIUM" : "INFO", network.ipAddress(), safeDevice,
             newlyCreated ? "newUid=" + user.getUid() : null
         );
+        if (newlyCreated) {
+            analytics.recordBusinessAfterCommit(user, "account_created", java.util.Map.of(
+                "platform", appClient ? "unknown" : "server"
+            ));
+        }
+        analytics.recordBusinessAfterCommit(user, "login_success", java.util.Map.of(
+            "platform", appClient ? "unknown" : "server",
+            "new_user", newlyCreated
+        ));
         return createSession(user);
     }
 
@@ -144,6 +165,12 @@ public class AuthService {
         wallet.setUser(user);
         walletAccountRepository.save(wallet);
         return user;
+    }
+
+    private void requirePhoneNotDeleted(String phone) {
+        if (userRepository.existsByDeletedPhoneHash(PhoneIdentityHash.of(phone))) {
+            throw BusinessException.forbidden("该手机号已注销，感谢使用！");
+        }
     }
 
     @Transactional

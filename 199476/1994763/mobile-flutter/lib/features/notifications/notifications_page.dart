@@ -19,11 +19,12 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   List<AppNotification> _items = const [];
   bool _loading = true;
   StreamSubscription<RealtimeEvent>? _subscription;
+  late final NotificationPagePresence _pagePresence;
 
   @override
   void initState() {
     super.initState();
-    ref.read(notificationPagePresenceProvider).enter();
+    _pagePresence = ref.read(notificationPagePresenceProvider)..enter();
     _subscription = ref.read(realtimeProvider).events.listen((event) {
       if (event.type == 'NOTIFICATION_CREATED' ||
           event.type == 'ANNOUNCEMENT_WITHDRAWN') {
@@ -36,14 +37,16 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   @override
   void dispose() {
     _subscription?.cancel();
-    ref.read(notificationPagePresenceProvider).leave();
+    _pagePresence.leave();
     super.dispose();
   }
 
   Future<void> _load({bool showLoading = true}) async {
     if (showLoading) setState(() => _loading = true);
     try {
-      final items = await ref.read(repositoryProvider).notifications();
+      final items = await ref
+          .read(repositoryProvider)
+          .notifications(showLoading: showLoading);
       if (mounted) {
         setState(() => _items = items);
         ref.read(notificationCountProvider.notifier).state = items
@@ -102,7 +105,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       ],
     ),
     body: _loading
-        ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+        ? const SizedBox.shrink()
         : RefreshIndicator(
             onRefresh: _load,
             child: _items.isEmpty
@@ -173,8 +176,6 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                             padding: const EdgeInsets.only(top: 5),
                             child: Text(
                               '${item.content}\n${item.createdAt == null ? '' : DateFormat('yyyy-MM-dd HH:mm').format(item.createdAt!)}',
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           onTap: () => _read(item),

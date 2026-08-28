@@ -1,0 +1,101 @@
+.finance-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.finance-summary section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.finance-summary span { color: #7b8088; font-size: 13px; }
+.finance-summary b { font-size: 24px; }
+.finance-actions { display: flex; gap: 10px; margin-bottom: 16px; }
+
+.finance-actions label {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 7px;
+  background: #292c31;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.finance-actions input[type='file'] { display: none; }
+
+.finance-bill-date {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #dfe1e5;
+  border-radius: 7px;
+  background: #fff;
+}
+.finance-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+
+.finance-tabs button {
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.finance-tabs button.active { background: #fff; color: #d33a2c; font-weight: 700; }
+.finance-mask { position: fixed; inset: 0; z-index: 40; background: #0005; }
+
+.finance-mask aside {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(520px, 90vw);
+  padding: 24px;
+  background: #fff;
+}
+
+.finance-mask header { display: flex; justify-content: space-between; }
+.finance-mask h2 { margin: 0 0 6px; }
+.finance-mask header span, .finance-resolution small { color: #858a92; font-size: 12px; }
+.finance-mask header button { border: 0; background: none; font-size: 28px; }
+
+.finance-difference-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 24px 0;
+  padding: 16px;
+  border-radius: 10px;
+  background: #f6f6f7;
+}
+
+.finance-resolution span, .finance-resolution small { display: block; margin: 8px 0; }
+
+.finance-resolution textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.finance-mask footer {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  left: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 1000px) {
+  .finance-summary { grid-template-columns: repeat(2, 1fr); }
+}

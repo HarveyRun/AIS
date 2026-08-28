@@ -50,7 +50,12 @@ class JobCertificationAppointmentServiceTest {
             });
 
         JobCertificationAppointmentService.AppointmentView result =
-            new JobCertificationAppointmentService(appointments, users, certifications)
+            new JobCertificationAppointmentService(
+                appointments,
+                users,
+                certifications,
+                mock(com.shixianwen.analytics.AnalyticsEventService.class)
+            )
                 .book(user, saturday);
 
         assertEquals(12L, result.id());
@@ -75,7 +80,8 @@ class JobCertificationAppointmentServiceTest {
             new JobCertificationAppointmentService(
                 appointments,
                 mock(UserRepository.class),
-                mock(CertificationRepository.class)
+                mock(CertificationRepository.class),
+                mock(com.shixianwen.analytics.AnalyticsEventService.class)
             );
 
         BusinessException error = assertThrows(
@@ -103,7 +109,8 @@ class JobCertificationAppointmentServiceTest {
             new JobCertificationAppointmentService(
                 appointments,
                 mock(UserRepository.class),
-                mock(CertificationRepository.class)
+                mock(CertificationRepository.class),
+                mock(com.shixianwen.analytics.AnalyticsEventService.class)
             ).availability(saturday);
 
         assertEquals(false, result.available());

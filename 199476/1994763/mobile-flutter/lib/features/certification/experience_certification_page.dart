@@ -122,7 +122,7 @@ class _ExperienceCertificationPageState
       ],
     ),
     body: _loading
-        ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+        ? const SizedBox.shrink()
         : RefreshIndicator(
             onRefresh: _load,
             child: ListView(

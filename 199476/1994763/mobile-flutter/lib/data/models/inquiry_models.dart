@@ -8,6 +8,9 @@ class InquirySummary {
     required this.topic,
     required this.question,
     required this.amount,
+    required this.settleableAmount,
+    required this.timeoutRefundedAmount,
+    required this.timeoutCount,
     required this.serviceFeeRate,
     required this.serviceFeeAmount,
     required this.answererIncomeAmount,
@@ -30,6 +33,9 @@ class InquirySummary {
       topic: json['topic']?.toString() ?? '',
       question: json['question']?.toString() ?? '',
       amount: _double(json['amount']),
+      settleableAmount: _double(json['settleableAmount'] ?? json['amount']),
+      timeoutRefundedAmount: _double(json['timeoutRefundedAmount']),
+      timeoutCount: _int(json['timeoutCount']),
       serviceFeeRate: _double(json['serviceFeeRate']),
       serviceFeeAmount: _double(json['serviceFeeAmount']),
       answererIncomeAmount: _double(json['answererIncomeAmount']),
@@ -51,6 +57,9 @@ class InquirySummary {
   final String topic;
   final String question;
   final double amount;
+  final double settleableAmount;
+  final double timeoutRefundedAmount;
+  final int timeoutCount;
   final double serviceFeeRate;
   final double serviceFeeAmount;
   final double answererIncomeAmount;
@@ -64,7 +73,8 @@ class InquirySummary {
 
   bool get isIncoming => role.toUpperCase() == 'ANSWERER';
   bool get canChat => status.toUpperCase() == 'ACTIVE';
-  double get visibleAmount => isIncoming ? answererIncomeAmount : amount;
+  double get visibleAmount =>
+      isIncoming ? answererIncomeAmount : settleableAmount;
 }
 
 class ChatMessage {
@@ -79,6 +89,7 @@ class ChatMessage {
     required this.attachmentName,
     required this.attachmentSize,
     required this.createdAt,
+    required this.reportable,
     this.sending = false,
     this.failed = false,
   });
@@ -95,6 +106,7 @@ class ChatMessage {
       attachmentName: json['attachmentName']?.toString() ?? '',
       attachmentSize: _int(json['attachmentSize']),
       createdAt: _date(json['createdAt']),
+      reportable: json['reportable'] == true,
     );
   }
 
@@ -108,6 +120,7 @@ class ChatMessage {
   final String attachmentName;
   final int attachmentSize;
   final DateTime? createdAt;
+  final bool reportable;
   final bool sending;
   final bool failed;
 
@@ -123,6 +136,7 @@ class ChatMessage {
       attachmentName: attachmentName,
       attachmentSize: attachmentSize,
       createdAt: createdAt,
+      reportable: reportable,
       sending: sending ?? this.sending,
       failed: failed ?? this.failed,
     );
@@ -146,6 +160,38 @@ class InquiryDetail {
 
   final InquirySummary inquiry;
   final List<ChatMessage> messages;
+}
+
+class InquiryQualityOptions {
+  const InquiryQualityOptions({
+    required this.canEvaluate,
+    required this.evaluated,
+    required this.canRequestReview,
+    required this.reviewDeadline,
+    required this.reviewStatus,
+    required this.reviewDecision,
+    required this.reviewDecisionReason,
+  });
+
+  factory InquiryQualityOptions.fromJson(Map<String, dynamic> json) {
+    return InquiryQualityOptions(
+      canEvaluate: json['canEvaluate'] == true,
+      evaluated: json['evaluated'] == true,
+      canRequestReview: json['canRequestReview'] == true,
+      reviewDeadline: _date(json['reviewDeadline']),
+      reviewStatus: json['reviewStatus']?.toString() ?? '',
+      reviewDecision: json['reviewDecision']?.toString() ?? '',
+      reviewDecisionReason: json['reviewDecisionReason']?.toString() ?? '',
+    );
+  }
+
+  final bool canEvaluate;
+  final bool evaluated;
+  final bool canRequestReview;
+  final DateTime? reviewDeadline;
+  final String reviewStatus;
+  final String reviewDecision;
+  final String reviewDecisionReason;
 }
 
 int _int(Object? value) =>

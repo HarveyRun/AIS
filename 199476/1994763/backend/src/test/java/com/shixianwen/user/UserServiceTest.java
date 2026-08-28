@@ -1,10 +1,12 @@
 package com.shixianwen.user;
 
 import com.shixianwen.auth.AuthSessionRepository;
+import com.shixianwen.auth.PhoneIdentityHash;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.inquiry.InquiryRepository;
 import com.shixianwen.storage.FileStorage;
+import com.shixianwen.wallet.WalletAccount;
 import com.shixianwen.wallet.WalletAccountRepository;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +30,8 @@ class UserServiceTest {
             mock(AuthSessionRepository.class),
             mock(FileStorage.class),
             mock(AnswererEligibilityService.class),
-            sensitiveWords
+            sensitiveWords,
+            mock(com.shixianwen.analytics.AnalyticsEventService.class)
         );
         User user = new User();
         user.setAvatarUrl("https://cdn.example.com/avatar.jpg");
@@ -51,7 +54,8 @@ class UserServiceTest {
             mock(AuthSessionRepository.class),
             mock(FileStorage.class),
             mock(AnswererEligibilityService.class),
-            mock(SensitiveWordService.class)
+            mock(SensitiveWordService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class)
         );
         User user = new User();
         user.setId(1L);
@@ -82,7 +86,8 @@ class UserServiceTest {
             mock(AuthSessionRepository.class),
             mock(FileStorage.class),
             mock(AnswererEligibilityService.class),
-            mock(SensitiveWordService.class)
+            mock(SensitiveWordService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class)
         );
         User user = new User();
         user.setId(1L);
@@ -99,5 +104,36 @@ class UserServiceTest {
             BusinessException.class,
             () -> service.setAcceptingInquiries(user, false)
         );
+    }
+
+    @Test
+    void deletingAccountUsesUniquePhoneMarkerWithinDatabaseColumnLength() {
+        UserRepository users = mock(UserRepository.class);
+        WalletAccountRepository wallets = mock(WalletAccountRepository.class);
+        InquiryRepository inquiries = mock(InquiryRepository.class);
+        AuthSessionRepository sessions = mock(AuthSessionRepository.class);
+        UserService service = new UserService(
+            users,
+            wallets,
+            inquiries,
+            sessions,
+            mock(FileStorage.class),
+            mock(AnswererEligibilityService.class),
+            mock(SensitiveWordService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class)
+        );
+        User user = new User();
+        user.setId(Long.MAX_VALUE);
+        user.setPhone("15611111111");
+        WalletAccount wallet = new WalletAccount();
+        when(wallets.findWithLockByUserId(Long.MAX_VALUE)).thenReturn(Optional.of(wallet));
+        when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.deleteAccount(user);
+
+        assertEquals("DELETED", user.getAccountStatus());
+        assertEquals("d9223372036854775807", user.getPhone());
+        assertEquals(20, user.getPhone().length());
+        assertEquals(PhoneIdentityHash.of("15611111111"), user.getDeletedPhoneHash());
     }
 }

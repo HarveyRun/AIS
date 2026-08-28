@@ -1,5 +1,6 @@
 package com.shixianwen.certification;
 
+import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.storage.FileStorage;
@@ -27,6 +28,7 @@ public class CertificationService {
     private final SensitiveWordService sensitiveWords;
     private final FileTypeDetector fileTypeDetector;
     private final JobCertificationAppointmentRepository jobAppointments;
+    private final AnalyticsEventService analytics;
 
     public CertificationService(
             CertificationRepository certificationRepository,
@@ -34,13 +36,15 @@ public class CertificationService {
             FileStorage fileStorage,
             SensitiveWordService sensitiveWords,
             FileTypeDetector fileTypeDetector,
-            JobCertificationAppointmentRepository jobAppointments) {
+            JobCertificationAppointmentRepository jobAppointments,
+            AnalyticsEventService analytics) {
         this.certificationRepository = certificationRepository;
         this.userRepository = userRepository;
         this.fileStorage = fileStorage;
         this.sensitiveWords = sensitiveWords;
         this.fileTypeDetector = fileTypeDetector;
         this.jobAppointments = jobAppointments;
+        this.analytics = analytics;
     }
 
     @Transactional(readOnly = true)
@@ -101,7 +105,14 @@ public class CertificationService {
         retireMaterials(certification);
         certification.setYears(years);
         attachFiles(certification, files);
-        return view(certificationRepository.save(certification));
+        certification = certificationRepository.save(certification);
+        analytics.recordBusinessAfterCommit(user, "IDENTITY".equals(normalizedType)
+            ? "identity_submitted" : "job_online_submitted", analytics.properties(
+                "certification_id", certification.getId(),
+                "certification_type", normalizedType,
+                "material_count", files.size()
+            ));
+        return view(certification);
     }
 
     @Transactional
@@ -145,7 +156,13 @@ public class CertificationService {
         certification.setDescription(description == null ? null : sensitiveWords.mask(description.trim()));
         certification.setYears(years);
         attachFiles(certification, files);
-        return view(certificationRepository.save(certification));
+        certification = certificationRepository.save(certification);
+        analytics.recordBusinessAfterCommit(user, "experience_submitted", analytics.properties(
+            "certification_id", certification.getId(),
+            "material_count", files.size(),
+            "resubmitted", existingId != null
+        ));
+        return view(certification);
     }
 
     @Transactional
@@ -157,6 +174,15 @@ public class CertificationService {
         certification.setReviewedAt(LocalDateTime.now());
         certification = certificationRepository.save(certification);
         refreshAnswererStatus(certification.getUser(), certification.getCertificationType());
+        analytics.recordBusinessAfterCommit(
+            certification.getUser(),
+            approved ? "certification_approved" : "certification_rejected",
+            analytics.properties(
+                "certification_id", certification.getId(),
+                "certification_type", certification.getCertificationType(),
+                "category", certification.getCategory()
+            )
+        );
         return view(certification);
     }
 

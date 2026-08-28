@@ -47,6 +47,12 @@ public class PlatformFeeRecord {
     @Column(name = "answerer_income_amount", nullable = false, precision = 14, scale = 2)
     private BigDecimal answererIncomeAmount;
 
+    @Column(nullable = false, length = 20)
+    private String status = "PENDING";
+
+    @Column(name = "finalized_at")
+    private LocalDateTime finalizedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

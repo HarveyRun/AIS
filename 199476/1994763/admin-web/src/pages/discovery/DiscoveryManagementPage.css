@@ -332,10 +332,40 @@
   white-space: nowrap;
 }
 
-.participant-picker-row p {
+.participant-job-detail {
+  display: grid;
+  min-width: 0;
+  gap: 9px;
+}
+
+.participant-job-detail p {
   margin: 0;
   color: #686e77;
   font-size: 12px;
+}
+
+.participant-job-detail label {
+  display: grid;
+  gap: 5px;
+  cursor: default;
+}
+
+.participant-job-detail label span {
+  color: #747983;
+  font-size: 12px;
+}
+
+.participant-job-detail textarea {
+  width: 100%;
+  min-height: 64px;
+  padding: 9px 10px;
+  border: 1px solid #d8dbe0;
+  border-radius: 7px;
+  background: #fff;
+  color: #25272b;
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
 }
 
 .participant-picker-empty {

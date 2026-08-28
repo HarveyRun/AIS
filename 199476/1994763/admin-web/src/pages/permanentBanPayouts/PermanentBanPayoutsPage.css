@@ -1,0 +1,20 @@
+.ban-payout-note {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 9px;
+  background: #fff7e8;
+  color: #8c5c13;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.status.waiting_alipay,
+.status.waiting_export {
+  background: #fff5df;
+  color: #a4670c;
+}
+
+.ban-payout-overdue {
+  color: #c13a30;
+  font-weight: 700;
+}

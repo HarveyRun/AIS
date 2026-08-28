@@ -3,9 +3,11 @@ import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/app_route_observer.dart';
 import '../../app/providers.dart';
 import '../../core/config/app_config.dart';
 import '../../core/input/app_input_formatters.dart';
@@ -22,9 +24,13 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> with RouteAware {
   final _random = Random();
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode(
+    skipTraversal: true,
+    canRequestFocus: false,
+  );
   final _scrollController = ScrollController();
   final _pageController = PageController();
   final List<Answerer> _items = [];
@@ -36,6 +42,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   bool _hasMore = true;
   int _page = 0;
   int _banner = 0;
+  final Set<int> _seenBanners = {};
+  ModalRoute<void>? _route;
 
   @override
   void initState() {
@@ -44,6 +52,42 @@ class _HomePageState extends ConsumerState<HomePage> {
     _load(reset: true);
     _loadBanners();
     _refreshNoticeCount();
+    _releaseSearchFocus();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (_route == route) return;
+    if (_route != null) {
+      appRouteObserver.unsubscribe(this);
+    }
+    _route = route;
+    if (route != null) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPush() {
+    _releaseSearchFocus();
+  }
+
+  @override
+  void didPopNext() {
+    _releaseSearchFocus();
+  }
+
+  void _releaseSearchFocus() {
+    _searchFocusNode.canRequestFocus = false;
+    _searchFocusNode.unfocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _searchFocusNode.canRequestFocus = false;
+      _searchFocusNode.unfocus();
+      SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+    });
   }
 
   void _restartBannerTimer() {
@@ -72,6 +116,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         _pageController.jumpToPage(_banner);
       }
       _restartBannerTimer();
+      _trackBannerImpression(_banner);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -84,9 +129,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
     _bannerTimer?.cancel();
     _searchTimer?.cancel();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _scrollController.dispose();
     _pageController.dispose();
     super.dispose();
@@ -129,6 +176,20 @@ class _HomePageState extends ConsumerState<HomePage> {
         _hasMore = result.hasMore;
         if (result.hasMore) _page++;
       });
+      final keyword = _searchController.text.trim();
+      if (reset && keyword.isNotEmpty) {
+        unawaited(
+          ref
+              .read(analyticsProvider)
+              .track(
+                'home_search_submit',
+                properties: {
+                  'search_term': keyword,
+                  'result_count': result.items.length,
+                },
+              ),
+        );
+      }
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     } finally {
@@ -150,10 +211,73 @@ class _HomePageState extends ConsumerState<HomePage> {
     setState(() {});
   }
 
-  void _openRandomDiscovery() {
-    context.push(
-      _random.nextBool() ? '/discover/matters' : '/discover/experiences',
+  void _trackBannerImpression(int index) {
+    if (index < 0 || index >= _banners.length) return;
+    final item = _banners[index];
+    if (!_seenBanners.add(item.id)) return;
+    unawaited(
+      ref
+          .read(analyticsProvider)
+          .track(
+            'banner_impression',
+            properties: {
+              'banner_id': item.id,
+              'banner_title': item.title,
+              'display_mode': item.displayMode,
+              'position': index + 1,
+            },
+          ),
     );
+  }
+
+  void _openRandomDiscovery() {
+    final destination = _random.nextBool() ? 'matters' : 'experiences';
+    if (_banners.isNotEmpty && _banner < _banners.length) {
+      final item = _banners[_banner];
+      unawaited(
+        ref
+            .read(analyticsProvider)
+            .track(
+              'banner_click',
+              properties: {
+                'banner_id': item.id,
+                'banner_title': item.title,
+                'destination': destination,
+              },
+            ),
+      );
+    }
+    context.push('/discover/$destination');
+  }
+
+  void _openDiscovery(String type) {
+    unawaited(
+      ref
+          .read(analyticsProvider)
+          .track(
+            type == 'matters' ? 'matter_entry_click' : 'experience_entry_click',
+            properties: {'source': 'home'},
+          ),
+    );
+    context.push('/discover/$type');
+  }
+
+  void _openAnswerer(Answerer answerer, int position) {
+    unawaited(
+      ref
+          .read(analyticsProvider)
+          .track(
+            'answerer_card_click',
+            properties: {
+              'answerer_user_id': answerer.id,
+              'answerer_uid': answerer.uid,
+              'job_name': answerer.mainJob,
+              'position': position,
+              'source': 'home',
+            },
+          ),
+    );
+    context.push('/answerers/${answerer.uid}');
   }
 
   @override
@@ -199,13 +323,18 @@ class _HomePageState extends ConsumerState<HomePage> {
                         height: 38,
                         child: TextField(
                           controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          autofocus: false,
+                          onTap: () {
+                            _searchFocusNode.canRequestFocus = true;
+                            _searchFocusNode.requestFocus();
+                          },
                           onChanged: _search,
                           inputFormatters: AppInputFormatters.search,
                           textInputAction: TextInputAction.search,
                           decoration: InputDecoration(
                             hintText: '搜索主职',
                             filled: true,
-                            fillColor: theme.colorScheme.surfaceContainer,
                             contentPadding: EdgeInsets.zero,
                             prefixIcon: const Icon(
                               Icons.search_rounded,
@@ -258,7 +387,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                     controller: _pageController,
                     banners: _banners,
                     active: _banner,
-                    onChanged: (value) => setState(() => _banner = value),
+                    onChanged: (value) {
+                      setState(() => _banner = value);
+                      _trackBannerImpression(value);
+                    },
                     onTap: _openRandomDiscovery,
                   ),
                 ),
@@ -266,8 +398,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                 child: Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: _DiscoveryHub(
-                    onMatters: () => context.push('/discover/matters'),
-                    onExperiences: () => context.push('/discover/experiences'),
+                    onMatters: () => _openDiscovery('matters'),
+                    onExperiences: () => _openDiscovery('experiences'),
                   ),
                 ),
               ),
@@ -283,9 +415,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               if (_loading)
                 const SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                  child: SizedBox.shrink(),
                 )
               else if (_items.isEmpty)
                 const SliverFillRemaining(
@@ -300,8 +430,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     itemBuilder: (context, index) => AnswererCard(
                       answerer: _items[index],
                       flat: true,
-                      onTap: () =>
-                          context.push('/answerers/${_items[index].uid}'),
+                      onTap: () => _openAnswerer(_items[index], index + 1),
                     ),
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                   ),
@@ -311,10 +440,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   padding: const EdgeInsets.only(bottom: 24),
                   child: Center(
                     child: _loadingMore
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                        ? const SizedBox.shrink()
                         : Text(
                             _hasMore ? '继续下滑，看看更多人' : '已经到底啦',
                             style: Theme.of(context).textTheme.bodySmall,

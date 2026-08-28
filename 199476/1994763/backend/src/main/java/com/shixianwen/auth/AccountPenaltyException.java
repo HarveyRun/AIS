@@ -28,7 +28,8 @@ public class AccountPenaltyException extends BusinessException {
     }
 
     private static String message(String reason, LocalDateTime banUntil) {
-        String duration = banUntil == null ? "账号已被永久封禁" : "账号已被限期封禁";
-        return duration + "，处罚原因：" + reason;
+        return banUntil == null
+            ? "账号因违反平台规则已被永久封禁"
+            : "账号因违反平台规则已被限期封禁";
     }
 }

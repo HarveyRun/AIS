@@ -5,6 +5,7 @@ import AdminLayout from '../components/layout/AdminLayout.jsx';
 import LoginPage from '../pages/auth/LoginPage.jsx';
 import ForcePasswordChangePage from '../pages/auth/ForcePasswordChangePage.jsx';
 import DashboardPage from '../pages/dashboard/DashboardPage.jsx';
+import AnalyticsPage from '../pages/analytics/AnalyticsPage.jsx';
 import UsersPage from '../pages/users/UsersPage.jsx';
 import RecordsPage from '../pages/records/RecordsPage.jsx';
 import AuditPage from '../pages/audit/AuditPage.jsx';
@@ -24,6 +25,10 @@ import OfflineCertificationsPage from '../pages/offlineCertifications/OfflineCer
 import AdminUsersPage from '../pages/adminUsers/AdminUsersPage.jsx';
 import AdminRolesPage from '../pages/adminRoles/AdminRolesPage.jsx';
 import AdminPermissionsPage from '../pages/adminPermissions/AdminPermissionsPage.jsx';
+import FinanceReconciliationPage from '../pages/finance/FinanceReconciliationPage.jsx';
+import AnswerQualityPage from '../pages/quality/AnswerQualityPage.jsx';
+import InquiryDisputesPage from '../pages/inquiryDisputes/InquiryDisputesPage.jsx';
+import PermanentBanPayoutsPage from '../pages/permanentBanPayouts/PermanentBanPayoutsPage.jsx';
 import GlobalLoading from '../components/feedback/GlobalLoading.jsx';
 import { message } from '../components/feedback/message.js';
 import useAdminRealtimeConnection from '../hooks/useAdminRealtimeConnection.js';
@@ -36,10 +41,13 @@ export default function App() {
 
   const handleRealtimeEvent = useCallback((event) => {
     if (event.type === 'CONNECTED') {
-      adminApi.customerServiceConversations({ silent: true })
-        .then((items) => setCustomerServiceUnread(
-          items.reduce((total, item) => total + Number(item.unread || 0), 0),
-        ))
+      adminApi
+        .customerServiceConversations({ silent: true })
+        .then((items) =>
+          setCustomerServiceUnread(
+            items.reduce((total, item) => total + Number(item.unread || 0), 0),
+          ),
+        )
         .catch(() => {});
       return;
     }
@@ -60,7 +68,10 @@ export default function App() {
       setAdmin(null);
       return;
     }
-    adminApi.me().then(setAdmin).catch((error) => message.error(error.message));
+    adminApi
+      .me()
+      .then(setAdmin)
+      .catch((error) => message.error(error.message));
   }, [authed]);
   useEffect(() => {
     const unauthorized = () => setAuthed(false);
@@ -81,64 +92,267 @@ export default function App() {
   return (
     <>
       <Routes>
-      <Route
-        path="/login"
-        element={
-          authed ? (
-            <Navigate to="/dashboard" replace />
-          ) : (
-            <LoginPage onAuthenticated={() => setAuthed(true)} />
-          )
-        }
-      />
-      <Route
-        element={
-          authed ? (
-            <AdminLayout
-              adminData={admin}
-              onLoggedOut={() => setAuthed(false)}
-              customerServiceUnread={customerServiceUnread}
-            />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Guard permission="DASHBOARD_VIEW"><DashboardPage /></Guard>} />
-        <Route path="/users" element={<Guard permission="USER_VIEW"><UsersPage /></Guard>} />
-        <Route path="/announcements" element={<Guard permission="ANNOUNCEMENT_VIEW"><AnnouncementsPage /></Guard>} />
-        <Route path="/banners" element={<Guard permission="BANNER_VIEW"><BannersPage /></Guard>} />
-        <Route path="/platform-fee" element={<Guard permission="PLATFORM_FEE_VIEW"><PlatformFeePage /></Guard>} />
-        <Route path="/invitation-campaign" element={<Guard permission="INVITATION_CAMPAIGN_VIEW"><InvitationCampaignPage /></Guard>} />
-        <Route path="/jobs" element={<Guard permission="JOB_VIEW"><JobsPage /></Guard>} />
-        <Route path="/experiences" element={<Guard permission="EXPERIENCE_VIEW"><ExperiencesPage /></Guard>} />
-        <Route path="/certifications" element={<Guard permission="CERTIFICATION_VIEW"><RecordsPage type="certifications" /></Guard>} />
-        <Route path="/offline-certifications" element={<Guard permission="OFFLINE_APPOINTMENT_VIEW"><OfflineCertificationsPage /></Guard>} />
-        <Route path="/invitation-reviews" element={<Guard permission="INVITATION_REVIEW_VIEW"><InvitationReviewsPage /></Guard>} />
-        <Route path="/discovery" element={<Guard permission="DISCOVERY_VIEW"><DiscoveryManagementPage /></Guard>} />
-        <Route path="/inquiries" element={<Guard permission="INQUIRY_VIEW"><RecordsPage type="inquiries" /></Guard>} />
-        <Route path="/withdrawals" element={<Guard permission="WITHDRAWAL_VIEW"><RecordsPage type="withdrawals" /></Guard>} />
-        <Route path="/feedback" element={<Guard permission="FEEDBACK_VIEW"><RecordsPage type="feedback" /></Guard>} />
-        <Route path="/cooperations" element={<Guard permission="COOPERATION_VIEW"><RecordsPage type="cooperations" /></Guard>} />
         <Route
-          path="/customer-service"
+          path="/login"
           element={
-            <Guard permission="CUSTOMER_SERVICE_VIEW"><CustomerServicePage
-              realtimeEvent={customerServiceEvent}
-              onUnreadChange={setCustomerServiceUnread}
-            /></Guard>
+            authed ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <LoginPage onAuthenticated={() => setAuthed(true)} />
+            )
           }
         />
-        <Route path="/audit" element={<Guard permission="AUDIT_LOG_VIEW"><AuditPage /></Guard>} />
-        <Route path="/security-events" element={<Guard permission="SECURITY_EVENT_VIEW"><SecurityEventsPage /></Guard>} />
-        <Route path="/app-test-account" element={<Guard permission="APP_TEST_ACCOUNT_VIEW"><AppTestAccountPage /></Guard>} />
-        <Route path="/app-versions" element={<Guard permission="APP_VERSION_VIEW"><AppVersionPage /></Guard>} />
-        <Route path="/admin-users" element={<Guard permission="ADMIN_USER_VIEW"><AdminUsersPage /></Guard>} />
-        <Route path="/admin-roles" element={<Guard permission="ROLE_VIEW"><AdminRolesPage /></Guard>} />
-        <Route path="/admin-permissions" element={<Guard permission="PERMISSION_VIEW"><AdminPermissionsPage /></Guard>} />
-      </Route>
-      <Route path="*" element={<Navigate to={authed ? '/dashboard' : '/login'} replace />} />
+        <Route
+          element={
+            authed ? (
+              <AdminLayout
+                adminData={admin}
+                onLoggedOut={() => setAuthed(false)}
+                customerServiceUnread={customerServiceUnread}
+              />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/dashboard"
+            element={
+              <Guard permission="DASHBOARD_VIEW">
+                <DashboardPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <Guard permission="ANALYTICS_VIEW">
+                <AnalyticsPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/users"
+            element={
+              <Guard permission="USER_VIEW">
+                <UsersPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/announcements"
+            element={
+              <Guard permission="ANNOUNCEMENT_VIEW">
+                <AnnouncementsPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/banners"
+            element={
+              <Guard permission="BANNER_VIEW">
+                <BannersPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/platform-fee"
+            element={
+              <Guard permission="PLATFORM_FEE_VIEW">
+                <PlatformFeePage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/invitation-campaign"
+            element={
+              <Guard permission="INVITATION_CAMPAIGN_VIEW">
+                <InvitationCampaignPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/jobs"
+            element={
+              <Guard permission="JOB_VIEW">
+                <JobsPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/experiences"
+            element={
+              <Guard permission="EXPERIENCE_VIEW">
+                <ExperiencesPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/certifications"
+            element={
+              <Guard permission="CERTIFICATION_VIEW">
+                <RecordsPage type="certifications" />
+              </Guard>
+            }
+          />
+          <Route
+            path="/offline-certifications"
+            element={
+              <Guard permission="OFFLINE_APPOINTMENT_VIEW">
+                <OfflineCertificationsPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/invitation-reviews"
+            element={
+              <Guard permission="INVITATION_REVIEW_VIEW">
+                <InvitationReviewsPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/discovery"
+            element={
+              <Guard permission="DISCOVERY_VIEW">
+                <DiscoveryManagementPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/inquiries"
+            element={
+              <Guard permission="INQUIRY_VIEW">
+                <RecordsPage type="inquiries" />
+              </Guard>
+            }
+          />
+          <Route
+            path="/withdrawals"
+            element={
+              <Guard permission="WITHDRAWAL_VIEW">
+                <RecordsPage type="withdrawals" />
+              </Guard>
+            }
+          />
+          <Route
+            path="/permanent-ban-payouts"
+            element={
+              <Guard permission="PERMANENT_BAN_PAYOUT_VIEW">
+                <PermanentBanPayoutsPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/finance-reconciliation"
+            element={
+              <Guard permission="FINANCE_RECONCILIATION_VIEW">
+                <FinanceReconciliationPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/answer-quality"
+            element={
+              <Guard permission="ANSWER_QUALITY_VIEW">
+                <AnswerQualityPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/inquiry-disputes"
+            element={
+              <Guard permission="INQUIRY_DISPUTE_VIEW">
+                <InquiryDisputesPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/feedback"
+            element={
+              <Guard permission="FEEDBACK_VIEW">
+                <RecordsPage type="feedback" />
+              </Guard>
+            }
+          />
+          <Route
+            path="/cooperations"
+            element={
+              <Guard permission="COOPERATION_VIEW">
+                <RecordsPage type="cooperations" />
+              </Guard>
+            }
+          />
+          <Route
+            path="/customer-service"
+            element={
+              <Guard permission="CUSTOMER_SERVICE_VIEW">
+                <CustomerServicePage
+                  realtimeEvent={customerServiceEvent}
+                  onUnreadChange={setCustomerServiceUnread}
+                />
+              </Guard>
+            }
+          />
+          <Route
+            path="/audit"
+            element={
+              <Guard permission="AUDIT_LOG_VIEW">
+                <AuditPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/security-events"
+            element={
+              <Guard permission="SECURITY_EVENT_VIEW">
+                <SecurityEventsPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/app-test-account"
+            element={
+              <Guard permission="APP_TEST_ACCOUNT_VIEW">
+                <AppTestAccountPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/app-versions"
+            element={
+              <Guard permission="APP_VERSION_VIEW">
+                <AppVersionPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/admin-users"
+            element={
+              <Guard permission="ADMIN_USER_VIEW">
+                <AdminUsersPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/admin-roles"
+            element={
+              <Guard permission="ROLE_VIEW">
+                <AdminRolesPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/admin-permissions"
+            element={
+              <Guard permission="PERMISSION_VIEW">
+                <AdminPermissionsPage />
+              </Guard>
+            }
+          />
+        </Route>
+        <Route path="*" element={<Navigate to={authed ? '/dashboard' : '/login'} replace />} />
       </Routes>
       <GlobalLoading />
     </>
@@ -149,5 +363,9 @@ function Guard({ permission, children }) {
   const { admin, can } = useAdminAccess();
   if (!admin) return null;
   if (can(permission)) return children;
-  return <section className="table-card" style={{ minHeight: 220 }}><div className="empty">当前账号没有访问此页面的权限</div></section>;
+  return (
+    <section className="table-card" style={{ minHeight: 220 }}>
+      <div className="empty">当前账号没有访问此页面的权限</div>
+    </section>
+  );
 }

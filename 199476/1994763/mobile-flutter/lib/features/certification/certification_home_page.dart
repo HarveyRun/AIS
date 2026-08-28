@@ -94,7 +94,7 @@ class _CertificationHomePageState extends ConsumerState<CertificationHomePage> {
     return Scaffold(
       appBar: AppBar(title: Text(_joined ? '答主信息' : '成为答主')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          ? const SizedBox.shrink()
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
@@ -348,15 +348,7 @@ class _InquiryPriceRangeSheetState
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('保存'),
+                child: const Text('保存'),
               ),
             ),
           ],

@@ -26,6 +26,9 @@ public class User {
     @Column(nullable = false, unique = true, length = 20)
     private String phone;
 
+    @Column(name = "deleted_phone_hash", unique = true, length = 64, columnDefinition = "char(64)")
+    private String deletedPhoneHash;
+
     @Column(length = 40)
     private String nickname;
 

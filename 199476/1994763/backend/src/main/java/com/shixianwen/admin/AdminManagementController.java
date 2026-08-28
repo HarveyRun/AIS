@@ -38,8 +38,8 @@ public class AdminManagementController {
     @GetMapping("/job-options") public ApiResponse<List<Map<String,Object>>> jobOptions(){return ApiResponse.ok(service.jobOptions());}
     @GetMapping("/experience-options") public ApiResponse<List<Map<String,Object>>> experienceOptions(){return ApiResponse.ok(service.experienceOptions());}
     @GetMapping("/job-users") public ApiResponse<AdminManagementService.PageResult> jobUsers(@RequestParam(defaultValue="")String jobName,@RequestParam(required=false)Long jobId,@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="20")int size){return ApiResponse.ok(service.jobUsers(jobName,jobId,safePage(page),safeSize(size)));}
-    @PostMapping("/jobs") public ApiResponse<Void> createJob(@CurrentAdmin AdminUser a,@RequestBody JobRequest r,HttpServletRequest req){service.createJob(a,r.name(),r.description(),ip(req));return ApiResponse.ok();}
-    @PutMapping("/jobs/{id}") public ApiResponse<Void> updateJob(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody JobRequest r,HttpServletRequest req){service.updateJob(a,id,r.name(),r.description(),r.active(),ip(req));return ApiResponse.ok();}
+    @PostMapping("/jobs") public ApiResponse<Void> createJob(@CurrentAdmin AdminUser a,@RequestBody JobRequest r,HttpServletRequest req){service.createJob(a,r.name(),r.description(),r.mainWork(),r.canHelpWith(),r.notResponsibleFor(),ip(req));return ApiResponse.ok();}
+    @PutMapping("/jobs/{id}") public ApiResponse<Void> updateJob(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody JobRequest r,HttpServletRequest req){service.updateJob(a,id,r.name(),r.description(),r.mainWork(),r.canHelpWith(),r.notResponsibleFor(),r.active(),ip(req));return ApiResponse.ok();}
     @DeleteMapping("/jobs/{id}") public ApiResponse<Void> deleteJob(@CurrentAdmin AdminUser a,@PathVariable Long id,HttpServletRequest req){service.deleteJob(a,id,ip(req));return ApiResponse.ok();}
     @GetMapping("/{type:certifications|inquiries|withdrawals|feedback|cooperations}")
     public ApiResponse<AdminManagementService.PageResult> table(
@@ -94,10 +94,10 @@ public class AdminManagementController {
     public record PlatformFeeRequest(BigDecimal androidRatePercent, BigDecimal iosRatePercent){}
     public record UserPenaltyRequest(String status, String duration, String reason){}
     public record EnabledRequest(boolean enabled){} public record ReviewRequest(boolean approved,String reason,Long jobId,Integer years,Long experienceId,Integer authenticityPercent){} public record CertificationEditRequest(String title,String description,Long jobId,Integer years){} public record ReplyRequest(String content){}
-    public record JobRequest(String name,String description,Boolean active){}
+    public record JobRequest(String name,String description,String mainWork,String canHelpWith,String notResponsibleFor,Boolean active){}
     public record CategoryRequest(String mainCategory,String name,Integer sortOrder,Boolean active){}
     public record MatterRequest(Long categoryId,String title,Integer sortOrder,Boolean active,List<MatterJobRequest> jobs){}
-    public record MatterJobRequest(Long jobId){}
+    public record MatterJobRequest(Long jobId,String roleDescription){}
     public record ExperienceRequest(Long categoryId,String name,Boolean active){}
     public record ClassificationRequest(Long experienceId){}
 

@@ -24,8 +24,10 @@ class _InquiriesPageState extends ConsumerState<InquiriesPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
   StreamSubscription<RealtimeEvent>? _subscription;
+  Timer? _realtimeRefreshTimer;
   List<InquirySummary> _items = const [];
   bool _loading = true;
+  bool _refreshing = false;
 
   @override
   void initState() {
@@ -33,21 +35,31 @@ class _InquiriesPageState extends ConsumerState<InquiriesPage>
     _tabs = TabController(length: 2, vsync: this);
     _load();
     _subscription = ref.read(realtimeProvider).events.listen((event) {
-      if (event.type.startsWith('INQUIRY_')) _load(silent: true);
+      if (!event.type.startsWith('INQUIRY_')) return;
+      _realtimeRefreshTimer?.cancel();
+      _realtimeRefreshTimer = Timer(
+        const Duration(milliseconds: 300),
+        () => _load(silent: true),
+      );
     });
   }
 
   @override
   void dispose() {
     _tabs.dispose();
+    _realtimeRefreshTimer?.cancel();
     _subscription?.cancel();
     super.dispose();
   }
 
   Future<void> _load({bool silent = false}) async {
+    if (_refreshing) return;
+    _refreshing = true;
     if (!silent) setState(() => _loading = true);
     try {
-      final items = await ref.read(repositoryProvider).inquiries();
+      final items = await ref
+          .read(repositoryProvider)
+          .inquiries(showLoading: !silent);
       if (!mounted) return;
       setState(() => _items = items);
       ref.read(inquiryUnreadCountProvider.notifier).state = items.fold<int>(
@@ -57,6 +69,7 @@ class _InquiriesPageState extends ConsumerState<InquiriesPage>
     } catch (error) {
       if (!silent && mounted) AppMessage.show(context, '$error');
     } finally {
+      _refreshing = false;
       if (mounted && !silent) setState(() => _loading = false);
     }
   }
@@ -106,7 +119,7 @@ class _InquiriesPageState extends ConsumerState<InquiriesPage>
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          ? const SizedBox.shrink()
           : TabBarView(
               controller: _tabs,
               children: [
@@ -224,25 +237,22 @@ class _InquiryList extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 5),
-                          Text(
-                            item.question,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          const SizedBox(height: 7),
+                          const SizedBox(height: 9),
                           Row(
                             children: [
-                              Text(
-                                '${item.isIncoming ? '预计收入' : '询问金额'} ¥${formatMoney(item.visibleAmount)}',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
+                              if (!_hideCompletedIncome(item)) ...[
+                                Text(
+                                  '${item.isIncoming ? '预计收入' : '询问金额'} ¥${formatMoney(item.visibleAmount)}',
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 9),
+                                const SizedBox(width: 9),
+                              ],
                               _StatusChip(item: item),
                               const Spacer(),
                               if (item.unreadCount > 0)
@@ -275,6 +285,11 @@ class _InquiryList extends StatelessWidget {
         ? DateFormat('HH:mm').format(value)
         : DateFormat('M/d HH:mm').format(value);
   }
+
+  bool _hideCompletedIncome(InquirySummary item) {
+    final status = item.status.toUpperCase();
+    return item.isIncoming && (status == 'COMPLETED' || status == 'ENDED');
+  }
 }
 
 class _StatusChip extends StatelessWidget {
@@ -288,6 +303,8 @@ class _StatusChip extends StatelessWidget {
       'ACTIVE' => '交流中',
       'AWAITING_CONFIRMATION' => item.isIncoming ? '等待确认' : '待你确认',
       'COMPLETED' || 'ENDED' => '已结束',
+      'DISPUTED' => '质量复核中',
+      'QUALITY_REFUNDED' => '已全额退款',
       'REJECTED' => item.isIncoming ? '已拒绝' : '未接受',
       'CANCELLED' => '已撤销',
       'EXPIRED' => '已超时',

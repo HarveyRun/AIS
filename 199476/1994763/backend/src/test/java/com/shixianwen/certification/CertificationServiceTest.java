@@ -32,7 +32,8 @@ class CertificationServiceTest {
             mock(FileStorage.class),
             mock(SensitiveWordService.class),
             mock(FileTypeDetector.class),
-            mock(JobCertificationAppointmentRepository.class)
+            mock(JobCertificationAppointmentRepository.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class)
         );
         User user = new User();
         user.setId(7L);
@@ -66,7 +67,8 @@ class CertificationServiceTest {
             storage,
             sensitiveWords,
             fileTypeDetector,
-            mock(JobCertificationAppointmentRepository.class)
+            mock(JobCertificationAppointmentRepository.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class)
         );
         User user = new User();
         user.setId(7L);

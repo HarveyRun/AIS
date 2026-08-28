@@ -1,0 +1,3 @@
+ALTER TABLE inquiries
+    MODIFY COLUMN timeout_count INT NOT NULL DEFAULT 0,
+    MODIFY COLUMN end_reminder_stage INT NOT NULL DEFAULT 0;

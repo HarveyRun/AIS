@@ -54,6 +54,11 @@ class DiscoveryJob {
   const DiscoveryJob({
     required this.id,
     required this.name,
+    required this.description,
+    required this.mainWork,
+    required this.canHelpWith,
+    required this.notResponsibleFor,
+    required this.roleDescription,
     required this.answererCount,
   });
 
@@ -61,12 +66,22 @@ class DiscoveryJob {
     return DiscoveryJob(
       id: _int(json['id']),
       name: json['name']?.toString() ?? '',
+      description: json['description']?.toString().trim() ?? '',
+      mainWork: json['mainWork']?.toString().trim() ?? '',
+      canHelpWith: json['canHelpWith']?.toString().trim() ?? '',
+      notResponsibleFor: json['notResponsibleFor']?.toString().trim() ?? '',
+      roleDescription: json['roleDescription']?.toString().trim() ?? '',
       answererCount: _int(json['answererCount']),
     );
   }
 
   final int id;
   final String name;
+  final String description;
+  final String mainWork;
+  final String canHelpWith;
+  final String notResponsibleFor;
+  final String roleDescription;
   final int answererCount;
 }
 

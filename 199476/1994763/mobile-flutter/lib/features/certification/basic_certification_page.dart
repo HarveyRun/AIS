@@ -71,9 +71,9 @@ class _BasicCertificationPageState extends ConsumerState<BasicCertificationPage>
     try {
       final repository = ref.read(repositoryProvider);
       final results = await Future.wait<Object?>([
-        repository.certifications(),
-        repository.invitationCampaignStatus(),
-        repository.currentJobCertificationAppointment(),
+        repository.certifications(showLoading: !silent),
+        repository.invitationCampaignStatus(showLoading: !silent),
+        repository.currentJobCertificationAppointment(showLoading: !silent),
       ]);
       if (mounted) {
         setState(() {
@@ -187,7 +187,7 @@ class _BasicCertificationPageState extends ConsumerState<BasicCertificationPage>
       ],
     ),
     body: _loading
-        ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+        ? const SizedBox.shrink()
         : ListView(
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
             children: [

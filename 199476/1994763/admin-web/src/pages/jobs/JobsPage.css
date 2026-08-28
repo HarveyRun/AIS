@@ -77,12 +77,23 @@
   font-size: 12px;
 }
 
-.job-editor-form input {
-  height: 42px;
-  padding: 0 11px;
+.job-editor-form input,
+.job-editor-form textarea {
+  padding: 10px 11px;
   border: 1px solid #d8dbe0;
   border-radius: 7px;
   background: #fff;
+  color: #25272b;
+  font: inherit;
+}
+
+.job-editor-form input {
+  height: 42px;
+}
+
+.job-editor-form textarea {
+  min-height: 76px;
+  resize: vertical;
 }
 
 .job-people-modal {

@@ -79,7 +79,9 @@ class WalletServiceTest {
             feeRecords,
             mock(VerificationCodeService.class),
             mock(AppTestLoginAccountService.class),
-            mock(SecurityEventService.class)
+            mock(SecurityEventService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            mock(com.shixianwen.finance.FinancialLedgerService.class)
         );
 
         service.settle(
@@ -144,7 +146,9 @@ class WalletServiceTest {
             mock(PlatformFeeRecordRepository.class),
             mock(VerificationCodeService.class),
             mock(AppTestLoginAccountService.class),
-            mock(SecurityEventService.class)
+            mock(SecurityEventService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            mock(com.shixianwen.finance.FinancialLedgerService.class)
         );
     }
 

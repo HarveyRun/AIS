@@ -180,7 +180,15 @@ export default function DiscoveryManagementPage() {
       ...current,
       jobs: current.jobs.some((item) => item.jobId === jobId)
         ? current.jobs.filter((item) => item.jobId !== jobId)
-        : [...current.jobs, { jobId }],
+        : [...current.jobs, { jobId, roleDescription: '' }],
+    }));
+
+  const updateMatterJobRole = (jobId, roleDescription) =>
+    setMatterDraft((current) => ({
+      ...current,
+      jobs: current.jobs.map((item) =>
+        item.jobId === jobId ? { ...item, roleDescription } : item,
+      ),
     }));
 
   const submitMatter = async (event) => {
@@ -215,7 +223,10 @@ export default function DiscoveryManagementPage() {
       title: item.title,
       sortOrder: item.sortOrder,
       active: item.active,
-      jobs: jobsForMatter(item.id).map(({ jobId }) => ({ jobId })),
+      jobs: jobsForMatter(item.id).map(({ jobId, roleDescription }) => ({
+        jobId,
+        roleDescription: roleDescription || '',
+      })),
     });
     setMatterEditorOpen(true);
   };
@@ -243,7 +254,10 @@ export default function DiscoveryManagementPage() {
           title: item.title,
           sortOrder: item.sortOrder,
           active: !item.active,
-          jobs: jobsForMatter(item.id).map(({ jobId }) => ({ jobId })),
+          jobs: jobsForMatter(item.id).map(({ jobId, roleDescription }) => ({
+            jobId,
+            roleDescription: roleDescription || '',
+          })),
         }),
       item.active ? '事情已停用' : '事情已启用',
     );
@@ -720,7 +734,23 @@ export default function DiscoveryManagementPage() {
                             <small>{job.userCount} 位关联用户</small>
                           </span>
                         </label>
-                        <p>{job.description || '暂无岗位介绍'}</p>
+                        <div className="participant-job-detail">
+                          <p>{job.description || '暂无岗位介绍'}</p>
+                          {selected && (
+                            <label>
+                              <span>在这件事里能帮什么（选填）</span>
+                              <textarea
+                                maxLength="500"
+                                rows="2"
+                                value={selected.roleDescription || ''}
+                                onChange={(event) =>
+                                  updateMatterJobRole(job.id, event.target.value)
+                                }
+                                placeholder="例如：排查漏水是否来自供排水管或接口"
+                              />
+                            </label>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

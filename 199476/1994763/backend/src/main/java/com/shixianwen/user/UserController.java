@@ -3,6 +3,7 @@ package com.shixianwen.user;
 import com.shixianwen.auth.AuthService;
 import com.shixianwen.auth.CurrentUser;
 import com.shixianwen.common.ApiResponse;
+import com.shixianwen.inquiry.ViolationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -15,9 +16,11 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/users/me")
 public class UserController {
     private final UserService userService;
+    private final ViolationService violationService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, ViolationService violationService) {
         this.userService = userService;
+        this.violationService = violationService;
     }
 
     @PostMapping(value = "/avatar", consumes = "multipart/form-data")
@@ -61,6 +64,20 @@ public class UserController {
         @CurrentUser User user
     ) {
         return ApiResponse.ok(userService.answererEligibility(user));
+    }
+
+    @GetMapping("/violation-counters")
+    public ApiResponse<java.util.List<ViolationService.ViolationCounterView>> violationCounters(
+        @CurrentUser User user
+    ) {
+        return ApiResponse.ok(violationService.currentCounters(user.getId()));
+    }
+
+    @GetMapping("/deletion-eligibility")
+    public ApiResponse<UserService.AccountDeletionEligibility> deletionEligibility(
+        @CurrentUser User user
+    ) {
+        return ApiResponse.ok(userService.accountDeletionEligibility(user));
     }
 
     @PostMapping("/platform-introduction/dismiss")

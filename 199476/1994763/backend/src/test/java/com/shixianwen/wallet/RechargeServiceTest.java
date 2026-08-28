@@ -28,7 +28,8 @@ class RechargeServiceTest {
             recharges,
             users,
             wallet,
-            new MockAlipayGateway()
+            new MockAlipayGateway(),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class)
         );
 
         User user = new User();
@@ -59,7 +60,8 @@ class RechargeServiceTest {
             mock(RechargeRepository.class),
             mock(UserRepository.class),
             mock(WalletService.class),
-            new MockAlipayGateway()
+            new MockAlipayGateway(),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class)
         );
 
         assertThrows(BusinessException.class, () -> service.create(1L, new BigDecimal("12.34")));
@@ -72,7 +74,13 @@ class RechargeServiceTest {
         UserRepository users = mock(UserRepository.class);
         WalletService wallet = mock(WalletService.class);
         PaymentGateway gateway = mock(PaymentGateway.class);
-        RechargeService service = new RechargeService(recharges, users, wallet, gateway);
+        RechargeService service = new RechargeService(
+            recharges,
+            users,
+            wallet,
+            gateway,
+            mock(com.shixianwen.analytics.AnalyticsEventService.class)
+        );
         User user = new User();
         user.setId(1L);
         user.setAccountType("TEST");

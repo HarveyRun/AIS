@@ -1,5 +1,6 @@
 package com.shixianwen.wallet;
 
+import com.shixianwen.analytics.AnalyticsEventService;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.DefaultAlipayClient;
@@ -38,13 +39,15 @@ public class AlipayAccountAuthorizationService {
     private final AlipayAccountRepository accounts;
     private final AccountCipher accountCipher;
     private final SecurityEventService securityEvents;
+    private final AnalyticsEventService analytics;
 
     public AlipayAccountAuthorizationService(
         ThirdPartySettings settings,
         UserRepository users,
         AlipayAccountRepository accounts,
         AccountCipher accountCipher,
-        SecurityEventService securityEvents
+        SecurityEventService securityEvents,
+        AnalyticsEventService analytics
     ) {
         this.gatewayUrl = settings.value("app.payment.alipay.gateway-url", "alipay.server-url");
         this.appId = settings.value("app.payment.alipay.app-id", "alipay.app-id");
@@ -58,6 +61,7 @@ public class AlipayAccountAuthorizationService {
         this.accounts = accounts;
         this.accountCipher = accountCipher;
         this.securityEvents = securityEvents;
+        this.analytics = analytics;
     }
 
     public AuthorizationPayload createPayload(Long userId) {
@@ -140,6 +144,10 @@ public class AlipayAccountAuthorizationService {
             userId, null, "ALIPAY_ACCOUNT_AUTHORIZED", "HIGH", ipAddress, deviceId,
             "identifierType=" + identifier.type() + ", account=" + account.getAccountMasked()
         );
+        analytics.recordBusinessAfterCommit(user, "alipay_authorization_result", java.util.Map.of(
+            "result", "SUCCESS",
+            "identifier_type", identifier.type()
+        ));
         return WalletService.AlipayAccountView.of(account);
     }
 

@@ -43,6 +43,22 @@ class SecurityRateLimitFilterTest {
         assertEquals(429, response.getStatus());
     }
 
+    @Test
+    void authenticatedUsersOnTheSameIpHaveIndependentReadLimits() throws Exception {
+        for (int index = 0; index < 200; index++) {
+            assertEquals(200, executeRead("token-a").getStatus());
+            assertEquals(200, executeRead("token-b").getStatus());
+        }
+    }
+
+    @Test
+    void oneAuthenticatedUserStillCannotExceedTheReadLimit() throws Exception {
+        for (int index = 0; index < 300; index++) {
+            assertEquals(200, executeRead("single-token").getStatus());
+        }
+        assertEquals(429, executeRead("single-token").getStatus());
+    }
+
     private void assertAllowed(String path) throws Exception {
         assertEquals(200, execute(path).getStatus());
     }
@@ -51,6 +67,16 @@ class SecurityRateLimitFilterTest {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", path);
         request.setRemoteAddr("127.0.0.1");
         request.addHeader("X-Device-Id", "admin-device-001");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request, response, new MockFilterChain());
+        return response;
+    }
+
+    private MockHttpServletResponse executeRead(String token) throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/inquiries");
+        request.setRemoteAddr("127.0.0.1");
+        request.addHeader("X-Device-Id", "device-" + token);
+        request.addHeader("Authorization", "Bearer " + token);
         MockHttpServletResponse response = new MockHttpServletResponse();
         filter.doFilter(request, response, new MockFilterChain());
         return response;

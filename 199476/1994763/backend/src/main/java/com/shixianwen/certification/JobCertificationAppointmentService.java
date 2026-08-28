@@ -1,5 +1,6 @@
 package com.shixianwen.certification;
 
+import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
@@ -20,6 +21,7 @@ public class JobCertificationAppointmentService {
     private final JobCertificationAppointmentRepository appointments;
     private final UserRepository users;
     private final CertificationRepository certifications;
+    private final AnalyticsEventService analytics;
 
     @Transactional(readOnly = true)
     public AppointmentView current(User user) {
@@ -73,7 +75,13 @@ public class JobCertificationAppointmentService {
         appointment.setCity(CITY);
         appointment.setStatus(BOOKED);
         try {
-            return AppointmentView.from(appointments.saveAndFlush(appointment));
+            appointment = appointments.saveAndFlush(appointment);
+            analytics.recordBusinessAfterCommit(user, "job_appointment_submitted", java.util.Map.of(
+                "appointment_id", appointment.getId(),
+                "appointment_day", appointment.getAppointmentAt().toLocalDate().toString(),
+                "appointment_hour", appointment.getAppointmentAt().getHour()
+            ));
+            return AppointmentView.from(appointment);
         } catch (DataIntegrityViolationException exception) {
             throw BusinessException.badRequest("该时间刚刚被预约，请选择其他时间");
         }
