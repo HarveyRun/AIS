@@ -115,7 +115,7 @@ class _DiscoveryResultsPageState extends ConsumerState<DiscoveryResultsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _experience ? '你想了解' : '你想做',
+                            _experience ? '你想了解' : '你想问',
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.w600,

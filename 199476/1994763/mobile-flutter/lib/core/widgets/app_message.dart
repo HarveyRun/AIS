@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 class AppMessage {
+  static final Set<String> _activeMessages = <String>{};
+
   static void show(BuildContext context, String text) {
-    if (text.trim().isEmpty) return;
+    final message = text.trim();
+    if (message.isEmpty || !_activeMessages.add(message)) return;
     SmartDialog.showToast(
-      text.trim(),
+      message,
       displayTime: const Duration(seconds: 2),
       alignment: Alignment.center,
+      onDismiss: () => _activeMessages.remove(message),
       builder: (_) => Container(
         margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
         padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
@@ -15,7 +19,7 @@ class AppMessage {
           color: Colors.black,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Text(text.trim(), style: const TextStyle(color: Colors.white)),
+        child: Text(message, style: const TextStyle(color: Colors.white)),
       ),
     );
   }

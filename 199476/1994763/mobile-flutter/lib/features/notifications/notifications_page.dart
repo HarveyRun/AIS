@@ -116,12 +116,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       title: const Text('通知'),
       actions: [
-        if (_items.any((item) => !item.read))
-          IconButton(
-            onPressed: _readAll,
-            tooltip: '全部标为已读',
-            icon: const Icon(Icons.done_all_rounded),
-          ),
+        IconButton(
+          onPressed: _items.any((item) => !item.read) ? _readAll : null,
+          tooltip: '全部标为已读',
+          icon: const Icon(Icons.cleaning_services_rounded),
+        ),
       ],
     ),
     body: _loading
