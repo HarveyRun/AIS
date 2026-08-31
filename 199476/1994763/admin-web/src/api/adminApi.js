@@ -224,6 +224,22 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify({ approved, reason }),
     }),
+  contentContributions: ({ keyword = '', status = '', page = 0, size = 20 } = {}) =>
+    request(
+      `/content-contributions?${new URLSearchParams({ keyword, status, page, size })}`,
+    ),
+  contentContribution: (id) => request(`/content-contributions/${id}`),
+  contentContributionOriginal: (id) => request(`/content-contributions/${id}/original`),
+  reviewContentContribution: (id, body) =>
+    request(`/content-contributions/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  reviewContentContributionViolation: (id, body) =>
+    request(`/content-contributions/${id}/violation-review`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   appTestAccounts: (page = 0, size = 20) => request(`/app-test-accounts?page=${page}&size=${size}`),
   createAppTestAccount: (body) =>
     request('/app-test-accounts', {

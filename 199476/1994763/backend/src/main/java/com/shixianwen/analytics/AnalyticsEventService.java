@@ -40,7 +40,8 @@ public class AnalyticsEventService {
         "certification_home_view", "job_certification_start", "job_method_select",
         "experience_create_start", "recharge_start", "alipay_payment_launch",
         "alipay_authorization_start", "invitation_rules_view", "faq_view",
-        "customer_service_open", "update_prompt_view", "update_action_click"
+        "customer_service_open", "update_prompt_view", "update_action_click",
+        "content_contribution_open", "content_contribution_preview"
     );
 
     private final JdbcTemplate jdbc;

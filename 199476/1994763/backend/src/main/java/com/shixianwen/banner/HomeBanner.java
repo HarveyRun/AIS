@@ -43,6 +43,9 @@ public class HomeBanner {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(name = "action_type", nullable = false, length = 40)
+    private String actionType = "NONE";
+
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 

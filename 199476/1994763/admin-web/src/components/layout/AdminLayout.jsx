@@ -47,6 +47,7 @@ const primaryItems = [
   ['/certifications', '认证审核', ShieldCheck, 'CERTIFICATION_VIEW'],
   ['/offline-certifications', '线下认证', CalendarCheck2, 'OFFLINE_APPOINTMENT_VIEW'],
   ['/invitation-reviews', '邀请审核', ListChecks, 'INVITATION_REVIEW_VIEW'],
+  ['/content-contributions', '内容共建', Tags, 'CONTENT_CONTRIBUTION_VIEW'],
   ['/inquiries', '询问管理', MessagesSquare, 'INQUIRY_VIEW'],
   ['/inquiry-disputes', '询问纠纷', Gavel, 'INQUIRY_DISPUTE_VIEW'],
   ['/answer-quality', '回答质量', BadgeCheck, 'ANSWER_QUALITY_VIEW'],

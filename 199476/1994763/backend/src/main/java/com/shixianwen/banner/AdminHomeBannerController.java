@@ -96,6 +96,7 @@ public class AdminHomeBannerController {
         @Size(max = 80) String title,
         @Size(max = 200) String description,
         @Size(max = 500) String imageUrl,
+        @Size(max = 40) String actionType,
         @Min(0) @Max(9999) int sortOrder,
         boolean enabled
     ) {
@@ -106,6 +107,7 @@ public class AdminHomeBannerController {
                 title,
                 description,
                 imageUrl,
+                actionType,
                 sortOrder,
                 enabled
             );

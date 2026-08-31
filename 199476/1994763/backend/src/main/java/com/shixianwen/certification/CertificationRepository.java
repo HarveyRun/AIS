@@ -21,4 +21,9 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
         String certificationType,
         String status
     );
+    long countByUserIdAndCategoryAndStatusNot(
+        Long userId,
+        String category,
+        String status
+    );
 }

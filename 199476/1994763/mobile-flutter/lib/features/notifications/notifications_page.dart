@@ -67,7 +67,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       setState(() {
         _items = _items
             .map(
-              (entry) => entry.id == item.id
+              (entry) =>
+                  entry.id == item.id && entry.sourceType == item.sourceType
                   ? AppNotification(
                       id: entry.id,
                       sourceType: entry.sourceType,
@@ -89,7 +90,22 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   Future<void> _readAll() async {
     await ref.read(repositoryProvider).readAllNotifications();
-    await _load();
+    if (!mounted) return;
+    setState(() {
+      _items = _items
+          .map(
+            (item) => AppNotification(
+              id: item.id,
+              sourceType: item.sourceType,
+              title: item.title,
+              content: item.content,
+              targetPath: item.targetPath,
+              read: true,
+              createdAt: item.createdAt,
+            ),
+          )
+          .toList(growable: false);
+    });
     ref.read(notificationCountProvider.notifier).state = 0;
   }
 
@@ -101,7 +117,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       title: const Text('通知'),
       actions: [
         if (_items.any((item) => !item.read))
-          TextButton(onPressed: _readAll, child: const Text('全部已读')),
+          IconButton(
+            onPressed: _readAll,
+            tooltip: '全部标为已读',
+            icon: const Icon(Icons.done_all_rounded),
+          ),
       ],
     ),
     body: _loading

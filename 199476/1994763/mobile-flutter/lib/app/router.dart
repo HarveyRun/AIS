@@ -7,6 +7,9 @@ import '../features/certification/basic_certification_apply_page.dart';
 import '../features/certification/certification_home_page.dart';
 import '../features/certification/experience_certification_page.dart';
 import '../features/certification/experience_form_page.dart';
+import '../features/contribution/content_contribution_detail_page.dart';
+import '../features/contribution/content_contribution_form_page.dart';
+import '../features/contribution/content_contribution_page.dart';
 import '../features/discovery/discovery_list_page.dart';
 import '../features/discovery/discovery_results_page.dart';
 import '../features/home/home_page.dart';
@@ -90,6 +93,11 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
             builder: (context, state) => const NotificationsPage(),
           ),
           GoRoute(
+            name: 'contentContributions',
+            path: '/content-contributions',
+            builder: (context, state) => const ContentContributionPage(),
+          ),
+          GoRoute(
             name: 'accountSettings',
             path: '/profile/settings',
             builder: (context, state) => const AccountSettingsPage(),
@@ -155,6 +163,18 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
         path: '/chat/:id',
         builder: (context, state) =>
             ChatPage(id: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        name: 'contentContributionCreate',
+        path: '/content-contributions/new',
+        builder: (context, state) => const ContentContributionFormPage(),
+      ),
+      GoRoute(
+        name: 'contentContributionDetail',
+        path: '/content-contributions/:id',
+        builder: (context, state) => ContentContributionDetailPage(
+          id: int.parse(state.pathParameters['id']!),
+        ),
       ),
       GoRoute(
         name: 'customerService',

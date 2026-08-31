@@ -21,6 +21,7 @@ import SecurityEventsPage from '../pages/security/SecurityEventsPage.jsx';
 import PlatformFeePage from '../pages/platformFee/PlatformFeePage.jsx';
 import InvitationCampaignPage from '../pages/invitationCampaign/InvitationCampaignPage.jsx';
 import InvitationReviewsPage from '../pages/invitationReviews/InvitationReviewsPage.jsx';
+import ContentContributionsPage from '../pages/contentContributions/ContentContributionsPage.jsx';
 import OfflineCertificationsPage from '../pages/offlineCertifications/OfflineCertificationsPage.jsx';
 import AdminUsersPage from '../pages/adminUsers/AdminUsersPage.jsx';
 import AdminRolesPage from '../pages/adminRoles/AdminRolesPage.jsx';
@@ -209,6 +210,14 @@ export default function App() {
             element={
               <Guard permission="INVITATION_REVIEW_VIEW">
                 <InvitationReviewsPage />
+              </Guard>
+            }
+          />
+          <Route
+            path="/content-contributions"
+            element={
+              <Guard permission="CONTENT_CONTRIBUTION_VIEW">
+                <ContentContributionsPage />
               </Guard>
             }
           />

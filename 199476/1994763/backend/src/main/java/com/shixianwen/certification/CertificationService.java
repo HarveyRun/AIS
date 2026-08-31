@@ -21,6 +21,7 @@ import java.util.Locale;
 public class CertificationService {
     private static final long ONE_GB = 1024L * 1024 * 1024;
     private static final long FIVE_HUNDRED_MB = 500L * 1024 * 1024;
+    private static final long MAX_UNAPPROVED_EXPERIENCES = 3;
 
     private final CertificationRepository certificationRepository;
     private final UserRepository userRepository;
@@ -123,6 +124,8 @@ public class CertificationService {
             String description,
             Integer years,
             List<MultipartFile> files) {
+        user = userRepository.findWithLockById(user.getId())
+                .orElseThrow(() -> BusinessException.notFound("用户不存在"));
         boolean identityVerified = certificationRepository
                 .existsByUserIdAndCertificationTypeAndStatusAndEnabledTrue(
                         user.getId(),
@@ -130,6 +133,17 @@ public class CertificationService {
                         "APPROVED");
         if (!identityVerified) {
             throw BusinessException.badRequest("完成实名认证后才能添加亲身经历");
+        }
+        if (existingId == null) {
+            long unapprovedExperiences = certificationRepository
+                    .countByUserIdAndCategoryAndStatusNot(
+                            user.getId(),
+                            "EXPERIENCE",
+                            "APPROVED");
+            if (unapprovedExperiences >= MAX_UNAPPROVED_EXPERIENCES) {
+                throw BusinessException.badRequest(
+                        "添加已达上限，请等待审核完成后再添加");
+            }
         }
         if (title == null || title.isBlank())
             throw BusinessException.badRequest("请填写经历标题");

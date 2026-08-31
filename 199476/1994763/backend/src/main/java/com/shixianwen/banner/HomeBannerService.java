@@ -27,6 +27,14 @@ public class HomeBannerService {
     private static final String IMAGE_ONLY = "IMAGE_ONLY";
     private static final String IMAGE_TEXT = "IMAGE_TEXT";
     private static final Set<String> DISPLAY_MODES = Set.of(TEXT_ONLY, IMAGE_ONLY, IMAGE_TEXT);
+    private static final Set<String> ACTION_TYPES = Set.of(
+        "NONE",
+        "MATTER_DISCOVERY",
+        "EXPERIENCE_DISCOVERY",
+        "CONTENT_CONTRIBUTION",
+        "BASIC_CERTIFICATION",
+        "PLATFORM_INTRODUCTION"
+    );
     private static final Set<String> IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;
 
@@ -133,6 +141,7 @@ public class HomeBannerService {
         banner.setTitle(value.title());
         banner.setDescription(value.description());
         banner.setImageUrl(value.imageUrl());
+        banner.setActionType(value.actionType());
         banner.setSortOrder(value.sortOrder());
         banner.setEnabled(value.enabled());
         banner.setUpdatedByAdmin(admin);
@@ -151,6 +160,11 @@ public class HomeBannerService {
         String title = optional(command.title(), 80, "标题最多80个字");
         String description = optional(command.description(), 200, "说明最多200个字");
         String imageUrl = optional(command.imageUrl(), 500, "图片地址过长");
+        String actionType = text(command.actionType()).toUpperCase(Locale.ROOT);
+        if (actionType.isEmpty()) actionType = "NONE";
+        if (!ACTION_TYPES.contains(actionType)) {
+            throw BusinessException.badRequest("Banner点击去向不正确");
+        }
 
         if (TEXT_ONLY.equals(mode)) {
             if (title == null) throw BusinessException.badRequest("请输入Banner标题");
@@ -171,6 +185,7 @@ public class HomeBannerService {
             title,
             description,
             imageUrl,
+            actionType,
             command.sortOrder(),
             command.enabled()
         );
@@ -222,6 +237,7 @@ public class HomeBannerService {
         String title,
         String description,
         String imageUrl,
+        String actionType,
         int sortOrder,
         boolean enabled
     ) {
@@ -233,6 +249,7 @@ public class HomeBannerService {
         String title,
         String description,
         String imageUrl,
+        String actionType,
         int sortOrder,
         boolean enabled
     ) {
@@ -248,6 +265,7 @@ public class HomeBannerService {
         String title,
         String description,
         String imageUrl,
+        String actionType,
         int sortOrder,
         boolean enabled,
         String updatedBy,
@@ -262,6 +280,7 @@ public class HomeBannerService {
                 banner.getTitle(),
                 banner.getDescription(),
                 banner.getImageUrl(),
+                banner.getActionType(),
                 banner.getSortOrder(),
                 banner.isEnabled(),
                 admin == null ? null : admin.getDisplayName(),
@@ -276,7 +295,8 @@ public class HomeBannerService {
         String labelText,
         String title,
         String description,
-        String imageUrl
+        String imageUrl,
+        String actionType
     ) {
         static PublicBannerView from(HomeBanner banner) {
             return new PublicBannerView(
@@ -285,7 +305,8 @@ public class HomeBannerService {
                 banner.getLabelText(),
                 banner.getTitle(),
                 banner.getDescription(),
-                banner.getImageUrl()
+                banner.getImageUrl(),
+                banner.getActionType()
             );
         }
     }

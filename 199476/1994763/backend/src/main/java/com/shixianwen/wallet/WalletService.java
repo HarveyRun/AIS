@@ -462,6 +462,44 @@ public class WalletService {
     }
 
     @Transactional
+    public void creditContentContributionReward(Long userId, BigDecimal amount, Long contributionId) {
+        User user = user(userId);
+        WalletAccount wallet = lock(userId);
+        ensureSources(wallet);
+        amount = MoneyAmounts.requirePositive(amount);
+        if (alreadyRecorded(
+            wallet,
+            "CONTENT_CONTRIBUTION_REWARD",
+            "CONTENT_CONTRIBUTION",
+            contributionId,
+            amount
+        )) {
+            return;
+        }
+        wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), amount));
+        syncTotals(wallet);
+        record(
+            wallet,
+            "CONTENT_CONTRIBUTION_REWARD",
+            "IN",
+            amount,
+            "CONTENT_CONTRIBUTION",
+            contributionId,
+            "内容共建奖励"
+        );
+        ledger.record(
+            "CONTENT_CONTRIBUTION",
+            contributionId,
+            "REWARD",
+            "内容共建奖励",
+            List.of(
+                entry(isTest(user) ? "TEST_CLEARING" : "MARKETING_EXPENSE", null, amount),
+                entry("USER_INCOME_LIABILITY", userId, negative(amount))
+            )
+        );
+    }
+
+    @Transactional
     public void holdForQualityReview(Long inquiryId) {
         WalletIncomeHold hold = incomeHolds.findWithLockByInquiryId(inquiryId)
             .orElseThrow(() -> BusinessException.badRequest("该询问没有待解冻收入"));

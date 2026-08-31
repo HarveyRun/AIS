@@ -36,6 +36,7 @@ public class InquiryController {
         ));
     }
     @GetMapping public ApiResponse<List<InquiryService.InquiryView>> list(@CurrentUser User u) { return ApiResponse.ok(service.list(u.getId())); }
+    @GetMapping("/unread-count") public ApiResponse<Long> unreadCount(@CurrentUser User u) { return ApiResponse.ok(service.unreadCount(u.getId())); }
     @GetMapping("/{id}") public ApiResponse<InquiryService.InquiryDetail> detail(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.detail(u.getId(), id)); }
     @PutMapping("/{id}/read") public ApiResponse<Void> read(@CurrentUser User u, @PathVariable Long id) { service.read(u.getId(), id); return ApiResponse.ok(); }
     @PostMapping("/{id}/accept") public ApiResponse<InquiryService.InquiryView> accept(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.accept(u.getId(), id)); }

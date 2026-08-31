@@ -114,6 +114,80 @@ public class ViolationService {
         );
     }
 
+    @Transactional
+    public ViolationResult applyForSource(
+        Long userId,
+        String sourceType,
+        Long sourceId,
+        int level,
+        String fact,
+        String ruleBasis
+    ) {
+        validateLevel(level);
+        String normalizedSourceType = clean(sourceType, 40).toUpperCase();
+        String normalizedFact = clean(fact, 500);
+        String normalizedRuleBasis = clean(ruleBasis, 500);
+        User user = users.findById(userId)
+            .orElseThrow(() -> BusinessException.notFound("用户不存在"));
+        int inserted = jdbc.update(
+            "INSERT IGNORE INTO user_violation_records(" +
+                "user_id,inquiry_id,source_type,source_id,violation_level,fact_description,rule_basis" +
+                ") VALUES(?,NULL,?,?,?,?,?)",
+            userId,
+            normalizedSourceType,
+            sourceId,
+            level,
+            normalizedFact,
+            normalizedRuleBasis
+        );
+        if (inserted == 0) {
+            Integer existingLevel = jdbc.queryForObject(
+                "SELECT violation_level FROM user_violation_records " +
+                    "WHERE source_type=? AND source_id=? AND user_id=?",
+                Integer.class,
+                normalizedSourceType,
+                sourceId,
+                userId
+            );
+            return currentResult(userId, existingLevel == null ? level : existingLevel, false);
+        }
+
+        Counter counter = incrementCounter(userId, level);
+        BanResult ban = applyAutomaticBan(user, level, counter.usedCount(), counter.threshold());
+        refreshRiskWatch(userId);
+        if (ban.banned()) {
+            notifications.send(
+                user,
+                "账号处罚通知",
+                ban.banUntil() == null ? "账号因违反平台规则已被永久封禁" : "账号因违反平台规则已被限期封禁",
+                "/profile"
+            );
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("reason", "违反平台规则");
+            payload.put("banUntil", ban.banUntil());
+            payload.put("permanent", ban.banUntil() == null);
+            realtime.afterCommit(userId, "ACCOUNT_PENALTY", payload);
+        } else {
+            notifications.send(
+                user,
+                "违规处理通知",
+                "事实：" + normalizedFact + "；规则依据：" + normalizedRuleBasis +
+                    "；本次记为" + level + "级违规，当前已记录" + counter.usedCount() + "/" +
+                    counter.threshold() + "次。如有异议，可通过投诉与反馈提交申诉。",
+                "/profile/feedback"
+            );
+        }
+        return new ViolationResult(
+            level,
+            counter.usedCount(),
+            counter.threshold(),
+            null,
+            ban.banned(),
+            ban.banUntil(),
+            true
+        );
+    }
+
     private Counter incrementCounter(Long userId, int level) {
         int threshold = THRESHOLDS[level];
         jdbc.update(

@@ -19,7 +19,9 @@ class NotificationRealtimeGate extends ConsumerStatefulWidget {
 class _NotificationRealtimeGateState
     extends ConsumerState<NotificationRealtimeGate> {
   StreamSubscription<RealtimeEvent>? _subscription;
-  bool _refreshing = false;
+  bool _refreshingNotifications = false;
+  bool _refreshingInquiries = false;
+  bool _signedInRefreshScheduled = false;
 
   @override
   void initState() {
@@ -31,16 +33,19 @@ class _NotificationRealtimeGateState
           event.type == 'NOTIFICATIONS_READ_ALL') {
         unawaited(_refreshUnreadCount());
       }
+      if (event.type.startsWith('INQUIRY_')) {
+        unawaited(_refreshInquiryUnreadCount());
+      }
     });
   }
 
   Future<void> _refreshUnreadCount() async {
-    if (_refreshing ||
+    if (_refreshingNotifications ||
         ref.read(notificationPagePresenceProvider).visible ||
         !ref.read(authControllerProvider).signedIn) {
       return;
     }
-    _refreshing = true;
+    _refreshingNotifications = true;
     try {
       final count = await ref
           .read(repositoryProvider)
@@ -51,7 +56,24 @@ class _NotificationRealtimeGateState
     } catch (_) {
       // 实时刷新失败不打断用户操作，下次进入通知页时会重新查询。
     } finally {
-      _refreshing = false;
+      _refreshingNotifications = false;
+    }
+  }
+
+  Future<void> _refreshInquiryUnreadCount() async {
+    if (_refreshingInquiries || !ref.read(authControllerProvider).signedIn) {
+      return;
+    }
+    _refreshingInquiries = true;
+    try {
+      final count = await ref.read(repositoryProvider).inquiryUnreadCount();
+      if (mounted) {
+        ref.read(inquiryUnreadCountProvider.notifier).state = count;
+      }
+    } catch (_) {
+      // 静默同步失败时保留当前角标，下一次业务事件会再次校准。
+    } finally {
+      _refreshingInquiries = false;
     }
   }
 
@@ -62,5 +84,23 @@ class _NotificationRealtimeGateState
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    final signedIn = ref.watch(authControllerProvider).signedIn;
+    if (signedIn && !_signedInRefreshScheduled) {
+      _signedInRefreshScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(_refreshUnreadCount());
+        unawaited(_refreshInquiryUnreadCount());
+      });
+    } else if (!signedIn) {
+      _signedInRefreshScheduled = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || ref.read(authControllerProvider).signedIn) return;
+        ref.read(notificationCountProvider.notifier).state = 0;
+        ref.read(inquiryUnreadCountProvider.notifier).state = 0;
+      });
+    }
+    return widget.child;
+  }
 }

@@ -48,6 +48,11 @@ class AdminPermissionResolverTest {
         GET;/api/admin/invitations/8/identity-materials;INVITATION_REVIEW_VIEW
         GET;/api/admin/invitations/8/invitee-handheld-material;INVITATION_REVIEW_VIEW
         POST;/api/admin/invitations/8/review;INVITATION_REVIEW
+        GET;/api/admin/content-contributions;CONTENT_CONTRIBUTION_VIEW
+        GET;/api/admin/content-contributions/8;CONTENT_CONTRIBUTION_VIEW
+        GET;/api/admin/content-contributions/8/original;CONTENT_CONTRIBUTION_VIOLATION
+        POST;/api/admin/content-contributions/8/review;CONTENT_CONTRIBUTION_REVIEW
+        POST;/api/admin/content-contributions/8/violation-review;CONTENT_CONTRIBUTION_VIOLATION
         GET;/api/admin/users;USER_VIEW
         PATCH;/api/admin/users/8/status;USER_STATUS
         GET;/api/admin/jobs;JOB_VIEW

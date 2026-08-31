@@ -239,6 +239,12 @@ class _ChatPageState extends ConsumerState<ChatPage>
       });
       _scheduleScrollToEnd(animate: false);
       await ref.read(repositoryProvider).markInquiryRead(widget.id);
+      final unreadCount = await ref
+          .read(repositoryProvider)
+          .inquiryUnreadCount();
+      if (mounted) {
+        ref.read(inquiryUnreadCountProvider.notifier).state = unreadCount;
+      }
     } catch (error) {
       if (!silent && mounted) AppMessage.show(context, '$error');
     } finally {

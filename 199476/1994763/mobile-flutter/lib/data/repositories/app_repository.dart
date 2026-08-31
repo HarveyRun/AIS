@@ -4,6 +4,7 @@ import '../../core/network/api_client.dart';
 import '../models/answerer_models.dart';
 import '../models/app_version_models.dart';
 import '../models/certification_models.dart';
+import '../models/content_contribution_models.dart';
 import '../models/discovery_models.dart';
 import '../models/home_banner_models.dart';
 import '../models/inquiry_models.dart';
@@ -38,6 +39,45 @@ class AppRepository {
         .whereType<Map>()
         .map((item) => HomeBannerItem.fromJson(Map<String, dynamic>.from(item)))
         .toList(growable: false);
+  }
+
+  Future<ContentContributionSummary> contentContributionSummary() async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/content-contributions/summary',
+    );
+    return ContentContributionSummary.fromJson(data);
+  }
+
+  Future<ContentContributionPageData> contentContributions({
+    int page = 0,
+    int size = 20,
+  }) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/content-contributions',
+      query: {'page': page, 'size': size},
+    );
+    return ContentContributionPageData.fromJson(data);
+  }
+
+  Future<ContentContribution> contentContribution(int id) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/content-contributions/$id',
+    );
+    return ContentContribution.fromJson(data);
+  }
+
+  Future<ContentContribution> submitContentContribution({
+    required String matterName,
+    required List<ContentContributionDraftJob> jobs,
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/content-contributions',
+      data: {
+        'matterName': matterName,
+        'jobs': jobs.map((item) => item.toJson()).toList(growable: false),
+      },
+    );
+    return ContentContribution.fromJson(data);
   }
 
   Future<void> sendVerificationCode(String phone) {
@@ -230,6 +270,16 @@ class AppRepository {
         .whereType<Map>()
         .map((item) => InquirySummary.fromJson(Map<String, dynamic>.from(item)))
         .toList(growable: false);
+  }
+
+  Future<int> inquiryUnreadCount() async {
+    final data = await _api.get<Object?>(
+      '/inquiries/unread-count',
+      showLoading: false,
+    );
+    if (data is num) return data.toInt();
+    if (data is Map) return _int(data['count'] ?? data['unreadCount']);
+    return _int(data);
   }
 
   Future<InquiryDetail> inquiry(int id, {bool showLoading = true}) async {

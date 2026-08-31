@@ -23,8 +23,17 @@ const MODE_OPTIONS = [
   ['IMAGE_ONLY', '仅图片'],
   ['IMAGE_TEXT', '图片和文字'],
 ];
+const ACTION_OPTIONS = [
+  ['NONE', '不跳转'],
+  ['MATTER_DISCOVERY', '进入按事情找人'],
+  ['EXPERIENCE_DISCOVERY', '进入按经历找人'],
+  ['CONTENT_CONTRIBUTION', '进入内容共建'],
+  ['BASIC_CERTIFICATION', '进入基础认证'],
+  ['PLATFORM_INTRODUCTION', '展示平台初衷'],
+];
 const EMPTY_FORM = {
   displayMode: 'TEXT_ONLY',
+  actionType: 'NONE',
   labelText: '',
   title: '',
   description: '',
@@ -71,6 +80,7 @@ export default function BannersPage() {
     setEditingId(item.id);
     setForm({
       displayMode: item.displayMode,
+      actionType: item.actionType || 'NONE',
       labelText: item.labelText || '',
       title: item.title || '',
       description: item.description || '',
@@ -339,6 +349,22 @@ export default function BannersPage() {
                     </label>
                   </section>
                 )}
+
+                <section>
+                  <h3>点击后进入</h3>
+                  <div className="banner-mode-options banner-action-options">
+                    {ACTION_OPTIONS.map(([value, label]) => (
+                      <button
+                        className={form.actionType === value ? 'active' : ''}
+                        key={value}
+                        type="button"
+                        onClick={() => setForm((current) => ({ ...current, actionType: value }))}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
 
                 <section className="banner-settings-row">
                   <label>

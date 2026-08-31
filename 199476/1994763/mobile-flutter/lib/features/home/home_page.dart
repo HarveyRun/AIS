@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:math' show min;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +14,7 @@ import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/answerer_card.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
+import '../../core/widgets/platform_introduction_gate.dart';
 import '../../data/models/answerer_models.dart';
 import '../../data/models/home_banner_models.dart';
 
@@ -25,7 +26,6 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> with RouteAware {
-  final _random = Random();
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode(
     skipTraversal: true,
@@ -93,7 +93,7 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
   void _restartBannerTimer() {
     _bannerTimer?.cancel();
     if (_banners.length < 2) return;
-    _bannerTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    _bannerTimer = Timer(const Duration(seconds: 10), () {
       if (!mounted || !_pageController.hasClients) return;
       _banner = (_banner + 1) % _banners.length;
       _pageController.animateToPage(
@@ -102,6 +102,12 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
         curve: Curves.easeOutCubic,
       );
     });
+  }
+
+  void _onBannerChanged(int value) {
+    setState(() => _banner = value);
+    _trackBannerImpression(value);
+    _restartBannerTimer();
   }
 
   Future<void> _loadBanners() async {
@@ -230,24 +236,25 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
     );
   }
 
-  void _openRandomDiscovery() {
-    final destination = _random.nextBool() ? 'matters' : 'experiences';
-    if (_banners.isNotEmpty && _banner < _banners.length) {
-      final item = _banners[_banner];
-      unawaited(
-        ref
-            .read(analyticsProvider)
-            .track(
-              'banner_click',
-              properties: {
-                'banner_id': item.id,
-                'banner_title': item.title,
-                'destination': destination,
-              },
-            ),
-      );
+  void _openBanner(HomeBannerItem item) {
+    if (!item.canOpen) return;
+    unawaited(
+      ref
+          .read(analyticsProvider)
+          .track(
+            'banner_click',
+            properties: {
+              'banner_id': item.id,
+              'banner_title': item.title,
+              'destination': item.actionType,
+            },
+          ),
+    );
+    if (item.opensPlatformIntroduction) {
+      unawaited(showPlatformIntroductionDialog(context));
+      return;
     }
-    context.push('/discover/$destination');
+    context.push(item.targetPath);
   }
 
   void _openDiscovery(String type) {
@@ -387,11 +394,9 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                     controller: _pageController,
                     banners: _banners,
                     active: _banner,
-                    onChanged: (value) {
-                      setState(() => _banner = value);
-                      _trackBannerImpression(value);
-                    },
-                    onTap: _openRandomDiscovery,
+                    onChanged: _onBannerChanged,
+                    onInteractionStart: _restartBannerTimer,
+                    onTap: _openBanner,
                   ),
                 ),
               SliverToBoxAdapter(
@@ -462,13 +467,15 @@ class _Banner extends StatelessWidget {
     required this.banners,
     required this.active,
     required this.onChanged,
+    required this.onInteractionStart,
     required this.onTap,
   });
   final PageController controller;
   final List<HomeBannerItem> banners;
   final int active;
   final ValueChanged<int> onChanged;
-  final VoidCallback onTap;
+  final VoidCallback onInteractionStart;
+  final ValueChanged<HomeBannerItem> onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -477,30 +484,36 @@ class _Banner extends StatelessWidget {
       height: 174,
       child: Stack(
         children: [
-          PageView.builder(
-            controller: controller,
-            onPageChanged: onChanged,
-            itemCount: banners.length,
-            itemBuilder: (context, index) {
-              final item = banners[index];
-              return Semantics(
-                button: true,
-                label: '随机查看按事情或按经历找人',
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onTap,
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(10, 14, 10, 4),
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: _BannerContent(item: item),
-                  ),
-                ),
-              );
+          NotificationListener<ScrollStartNotification>(
+            onNotification: (notification) {
+              if (notification.dragDetails != null) onInteractionStart();
+              return false;
             },
+            child: PageView.builder(
+              controller: controller,
+              onPageChanged: onChanged,
+              itemCount: banners.length,
+              itemBuilder: (context, index) {
+                final item = banners[index];
+                return Semantics(
+                  button: item.canOpen,
+                  label: item.canOpen ? '打开Banner对应页面' : 'Banner内容',
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: item.canOpen ? () => onTap(item) : null,
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(10, 14, 10, 4),
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: _BannerContent(item: item),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
           if (banners.length > 1)
             Positioned(

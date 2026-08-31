@@ -47,15 +47,17 @@ class _ExperienceCertificationPageState
 
   Future<void> _add() async {
     try {
-      final eligibility = await ref
-          .read(repositoryProvider)
-          .answererEligibility();
-      final eligible = eligibility['identityApproved'] == true;
-      if (!eligible) {
+      final records = await ref.read(repositoryProvider).certifications();
+      final identityApproved = records.any(
+        (record) =>
+            record.type == 'IDENTITY' &&
+            record.status.toUpperCase() == 'APPROVED' &&
+            record.enabled,
+      );
+      if (!identityApproved) {
         if (!mounted) return;
         final goToIdentity = await _showIdentityRequiredDialog();
         if (goToIdentity == true && mounted) {
-          final records = await ref.read(repositoryProvider).certifications();
           CertificationRecord? identityRecord;
           for (final record in records) {
             if (record.type == 'IDENTITY') {
@@ -69,6 +71,17 @@ class _ExperienceCertificationPageState
             extra: identityRecord,
           );
           await _load();
+        }
+        return;
+      }
+      final unapprovedExperiences = records.where((record) {
+        final experience =
+            record.category == 'EXPERIENCE' || record.type == 'EXPERIENCE';
+        return experience && record.status.toUpperCase() != 'APPROVED';
+      }).length;
+      if (unapprovedExperiences >= 3) {
+        if (mounted) {
+          AppMessage.show(context, '添加已达上限，请等待审核完成后再添加');
         }
         return;
       }
@@ -96,7 +109,7 @@ class _ExperienceCertificationPageState
           fontSize: 22,
         ),
       ),
-      content: const Text('需先完成实名认证，且认证年龄须年满 25 周岁。'),
+      content: const Text('需先完成实名认证，且年龄须满 25 周岁。'),
       actions: [
         SizedBox(
           width: double.infinity,

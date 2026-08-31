@@ -341,6 +341,8 @@ export const Status = ({ value }) => (
       NO_SHOW: '未到场',
       EXPIRED: '已过期',
       AWAITING_CONFIRMATION: '待确认结束',
+      ADOPTED: '已采用',
+      VIOLATION_REJECTED: '违规驳回',
     }[value] ||
       value ||
       '—'}

@@ -2,6 +2,7 @@ class HomeBannerItem {
   const HomeBannerItem({
     required this.id,
     required this.displayMode,
+    required this.actionType,
     required this.labelText,
     required this.title,
     required this.description,
@@ -12,6 +13,7 @@ class HomeBannerItem {
     return HomeBannerItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
       displayMode: json['displayMode']?.toString() ?? 'TEXT_ONLY',
+      actionType: json['actionType']?.toString() ?? 'NONE',
       labelText: json['labelText']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
@@ -21,6 +23,7 @@ class HomeBannerItem {
 
   final int id;
   final String displayMode;
+  final String actionType;
   final String labelText;
   final String title;
   final String description;
@@ -28,4 +31,17 @@ class HomeBannerItem {
 
   bool get showsImage => displayMode != 'TEXT_ONLY' && imageUrl.isNotEmpty;
   bool get showsText => displayMode != 'IMAGE_ONLY';
+  bool get opensPlatformIntroduction => actionType == 'PLATFORM_INTRODUCTION';
+
+  String get targetPath {
+    return switch (actionType) {
+      'MATTER_DISCOVERY' => '/discover/matters',
+      'EXPERIENCE_DISCOVERY' => '/discover/experiences',
+      'CONTENT_CONTRIBUTION' => '/content-contributions',
+      'BASIC_CERTIFICATION' => '/profile/certifications/basic',
+      _ => '',
+    };
+  }
+
+  bool get canOpen => opensPlatformIntroduction || targetPath.isNotEmpty;
 }

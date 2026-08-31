@@ -28,6 +28,21 @@ public class AdminPermissionResolver {
         if (path.matches("/api/admin/invitations/\\d+/review") && "POST".equals(method)) {
             return "INVITATION_REVIEW";
         }
+        if (path.equals("/api/admin/content-contributions") && isGet(method)) {
+            return "CONTENT_CONTRIBUTION_VIEW";
+        }
+        if (path.matches("/api/admin/content-contributions/\\d+") && isGet(method)) {
+            return "CONTENT_CONTRIBUTION_VIEW";
+        }
+        if (path.matches("/api/admin/content-contributions/\\d+/original") && isGet(method)) {
+            return "CONTENT_CONTRIBUTION_VIOLATION";
+        }
+        if (path.matches("/api/admin/content-contributions/\\d+/review") && "POST".equals(method)) {
+            return "CONTENT_CONTRIBUTION_REVIEW";
+        }
+        if (path.matches("/api/admin/content-contributions/\\d+/violation-review") && "POST".equals(method)) {
+            return "CONTENT_CONTRIBUTION_VIOLATION";
+        }
         if (path.equals("/api/admin/users") && isGet(method)) return "USER_VIEW";
         if (path.matches("/api/admin/users/\\d+/status") && "PATCH".equals(method)) return "USER_STATUS";
 

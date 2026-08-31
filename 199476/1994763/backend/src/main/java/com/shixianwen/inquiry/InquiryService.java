@@ -158,6 +158,22 @@ public class InquiryService {
     }
 
     @Transactional(readOnly = true)
+    public long unreadCount(Long userId) {
+        Long count = jdbc.queryForObject(
+            "SELECT COALESCE(SUM(CASE " +
+                "WHEN questioner_id=? THEN questioner_unread_count " +
+                "WHEN answerer_id=? THEN answerer_unread_count ELSE 0 END),0) " +
+                "FROM inquiries WHERE questioner_id=? OR answerer_id=?",
+            Long.class,
+            userId,
+            userId,
+            userId,
+            userId
+        );
+        return count == null ? 0 : count;
+    }
+
+    @Transactional(readOnly = true)
     public InquiryDetail detail(Long userId, Long inquiryId) {
         Inquiry item = accessible(userId, inquiryId);
         return new InquiryDetail(view(item, userId), messages.findByInquiryIdOrderByCreatedAtAsc(inquiryId).stream()
@@ -167,9 +183,17 @@ public class InquiryService {
     @Transactional
     public void read(Long userId, Long inquiryId) {
         Inquiry item = lockedAccessible(userId, inquiryId);
-        if (item.getQuestioner().getId().equals(userId)) item.setQuestionerUnreadCount(0);
-        else item.setAnswererUnreadCount(0);
-        realtime.afterCommit(userId, "INQUIRY_READ", java.util.Map.of("inquiryId", inquiryId));
+        boolean changed;
+        if (item.getQuestioner().getId().equals(userId)) {
+            changed = item.getQuestionerUnreadCount() > 0;
+            item.setQuestionerUnreadCount(0);
+        } else {
+            changed = item.getAnswererUnreadCount() > 0;
+            item.setAnswererUnreadCount(0);
+        }
+        if (changed) {
+            realtime.afterCommit(userId, "INQUIRY_READ", java.util.Map.of("inquiryId", inquiryId));
+        }
     }
 
     @Transactional

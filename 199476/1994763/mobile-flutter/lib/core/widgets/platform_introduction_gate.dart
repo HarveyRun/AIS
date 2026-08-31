@@ -6,6 +6,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import 'app_message.dart';
 
+Future<void> showPlatformIntroductionDialog(BuildContext context) {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        child: Center(
+          child: _IntroductionPanel(
+            seconds: 0,
+            submitting: false,
+            onAcknowledge: () => Navigator.of(dialogContext).pop(),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class PlatformIntroductionGate extends ConsumerStatefulWidget {
   const PlatformIntroductionGate({required this.child, super.key});
 
@@ -149,13 +168,13 @@ class _IntroductionPanel extends StatelessWidget {
     required this.seconds,
     required this.submitting,
     required this.onAcknowledge,
-    required this.onDeleteAccount,
+    this.onDeleteAccount,
   });
 
   final int seconds;
   final bool submitting;
   final VoidCallback onAcknowledge;
-  final VoidCallback onDeleteAccount;
+  final VoidCallback? onDeleteAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -205,10 +224,11 @@ class _IntroductionPanel extends StatelessWidget {
                   child: Text(submitting ? '请稍候…' : '知道了'),
                 ),
               ),
-              TextButton(
-                onPressed: submitting ? null : onDeleteAccount,
-                child: const Text('注销账号'),
-              ),
+              if (onDeleteAccount != null)
+                TextButton(
+                  onPressed: submitting ? null : onDeleteAccount,
+                  child: const Text('注销账号'),
+                ),
             ],
           ),
         ),
@@ -239,10 +259,7 @@ class _IntroductionContent extends StatelessWidget {
             text:
                 '，在他人不知道该怎么办、身边又恰好没有合适的人可以问时，真正帮上一把。\n\n当然，如果您有更合适的人、更好的办法，或者能够自己解决，我们真心建议您选择更适合自己的方式。因为这里即不是专业顾问平台，也不是兼职或接单平台。\n\n',
           ),
-          TextSpan(
-            text: '希望这里能让您多一份选择。',
-            style: strong,
-          ),
+          TextSpan(text: '希望这里能让您多一份选择。', style: strong),
         ],
       ),
     );
