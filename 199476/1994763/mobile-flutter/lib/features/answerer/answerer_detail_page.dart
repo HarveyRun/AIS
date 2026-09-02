@@ -8,6 +8,7 @@ import '../../app/providers.dart';
 import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
+import '../../core/widgets/experience_tooltip_tag.dart';
 import '../../data/models/answerer_models.dart';
 
 class AnswererDetailPage extends ConsumerStatefulWidget {
@@ -349,7 +350,7 @@ class _WebAnswererOverview extends StatelessWidget {
                 children: answerer.experiences.isEmpty
                     ? const [_ExperienceLabel(text: '暂无经历')]
                     : answerer.experiences
-                          .map((item) => _ExperienceLabel(text: item.title))
+                          .map((item) => ExperienceTooltipTag(experience: item))
                           .toList(),
               ),
               const SizedBox(height: 10),

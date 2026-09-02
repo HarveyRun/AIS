@@ -112,8 +112,16 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
       AppMessage.show(context, '请填写经历标题');
       return;
     }
+    if (_title.text.trim().length > 20) {
+      AppMessage.show(context, '经历标题最多20个字');
+      return;
+    }
     if (_description.text.trim().isEmpty) {
       AppMessage.show(context, '请填写经历简述');
+      return;
+    }
+    if (_description.text.trim().length > 200) {
+      AppMessage.show(context, '经历简述最多200个字');
       return;
     }
     if (_archive?.path == null) {
@@ -176,8 +184,8 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
                     TextField(
                       controller: _title,
                       enabled: _editable,
-                      maxLength: 50,
-                      inputFormatters: AppInputFormatters.description(50),
+                      maxLength: 20,
+                      inputFormatters: AppInputFormatters.description(20),
                       decoration: const InputDecoration(hintText: '例如：经历过劳动仲裁'),
                     ),
                     const SizedBox(height: 14),
@@ -186,13 +194,11 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
                     TextField(
                       controller: _description,
                       enabled: _editable,
-                      maxLength: 300,
-                      inputFormatters: AppInputFormatters.description(300),
+                      maxLength: 200,
+                      inputFormatters: AppInputFormatters.description(200),
                       minLines: 4,
                       maxLines: 7,
-                      decoration: const InputDecoration(
-                        hintText: '简单说明事情发生和处理的经过',
-                      ),
+                      decoration: const InputDecoration(hintText: '简述事情的前因后果'),
                     ),
                   ],
                 ),

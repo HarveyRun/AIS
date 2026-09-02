@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../app/providers.dart';
 import '../../core/input/app_input_formatters.dart';
@@ -54,6 +55,45 @@ class _CertificationHomePageState extends ConsumerState<CertificationHomePage> {
       AppMessage.show(context, '可接受金额已保存');
     }
     return saved == true;
+  }
+
+  Future<void> _handlePriceRangeTap() async {
+    try {
+      final latest = await ref.read(authControllerProvider).refreshUser();
+      if (!mounted) return;
+      final updatedAt = latest.inquiryPriceUpdatedAt;
+      if (updatedAt != null) {
+        final nextAdjustment = _addMonths(updatedAt, 3);
+        if (nextAdjustment.isAfter(DateTime.now())) {
+          AppMessage.show(
+            context,
+            '每3个月可调整一次，下次可在${DateFormat('yyyy-MM-dd HH:mm').format(nextAdjustment)}调整',
+          );
+          return;
+        }
+      }
+      await _editPriceRange();
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+    }
+  }
+
+  DateTime _addMonths(DateTime source, int months) {
+    final zeroBasedMonth = source.month - 1 + months;
+    final year = source.year + zeroBasedMonth ~/ 12;
+    final month = zeroBasedMonth % 12 + 1;
+    final lastDay = DateTime(year, month + 1, 0).day;
+    final day = source.day > lastDay ? lastDay : source.day;
+    return DateTime(
+      year,
+      month,
+      day,
+      source.hour,
+      source.minute,
+      source.second,
+      source.millisecond,
+      source.microsecond,
+    );
   }
 
   bool get _joined {
@@ -192,7 +232,7 @@ class _CertificationHomePageState extends ConsumerState<CertificationHomePage> {
                                   : '¥${user?.inquiryPriceMin ?? 1}—¥${user?.inquiryPriceMax ?? 5000} · 每3个月可调整一次',
                             ),
                             trailing: const Icon(Icons.chevron_right_rounded),
-                            onTap: _editPriceRange,
+                            onTap: _handlePriceRangeTap,
                           ),
                           const SizedBox(height: 4),
                         ],

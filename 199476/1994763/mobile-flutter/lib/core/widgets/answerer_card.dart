@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/models/answerer_models.dart';
 import 'app_avatar.dart';
+import 'experience_tooltip_tag.dart';
 
 class AnswererCard extends StatelessWidget {
   const AnswererCard({
@@ -17,9 +18,7 @@ class AnswererCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final experience = answerer.experiences.isEmpty
-        ? '暂无经历'
-        : answerer.experiences.map((item) => item.title).take(1).join();
+    final experiences = answerer.experiences;
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
     final background = theme.colorScheme.surface;
@@ -138,30 +137,67 @@ class AnswererCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Flexible(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: dark
-                            ? theme.colorScheme.surfaceContainerHigh
-                            : const Color(0xFFEEF4F0),
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Text(
-                        experience,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 10,
-                          color: dark
-                              ? const Color(0xFFA7C2B3)
-                              : const Color(0xFF60766B),
-                        ),
-                      ),
-                    ),
+                  Expanded(
+                    child: experiences.isEmpty
+                        ? Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: dark
+                                    ? theme.colorScheme.surfaceContainerHigh
+                                    : const Color(0xFFEEF4F0),
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                              child: Text(
+                                '暂无经历',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 10,
+                                  color: dark
+                                      ? const Color(0xFFA7C2B3)
+                                      : const Color(0xFF60766B),
+                                ),
+                              ),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: Row(
+                              children: [
+                                for (
+                                  var index = 0;
+                                  index < experiences.length;
+                                  index++
+                                ) ...[
+                                  if (index > 0) const SizedBox(width: 6),
+                                  ExperienceTooltipTag(
+                                    experience: experiences[index],
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 9,
+                                      vertical: 5,
+                                    ),
+                                    borderRadius: 7,
+                                    backgroundColor: dark
+                                        ? theme.colorScheme.surfaceContainerHigh
+                                        : const Color(0xFFEEF4F0),
+                                    textStyle: theme.textTheme.bodySmall
+                                        ?.copyWith(
+                                          fontSize: 10,
+                                          color: dark
+                                              ? const Color(0xFFA7C2B3)
+                                              : const Color(0xFF60766B),
+                                        ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                   ),
                 ],
               ),

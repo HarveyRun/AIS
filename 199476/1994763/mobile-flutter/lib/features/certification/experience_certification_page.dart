@@ -314,10 +314,8 @@ class _ExperienceNoticeContent extends StatelessWidget {
           TextSpan(
             style: normal,
             children: [
-              const TextSpan(text: '平台'),
-              TextSpan(text: '不强制要求提交能够完整证明经历真实性的材料', style: strong),
-              const TextSpan(text: '，但必须提供能够证明'),
-              TextSpan(text: '该段经历与您本人直接相关的材料或信息。', style: strong),
+              const TextSpan(text: '无需提供完整的经历真实性证明，'),
+              TextSpan(text: '但必须提供能证明该经历属于您本人的材料。', style: strong),
             ],
           ),
         ),
@@ -345,8 +343,6 @@ class _ExperienceNoticeContent extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 11),
-        Text('不要求完整证明，但必须是真实发生在您本人身上的经历。', style: strong),
       ],
     );
   }

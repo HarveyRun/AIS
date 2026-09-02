@@ -252,10 +252,13 @@ class _ContributionExample extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = accepted ? const Color(0xFF287A54) : const Color(0xFF8A6554);
+    final dark = theme.brightness == Brightness.dark;
+    final color = accepted
+        ? (dark ? const Color(0xFF78C99E) : const Color(0xFF287A54))
+        : (dark ? const Color(0xFFE0A98C) : const Color(0xFF8A6554));
     final background = accepted
-        ? const Color(0xFFF1F7F3)
-        : const Color(0xFFF8F3F0);
+        ? (dark ? const Color(0xFF18372A) : const Color(0xFFF1F7F3))
+        : (dark ? const Color(0xFF3A2A23) : const Color(0xFFF8F3F0));
 
     return Container(
       padding: const EdgeInsets.fromLTRB(13, 13, 12, 12),

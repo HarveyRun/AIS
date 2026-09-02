@@ -147,12 +147,12 @@ public class CertificationService {
         }
         if (title == null || title.isBlank())
             throw BusinessException.badRequest("请填写经历标题");
-        if (title.trim().length() > 50)
-            throw BusinessException.badRequest("经历标题最多50个字");
+        if (title.trim().length() > 20)
+            throw BusinessException.badRequest("经历标题最多20个字");
         if (description == null || description.isBlank())
             throw BusinessException.badRequest("请填写经历简述");
-        if (description.trim().length() > 300)
-            throw BusinessException.badRequest("经历简述最多300个字");
+        if (description.trim().length() > 200)
+            throw BusinessException.badRequest("经历简述最多200个字");
         validateExperienceFiles(files);
         Certification certification;
         if (existingId == null) {
