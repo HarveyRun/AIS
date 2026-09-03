@@ -4,19 +4,16 @@ import '../features/answerer/answerer_detail_page.dart';
 import '../features/auth/login_page.dart';
 import '../features/certification/basic_certification_page.dart';
 import '../features/certification/basic_certification_apply_page.dart';
-import '../features/certification/certification_home_page.dart';
 import '../features/certification/experience_certification_page.dart';
 import '../features/certification/experience_form_page.dart';
-import '../features/contribution/content_contribution_detail_page.dart';
-import '../features/contribution/content_contribution_form_page.dart';
-import '../features/contribution/content_contribution_page.dart';
-import '../features/discovery/discovery_list_page.dart';
-import '../features/discovery/discovery_results_page.dart';
+import '../features/certification/public_welfare_experience_form_page.dart';
+import '../features/certification/monetized_experience_form_page.dart';
 import '../features/home/home_page.dart';
 import '../features/inquiry/chat_page.dart';
 import '../features/inquiry/inquiries_page.dart';
 import '../features/notifications/notifications_page.dart';
 import '../features/profile/account_settings_page.dart';
+import '../features/profile/inquiry_settings_page.dart';
 import '../features/profile/profile_page.dart';
 import '../features/support/business_page.dart';
 import '../features/support/customer_service_page.dart';
@@ -69,22 +66,11 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
           GoRoute(
             name: 'answererDetail',
             path: '/answerers/:uid',
-            builder: (context, state) =>
-                AnswererDetailPage(uid: state.pathParameters['uid']!),
-          ),
-          GoRoute(
-            name: 'discoveryList',
-            path: '/discover/:type',
-            builder: (context, state) =>
-                DiscoveryListPage(type: state.pathParameters['type']!),
-          ),
-          GoRoute(
-            name: 'discoveryResults',
-            path: '/discover/:type/:id/results',
-            builder: (context, state) => DiscoveryResultsPage(
-              type: state.pathParameters['type']!,
-              id: int.parse(state.pathParameters['id']!),
-              title: state.uri.queryParameters['title'] ?? '',
+            builder: (context, state) => AnswererDetailPage(
+              uid: state.pathParameters['uid']!,
+              experienceCertificationId: int.tryParse(
+                state.uri.queryParameters['experienceId'] ?? '',
+              ),
             ),
           ),
           GoRoute(
@@ -93,24 +79,19 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
             builder: (context, state) => const NotificationsPage(),
           ),
           GoRoute(
-            name: 'contentContributions',
-            path: '/content-contributions',
-            builder: (context, state) => const ContentContributionPage(),
-          ),
-          GoRoute(
             name: 'accountSettings',
             path: '/profile/settings',
             builder: (context, state) => const AccountSettingsPage(),
           ),
           GoRoute(
+            name: 'inquirySettings',
+            path: '/profile/inquiry-settings',
+            builder: (context, state) => const InquirySettingsPage(),
+          ),
+          GoRoute(
             name: 'wallet',
             path: '/profile/wallet',
             builder: (context, state) => const WalletPage(),
-          ),
-          GoRoute(
-            name: 'certifications',
-            path: '/profile/certifications',
-            builder: (context, state) => const CertificationHomePage(),
           ),
           GoRoute(
             name: 'basicCertification',
@@ -119,9 +100,8 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
           ),
           GoRoute(
             name: 'basicCertificationApply',
-            path: '/profile/certifications/basic/:type/apply',
+            path: '/profile/certifications/basic/IDENTITY/apply',
             builder: (context, state) => BasicCertificationApplyPage(
-              type: state.pathParameters['type']!,
               record: state.extra as CertificationRecord?,
             ),
           ),
@@ -131,15 +111,48 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
             builder: (context, state) => const ExperienceCertificationPage(),
           ),
           GoRoute(
-            name: 'experienceCreate',
-            path: '/profile/certifications/experiences/new',
-            builder: (context, state) => const ExperienceFormPage(),
+            name: 'publicWelfareExperienceCreate',
+            path: '/profile/certifications/experiences/public-welfare/new',
+            builder: (context, state) =>
+                const PublicWelfareExperienceFormPage(),
           ),
           GoRoute(
-            name: 'experienceDetail',
+            name: 'publicWelfareExperienceDetail',
+            path: '/profile/certifications/experiences/public-welfare/:id',
+            builder: (context, state) => PublicWelfareExperienceFormPage(
+              id: int.parse(state.pathParameters['id']!),
+            ),
+          ),
+          GoRoute(
+            name: 'monetizedExperienceCreate',
+            path: '/profile/certifications/experiences/monetized/new',
+            builder: (context, state) => MonetizedExperienceFormPage(
+              upgradeSourceId: int.tryParse(
+                state.uri.queryParameters['upgradeSourceId'] ?? '',
+              ),
+            ),
+          ),
+          GoRoute(
+            name: 'monetizedExperienceDetail',
+            path: '/profile/certifications/experiences/monetized/:id',
+            builder: (context, state) => MonetizedExperienceFormPage(
+              id: int.parse(state.pathParameters['id']!),
+            ),
+          ),
+          GoRoute(
+            name: 'experienceCreateLegacy',
+            path: '/profile/certifications/experiences/new',
+            builder: (context, state) => const ExperienceFormPage(
+              businessType: ExperienceBusinessType.monetized,
+            ),
+          ),
+          GoRoute(
+            name: 'experienceDetailLegacy',
             path: '/profile/certifications/experiences/:id',
-            builder: (context, state) =>
-                ExperienceFormPage(id: int.parse(state.pathParameters['id']!)),
+            builder: (context, state) => ExperienceFormPage(
+              id: int.parse(state.pathParameters['id']!),
+              businessType: ExperienceBusinessType.monetized,
+            ),
           ),
           GoRoute(
             name: 'feedback',
@@ -163,18 +176,6 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
         path: '/chat/:id',
         builder: (context, state) =>
             ChatPage(id: int.parse(state.pathParameters['id']!)),
-      ),
-      GoRoute(
-        name: 'contentContributionCreate',
-        path: '/content-contributions/new',
-        builder: (context, state) => const ContentContributionFormPage(),
-      ),
-      GoRoute(
-        name: 'contentContributionDetail',
-        path: '/content-contributions/:id',
-        builder: (context, state) => ContentContributionDetailPage(
-          id: int.parse(state.pathParameters['id']!),
-        ),
       ),
       GoRoute(
         name: 'customerService',

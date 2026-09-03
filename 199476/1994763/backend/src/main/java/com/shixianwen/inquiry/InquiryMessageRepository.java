@@ -33,6 +33,8 @@ public interface InquiryMessageRepository extends JpaRepository<InquiryMessage, 
 
     long countByInquiryIdAndSenderIdAndCreatedAtAfter(Long inquiryId, Long senderId, LocalDateTime after);
 
+    long countByInquiryIdAndSenderId(Long inquiryId, Long senderId);
+
     long countByInquiryIdAndSenderIdAndMessageTypeAndCreatedAtAfter(
         Long inquiryId,
         Long senderId,

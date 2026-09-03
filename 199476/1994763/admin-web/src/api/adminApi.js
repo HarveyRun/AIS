@@ -206,40 +206,6 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify({ androidRatePercent, iosRatePercent }),
     }),
-  invitationCampaign: () => request('/invitation-campaign'),
-  updateInvitationCampaign: (enabled, rewardAmount) =>
-    request('/invitation-campaign', {
-      method: 'PUT',
-      body: JSON.stringify({ enabled, rewardAmount }),
-    }),
-  invitationReviews: ({ keyword = '', status = '', page = 0, size = 20 } = {}) =>
-    request(
-      `/invitations?keyword=${encodeURIComponent(keyword)}&status=${encodeURIComponent(status)}&page=${page}&size=${size}`,
-    ),
-  invitationIdentityMaterials: (id) => request(`/invitations/${id}/identity-materials`),
-  invitationInviteeHandheldMaterial: (id) =>
-    request(`/invitations/${id}/invitee-handheld-material`),
-  reviewInvitation: (id, approved, reason = '') =>
-    request(`/invitations/${id}/review`, {
-      method: 'POST',
-      body: JSON.stringify({ approved, reason }),
-    }),
-  contentContributions: ({ keyword = '', status = '', page = 0, size = 20 } = {}) =>
-    request(
-      `/content-contributions?${new URLSearchParams({ keyword, status, page, size })}`,
-    ),
-  contentContribution: (id) => request(`/content-contributions/${id}`),
-  contentContributionOriginal: (id) => request(`/content-contributions/${id}/original`),
-  reviewContentContribution: (id, body) =>
-    request(`/content-contributions/${id}/review`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-  reviewContentContributionViolation: (id, body) =>
-    request(`/content-contributions/${id}/violation-review`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
   appTestAccounts: (page = 0, size = 20) => request(`/app-test-accounts?page=${page}&size=${size}`),
   createAppTestAccount: (body) =>
     request('/app-test-accounts', {
@@ -327,21 +293,12 @@ export const adminApi = {
       method: 'DELETE',
     }),
   users: (query) => request(`/users?${query}`),
-  jobs: (jobName = '', page = 0, size = 20) =>
-    request(`/jobs?jobName=${encodeURIComponent(jobName)}&page=${page}&size=${size}`),
-  jobOptions: () => request('/job-options'),
-  experienceOptions: () => request('/experience-options'),
-  allJobUsers: (jobName = '', page = 0, size = 20, jobId = '') =>
-    request(
-      `/job-users?jobName=${encodeURIComponent(jobName)}&jobId=${jobId}&page=${page}&size=${size}`,
-    ),
-  createJob: (body) => request('/jobs', { method: 'POST', body: JSON.stringify(body) }),
-  updateJob: (id, body) => request(`/jobs/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  deleteJob: (id) => request(`/jobs/${id}`, { method: 'DELETE' }),
   table: (type, query = '') => request(`/${type}?${query}`),
   materials: (id) => request(`/certifications/${id}/materials`),
   review: (id, body) =>
     request(`/certifications/${id}/review`, { method: 'POST', body: JSON.stringify(body) }),
+  retryCertificationMedia: (id) =>
+    request(`/certifications/${id}/media-processing/retry`, { method: 'POST' }),
   setCertificationEnabled: (id, enabled) =>
     request(`/certifications/${id}/enabled`, {
       method: 'PATCH',
@@ -350,28 +307,6 @@ export const adminApi = {
   updateCertification: (id, body) =>
     request(`/certifications/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteCertification: (id) => request(`/certifications/${id}`, { method: 'DELETE' }),
-  offlineCertificationAppointments: ({ keyword = '', status = '', page = 0, size = 20 } = {}) =>
-    request(
-      `/job-certification-appointments?keyword=${encodeURIComponent(keyword)}` +
-        `&status=${encodeURIComponent(status)}&page=${page}&size=${size}`,
-    ),
-  offlineCertificationAppointmentMaterials: (id) =>
-    request(`/job-certification-appointments/${id}/materials`),
-  processOfflineCertificationAppointment: (id, payload) => {
-    const form = new FormData();
-    form.append('status', payload.status);
-    form.append('reason', payload.reason || '');
-    if (payload.jobId) form.append('jobId', String(payload.jobId));
-    if (payload.years) form.append('years', String(payload.years));
-    if (payload.authenticityPercent !== null && payload.authenticityPercent !== undefined) {
-      form.append('authenticityPercent', String(payload.authenticityPercent));
-    }
-    if (payload.evidence) form.append('evidence', payload.evidence);
-    return request(`/job-certification-appointments/${id}/process`, {
-      method: 'POST',
-      body: form,
-    });
-  },
   userStatus: (id, body) =>
     request(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify(body) }),
   withdrawalStatus: (id, status) =>
@@ -467,29 +402,5 @@ export const adminApi = {
     request(`/customer-service/users/${userId}/reply`, {
       method: 'POST',
       body: JSON.stringify({ content }),
-    }),
-  discovery: () => request('/discovery'),
-  experienceLibrary: () => request('/experience-library'),
-  createDiscoveryCategory: (body) =>
-    request('/discovery/categories', { method: 'POST', body: JSON.stringify(body) }),
-  updateDiscoveryCategory: (id, body) =>
-    request(`/discovery/categories/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  deleteDiscoveryCategory: (id) => request(`/discovery/categories/${id}`, { method: 'DELETE' }),
-  createDiscoveryMatter: (body) =>
-    request('/discovery/matters', { method: 'POST', body: JSON.stringify(body) }),
-  updateDiscoveryMatter: (id, body) =>
-    request(`/discovery/matters/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  deleteDiscoveryMatter: (id) => request(`/discovery/matters/${id}`, { method: 'DELETE' }),
-  createDiscoveryExperience: (body) =>
-    request('/discovery/experiences', { method: 'POST', body: JSON.stringify(body) }),
-  updateDiscoveryExperience: (id, body) =>
-    request(`/discovery/experiences/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  deleteDiscoveryExperience: (id) => request(`/discovery/experiences/${id}`, { method: 'DELETE' }),
-  experienceUsers: (id, page = 0, size = 20) =>
-    request(`/discovery/experiences/${id}/users?page=${page}&size=${size}`),
-  classifyExperience: (id, experienceId) =>
-    request(`/discovery/certifications/${id}/experience`, {
-      method: 'PATCH',
-      body: JSON.stringify({ experienceId }),
     }),
 };

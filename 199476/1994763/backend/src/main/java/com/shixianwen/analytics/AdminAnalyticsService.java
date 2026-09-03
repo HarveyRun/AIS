@@ -20,7 +20,7 @@ import java.util.Set;
 public class AdminAnalyticsService {
     private static final Set<String> SECTIONS = Set.of(
         "overview", "funnel", "content", "supply", "answerers",
-        "retention", "invitation", "quality"
+        "retention", "quality"
     );
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -35,7 +35,6 @@ public class AdminAnalyticsService {
             case "supply" -> supply(filter);
             case "answerers" -> answerers(filter);
             case "retention" -> retention(filter);
-            case "invitation" -> invitation(filter);
             case "quality" -> quality(filter);
             default -> throw BusinessException.notFound("统计页面不存在");
         };
@@ -117,7 +116,7 @@ public class AdminAnalyticsService {
         Map<String, Object> counts = one(
             "SELECT " +
                 "SUM(event_name='home_view') AS homeView," +
-                "SUM(event_name IN ('matter_select','experience_select','home_search_submit')) AS discover," +
+                "SUM(event_name IN ('home_search_submit','profile_view')) AS discover," +
                 "SUM(event_name='profile_view') AS profileView," +
                 "SUM(event_name='inquiry_start') AS inquiryStart," +
                 "SUM(event_name='inquiry_created') AS inquiryCreated," +
@@ -142,28 +141,43 @@ public class AdminAnalyticsService {
 
     private Map<String, Object> content(Filter filter) {
         return Map.of(
-            "matters", topProperty(filter, "matter_select", "matter_id", "matter_name"),
-            "experiences", topProperty(filter, "experience_select", "experience_id", "experience_name"),
+            "experiences", popularExperiences(filter),
             "banners", topProperty(filter, "banner_click", "banner_id", "banner_title"),
-            "emptyResults", topProperty(filter, "people_result_empty", "content_id", "content_name"),
             "updatedAt", LocalDateTime.now()
+        );
+    }
+
+    private List<Map<String, Object>> popularExperiences(Filter filter) {
+        return jdbc.queryForList(
+            "SELECT certification.id AS contentId,certification.title AS contentName," +
+                "COUNT(DISTINCT inquiry.questioner_id) AS userCount,COUNT(inquiry.id) AS eventCount " +
+                "FROM inquiries inquiry " +
+                "JOIN certifications certification ON certification.id=inquiry.source_experience_certification_id " +
+                "JOIN users questioner ON questioner.id=inquiry.questioner_id " +
+                "WHERE inquiry.created_at>=:startTime AND inquiry.created_at<:endTime " +
+                "AND (:platform='' OR LOWER(inquiry.client_platform)=:platform) " +
+                "AND (:includeTest=TRUE OR questioner.account_type<>'TEST') " +
+                "GROUP BY certification.id,certification.title " +
+                "ORDER BY eventCount DESC,contentId DESC LIMIT 30",
+            filter.params()
         );
     }
 
     private Map<String, Object> supply(Filter filter) {
         MapSqlParameterSource params = filter.params();
-        String eventFilter = where(filter);
         List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT job.id AS jobId,job.name AS jobName," +
-                "COUNT(DISTINCT CASE WHEN relation.verified=TRUE AND relation.deleted_at IS NULL " +
-                "AND user.accepting_inquiries=TRUE AND user.account_status='ACTIVE' THEN relation.user_id END) AS availablePeople," +
-                "(SELECT COUNT(*) FROM analytics_events event WHERE " + eventFilter +
-                " AND event.event_name='job_filter_select' " +
-                "AND CAST(JSON_UNQUOTE(JSON_EXTRACT(event.properties,'$.job_id')) AS UNSIGNED)=job.id) AS demandCount " +
-                "FROM jobs job LEFT JOIN user_jobs relation ON relation.job_id=job.id " +
-                "LEFT JOIN users user ON user.id=relation.user_id " +
-                "WHERE job.active=TRUE AND job.deleted_at IS NULL " +
-                "GROUP BY job.id,job.name ORDER BY demandCount DESC,availablePeople ASC,job.id LIMIT 100",
+            "SELECT MIN(certification.id) AS experienceId,certification.title AS experienceName," +
+                "COUNT(DISTINCT CASE WHEN user.accepting_inquiries=TRUE AND user.account_status='ACTIVE' " +
+                "AND (:includeTest=TRUE OR user.account_type<>'TEST') THEN certification.user_id END) AS availablePeople," +
+                "COUNT(inquiry.id) AS demandCount " +
+                "FROM certifications certification " +
+                "JOIN users user ON user.id=certification.user_id " +
+                "LEFT JOIN inquiries inquiry ON inquiry.source_experience_certification_id=certification.id " +
+                "AND inquiry.created_at>=:startTime AND inquiry.created_at<:endTime " +
+                "AND (:platform='' OR LOWER(inquiry.client_platform)=:platform) " +
+                "WHERE certification.category='EXPERIENCE' AND certification.status='APPROVED' " +
+                "AND certification.enabled=TRUE AND certification.deleted_at IS NULL " +
+                "GROUP BY certification.title ORDER BY demandCount DESC,availablePeople ASC,experienceId LIMIT 100",
             params
         );
         return Map.of("rows", rows, "updatedAt", LocalDateTime.now());
@@ -182,7 +196,6 @@ public class AdminAnalyticsService {
         Map<String, Object> period = one(
             "SELECT " +
                 "SUM(event_name='identity_submitted') AS identitySubmitted," +
-                "SUM(event_name IN ('job_online_submitted','job_appointment_submitted')) AS jobSubmitted," +
                 "SUM(event_name='experience_submitted') AS experienceSubmitted," +
                 "SUM(event_name='certification_approved') AS approved," +
                 "SUM(event_name='certification_rejected') AS rejected " +
@@ -210,26 +223,6 @@ public class AdminAnalyticsService {
         double repeatRate = users.longValue() == 0 ? 0 : repeats.doubleValue() * 100 / users.doubleValue();
         result.put("repeatRate", BigDecimal.valueOf(repeatRate).setScale(2, java.math.RoundingMode.HALF_UP));
         return Map.of("cards", result, "updatedAt", LocalDateTime.now());
-    }
-
-    private Map<String, Object> invitation(Filter filter) {
-        MapSqlParameterSource params = filter.params();
-        Map<String, Object> events = one(
-            "SELECT SUM(event_name='invitation_rules_view') AS rulesView," +
-                "SUM(event_name='invitation_submit') AS submitted," +
-                "SUM(event_name='invitation_approved') AS approved," +
-                "SUM(event_name='invitation_rejected') AS rejected " +
-                "FROM analytics_events WHERE " + where(filter),
-            params
-        );
-        Map<String, Object> rewards = one(
-            "SELECT COALESCE(SUM(reward_amount),0) AS rewardAmount " +
-                "FROM user_invitations invitation JOIN users invitee ON invitee.id=invitation.invitee_user_id " +
-                "WHERE invitation.status='APPROVED' AND invitation.reviewed_at>=:startTime " +
-                "AND invitation.reviewed_at<:endTime AND (:includeTest=TRUE OR invitee.account_type<>'TEST')",
-            params
-        );
-        return Map.of("cards", merge(events, rewards), "updatedAt", LocalDateTime.now());
     }
 
     private Map<String, Object> quality(Filter filter) {

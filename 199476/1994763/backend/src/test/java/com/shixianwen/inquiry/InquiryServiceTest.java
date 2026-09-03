@@ -60,6 +60,7 @@ class InquiryServiceTest {
         AnswererEligibilityService eligibility = mock(AnswererEligibilityService.class);
         SensitiveWordService sensitiveWords = mock(SensitiveWordService.class);
         WalletService wallet = mock(WalletService.class);
+        org.springframework.jdbc.core.JdbcTemplate jdbc = mock(org.springframework.jdbc.core.JdbcTemplate.class);
         InquiryService service = new InquiryService(
             inquiries,
             mock(InquiryMessageRepository.class),
@@ -74,7 +75,7 @@ class InquiryServiceTest {
             mock(ChatAbuseGuard.class),
             mock(SecurityEventService.class),
             mock(com.shixianwen.analytics.AnalyticsEventService.class),
-            mock(org.springframework.jdbc.core.JdbcTemplate.class)
+            jdbc
         );
         User questioner = user(1L, "1000001");
         User answerer = user(2L, "2000002");
@@ -94,14 +95,16 @@ class InquiryServiceTest {
                 new BigDecimal("0.50"), new BigDecimal("9.50")
             )
         );
+        when(jdbc.query(any(String.class), any(org.springframework.jdbc.core.RowMapper.class), any(), any()))
+            .thenReturn(java.util.List.of(
+                new InquiryService.InquiryExperience("装修经历")
+            ));
 
         InquiryService.InquiryView result = service.create(
             1L,
             new InquiryService.CreateCommand(
                 2L,
-                "水暖工",
-                "PROFILE",
-                "家里漏水该怎么处理",
+                81L,
                 new BigDecimal("10"),
                 "android"
             ),
@@ -121,6 +124,7 @@ class InquiryServiceTest {
         InquiryRepository inquiries = mock(InquiryRepository.class);
         UserRepository users = mock(UserRepository.class);
         WalletService wallet = mock(WalletService.class);
+        org.springframework.jdbc.core.JdbcTemplate jdbc = mock(org.springframework.jdbc.core.JdbcTemplate.class);
         InquiryService service = new InquiryService(
             inquiries,
             mock(InquiryMessageRepository.class),
@@ -135,7 +139,7 @@ class InquiryServiceTest {
             mock(ChatAbuseGuard.class),
             mock(SecurityEventService.class),
             mock(com.shixianwen.analytics.AnalyticsEventService.class),
-            mock(org.springframework.jdbc.core.JdbcTemplate.class)
+            jdbc
         );
         User questioner = user(1L, "1000001");
         User answerer = user(2L, "2000002");
@@ -143,6 +147,8 @@ class InquiryServiceTest {
         answerer.setInquiryPriceMax(200);
         when(users.findById(1L)).thenReturn(Optional.of(questioner));
         when(users.findById(2L)).thenReturn(Optional.of(answerer));
+        when(jdbc.query(any(String.class), any(org.springframework.jdbc.core.RowMapper.class), any(), any()))
+            .thenReturn(java.util.List.of(new InquiryService.InquiryExperience("装修经历")));
 
         assertThrows(
             BusinessException.class,
@@ -150,9 +156,7 @@ class InquiryServiceTest {
                 1L,
                 new InquiryService.CreateCommand(
                     2L,
-                    "水暖工",
-                    "PROFILE",
-                    "家里漏水该怎么处理",
+                    81L,
                     new BigDecimal("20"),
                     "android"
                 ),
@@ -163,12 +167,57 @@ class InquiryServiceTest {
     }
 
     @Test
+    void publicWelfareExperienceCannotBeUsedToCreateInquiry() {
+        InquiryRepository inquiries = mock(InquiryRepository.class);
+        UserRepository users = mock(UserRepository.class);
+        WalletService wallet = mock(WalletService.class);
+        org.springframework.jdbc.core.JdbcTemplate jdbc = mock(org.springframework.jdbc.core.JdbcTemplate.class);
+        InquiryService service = new InquiryService(
+            inquiries,
+            mock(InquiryMessageRepository.class),
+            users,
+            wallet,
+            mock(NotificationService.class),
+            mock(RealtimePublisher.class),
+            mock(FileStorage.class),
+            mock(AnswererEligibilityService.class),
+            mock(SensitiveWordService.class),
+            mock(com.shixianwen.content.SensitiveContentCipher.class),
+            mock(ChatAbuseGuard.class),
+            mock(SecurityEventService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            jdbc
+        );
+        User questioner = user(1L, "1000001");
+        User answerer = user(2L, "2000002");
+        when(users.findById(1L)).thenReturn(Optional.of(questioner));
+        when(users.findById(2L)).thenReturn(Optional.of(answerer));
+        when(jdbc.query(any(String.class), any(org.springframework.jdbc.core.RowMapper.class), any(), any()))
+            .thenReturn(java.util.List.of());
+
+        BusinessException error = assertThrows(
+            BusinessException.class,
+            () -> service.create(
+                1L,
+                new InquiryService.CreateCommand(
+                    2L, 82L, new BigDecimal("10"), "android"
+                ),
+                new ClientNetworkInfo("127.0.0.1", "内网")
+            )
+        );
+
+        assertEquals("这段亲身经历已不可询问", error.getMessage());
+        verify(wallet, never()).freeze(any(), any(), any());
+    }
+
+    @Test
     void testAccountsCanCreateSandboxInquiriesWithEachOther() {
         InquiryRepository inquiries = mock(InquiryRepository.class);
         UserRepository users = mock(UserRepository.class);
         WalletService wallet = mock(WalletService.class);
         AnswererEligibilityService eligibility = mock(AnswererEligibilityService.class);
         SensitiveWordService sensitiveWords = mock(SensitiveWordService.class);
+        org.springframework.jdbc.core.JdbcTemplate jdbc = mock(org.springframework.jdbc.core.JdbcTemplate.class);
         InquiryService service = new InquiryService(
             inquiries,
             mock(InquiryMessageRepository.class),
@@ -183,7 +232,7 @@ class InquiryServiceTest {
             mock(ChatAbuseGuard.class),
             mock(SecurityEventService.class),
             mock(com.shixianwen.analytics.AnalyticsEventService.class),
-            mock(org.springframework.jdbc.core.JdbcTemplate.class)
+            jdbc
         );
         User questioner = user(1L, "1000001");
         User answerer = user(2L, "2000002");
@@ -205,11 +254,15 @@ class InquiryServiceTest {
             item.setId(90L);
             return item;
         });
+        when(jdbc.query(any(String.class), any(org.springframework.jdbc.core.RowMapper.class), any(), any()))
+            .thenReturn(java.util.List.of(
+                new InquiryService.InquiryExperience("装修经历")
+            ));
 
         InquiryService.InquiryView result = service.create(
             1L,
             new InquiryService.CreateCommand(
-                2L, "水暖工", "PROFILE", "测试询问", new BigDecimal("10"), "android"
+                2L, 81L, new BigDecimal("10"), "android"
             ),
             new ClientNetworkInfo("127.0.0.1", "内网")
         );
@@ -250,7 +303,7 @@ class InquiryServiceTest {
             () -> service.create(
                 1L,
                 new InquiryService.CreateCommand(
-                    2L, "水暖工", "PROFILE", "测试询问", new BigDecimal("10"), "android"
+                    2L, 81L, new BigDecimal("10"), "android"
                 ),
                 new ClientNetworkInfo("127.0.0.1", "内网")
             )

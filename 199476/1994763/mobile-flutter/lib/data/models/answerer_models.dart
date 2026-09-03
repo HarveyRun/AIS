@@ -1,11 +1,13 @@
+import 'certification_models.dart';
+
 class AnswererExperience {
   const AnswererExperience({
     required this.certificationId,
     required this.title,
     required this.description,
-    required this.years,
-    required this.discoveryCategoryId,
-    required this.discoveryExperienceId,
+    required this.businessType,
+    required this.canInquire,
+    required this.materials,
   });
 
   factory AnswererExperience.fromJson(Map<String, dynamic> json) {
@@ -13,18 +15,31 @@ class AnswererExperience {
       certificationId: _nullableInt(json['certificationId']),
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
-      years: _nullableInt(json['years']),
-      discoveryCategoryId: _nullableInt(json['discoveryCategoryId']),
-      discoveryExperienceId: _nullableInt(json['discoveryExperienceId']),
+      businessType: json['businessType']?.toString() ?? 'MONETIZED',
+      canInquire: json['canInquire'] == true,
+      materials:
+          [
+                ...(json['materials'] as List<dynamic>? ?? const []),
+                ...(json['publicMedia'] as List<dynamic>? ?? const []),
+              ]
+              .whereType<Map>()
+              .map(
+                (item) => CertificationMaterial.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList(growable: false),
     );
   }
 
   final int? certificationId;
   final String title;
   final String description;
-  final int? years;
-  final int? discoveryCategoryId;
-  final int? discoveryExperienceId;
+  final String businessType;
+  final bool canInquire;
+  final List<CertificationMaterial> materials;
+
+  bool get isPublicWelfare => businessType == 'PUBLIC_WELFARE';
 }
 
 class Answerer {
@@ -33,12 +48,11 @@ class Answerer {
     required this.uid,
     required this.nickname,
     required this.avatarUrl,
+    required this.identityVerified,
     required this.acceptingInquiries,
     required this.inquiryPriceMin,
     required this.inquiryPriceMax,
     required this.mainJob,
-    required this.mainJobYears,
-    required this.capabilityDescription,
     required this.experiences,
   });
 
@@ -49,12 +63,11 @@ class Answerer {
       uid: json['uid']?.toString() ?? '',
       nickname: json['nickname']?.toString() ?? '',
       avatarUrl: json['avatarUrl']?.toString() ?? '',
+      identityVerified: json['identityVerified'] == true,
       acceptingInquiries: json['acceptingInquiries'] == true,
       inquiryPriceMin: _boundedInt(json['inquiryPriceMin'], 1),
       inquiryPriceMax: _boundedInt(json['inquiryPriceMax'], 5000),
       mainJob: json['mainJob']?.toString() ?? '-',
-      mainJobYears: _nullableInt(json['mainJobYears']) ?? 0,
-      capabilityDescription: json['capabilityDescription']?.toString() ?? '',
       experiences: experienceData
           .whereType<Map<String, dynamic>>()
           .map(AnswererExperience.fromJson)
@@ -66,12 +79,11 @@ class Answerer {
   final String uid;
   final String nickname;
   final String avatarUrl;
+  final bool identityVerified;
   final bool acceptingInquiries;
   final int inquiryPriceMin;
   final int inquiryPriceMax;
   final String mainJob;
-  final int mainJobYears;
-  final String capabilityDescription;
   final List<AnswererExperience> experiences;
 
   String get displayName => nickname.trim().isEmpty ? 'UID $uid' : nickname;
@@ -100,8 +112,11 @@ class AnswererPageData {
   final bool hasMore;
 }
 
-int _int(Object? value) =>
-    value is num ? value.toInt() : int.tryParse('$value') ?? 0;
+int _int(Object? value) {
+  if (value is num) return value.toInt();
+  return num.tryParse('$value')?.toInt() ?? 0;
+}
+
 int? _nullableInt(Object? value) => value == null ? null : _int(value);
 
 int _boundedInt(Object? value, int fallback) {

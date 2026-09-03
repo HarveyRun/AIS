@@ -86,6 +86,8 @@ class ApiClient {
     Object? data,
     Map<String, dynamic>? query,
     bool showLoading = true,
+    Duration? sendTimeout,
+    Duration? receiveTimeout,
   }) {
     return _request<T>(
       'POST',
@@ -93,6 +95,8 @@ class ApiClient {
       data: data,
       query: query,
       showLoading: showLoading,
+      sendTimeout: sendTimeout,
+      receiveTimeout: receiveTimeout,
     );
   }
 
@@ -114,6 +118,8 @@ class ApiClient {
     Object? data,
     Map<String, dynamic>? query,
     bool showLoading = true,
+    Duration? sendTimeout,
+    Duration? receiveTimeout,
   }) {
     final key = '$method:$path:${query ?? const {}}:${_dataKey(data)}';
     final running = _inFlight[key];
@@ -127,6 +133,8 @@ class ApiClient {
       data: data,
       query: query,
       showLoading: showLoading,
+      sendTimeout: sendTimeout,
+      receiveTimeout: receiveTimeout,
     );
     _inFlight[key] = request;
     request.whenComplete(() => _inFlight.remove(key));
@@ -139,6 +147,8 @@ class ApiClient {
     Object? data,
     Map<String, dynamic>? query,
     required bool showLoading,
+    Duration? sendTimeout,
+    Duration? receiveTimeout,
   }) async {
     if (showLoading) _loading.begin();
     try {
@@ -146,7 +156,11 @@ class ApiClient {
         path,
         data: data,
         queryParameters: query,
-        options: Options(method: method),
+        options: Options(
+          method: method,
+          sendTimeout: sendTimeout,
+          receiveTimeout: receiveTimeout,
+        ),
       );
       final body = response.data;
       if (body is Map<String, dynamic>) {

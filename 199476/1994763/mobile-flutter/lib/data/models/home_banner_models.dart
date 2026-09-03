@@ -35,10 +35,7 @@ class HomeBannerItem {
 
   String get targetPath {
     return switch (actionType) {
-      'MATTER_DISCOVERY' => '/discover/matters',
-      'EXPERIENCE_DISCOVERY' => '/discover/experiences',
-      'CONTENT_CONTRIBUTION' => '/content-contributions',
-      'BASIC_CERTIFICATION' => '/profile/certifications/basic',
+      'MY_EXPERIENCES' => '/profile/certifications/experiences',
       _ => '',
     };
   }

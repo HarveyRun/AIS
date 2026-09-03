@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, ExternalLink, Search } from 'lucide-react';
 import { adminApi } from '../../api/adminApi.js';
 import { useAdminAccess } from '../../app/AdminAccessContext.jsx';
@@ -8,7 +8,7 @@ import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
 import '../shared/Page.css';
 import { message } from '../../components/feedback/message.js';
 const meta = {
-  certifications: ['认证审核', '核对用户提交的身份、岗位与经历材料'],
+  certifications: ['认证审核', '审核实名认证与亲身经历'],
   inquiries: ['询问管理', '查看询问状态和资金流转'],
   withdrawals: ['普通提现处理', '核对并处理用户主动提交的提现申请'],
   feedback: ['投诉反馈', '处理产品反馈与用户投诉'],
@@ -20,19 +20,12 @@ export default function RecordsPage({ type }) {
   const [status, setStatus] = useState('');
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
-  const [certificationCategory, setCertificationCategory] = useState('BASIC');
+  const [certificationCategory, setCertificationCategory] = useState('EXPERIENCE');
+  const [experienceType, setExperienceType] = useState('MONETIZED');
   const [selected, setSelected] = useState(null);
   const [modalMode, setModalMode] = useState('view');
   const [materials, setMaterials] = useState([]);
-  const [jobs, setJobs] = useState([]);
-  const [experienceOptions, setExperienceOptions] = useState([]);
   const [reason, setReason] = useState('');
-  const [selectedJobId, setSelectedJobId] = useState('');
-  const [jobKeyword, setJobKeyword] = useState('');
-  const [selectedExperienceId, setSelectedExperienceId] = useState('');
-  const [experienceKeyword, setExperienceKeyword] = useState('');
-  const [workYears, setWorkYears] = useState('');
-  const [authenticityPercent, setAuthenticityPercent] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [page, setPage] = useState(0);
@@ -42,26 +35,15 @@ export default function RecordsPage({ type }) {
   const [exportingWithdrawals, setExportingWithdrawals] = useState(false);
   const size = 20;
   const supportsUserSearch = ['certifications', 'inquiries', 'withdrawals'].includes(type);
-  const visibleJobs = useMemo(() => {
-    const keyword = jobKeyword.trim().toLowerCase();
-    const matched = keyword
-      ? jobs.filter((job) => (
-          job.name.toLowerCase().includes(keyword)
-          || (job.description || '').toLowerCase().includes(keyword)
-        ))
-      : jobs;
-
-    return matched.slice(0, 20);
-  }, [jobs, jobKeyword]);
-  const visibleExperienceOptions = useMemo(() => {
-    const keyword = experienceKeyword.trim().toLowerCase();
-    return experienceOptions.filter((item) => !keyword || `${item.name} ${item.categoryName}`.toLowerCase().includes(keyword)).slice(0, 20);
-  }, [experienceOptions, experienceKeyword]);
   const load = (targetPage = page) => {
     return adminApi
       .table(type, new URLSearchParams({
         status,
         category: type === 'certifications' ? certificationCategory : '',
+        experienceType:
+          type === 'certifications' && certificationCategory === 'EXPERIENCE'
+            ? experienceType
+            : '',
         keyword: supportsUserSearch ? appliedKeyword : '',
         page: targetPage,
         size,
@@ -73,7 +55,7 @@ export default function RecordsPage({ type }) {
     setSelected(null);
     setPage(0);
     load(0);
-  }, [type, status, certificationCategory, appliedKeyword]);
+  }, [type, status, certificationCategory, experienceType, appliedKeyword]);
   const search = (event) => {
     event.preventDefault();
     const nextKeyword = keyword.trim();
@@ -110,40 +92,11 @@ export default function RecordsPage({ type }) {
       setSelected(row);
       setModalMode(mode);
       setReason('');
-      setSelectedJobId('');
-      setJobKeyword('');
-      setSelectedExperienceId('');
-      setExperienceKeyword('');
-      setWorkYears(row.type === 'MAIN_JOB' && row.years != null ? String(row.years) : '');
-      setAuthenticityPercent(
-        row.type === 'MAIN_JOB' && row.authenticityPercent != null
-          ? String(row.authenticityPercent)
-          : '',
-      );
       setEditTitle(row.title || '');
       setEditDescription(row.description || '');
       setMaterials([]);
-      setJobs([]);
-      setExperienceOptions([]);
       if (type === 'certifications') {
-        const requests = [adminApi.materials(row.id)];
-        if (row.type === 'MAIN_JOB' && (mode === 'review' || mode === 'edit')) {
-            requests.push(adminApi.jobOptions());
-        } else if (row.type === 'EXPERIENCE' && mode === 'review') {
-            requests.push(adminApi.experienceOptions());
-        }
-        const [materialResult, optionResult = []] = await Promise.all(requests);
-        setMaterials(materialResult);
-        if (row.type === 'MAIN_JOB') {
-          const activeJobs = optionResult.filter((job) => job.active);
-          setJobs(activeJobs);
-          const currentJob = activeJobs.find((job) => job.name === row.title);
-          if (currentJob) {
-            setSelectedJobId(String(currentJob.id));
-            setJobKeyword(currentJob.name);
-          }
-        }
-        if (row.type === 'EXPERIENCE') setExperienceOptions(optionResult);
+        setMaterials(await adminApi.materials(row.id));
       }
     } catch (e) {
       setSelected(null);
@@ -156,36 +109,9 @@ export default function RecordsPage({ type }) {
       return;
     }
     try {
-      if (approved && selected.type === 'MAIN_JOB' && !selectedJobId) {
-        message.warning('请选择审核判定的岗位');
-        return;
-      }
-      if (selected.type === 'MAIN_JOB' && !authenticityPercent) {
-        message.warning('请选择材料真实程度');
-        return;
-      }
-      if (approved && selected.type === 'EXPERIENCE' && !selectedExperienceId) {
-        message.warning('请选择审核判定的标准经历');
-        return;
-      }
-      if (approved && selected.type === 'MAIN_JOB' && !/^\d+$/.test(workYears)) {
-        message.warning('请填写工龄');
-        return;
-      }
-      const numericYears = Number(workYears);
-      if (approved && selected.type === 'MAIN_JOB' && (numericYears < 5 || numericYears > 80)) {
-        message.warning('工龄必须是5至80之间的整数');
-        return;
-      }
       await adminApi.review(selected.id, {
         approved,
         reason: reason.trim(),
-        jobId: selected.type === 'MAIN_JOB' ? Number(selectedJobId) : null,
-        years: selected.type === 'MAIN_JOB' ? numericYears : null,
-        experienceId: selected.type === 'EXPERIENCE' ? Number(selectedExperienceId) : null,
-        authenticityPercent: selected.type === 'MAIN_JOB'
-          ? Number(authenticityPercent)
-          : null,
       });
       setSelected(null);
       await load();
@@ -207,20 +133,9 @@ export default function RecordsPage({ type }) {
   };
   const saveCertification = async () => {
     try {
-      if (selected.type === 'MAIN_JOB' && !selectedJobId) {
-        message.warning('请选择岗位');
-        return;
-      }
-      const numericYears = Number(workYears);
-      if (selected.type === 'MAIN_JOB' && (!/^\d+$/.test(workYears) || numericYears < 5 || numericYears > 80)) {
-        message.warning('工龄必须是5至80之间的整数');
-        return;
-      }
       await adminApi.updateCertification(selected.id, {
         title: editTitle.trim(),
         description: editDescription.trim(),
-        jobId: selected.type === 'MAIN_JOB' ? Number(selectedJobId) : null,
-        years: selected.type === 'MAIN_JOB' ? numericYears : null,
       });
       message.success('基础信息认证已修改');
       setSelected(null);
@@ -253,6 +168,18 @@ export default function RecordsPage({ type }) {
       message.error(e.message);
     } finally {
       setDeletingCertification(false);
+    }
+  };
+  const retryCertificationMedia = async (row) => {
+    try {
+      setOperatingCertificationId(row.id);
+      await adminApi.retryCertificationMedia(row.id);
+      message.success('已重新开始整理证明资料');
+      await load();
+    } catch (e) {
+      message.error(e.message);
+    } finally {
+      setOperatingCertificationId(null);
     }
   };
   return (
@@ -300,8 +227,25 @@ export default function RecordsPage({ type }) {
       </form>
       {type === 'certifications' && (
         <div className="certification-tabs">
-          <button className={certificationCategory === 'BASIC' ? 'active' : ''} onClick={() => setCertificationCategory('BASIC')}>基础信息</button>
-          <button className={certificationCategory === 'EXPERIENCE' ? 'active' : ''} onClick={() => setCertificationCategory('EXPERIENCE')}>亲身经历</button>
+          <button
+            className={certificationCategory === 'EXPERIENCE' && experienceType === 'MONETIZED' ? 'active' : ''}
+            onClick={() => {
+              setCertificationCategory('EXPERIENCE');
+              setExperienceType('MONETIZED');
+            }}
+          >
+            干货变现
+          </button>
+          <button
+            className={certificationCategory === 'EXPERIENCE' && experienceType === 'PUBLIC_WELFARE' ? 'active' : ''}
+            onClick={() => {
+              setCertificationCategory('EXPERIENCE');
+              setExperienceType('PUBLIC_WELFARE');
+            }}
+          >
+            公益分享
+          </button>
+          <button className={certificationCategory === 'BASIC' ? 'active' : ''} onClick={() => setCertificationCategory('BASIC')}>实名认证</button>
         </div>
       )}
       <div className="table-card">
@@ -336,6 +280,15 @@ export default function RecordsPage({ type }) {
                   )}
                   {type === 'certifications' && can('CERTIFICATION_DELETE') && (
                     <button className="danger" onClick={() => setDeleteTarget(row)}>删除</button>
+                  )}
+                  {type === 'certifications' && can('CERTIFICATION_REVIEW') && row.category === 'EXPERIENCE' && row.status === 'APPROVED' && ['FAILED', 'NOT_REQUIRED'].includes(row.mediaProcessingStatus) && (
+                    <button
+                      className="plain"
+                      disabled={operatingCertificationId === row.id}
+                      onClick={() => retryCertificationMedia(row)}
+                    >
+                      重新整理
+                    </button>
                   )}
                   {type !== 'certifications' && can(processPermission(type)) && (
                     ((type === 'withdrawals' && ['PROCESSING', 'EXPORTED'].includes(row.status))
@@ -390,6 +343,20 @@ export default function RecordsPage({ type }) {
             </div>
             {type === 'certifications' && (
               <>
+                {selected.category === 'EXPERIENCE' && (
+                  <div className={`review-standard ${selected.experienceBusinessType === 'PUBLIC_WELFARE' ? 'simple' : 'strict'}`}>
+                    <strong>
+                      {selected.experienceBusinessType === 'PUBLIC_WELFARE'
+                        ? '公益分享审核标准'
+                        : '干货变现审核标准'}
+                    </strong>
+                    <p>
+                      {selected.experienceBusinessType === 'PUBLIC_WELFARE'
+                        ? '仅审核内容及材料中是否存在敏感信息。'
+                        : '除敏感信息外，需核验本人经历及证明材料，并判断时间、人物、经过和前后逻辑是否合理。'}
+                    </p>
+                  </div>
+                )}
                 <h3>认证材料</h3>
                 <div className="materials">
                   {materials.map((m) => (
@@ -408,109 +375,12 @@ export default function RecordsPage({ type }) {
                         <input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} />
                       </label>
                     )}
-                    {selected.type === 'MAIN_JOB' && (
-                      <>
-                        <label className="review-job-field">
-                          <span>岗位</span>
-                          <input value={jobKeyword} onChange={(event) => { setJobKeyword(event.target.value); setSelectedJobId(''); }} placeholder="输入岗位名称搜索" />
-                          <div className="review-job-options">
-                            {visibleJobs.map((job) => <button type="button" className={selectedJobId === String(job.id) ? 'selected' : ''} key={job.id} onClick={() => { setSelectedJobId(String(job.id)); setJobKeyword(job.name); }}><b>{job.name}</b>{job.description && <small>{job.description}</small>}</button>)}
-                          </div>
-                        </label>
-                        <label className="review-job-field"><span>工龄</span><input type="number" min="5" max="80" value={workYears} onChange={(event) => setWorkYears(event.target.value)} /></label>
-                      </>
-                    )}
                     <label className="review-job-field"><span>说明</span><input value={editDescription} onChange={(event) => setEditDescription(event.target.value)} placeholder="选填" /></label>
                     <button className="plain" type="button" onClick={saveCertification}>保存认证信息</button>
                   </div>
                 )}
                 {modalMode === 'review' && selected.status === 'PENDING' && (
                   <>
-                    {selected.type === 'MAIN_JOB' && (
-                      <>
-                        <AuthenticitySelector
-                          value={authenticityPercent}
-                          onChange={setAuthenticityPercent}
-                        />
-                        <label className="review-job-field">
-                          <span>审核判定岗位</span>
-                          <input
-                            value={jobKeyword}
-                            onChange={(event) => {
-                              setJobKeyword(event.target.value);
-                              setSelectedJobId('');
-                            }}
-                            placeholder="输入岗位名称搜索"
-                          />
-                          <div className="review-job-options">
-                            {visibleJobs.map((job) => (
-                              <button
-                                type="button"
-                                className={selectedJobId === String(job.id) ? 'selected' : ''}
-                                key={job.id}
-                                onClick={() => {
-                                  setSelectedJobId(String(job.id));
-                                  setJobKeyword(job.name);
-                                }}
-                              >
-                                <b>{job.name}</b>
-                                {job.description && <small>{job.description}</small>}
-                              </button>
-                            ))}
-                            {!visibleJobs.length && (
-                              <p>没有找到相关岗位，请先到岗位管理中新增</p>
-                            )}
-                          </div>
-                          <small>只可选择岗位库中已启用的岗位</small>
-                        </label>
-                        <label className="review-job-field">
-                          <span>工龄</span>
-                          <input
-                            type="number"
-                            min="5"
-                            max="80"
-                            step="1"
-                            value={workYears}
-                            onChange={(event) => setWorkYears(event.target.value)}
-                            placeholder="请输入整数年数"
-                          />
-                          <small>岗位认证通过后，将展示在该用户档案中</small>
-                        </label>
-                      </>
-                    )}
-                    {selected.type === 'EXPERIENCE' && (
-                      <label className="review-job-field">
-                        <span>审核判定经历</span>
-                        <input
-                          value={experienceKeyword}
-                          onChange={(event) => {
-                            setExperienceKeyword(event.target.value);
-                            setSelectedExperienceId('');
-                          }}
-                          placeholder="输入标准经历名称搜索"
-                        />
-                        <div className="review-job-options">
-                          {visibleExperienceOptions.map((item) => (
-                            <button
-                              type="button"
-                              className={selectedExperienceId === String(item.id) ? 'selected' : ''}
-                              key={item.id}
-                              onClick={() => {
-                                setSelectedExperienceId(String(item.id));
-                                setExperienceKeyword(item.name);
-                              }}
-                            >
-                              <b>{item.name}</b>
-                              <small>{item.categoryName}</small>
-                            </button>
-                          ))}
-                          {!visibleExperienceOptions.length && (
-                            <p>没有找到相关经历，请先到内容分类中新增标准经历</p>
-                          )}
-                        </div>
-                        <small>相似表述应选择同一个标准经历</small>
-                      </label>
-                    )}
                     <textarea
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
@@ -608,11 +478,10 @@ const labels = {
   type: '类型',
   title: '标题',
   description: '说明',
-  years: '年限',
+  experienceBusinessType: '发布类型',
+  upgradeSourceId: '升级来源编号',
   status: '状态',
   rejectionReason: '驳回原因',
-  authenticityPercent: '材料真实程度',
-  jobReapplyAvailableAt: '可再次申请时间',
   submittedAt: '提交时间',
   topic: '主题',
   question: '询问内容',
@@ -621,6 +490,9 @@ const labels = {
   serviceFeeAmount: '平台服务费',
   answererIncomeAmount: '回答方收入',
   fundsStatus: '资金状态',
+  mediaProcessingStatus: '证明资料整理状态',
+  mediaProcessingError: '整理失败原因',
+  mediaProcessedAt: '整理完成时间',
   createdAt: '创建时间',
   questionerUid: '提问者UID',
   answererUid: '回答者UID',
@@ -651,11 +523,25 @@ function cells(type, r) {
         </td>
         <td>
           <b>{certificationTitle(r)}</b>
-          <small>{certificationTypeName(r.type)}</small>
+          <small>
+            {r.category === 'EXPERIENCE'
+              ? r.experienceBusinessType === 'PUBLIC_WELFARE'
+                ? '公益分享'
+                : '干货变现'
+              : certificationTypeName(r.type)}
+          </small>
         </td>
         <td>
           <Status value={r.status} />
           {r.status === 'APPROVED' && r.enabled === false && <small>已停用</small>}
+          {r.category === 'EXPERIENCE' && r.status === 'APPROVED' && (
+            <small>
+              {mediaProcessingLabel(r.mediaProcessingStatus)}
+              {r.mediaProcessingStatus === 'FAILED' && r.mediaProcessingError
+                ? `：${r.mediaProcessingError}`
+                : ''}
+            </small>
+          )}
         </td>
         <td>{date(r.submittedAt)}</td>
       </>
@@ -743,18 +629,28 @@ function modalTitle(type, mode) {
 }
 function certificationTitle(record) {
   if (record.type === 'IDENTITY') return '身份信息';
-  if (record.type === 'MAIN_JOB' && record.status === 'PENDING') return '岗位材料';
   return record.title;
 }
 function certificationTypeName(type) {
-  return { IDENTITY: '基础信息 · 身份', MAIN_JOB: '基础信息 · 岗位', EXPERIENCE: '亲身经历' }[type] || type;
+  return { IDENTITY: '实名认证', EXPERIENCE: '亲身经历' }[type] || type;
+}
+
+function mediaProcessingLabel(status) {
+  return {
+    PENDING: '证明资料等待整理',
+    PROCESSING: '证明资料整理中',
+    READY: '证明资料已整理',
+    FAILED: '证明资料整理失败',
+    NOT_REQUIRED: '未开始整理',
+  }[status] || '未开始整理';
 }
 
 const DETAIL_VALUE_LABELS = {
   BASIC: '基础信息',
   EXPERIENCE: '亲身经历',
   IDENTITY: '实名认证',
-  MAIN_JOB: '岗位认证',
+  PUBLIC_WELFARE: '公益分享',
+  MONETIZED: '干货变现',
   PRODUCT: '产品反馈',
   COMPLAINT: '投诉',
   PENDING: '待处理',
@@ -787,43 +683,9 @@ function processPermission(type) {
 
 function formatDetailValue(key, value, recordType) {
   if (value == null || value === '') return '—';
-  if (key === 'authenticityPercent') return `${value}%`;
   if (key.toLowerCase().includes('time') || key.endsWith('At')) return date(value);
   if (key === 'enabled') return value ? '已启用' : '已停用';
   if (typeof value === 'boolean') return value ? '是' : '否';
   if (key === 'status' && recordType === 'certifications' && value === 'PENDING') return '待审核';
   return DETAIL_VALUE_LABELS[String(value)] || String(value);
-}
-
-const AUTHENTICITY_LEVELS = [
-  [100, 0],
-  [90, 6],
-  [80, 12],
-  [60, 18],
-  [51, 24],
-  [40, 30],
-  [20, 36],
-  [0, 42],
-];
-
-function AuthenticitySelector({ value, onChange }) {
-  return (
-    <div className="review-job-field authenticity-selector">
-      <span>材料真实程度</span>
-      <div>
-        {AUTHENTICITY_LEVELS.map(([percent, months]) => (
-          <button
-            type="button"
-            className={value === String(percent) ? 'selected' : ''}
-            key={percent}
-            onClick={() => onChange(String(percent))}
-          >
-            <b>{percent}%</b>
-            <small>{months === 0 ? '不限制' : `${months}个月`}</small>
-          </button>
-        ))}
-      </div>
-      <small>认证通过或不通过都必须选择；下方时间为再次申请岗位认证的间隔</small>
-    </div>
-  );
 }

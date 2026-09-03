@@ -87,19 +87,32 @@ public class InquiryService {
             );
         }
         answererEligibility.requireAvailable(answerer.getId());
+        if (inquiries.existsByQuestionerIdAndAnswererIdAndStatusIn(questionerId, answerer.getId(), OPEN))
+            throw BusinessException.badRequest("你们已有一条进行中的询问");
+        List<InquiryExperience> matchedExperiences = jdbc.query(
+            "SELECT title FROM certifications WHERE id=? AND user_id=? " +
+                "AND category='EXPERIENCE' AND COALESCE(experience_business_type,'MONETIZED')='MONETIZED' " +
+                "AND status='APPROVED' AND enabled=TRUE AND deleted_at IS NULL",
+            (resultSet, rowNumber) -> new InquiryExperience(resultSet.getString("title")),
+            command.sourceExperienceCertificationId(),
+            answerer.getId()
+        );
+        if (matchedExperiences.isEmpty()) {
+            throw BusinessException.badRequest("这段亲身经历已不可询问");
+        }
+        InquiryExperience selectedExperience = matchedExperiences.get(0);
         BigDecimal amount = MoneyAmounts.requireWholeAmount(
             command.amount(), BigDecimal.ONE, new BigDecimal("5000"), "询问金额"
         );
-        var settlementQuote = wallet.quoteInquirySettlement(amount, command.clientPlatform());
         requirePriceInRange(answerer, amount);
-        if (inquiries.existsByQuestionerIdAndAnswererIdAndStatusIn(questionerId, answerer.getId(), OPEN))
-            throw BusinessException.badRequest("你们已有一条进行中的询问");
-        String originalQuestion = required(command.question(), "请填写想问的事情", 300);
+        var settlementQuote = wallet.quoteInquirySettlement(amount, command.clientPlatform());
+        String topic = selectedExperience.title();
         Inquiry item = new Inquiry();
-        item.setQuestioner(questioner); item.setAnswerer(answerer); item.setTopic(sensitiveWords.mask(clean(command.topic(), 120)));
-        item.setSourceType(command.sourceType() == null ? "PROFILE" : command.sourceType());
-        item.setQuestion(sensitiveWords.mask(originalQuestion));
-        item.setQuestionRawEncrypted(sensitiveContentCipher.encrypt(originalQuestion));
+        item.setQuestioner(questioner); item.setAnswerer(answerer); item.setTopic(sensitiveWords.mask(topic));
+        item.setSourceType("EXPERIENCE");
+        item.setSourceExperienceCertificationId(command.sourceExperienceCertificationId());
+        item.setQuestion(sensitiveWords.mask(topic));
+        item.setQuestionRawEncrypted(sensitiveContentCipher.encrypt(topic));
         item.setRequestIp(network.ipAddress());
         item.setRequestLocation(network.location());
         item.setAmount(amount);
@@ -128,15 +141,16 @@ public class InquiryService {
     }
 
     private void requirePriceInRange(User answerer, BigDecimal amount) {
-        if (amount == null ||
-            amount.compareTo(BigDecimal.valueOf(answerer.getInquiryPriceMin())) < 0 ||
-            amount.compareTo(BigDecimal.valueOf(answerer.getInquiryPriceMax())) > 0) {
+        if (amount.compareTo(BigDecimal.valueOf(answerer.getInquiryPriceMin())) < 0
+            || amount.compareTo(BigDecimal.valueOf(answerer.getInquiryPriceMax())) > 0) {
             throw BusinessException.badRequest(
                 "对方可接受的询问金额为¥" + answerer.getInquiryPriceMin() + "—¥" +
                     answerer.getInquiryPriceMax()
             );
         }
     }
+
+    public record InquiryExperience(String title) {}
 
     @Transactional(readOnly = true)
     public List<InquiryView> list(Long userId) {
@@ -247,7 +261,8 @@ public class InquiryService {
     @Transactional
     public MessageView send(Long userId, Long inquiryId, String content) {
         Inquiry item = lockedAccessible(userId, inquiryId);
-        requireStatus(item, "ACTIVE");
+        requireMessagingStatus(item, userId);
+        requireQuestionerFirstTurn(item, userId);
         requireConsecutiveMessageCapacity(item, userId);
         chatAbuseGuard.requireTextAllowed(inquiryId, userId, content == null ? "" : content.trim());
         if (item.getQuestioner().getId().equals(userId)) item.setQuestionerUnreadCount(0);
@@ -283,7 +298,8 @@ public class InquiryService {
     @Transactional
     public MessageView sendImage(Long userId, Long inquiryId, MultipartFile image) {
         Inquiry item = lockedAccessible(userId, inquiryId);
-        requireStatus(item, "ACTIVE");
+        requireMessagingStatus(item, userId);
+        requireQuestionerFirstTurn(item, userId);
         requireConsecutiveMessageCapacity(item, userId);
         chatAbuseGuard.requireImageAllowed(inquiryId, userId);
         validateChatImage(image);
@@ -610,6 +626,22 @@ public class InquiryService {
         }
     }
 
+    private void requireQuestionerFirstTurn(Inquiry item, Long senderId) {
+        if (!item.getQuestioner().getId().equals(senderId)) return;
+        if (item.getFirstAnswererReplyAt() != null) return;
+        if (messages.countByInquiryIdAndSenderId(item.getId(), senderId) >= 1) {
+            throw BusinessException.badRequest("请等待对方回复后再继续发送");
+        }
+    }
+
+    private void requireMessagingStatus(Inquiry item, Long senderId) {
+        if ("ACTIVE".equals(item.getStatus())) return;
+        if ("PENDING".equals(item.getStatus()) && item.getQuestioner().getId().equals(senderId)) {
+            return;
+        }
+        throw BusinessException.badRequest("当前状态不能发送消息");
+    }
+
     private InquiryMessage createSystemMessage(Inquiry item, String type, String content) {
         InquiryMessage message = new InquiryMessage();
         message.setInquiry(item);
@@ -785,9 +817,7 @@ public class InquiryService {
     }
     public record CreateCommand(
         Long answererId,
-        String topic,
-        String sourceType,
-        String question,
+        Long sourceExperienceCertificationId,
         BigDecimal amount,
         String clientPlatform
     ) {}

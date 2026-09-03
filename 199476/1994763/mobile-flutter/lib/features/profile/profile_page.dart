@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/certification_models.dart';
+import 'invitation_reward_dialog.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -39,9 +40,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  bool get _joined {
-    final required = _certifications.where((item) => item.required).toList();
-    return required.isNotEmpty && required.every((item) => item.approved);
+  Future<void> _redeemInvitationReward() async {
+    final input = await showDialog<InvitationRewardInput>(
+      context: context,
+      builder: (context) => const InvitationRewardDialog(),
+    );
+    if (!mounted || input == null) return;
+    try {
+      final result = await ref
+          .read(repositoryProvider)
+          .redeemExperienceInvitationReward(input.uid, input.phone);
+      if (!mounted) return;
+      final value = result['totalRewardAmount'];
+      final amount = value is num
+          ? value.toDouble()
+          : double.tryParse('$value') ?? 0;
+      final amountText = amount == amount.roundToDouble()
+          ? amount.toInt().toString()
+          : amount.toStringAsFixed(2);
+      AppMessage.show(context, '领取成功，$amountText元已到账');
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+    }
   }
 
   @override
@@ -83,13 +103,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       (item.type == 'IDENTITY' || item.type.contains('实名')) &&
                       item.approved,
                 ),
-                answererTitle: _joined ? '答主信息' : '成为答主',
                 onSettings: () => context.push('/profile/settings'),
-                onAnswerer: () => context.push(
-                  _joined
-                      ? '/profile/certifications'
-                      : '/profile/certifications/basic',
-                ),
+                onExperiences: () =>
+                    context.push('/profile/certifications/experiences'),
                 onWallet: () => context.push('/profile/wallet'),
               ),
               const SizedBox(height: 20),
@@ -102,10 +118,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 child: Column(
                   children: [
                     _MenuItem(
-                      icon: Icons.route_outlined,
-                      title: '我的经历',
-                      onTap: () =>
-                          context.push('/profile/certifications/experiences'),
+                      icon: Icons.card_giftcard_rounded,
+                      title: '邀请得奖金',
+                      onTap: _redeemInvitationReward,
                     ),
                     _MenuItem(
                       icon: Icons.help_outline_rounded,
@@ -159,9 +174,8 @@ class _ProfileOverview extends StatelessWidget {
     required this.displayName,
     required this.uid,
     required this.verified,
-    required this.answererTitle,
     required this.onSettings,
-    required this.onAnswerer,
+    required this.onExperiences,
     required this.onWallet,
   });
 
@@ -169,9 +183,8 @@ class _ProfileOverview extends StatelessWidget {
   final String displayName;
   final String uid;
   final bool verified;
-  final String answererTitle;
   final VoidCallback onSettings;
-  final VoidCallback onAnswerer;
+  final VoidCallback onExperiences;
   final VoidCallback onWallet;
 
   @override
@@ -259,10 +272,10 @@ class _ProfileOverview extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _OverviewEntry(
-                        icon: Icons.record_voice_over_outlined,
-                        title: answererTitle,
+                        icon: Icons.route_outlined,
+                        title: '我的经历',
                         color: gold,
-                        onTap: onAnswerer,
+                        onTap: onExperiences,
                       ),
                     ),
                     Container(

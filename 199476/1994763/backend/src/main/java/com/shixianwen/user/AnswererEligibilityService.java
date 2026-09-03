@@ -23,11 +23,15 @@ public class AnswererEligibilityService {
         User user = users.findById(userId)
             .orElseThrow(() -> BusinessException.notFound("用户不存在"));
         boolean identityApproved = approved(userId, "IDENTITY");
-        boolean jobApproved = approved(userId, "MAIN_JOB");
+        boolean experienceApproved = certifications
+            .existsByUserIdAndCategoryAndExperienceBusinessTypeAndStatusAndEnabledTrue(
+                userId, "EXPERIENCE", "MONETIZED", "APPROVED"
+            );
         return new Eligibility(
             identityApproved,
-            jobApproved,
-            identityApproved && jobApproved,
+            experienceApproved,
+            identityApproved,
+            identityApproved && experienceApproved,
             "ACTIVE".equals(user.getAccountStatus()),
             user.isAcceptingInquiries()
         );
@@ -38,8 +42,8 @@ public class AnswererEligibilityService {
         if (!eligibility.accountActive()) {
             throw BusinessException.forbidden("当前账号不可用");
         }
-        if (!eligibility.basicInformationApproved()) {
-            throw BusinessException.forbidden("完成基础信息认证后才能接受询问");
+        if (!eligibility.answererQualified()) {
+            throw BusinessException.forbidden("完成实名认证并通过至少一条亲身经历后才能接受询问");
         }
         return eligibility;
     }
@@ -70,8 +74,9 @@ public class AnswererEligibilityService {
 
     public record Eligibility(
         boolean identityApproved,
-        boolean jobApproved,
+        boolean experienceApproved,
         boolean basicInformationApproved,
+        boolean answererQualified,
         boolean accountActive,
         boolean acceptingInquiries
     ) {

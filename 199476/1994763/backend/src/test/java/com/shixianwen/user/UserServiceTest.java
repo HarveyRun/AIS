@@ -38,7 +38,7 @@ class UserServiceTest {
         when(sensitiveWords.mask("新昵称")).thenReturn("新昵称");
         when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.updateProfile(user, "新昵称", null);
+        service.updateProfile(user, "新昵称", null, "产品经理");
 
         assertEquals("新昵称", user.getNickname());
         assertEquals("https://cdn.example.com/avatar.jpg", user.getAvatarUrl());

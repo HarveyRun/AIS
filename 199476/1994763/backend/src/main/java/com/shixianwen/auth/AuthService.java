@@ -240,6 +240,7 @@ public class AuthService {
         String phone,
         String nickname,
         String avatarUrl,
+        String jobTitle,
         boolean acceptingInquiries,
         LocalDateTime acceptingInquiriesUpdatedAt,
         int inquiryPriceMin,
@@ -250,7 +251,7 @@ public class AuthService {
     ) {
         public static UserView from(User user) {
             return new UserView(
-                user.getId(), user.getUid(), user.getPhone(), user.getNickname(), user.getAvatarUrl(),
+                user.getId(), user.getUid(), user.getPhone(), user.getNickname(), user.getAvatarUrl(), user.getJobTitle(),
                 user.isAcceptingInquiries(), user.getAcceptingInquiriesUpdatedAt(),
                 user.getInquiryPriceMin(), user.getInquiryPriceMax(), user.getInquiryPriceUpdatedAt(),
                 user.getAnswererStatus(), user.isPlatformIntroRequired()

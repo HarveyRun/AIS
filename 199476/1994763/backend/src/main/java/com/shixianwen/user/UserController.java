@@ -38,7 +38,7 @@ public class UserController {
         @CurrentUser User user,
         @Valid @RequestBody UpdateProfileRequest request
     ) {
-        return ApiResponse.ok(userService.updateProfile(user, request.nickname(), request.avatarUrl()));
+        return ApiResponse.ok(userService.updateProfile(user, request.nickname(), request.avatarUrl(), request.jobTitle()));
     }
 
     @PatchMapping("/accepting-inquiries")
@@ -95,7 +95,8 @@ public class UserController {
 
     public record UpdateProfileRequest(
         @Size(max = 12, message = "昵称最多12个字") String nickname,
-        @Size(max = 500, message = "头像地址过长") String avatarUrl
+        @Size(max = 500, message = "头像地址过长") String avatarUrl,
+        @Size(max = 30, message = "岗位最多30个字") String jobTitle
     ) {
     }
 

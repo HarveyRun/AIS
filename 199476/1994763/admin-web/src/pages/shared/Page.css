@@ -444,3 +444,33 @@ button.primary {
   gap: 10px;
   margin-top: 18px;
 }
+
+.review-standard {
+  margin: 4px 0 20px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #f6f7f8;
+  color: #3f454d;
+}
+
+.review-standard.simple {
+  background: #eef8f2;
+  color: #24613b;
+}
+
+.review-standard.strict {
+  background: #fff6e8;
+  color: #77501c;
+}
+
+.review-standard strong,
+.review-standard p {
+  display: block;
+  margin: 0;
+}
+
+.review-standard p {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.65;
+}

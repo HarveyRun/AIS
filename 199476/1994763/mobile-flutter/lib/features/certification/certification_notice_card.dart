@@ -13,22 +13,26 @@ class CertificationNoticeParagraph {
   const CertificationNoticeParagraph({
     required this.text,
     this.emphasis = const [],
+    this.marker,
   });
 
   final String text;
   final List<String> emphasis;
+  final String? marker;
 }
 
 class CertificationNoticeCard extends StatelessWidget {
   const CertificationNoticeCard({
     super.key,
     required this.tone,
-    this.label = '温馨提示',
+    this.label = '审核标准',
     this.title,
     this.description,
     this.items = const [],
     this.paragraphs = const [],
     this.footer,
+    this.onClose,
+    this.prominentLabel = false,
   });
 
   final String? title;
@@ -38,6 +42,8 @@ class CertificationNoticeCard extends StatelessWidget {
   final List<CertificationNoticeParagraph> paragraphs;
   final CertificationNoticeTone tone;
   final String? footer;
+  final VoidCallback? onClose;
+  final bool prominentLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -74,16 +80,40 @@ class CertificationNoticeCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(_toneIcon, size: 16, color: toneColor),
-                      const SizedBox(width: 6),
+                      Icon(
+                        _toneIcon,
+                        size: prominentLabel ? 21 : 16,
+                        color: toneColor,
+                      ),
+                      SizedBox(width: prominentLabel ? 8 : 6),
                       Text(
                         label,
                         style: TextStyle(
                           color: toneColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          fontSize: prominentLabel ? 18 : 11,
+                          fontWeight: prominentLabel
+                              ? FontWeight.w700
+                              : FontWeight.w600,
                         ),
                       ),
+                      if (onClose != null) ...[
+                        const Spacer(),
+                        IconButton(
+                          onPressed: onClose,
+                          tooltip: '关闭',
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 32,
+                            height: 32,
+                          ),
+                          padding: EdgeInsets.zero,
+                          icon: Icon(
+                            Icons.close_rounded,
+                            size: 20,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   if (title != null) ...[
@@ -183,19 +213,50 @@ class _NoticeParagraph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final hasMarker = paragraph.marker != null;
     final normalStyle = TextStyle(
-      color: scheme.onSurfaceVariant,
-      fontSize: 11,
-      height: 1.65,
+      color: hasMarker ? scheme.onSurface : scheme.onSurfaceVariant,
+      fontSize: hasMarker ? 13 : 11,
+      height: hasMarker ? 1.6 : 1.65,
     );
     final emphasisStyle = normalStyle.copyWith(
       color: scheme.onSurface,
       fontWeight: FontWeight.w700,
     );
 
-    return Text.rich(
+    final content = Text.rich(
       TextSpan(children: _buildSpans(normalStyle, emphasisStyle)),
+    );
+    if (!hasMarker) return content;
+
+    final markerColor = Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFE0A24A)
+        : const Color(0xFFB36B18);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          margin: const EdgeInsets.only(top: 1),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: markerColor.withValues(alpha: .12),
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            paragraph.marker!,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: markerColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: content),
+      ],
     );
   }
 

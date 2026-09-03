@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../app/providers.dart';
+import '../../core/theme/app_status_style.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
+import '../../data/models/certification_models.dart';
 import '../../data/models/user_models.dart';
 import '../../data/repositories/app_repository.dart';
 
@@ -18,7 +21,9 @@ class AccountSettingsPage extends ConsumerStatefulWidget {
 class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
   late final TextEditingController _nickname;
   List<ViolationCounter>? _violationCounters;
-  bool _saving = false;
+  CertificationRecord? _identity;
+  bool _editingNickname = false;
+  bool _savingNickname = false;
 
   @override
   void initState() {
@@ -26,17 +31,52 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
     _nickname = TextEditingController(
       text: ref.read(authControllerProvider).user?.nickname ?? '',
     );
-    _loadViolationCounters();
+    _loadSettingsData();
   }
 
-  Future<void> _loadViolationCounters() async {
+  Future<void> _loadSettingsData() async {
     try {
-      final counters = await ref.read(repositoryProvider).violationCounters();
-      if (mounted) setState(() => _violationCounters = counters);
+      final results = await Future.wait([
+        ref.read(repositoryProvider).certifications(),
+        ref.read(repositoryProvider).violationCounters(),
+      ]);
+      if (!mounted) return;
+      final certifications = results[0] as List<CertificationRecord>;
+      setState(() {
+        _identity = _findIdentity(certifications);
+        _violationCounters = results[1] as List<ViolationCounter>;
+      });
     } catch (error) {
       if (!mounted) return;
       setState(() => _violationCounters = const []);
       AppMessage.show(context, '$error');
+    }
+  }
+
+  CertificationRecord? _findIdentity(List<CertificationRecord> certifications) {
+    for (final item in certifications) {
+      if (item.type == 'IDENTITY') return item;
+    }
+    return null;
+  }
+
+  Future<void> _openIdentityCertification() async {
+    try {
+      final certifications = await ref
+          .read(repositoryProvider)
+          .certifications();
+      if (!mounted) return;
+      final identity = _findIdentity(certifications);
+      setState(() => _identity = identity);
+      await context.push(
+        '/profile/certifications/basic/IDENTITY/apply',
+        extra: identity,
+      );
+      if (!mounted) return;
+      final latest = await ref.read(repositoryProvider).certifications();
+      if (mounted) setState(() => _identity = _findIdentity(latest));
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
     }
   }
 
@@ -64,18 +104,26 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
     }
   }
 
-  Future<void> _save() async {
-    setState(() => _saving = true);
+  Future<void> _saveNickname() async {
+    final currentUser = ref.read(authControllerProvider).user;
+    if (currentUser == null) return;
+    setState(() => _savingNickname = true);
     try {
       final user = await ref
           .read(repositoryProvider)
-          .updateProfile(nickname: _nickname.text.trim());
+          .updateProfile(
+            nickname: _nickname.text.trim(),
+            jobTitle: currentUser.jobTitle,
+          );
       ref.read(authControllerProvider).replaceUser(user);
-      if (mounted) AppMessage.show(context, '昵称已保存');
+      if (mounted) {
+        setState(() => _editingNickname = false);
+        AppMessage.show(context, '昵称已更新');
+      }
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) setState(() => _savingNickname = false);
     }
   }
 
@@ -182,21 +230,72 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Divider(height: 1),
                   ),
-                  Text('昵称', style: Theme.of(context).textTheme.labelMedium),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _nickname,
-                    maxLength: 12,
-                    decoration: const InputDecoration(hintText: '未设置时显示 UID'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '昵称',
+                              style: Theme.of(context).textTheme.labelMedium,
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              user.displayName,
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _savingNickname
+                            ? null
+                            : () {
+                                if (_editingNickname) {
+                                  _nickname.text = user.nickname;
+                                }
+                                setState(
+                                  () => _editingNickname = !_editingNickname,
+                                );
+                              },
+                        icon: Icon(
+                          _editingNickname
+                              ? Icons.close_rounded
+                              : Icons.edit_outlined,
+                          size: 16,
+                        ),
+                        label: Text(_editingNickname ? '取消' : '修改'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: _saving ? null : _save,
-                    child: const Text('保存'),
-                  ),
+                  if (_editingNickname) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _nickname,
+                      autofocus: true,
+                      maxLength: 12,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _saveNickname(),
+                      decoration: const InputDecoration(hintText: '未设置时显示 UID'),
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton(
+                        onPressed: _savingNickname ? null : _saveNickname,
+                        child: Text(_savingNickname ? '保存中…' : '保存昵称'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 16),
+          _IdentitySettingCard(
+            record: _identity,
+            onTap: _openIdentityCertification,
           ),
           const SizedBox(height: 16),
           Container(
@@ -367,6 +466,82 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _IdentitySettingCard extends StatelessWidget {
+  const _IdentitySettingCard({required this.record, required this.onTap});
+
+  final CertificationRecord? record;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = record?.status ?? '';
+    final style = appStatusStyle(context, status);
+    final label = switch (status.toUpperCase()) {
+      'PENDING' => '审核中',
+      'APPROVED' => '已认证',
+      'REJECTED' => '未通过',
+      _ => '去认证',
+    };
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.verified_user_outlined,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '实名认证',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '查看和管理实名认证',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: style.foreground,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(Icons.chevron_right_rounded, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }

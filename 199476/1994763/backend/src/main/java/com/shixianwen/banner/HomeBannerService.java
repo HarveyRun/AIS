@@ -29,10 +29,7 @@ public class HomeBannerService {
     private static final Set<String> DISPLAY_MODES = Set.of(TEXT_ONLY, IMAGE_ONLY, IMAGE_TEXT);
     private static final Set<String> ACTION_TYPES = Set.of(
         "NONE",
-        "MATTER_DISCOVERY",
-        "EXPERIENCE_DISCOVERY",
-        "CONTENT_CONTRIBUTION",
-        "BASIC_CERTIFICATION",
+        "MY_EXPERIENCES",
         "PLATFORM_INTRODUCTION"
     );
     private static final Set<String> IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");

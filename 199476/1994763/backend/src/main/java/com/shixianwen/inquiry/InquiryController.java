@@ -30,7 +30,7 @@ public class InquiryController {
         return ApiResponse.ok(service.create(
             user.getId(),
             new InquiryService.CreateCommand(
-                body.answererId(), body.topic(), body.sourceType(), body.question(), body.amount(), clientPlatform
+                body.answererId(), body.sourceExperienceCertificationId(), body.amount(), clientPlatform
             ),
             clientNetworkService.resolve(request)
         ));
@@ -55,8 +55,7 @@ public class InquiryController {
     @PostMapping("/{id}/disagree-end") public ApiResponse<InquiryService.InquiryView> disagreeEnd(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.disagreeEnd(u.getId(), id)); }
     @PostMapping("/{id}/confirm-end") public ApiResponse<InquiryService.InquiryView> confirmEnd(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.confirmEnd(u.getId(), id)); }
 
-    public record CreateRequest(@NotNull Long answererId, @Size(max=120) String topic, @Size(max=30) String sourceType,
-                                @NotBlank @Size(max=300) String question,
+    public record CreateRequest(@NotNull Long answererId, @NotNull Long sourceExperienceCertificationId,
                                 @NotNull @DecimalMin("1") @DecimalMax("5000") @Digits(integer=4, fraction=0) BigDecimal amount) {}
     public record MessageRequest(@NotBlank @Size(max=500) String content) {}
 }

@@ -25,10 +25,7 @@ const MODE_OPTIONS = [
 ];
 const ACTION_OPTIONS = [
   ['NONE', '不跳转'],
-  ['MATTER_DISCOVERY', '进入按事情找人'],
-  ['EXPERIENCE_DISCOVERY', '进入按经历找人'],
-  ['CONTENT_CONTRIBUTION', '进入内容共建'],
-  ['BASIC_CERTIFICATION', '进入基础认证'],
+  ['MY_EXPERIENCES', '进入我的经历'],
   ['PLATFORM_INTRODUCTION', '展示平台初衷'],
 ];
 const EMPTY_FORM = {

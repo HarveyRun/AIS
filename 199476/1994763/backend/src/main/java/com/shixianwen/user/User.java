@@ -35,8 +35,8 @@ public class User {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
-    @Column(name = "capability_description", length = 240)
-    private String capabilityDescription;
+    @Column(name = "job_title", length = 80)
+    private String jobTitle;
 
     @Column(name = "accepting_inquiries", nullable = false)
     private boolean acceptingInquiries = false;
@@ -55,9 +55,6 @@ public class User {
 
     @Column(name = "answerer_status", nullable = false, length = 30)
     private String answererStatus = "NOT_APPLIED";
-
-    @Column(name = "job_certification_blocked_until")
-    private LocalDateTime jobCertificationBlockedUntil;
 
     @Column(name = "account_status", nullable = false, length = 30)
     private String accountStatus = "ACTIVE";

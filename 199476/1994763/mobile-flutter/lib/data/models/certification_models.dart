@@ -6,6 +6,7 @@ class CertificationMaterial {
     required this.url,
     required this.size,
     required this.contentType,
+    this.selected = false,
   });
 
   factory CertificationMaterial.fromJson(Map<String, dynamic> json) {
@@ -16,6 +17,7 @@ class CertificationMaterial {
       url: json['url']?.toString() ?? '',
       size: _int(json['size']),
       contentType: json['contentType']?.toString() ?? '',
+      selected: json['selected'] == true,
     );
   }
 
@@ -25,6 +27,36 @@ class CertificationMaterial {
   final String url;
   final int size;
   final String contentType;
+  final bool selected;
+}
+
+class ExperiencePublicMediaView {
+  const ExperiencePublicMediaView({
+    required this.certificationId,
+    required this.processingStatus,
+    required this.processingError,
+    required this.items,
+  });
+
+  factory ExperiencePublicMediaView.fromJson(Map<String, dynamic> json) {
+    return ExperiencePublicMediaView(
+      certificationId: _int(json['certificationId']),
+      processingStatus: json['processingStatus']?.toString() ?? '',
+      processingError: json['processingError']?.toString() ?? '',
+      items: (json['items'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) =>
+                CertificationMaterial.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  final int certificationId;
+  final String processingStatus;
+  final String processingError;
+  final List<CertificationMaterial> items;
 }
 
 class CertificationRecord {
@@ -34,13 +66,15 @@ class CertificationRecord {
     required this.type,
     required this.title,
     required this.description,
-    required this.years,
-    required this.authenticityPercent,
-    required this.jobReapplyAvailableAt,
     required this.required,
     required this.status,
     required this.enabled,
     required this.rejectionReason,
+    required this.experienceBusinessType,
+    required this.upgradeSourceId,
+    required this.mediaProcessingStatus,
+    required this.mediaProcessingError,
+    required this.lastOperatedAt,
     required this.materials,
   });
 
@@ -51,13 +85,19 @@ class CertificationRecord {
       type: json['type']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
-      years: _nullableInt(json['years']),
-      authenticityPercent: _nullableInt(json['authenticityPercent']),
-      jobReapplyAvailableAt: _nullableDateTime(json['jobReapplyAvailableAt']),
       required: json['required'] == true,
       status: json['status']?.toString() ?? '',
       enabled: json['enabled'] != false,
       rejectionReason: json['rejectionReason']?.toString() ?? '',
+      experienceBusinessType:
+          json['experienceBusinessType']?.toString() ?? 'MONETIZED',
+      upgradeSourceId: _nullableInt(json['upgradeSourceId']),
+      mediaProcessingStatus:
+          json['mediaProcessingStatus']?.toString() ?? 'NOT_REQUIRED',
+      mediaProcessingError: json['mediaProcessingError']?.toString() ?? '',
+      lastOperatedAt: DateTime.tryParse(
+        json['lastOperatedAt']?.toString() ?? '',
+      ),
       materials: (json['materials'] as List<dynamic>? ?? const [])
           .whereType<Map>()
           .map(
@@ -73,44 +113,26 @@ class CertificationRecord {
   final String type;
   final String title;
   final String description;
-  final int? years;
-  final int? authenticityPercent;
-  final DateTime? jobReapplyAvailableAt;
   final bool required;
   final String status;
   final bool enabled;
   final String rejectionReason;
+  final String experienceBusinessType;
+  final int? upgradeSourceId;
+  final String mediaProcessingStatus;
+  final String mediaProcessingError;
+  final DateTime? lastOperatedAt;
   final List<CertificationMaterial> materials;
 
   bool get approved => status.toUpperCase() == 'APPROVED' || status == '已认证';
   bool get pending => status.toUpperCase() == 'PENDING' || status == '审核中';
+  bool get isPublicWelfare => experienceBusinessType == 'PUBLIC_WELFARE';
+  bool get isMonetized => !isPublicWelfare;
 }
 
-class JobCertificationAppointment {
-  const JobCertificationAppointment({
-    required this.id,
-    required this.appointmentAt,
-    required this.city,
-    required this.status,
-  });
-
-  factory JobCertificationAppointment.fromJson(Map<String, dynamic> json) {
-    return JobCertificationAppointment(
-      id: _int(json['id']),
-      appointmentAt: DateTime.parse(json['appointmentAt'].toString()),
-      city: json['city']?.toString() ?? '北京',
-      status: json['status']?.toString() ?? '',
-    );
-  }
-
-  final int id;
-  final DateTime appointmentAt;
-  final String city;
-  final String status;
+int _int(Object? value) {
+  if (value is num) return value.toInt();
+  return num.tryParse('$value')?.toInt() ?? 0;
 }
 
-int _int(Object? value) =>
-    value is num ? value.toInt() : int.tryParse('$value') ?? 0;
 int? _nullableInt(Object? value) => value == null ? null : _int(value);
-DateTime? _nullableDateTime(Object? value) =>
-    value == null ? null : DateTime.tryParse(value.toString());

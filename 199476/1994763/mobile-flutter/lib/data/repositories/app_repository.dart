@@ -1,14 +1,13 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../../core/network/api_client.dart';
 import '../models/answerer_models.dart';
 import '../models/app_version_models.dart';
 import '../models/certification_models.dart';
-import '../models/content_contribution_models.dart';
-import '../models/discovery_models.dart';
 import '../models/home_banner_models.dart';
 import '../models/inquiry_models.dart';
-import '../models/invitation_models.dart';
 import '../models/support_models.dart';
 import '../models/user_models.dart';
 import '../models/wallet_models.dart';
@@ -41,45 +40,6 @@ class AppRepository {
         .toList(growable: false);
   }
 
-  Future<ContentContributionSummary> contentContributionSummary() async {
-    final data = await _api.get<Map<String, dynamic>>(
-      '/content-contributions/summary',
-    );
-    return ContentContributionSummary.fromJson(data);
-  }
-
-  Future<ContentContributionPageData> contentContributions({
-    int page = 0,
-    int size = 20,
-  }) async {
-    final data = await _api.get<Map<String, dynamic>>(
-      '/content-contributions',
-      query: {'page': page, 'size': size},
-    );
-    return ContentContributionPageData.fromJson(data);
-  }
-
-  Future<ContentContribution> contentContribution(int id) async {
-    final data = await _api.get<Map<String, dynamic>>(
-      '/content-contributions/$id',
-    );
-    return ContentContribution.fromJson(data);
-  }
-
-  Future<ContentContribution> submitContentContribution({
-    required String matterName,
-    required List<ContentContributionDraftJob> jobs,
-  }) async {
-    final data = await _api.post<Map<String, dynamic>>(
-      '/content-contributions',
-      data: {
-        'matterName': matterName,
-        'jobs': jobs.map((item) => item.toJson()).toList(growable: false),
-      },
-    );
-    return ContentContribution.fromJson(data);
-  }
-
   Future<void> sendVerificationCode(String phone) {
     return _api.post<Object?>(
       '/auth/verification-codes',
@@ -102,10 +62,13 @@ class AppRepository {
     return AppUser.fromJson(data);
   }
 
-  Future<AppUser> updateProfile({required String nickname}) async {
+  Future<AppUser> updateProfile({
+    required String nickname,
+    required String jobTitle,
+  }) async {
     final data = await _api.put<Map<String, dynamic>>(
       '/users/me',
-      data: {'nickname': nickname},
+      data: {'nickname': nickname, 'jobTitle': jobTitle},
     );
     return AppUser.fromJson(data);
   }
@@ -121,6 +84,16 @@ class AppRepository {
   }
 
   Future<void> deleteAccount() => _api.delete<Object?>('/users/me');
+
+  Future<Map<String, dynamic>> redeemExperienceInvitationReward(
+    String invitedUid,
+    String invitedPhone,
+  ) {
+    return _api.post<Map<String, dynamic>>(
+      '/experience-invitation-rewards/redeem',
+      data: {'invitedUid': invitedUid, 'invitedPhone': invitedPhone},
+    );
+  }
 
   Future<AccountDeletionEligibility> accountDeletionEligibility() async {
     final data = await _api.get<Map<String, dynamic>>(
@@ -169,27 +142,6 @@ class AppRepository {
     return _api.get<Map<String, dynamic>>('/users/me/answerer-eligibility');
   }
 
-  Future<InvitationCampaignStatus> invitationCampaignStatus({
-    bool showLoading = true,
-  }) async {
-    final data = await _api.get<Map<String, dynamic>>(
-      '/invitations/status',
-      showLoading: showLoading,
-    );
-    return InvitationCampaignStatus.fromJson(data);
-  }
-
-  Future<InvitationCampaignStatus> bindInvitationCode(
-    String code,
-    String inviterRealName,
-  ) async {
-    final data = await _api.post<Map<String, dynamic>>(
-      '/invitations/bind',
-      data: {'invitationCode': code, 'inviterRealName': inviterRealName},
-    );
-    return InvitationCampaignStatus.fromJson(data);
-  }
-
   Future<AnswererPageData> answerers({
     int page = 0,
     int size = 10,
@@ -205,60 +157,6 @@ class AppRepository {
   Future<Answerer> answerer(String uid) async {
     final data = await _api.get<Map<String, dynamic>>('/answerers/$uid');
     return Answerer.fromJson(data);
-  }
-
-  Future<List<Answerer>> answerersByMatter(int matterId) async {
-    final data = await _api.get<List<dynamic>>(
-      '/answerers/by-matter/$matterId',
-    );
-    return _answererList(data);
-  }
-
-  Future<List<Answerer>> answerersByExperience(int experienceId) async {
-    final data = await _api.get<List<dynamic>>(
-      '/answerers/by-experience',
-      query: {'experienceId': experienceId},
-    );
-    return _answererList(data);
-  }
-
-  Future<List<DiscoveryCategory>> matterCategories(String category) async {
-    final data = await _api.get<List<dynamic>>(
-      '/public/discovery/matter-categories',
-      query: {'mainCategory': category},
-    );
-    return _categoryList(data);
-  }
-
-  Future<List<DiscoveryCategory>> experienceCategories(String category) async {
-    final data = await _api.get<List<dynamic>>(
-      '/public/discovery/experience-categories',
-      query: {'mainCategory': category},
-    );
-    return _categoryList(data);
-  }
-
-  Future<List<DiscoverySearchItem>> searchMatters(String keyword) async {
-    final data = await _api.get<List<dynamic>>(
-      '/public/discovery/matters/search',
-      query: {'keyword': keyword},
-    );
-    return _searchList(data);
-  }
-
-  Future<List<DiscoverySearchItem>> searchExperiences(String keyword) async {
-    final data = await _api.get<List<dynamic>>(
-      '/public/discovery/experiences/search',
-      query: {'keyword': keyword},
-    );
-    return _searchList(data);
-  }
-
-  Future<DiscoveryMatter> discoveryMatter(int id) async {
-    final data = await _api.get<Map<String, dynamic>>(
-      '/public/discovery/matters/$id',
-    );
-    return DiscoveryMatter.fromJson(data);
   }
 
   Future<List<InquirySummary>> inquiries({bool showLoading = true}) async {
@@ -292,18 +190,14 @@ class AppRepository {
 
   Future<InquirySummary> createInquiry({
     required int answererId,
-    required String topic,
-    required String sourceType,
-    required String question,
+    required int sourceExperienceCertificationId,
     required int amount,
   }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/inquiries',
       data: {
         'answererId': answererId,
-        'topic': topic,
-        'sourceType': sourceType,
-        'question': question,
+        'sourceExperienceCertificationId': sourceExperienceCertificationId,
         'amount': amount,
       },
     );
@@ -477,12 +371,9 @@ class AppRepository {
         .toList(growable: false);
   }
 
-  Future<void> submitBasicCertification(
-    String type,
-    List<UploadFile> files,
-  ) async {
+  Future<void> submitIdentityCertification(List<UploadFile> files) async {
     await _api.post<Object?>(
-      '/certifications/basic/$type',
+      '/certifications/basic/IDENTITY',
       data: FormData.fromMap({
         'files': await Future.wait(
           files.map(
@@ -493,44 +384,16 @@ class AppRepository {
     );
   }
 
-  Future<JobCertificationAppointment?> currentJobCertificationAppointment({
-    bool showLoading = true,
-  }) async {
-    final data = await _api.get<Object?>(
-      '/certifications/job/offline-appointment',
-      showLoading: showLoading,
-    );
-    if (data is! Map) return null;
-    return JobCertificationAppointment.fromJson(
-      Map<String, dynamic>.from(data),
-    );
-  }
-
-  Future<JobCertificationAppointment> bookJobCertificationAppointment(
-    DateTime appointmentAt,
-  ) async {
-    final data = await _api.post<Map<String, dynamic>>(
-      '/certifications/job/offline-appointment',
-      data: {'appointmentAt': appointmentAt.toIso8601String()},
-    );
-    return JobCertificationAppointment.fromJson(data);
-  }
-
-  Future<bool> jobCertificationAppointmentAvailable(
-    DateTime appointmentAt,
-  ) async {
-    final data = await _api.get<Map<String, dynamic>>(
-      '/certifications/job/offline-appointment/availability',
-      query: {'appointmentAt': appointmentAt.toIso8601String()},
-    );
-    return data['available'] == true;
-  }
-
   Future<void> submitExperienceCertification({
     int? existingId,
     required String title,
     required String description,
-    required List<UploadFile> files,
+    required bool privacyConfirmed,
+    required Uint8List signatureBytes,
+    required String detailMode,
+    UploadFile? reviewOriginal,
+    UploadFile? proofArchive,
+    UploadFile? detailVideo,
   }) async {
     await _api.post<Object?>(
       '/certifications/experiences',
@@ -538,13 +401,127 @@ class AppRepository {
         if (existingId != null) 'existingId': existingId,
         'title': title,
         'description': description,
-        'files': await Future.wait(
-          files.map(
-            (file) => MultipartFile.fromFile(file.path, filename: file.name),
-          ),
+        'privacyConfirmed': privacyConfirmed,
+        'detailMode': detailMode,
+        'signature': MultipartFile.fromBytes(
+          signatureBytes,
+          filename: 'signature.png',
         ),
+        if (reviewOriginal != null)
+          'reviewOriginal': await MultipartFile.fromFile(
+            reviewOriginal.path,
+            filename: reviewOriginal.name,
+          ),
+        if (proofArchive != null)
+          'proofArchive': await MultipartFile.fromFile(
+            proofArchive.path,
+            filename: proofArchive.name,
+          ),
+        if (detailVideo != null)
+          'detailVideo': await MultipartFile.fromFile(
+            detailVideo.path,
+            filename: detailVideo.name,
+          ),
       }),
+      sendTimeout: const Duration(hours: 2),
+      receiveTimeout: const Duration(hours: 2),
     );
+  }
+
+  Future<void> submitPublicWelfareExperience({
+    int? existingId,
+    required String title,
+    required String description,
+    required String detailMode,
+    UploadFile? proofArchive,
+    UploadFile? detailVideo,
+  }) async {
+    await _api.post<Object?>(
+      '/certifications/experiences/public-welfare',
+      data: FormData.fromMap({
+        if (existingId != null) 'existingId': existingId,
+        'title': title,
+        'description': description,
+        'detailMode': detailMode,
+        if (proofArchive != null)
+          'proofArchive': await MultipartFile.fromFile(
+            proofArchive.path,
+            filename: proofArchive.name,
+          ),
+        if (detailVideo != null)
+          'detailVideo': await MultipartFile.fromFile(
+            detailVideo.path,
+            filename: detailVideo.name,
+          ),
+      }),
+      sendTimeout: const Duration(hours: 2),
+      receiveTimeout: const Duration(hours: 2),
+    );
+  }
+
+  Future<void> submitMonetizedExperience({
+    int? existingId,
+    int? upgradeSourceId,
+    required String title,
+    required String description,
+    required Uint8List signatureBytes,
+    required String detailMode,
+    UploadFile? reviewOriginal,
+    UploadFile? proofArchive,
+    UploadFile? detailVideo,
+  }) async {
+    await _api.post<Object?>(
+      '/certifications/experiences/monetized',
+      data: FormData.fromMap({
+        if (existingId != null) 'existingId': existingId,
+        if (upgradeSourceId != null) 'upgradeSourceId': upgradeSourceId,
+        'title': title,
+        'description': description,
+        'privacyConfirmed': true,
+        'detailMode': detailMode,
+        'signature': MultipartFile.fromBytes(
+          signatureBytes,
+          filename: 'signature.png',
+        ),
+        if (reviewOriginal != null)
+          'reviewOriginal': await MultipartFile.fromFile(
+            reviewOriginal.path,
+            filename: reviewOriginal.name,
+          ),
+        if (proofArchive != null)
+          'proofArchive': await MultipartFile.fromFile(
+            proofArchive.path,
+            filename: proofArchive.name,
+          ),
+        if (detailVideo != null)
+          'detailVideo': await MultipartFile.fromFile(
+            detailVideo.path,
+            filename: detailVideo.name,
+          ),
+      }),
+      sendTimeout: const Duration(hours: 2),
+      receiveTimeout: const Duration(hours: 2),
+    );
+  }
+
+  Future<ExperiencePublicMediaView> experiencePublicMedia(
+    int certificationId,
+  ) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/certifications/experiences/$certificationId/public-media',
+    );
+    return ExperiencePublicMediaView.fromJson(data);
+  }
+
+  Future<ExperiencePublicMediaView> updateExperiencePublicMedia(
+    int certificationId,
+    Iterable<int> selectedIds,
+  ) async {
+    final data = await _api.put<Map<String, dynamic>>(
+      '/certifications/experiences/$certificationId/public-media',
+      data: {'selectedIds': selectedIds.toList(growable: false)},
+    );
+    return ExperiencePublicMediaView.fromJson(data);
   }
 
   Future<List<AppNotification>> notifications({bool showLoading = true}) async {
@@ -662,25 +639,6 @@ class AppRepository {
       showLoading: false,
     );
   }
-
-  List<Answerer> _answererList(List<dynamic> data) => data
-      .whereType<Map>()
-      .map((item) => Answerer.fromJson(Map<String, dynamic>.from(item)))
-      .toList(growable: false);
-
-  List<DiscoveryCategory> _categoryList(List<dynamic> data) => data
-      .whereType<Map>()
-      .map(
-        (item) => DiscoveryCategory.fromJson(Map<String, dynamic>.from(item)),
-      )
-      .toList(growable: false);
-
-  List<DiscoverySearchItem> _searchList(List<dynamic> data) => data
-      .whereType<Map>()
-      .map(
-        (item) => DiscoverySearchItem.fromJson(Map<String, dynamic>.from(item)),
-      )
-      .toList(growable: false);
 }
 
 int _int(Object? value) =>

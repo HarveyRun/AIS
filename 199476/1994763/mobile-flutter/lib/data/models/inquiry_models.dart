@@ -21,6 +21,7 @@ class InquirySummary {
     required this.confirmationDeadline,
     required this.createdAt,
     required this.lastMessageAt,
+    required this.firstAnswererReplyAt,
   });
 
   factory InquirySummary.fromJson(Map<String, dynamic> json) {
@@ -46,6 +47,7 @@ class InquirySummary {
       confirmationDeadline: _date(json['confirmationDeadline']),
       createdAt: _date(json['createdAt']),
       lastMessageAt: _date(json['lastMessageAt']),
+      firstAnswererReplyAt: _date(json['firstAnswererReplyAt']),
     );
   }
 
@@ -70,6 +72,7 @@ class InquirySummary {
   final DateTime? confirmationDeadline;
   final DateTime? createdAt;
   final DateTime? lastMessageAt;
+  final DateTime? firstAnswererReplyAt;
 
   bool get isIncoming => role.toUpperCase() == 'ANSWERER';
   bool get canChat => status.toUpperCase() == 'ACTIVE';

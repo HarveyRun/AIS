@@ -35,6 +35,9 @@ public class Inquiry {
     @Column(name = "source_type", nullable = false, length = 30)
     private String sourceType = "PROFILE";
 
+    @Column(name = "source_experience_certification_id")
+    private Long sourceExperienceCertificationId;
+
     @Column(nullable = false, length = 1000)
     private String question;
 

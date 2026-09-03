@@ -7,13 +7,15 @@ import {
   WalletCards,
   MessageSquareWarning,
   Landmark,
+  Footprints,
 } from 'lucide-react';
 import '../shared/Page.css';
 import { message } from '../../components/feedback/message.js';
 const cards = [
   ['users', '有效用户', Users],
-  ['answerers', '答主', ShieldCheck],
-  ['pendingCertifications', '待审认证', ShieldCheck],
+  ['answerers', '经历发布者', ShieldCheck],
+  ['approvedExperiences', '已通过经历', Footprints],
+  ['pendingExperiences', '待审经历', Footprints],
   ['activeInquiries', '进行中询问', MessagesSquare],
   ['pendingWithdrawals', '待处理提现', WalletCards],
   ['openFeedback', '待处理反馈', MessageSquareWarning],

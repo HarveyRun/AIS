@@ -353,7 +353,6 @@ function reviewReason(value) {
       NO_EFFECTIVE_ANSWER: '没有提供有效回答',
       CLEARLY_OFF_TOPIC: '明显答非所问',
       SUSPECTED_FABRICATION: '疑似虚构经历或身份',
-      JOB_MISMATCH: '实际岗位与认证信息不符',
       HARASSMENT: '交流中存在骚扰',
       OFF_PLATFORM_PAYMENT: '引导平台外付款',
       OTHER: '其他问题',

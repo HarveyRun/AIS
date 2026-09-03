@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.Duration;
@@ -88,6 +91,15 @@ public class OssFileStorage implements FileStorage {
         }
         Date expiresAt = Date.from(Instant.now().plus(privateUrlValidity));
         return client.generatePresignedUrl(privateBucket, storageKey, expiresAt).toString();
+    }
+
+    @Override
+    public void copyTo(String storageKey, StorageVisibility visibility, Path destination) {
+        try (InputStream input = client.getObject(bucketFor(visibility), storageKey).getObjectContent()) {
+            Files.copy(input, destination, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException | RuntimeException exception) {
+            throw BusinessException.serviceUnavailable("文件读取失败，请稍后重试");
+        }
     }
 
     private String bucketFor(StorageVisibility visibility) {

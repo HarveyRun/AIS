@@ -18,7 +18,7 @@ import java.util.Map;
 public class AdminAnalyticsController {
     private final AdminAnalyticsService analytics;
 
-    @GetMapping("/{section:overview|funnel|content|supply|answerers|retention|invitation|quality}")
+    @GetMapping("/{section:overview|funnel|content|supply|answerers|retention|quality}")
     public ApiResponse<Map<String, Object>> section(
         @PathVariable String section,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

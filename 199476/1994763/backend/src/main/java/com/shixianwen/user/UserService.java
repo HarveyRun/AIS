@@ -70,8 +70,9 @@ public class UserService {
     }
 
     @Transactional
-    public AuthService.UserView updateProfile(User user, String nickname, String avatarUrl) {
+    public AuthService.UserView updateProfile(User user, String nickname, String avatarUrl, String jobTitle) {
         user.setNickname(nickname == null || nickname.isBlank() ? null : sensitiveWords.mask(nickname.trim()));
+        user.setJobTitle(jobTitle == null || jobTitle.isBlank() ? null : sensitiveWords.mask(jobTitle.trim()));
         if (avatarUrl != null) {
             user.setAvatarUrl(avatarUrl.isBlank() ? null : avatarUrl.trim());
         }
@@ -194,7 +195,6 @@ public class UserService {
         user.setAnswererStatus("CLOSED");
         user.setNickname(null);
         user.setAvatarUrl(null);
-        user.setCapabilityDescription(null);
         user.setDeletedPhoneHash(PhoneIdentityHash.of(user.getPhone()));
         user.setPhone(deletedPhone(user.getId()));
         userRepository.save(user);

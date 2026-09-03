@@ -257,19 +257,8 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
     context.push(item.targetPath);
   }
 
-  void _openDiscovery(String type) {
-    unawaited(
-      ref
-          .read(analyticsProvider)
-          .track(
-            type == 'matters' ? 'matter_entry_click' : 'experience_entry_click',
-            properties: {'source': 'home'},
-          ),
-    );
-    context.push('/discover/$type');
-  }
-
   void _openAnswerer(Answerer answerer, int position) {
+    final experience = answerer.experiences.first;
     unawaited(
       ref
           .read(analyticsProvider)
@@ -278,13 +267,17 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
             properties: {
               'answerer_user_id': answerer.id,
               'answerer_uid': answerer.uid,
-              'job_name': answerer.mainJob,
+              'experience_id': experience.certificationId,
+              'experience_name': experience.title,
+              'job_name': answerer.mainJob == '-' ? null : answerer.mainJob,
               'position': position,
               'source': 'home',
             },
           ),
     );
-    context.push('/answerers/${answerer.uid}');
+    context.push(
+      '/answerers/${answerer.uid}?experienceId=${experience.certificationId}',
+    );
   }
 
   @override
@@ -340,7 +333,7 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                           inputFormatters: AppInputFormatters.search,
                           textInputAction: TextInputAction.search,
                           decoration: InputDecoration(
-                            hintText: '搜索主职',
+                            hintText: '搜索经历',
                             filled: true,
                             contentPadding: EdgeInsets.zero,
                             prefixIcon: const Icon(
@@ -399,24 +392,6 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                     onTap: _openBanner,
                   ),
                 ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: _DiscoveryHub(
-                    onMatters: () => _openDiscovery('matters'),
-                    onExperiences: () => _openDiscovery('experiences'),
-                  ),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(10, 24, 10, 10),
-                sliver: SliverToBoxAdapter(
-                  child: Text(
-                    '可以帮你的人',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-              ),
               if (_loading)
                 const SliverFillRemaining(
                   hasScrollBody: false,
@@ -425,7 +400,7 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
               else if (_items.isEmpty)
                 const SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(child: Text('没有找到相关的人')),
+                  child: Center(child: Text('没有找到相关经历的人')),
                 )
               else
                 SliverPadding(
@@ -434,6 +409,7 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                     itemCount: _items.length,
                     itemBuilder: (context, index) => AnswererCard(
                       answerer: _items[index],
+                      experience: _items[index].experiences.first,
                       flat: true,
                       onTap: () => _openAnswerer(_items[index], index + 1),
                     ),
@@ -687,113 +663,6 @@ class _BannerText extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _DiscoveryHub extends StatelessWidget {
-  const _DiscoveryHub({required this.onMatters, required this.onExperiences});
-
-  final VoidCallback onMatters;
-  final VoidCallback onExperiences;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: _DiscoveryEntry(
-              icon: Icons.search_rounded,
-              title: '按事情',
-              subtitle: '先看看应该问哪些人',
-              borderColor: const Color(0xFFE8D2CA),
-              iconColor: const Color(0xFFD9473E),
-              onTap: onMatters,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _DiscoveryEntry(
-              icon: Icons.route_outlined,
-              title: '按经历',
-              subtitle: '找经历过的人',
-              borderColor: const Color(0xFFCEE2D8),
-              iconColor: const Color(0xFF4E8E70),
-              onTap: onExperiences,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DiscoveryEntry extends StatelessWidget {
-  const _DiscoveryEntry({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.borderColor,
-    required this.iconColor,
-    required this.onTap,
-  });
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color borderColor;
-  final Color iconColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
-    return Material(
-      color: dark
-          ? iconColor.withValues(alpha: .12)
-          : borderColor.withValues(alpha: .22),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
-          child: Row(
-            children: [
-              Icon(icon, color: iconColor, size: 20),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 17,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

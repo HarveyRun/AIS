@@ -62,4 +62,15 @@ public class LocalFileStorage implements FileStorage {
             : localMediaSigner.signedUrl(normalized);
     }
 
+    @Override
+    public void copyTo(String storageKey, StorageVisibility visibility, Path destination) {
+        Path source = root.resolve(storageKey).normalize();
+        if (!source.startsWith(root)) throw BusinessException.badRequest("文件路径不正确");
+        try {
+            Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException exception) {
+            throw BusinessException.serviceUnavailable("文件读取失败，请稍后重试");
+        }
+    }
+
 }

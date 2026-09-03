@@ -3,6 +3,9 @@ package com.shixianwen.user;
 import com.shixianwen.certification.Certification;
 import com.shixianwen.certification.CertificationRepository;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.storage.FileStorage;
+import com.shixianwen.storage.StorageVisibility;
+import com.shixianwen.certification.CertificationPublicMediaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -13,15 +16,27 @@ import java.util.List;
 public class AnswererService {
     private static final String QUALIFIED =
         "EXISTS (SELECT 1 FROM certifications ci WHERE ci.user_id=u.id AND ci.certification_type='IDENTITY' AND ci.status='APPROVED' AND ci.enabled=TRUE AND ci.deleted_at IS NULL) " +
-        "AND EXISTS (SELECT 1 FROM certifications cj WHERE cj.user_id=u.id AND cj.certification_type='MAIN_JOB' AND cj.status='APPROVED' AND cj.enabled=TRUE AND cj.deleted_at IS NULL) ";
+        "AND EXISTS (SELECT 1 FROM certifications cq WHERE cq.user_id=u.id AND cq.category='EXPERIENCE' " +
+        "AND COALESCE(cq.experience_business_type,'MONETIZED')='MONETIZED' " +
+        "AND cq.status='APPROVED' AND cq.enabled=TRUE AND cq.deleted_at IS NULL) ";
     private final UserRepository userRepository;
     private final CertificationRepository certificationRepository;
     private final JdbcTemplate jdbc;
+    private final FileStorage fileStorage;
+    private final CertificationPublicMediaService publicMediaService;
 
-    public AnswererService(UserRepository userRepository, CertificationRepository certificationRepository, JdbcTemplate jdbc) {
+    public AnswererService(
+        UserRepository userRepository,
+        CertificationRepository certificationRepository,
+        JdbcTemplate jdbc,
+        FileStorage fileStorage,
+        CertificationPublicMediaService publicMediaService
+    ) {
         this.userRepository = userRepository;
         this.certificationRepository = certificationRepository;
         this.jdbc = jdbc;
+        this.fileStorage = fileStorage;
+        this.publicMediaService = publicMediaService;
     }
 
     @Transactional(readOnly = true)
@@ -30,16 +45,25 @@ public class AnswererService {
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, 50));
-        List<Long> ids = jdbc.queryForList(
-            "SELECT u.id FROM users u WHERE u.id<>? AND u.account_type=? AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE AND " + QUALIFIED +
-                "AND (?='' OR EXISTS (SELECT 1 FROM user_jobs uj JOIN jobs j ON j.id=uj.job_id WHERE uj.user_id=u.id AND uj.verified=TRUE AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND j.name LIKE CONCAT('%',?,'%'))) " +
-                "ORDER BY u.id DESC LIMIT ? OFFSET ?",
-            Long.class, currentUserId, accountType, normalizedKeyword, normalizedKeyword,
+        List<ExperienceCardRow> rows = jdbc.query(
+            "SELECT ce.id AS certification_id,u.id AS user_id FROM certifications ce " +
+                "JOIN users u ON u.id=ce.user_id " +
+                "WHERE ce.category='EXPERIENCE' AND ce.status='APPROVED' AND ce.enabled=TRUE AND ce.deleted_at IS NULL " +
+                "AND u.id<>? AND u.account_type=? AND u.account_status='ACTIVE' " +
+                "AND (COALESCE(ce.experience_business_type,'MONETIZED')='PUBLIC_WELFARE' " +
+                "OR (COALESCE(ce.experience_business_type,'MONETIZED')='MONETIZED' AND u.accepting_inquiries=TRUE AND " + QUALIFIED + ")) " +
+                "AND (?='' OR ce.title LIKE CONCAT('%',?,'%')) " +
+                "ORDER BY ce.id DESC LIMIT ? OFFSET ?",
+            (rs, rowNum) -> new ExperienceCardRow(rs.getLong("certification_id"), rs.getLong("user_id")),
+            currentUserId, accountType, normalizedKeyword, normalizedKeyword,
             safeSize + 1, safePage * safeSize
         );
-        boolean hasMore = ids.size() > safeSize;
-        List<AnswererView> items = ids.stream().limit(safeSize).map(userRepository::findById)
-            .flatMap(java.util.Optional::stream).map(this::toView).toList();
+        boolean hasMore = rows.size() > safeSize;
+        List<AnswererView> items = rows.stream().limit(safeSize)
+            .map(row -> userRepository.findById(row.userId())
+                .map(user -> toView(user, row.certificationId())))
+            .flatMap(java.util.Optional::stream)
+            .toList();
         return new AnswererPage(items, safePage, hasMore);
     }
 
@@ -48,58 +72,57 @@ public class AnswererService {
         String accountType = accountType(currentUserId);
         User user = userRepository.findByUidAndAccountStatus(uid, "ACTIVE")
             .filter(item -> accountType.equals(item.getAccountType()))
-            .filter(item -> currentQualification(item.getId()))
-            .orElseThrow(() -> BusinessException.notFound("该答主不存在"));
+            .filter(item -> hasPublishedExperience(item.getId()))
+            .orElseThrow(() -> BusinessException.notFound("该用户或经历不存在"));
         return toView(user);
     }
 
     private AnswererView toView(User user) {
+        return toView(user, null);
+    }
+
+    private AnswererView toView(User user, Long onlyExperienceCertificationId) {
         List<Certification> certifications =
             certificationRepository.findByUserIdAndStatusAndEnabledTrueOrderByIdAsc(user.getId(), "APPROVED");
-        List<JobView> jobs = jdbc.query(
-            "SELECT j.name,uj.capability_description,c.years FROM user_jobs uj JOIN jobs j ON j.id=uj.job_id LEFT JOIN certifications c ON c.id=uj.certification_id WHERE uj.user_id=? AND uj.verified=TRUE AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND (c.id IS NULL OR (c.enabled=TRUE AND c.deleted_at IS NULL)) ORDER BY CASE WHEN uj.certification_id IS NOT NULL THEN 0 ELSE 1 END,uj.certification_id DESC,j.name LIMIT 1",
-            (rs, row) -> new JobView(rs.getString("name"), (Integer) rs.getObject("years"), rs.getString("capability_description")),
-            user.getId()
-        );
-        JobView job = jobs.isEmpty() ? null : jobs.get(0);
         List<ExperienceView> experiences = certifications.stream()
             .filter(item -> "EXPERIENCE".equals(item.getCategory()))
+            .filter(item -> onlyExperienceCertificationId == null || onlyExperienceCertificationId.equals(item.getId()))
             .map(item -> new ExperienceView(
-                item.getId(), item.getTitle(), item.getDescription(), item.getYears(), item.getDiscoveryCategoryId(), item.getDiscoveryExperienceId()
+                item.getId(), item.getTitle(), item.getDescription(),
+                normalizedBusinessType(item),
+                "MONETIZED".equals(normalizedBusinessType(item))
+                    && user.isAcceptingInquiries()
+                    && currentQualification(user.getId()),
+                item.getMaterials().stream()
+                    .filter(material -> material.getDeletedAt() == null)
+                    .filter(material -> List.of("DETAIL_VIDEO")
+                        .contains(material.getMaterialKind()))
+                    .map(material -> new ExperienceMaterialView(
+                        material.getId(),
+                        material.getMaterialKind(),
+                        material.getOriginalName(),
+                        material.getPublicUrl() == null || material.getPublicUrl().isBlank()
+                            ? fileStorage.accessUrl(material.getStorageKey(), StorageVisibility.PRIVATE)
+                            : material.getPublicUrl(),
+                        material.getFileSize(),
+                        material.getContentType()
+                    ))
+                    .toList(),
+                publicMediaService.publicItems(item.getId()).stream()
+                    .map(media -> new ExperienceMaterialView(
+                        media.id(), media.kind(), media.name(), media.url(),
+                        media.size(), media.contentType()
+                    ))
+                    .toList()
             ))
             .toList();
         return new AnswererView(
-            user.getId(), user.getUid(), user.getNickname(), user.getAvatarUrl(), user.isAcceptingInquiries(),
+            user.getId(), user.getUid(), user.getNickname(), user.getAvatarUrl(),
+            certifications.stream().anyMatch(item -> "IDENTITY".equals(item.getCertificationType())),
+            user.isAcceptingInquiries(),
             user.getInquiryPriceMin(), user.getInquiryPriceMax(),
-            job == null ? null : job.name(), job == null ? null : job.years(), job == null ? null : job.description(), experiences
+            user.getJobTitle(), experiences
         );
-    }
-
-    @Transactional(readOnly = true)
-    public List<AnswererView> forMatter(Long currentUserId, Long matterId) {
-        String accountType = accountType(currentUserId);
-        List<Long> ids = jdbc.queryForList(
-            "SELECT DISTINCT u.id FROM discovery_matter_jobs mj " +
-                "JOIN user_jobs uj ON uj.job_id=mj.job_id JOIN users u ON u.id=uj.user_id " +
-                "JOIN jobs j ON j.id=uj.job_id WHERE mj.matter_id=? AND u.id<>? AND mj.active=TRUE AND mj.deleted_at IS NULL AND uj.deleted_at IS NULL AND j.active=TRUE AND j.deleted_at IS NULL AND uj.verified=TRUE AND u.account_status='ACTIVE' " +
-                "AND u.account_type=? AND u.accepting_inquiries=TRUE AND " + QUALIFIED + "ORDER BY u.id DESC",
-            Long.class, matterId, currentUserId, accountType
-        );
-        return ids.stream().map(userRepository::findById).flatMap(java.util.Optional::stream).map(this::toView).toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<AnswererView> forExperience(Long currentUserId, Long experienceId) {
-        String accountType = accountType(currentUserId);
-        List<Long> ids = jdbc.queryForList(
-            "SELECT DISTINCT u.id FROM certifications c JOIN users u ON u.id=c.user_id " +
-                "JOIN discovery_experiences e ON e.id=c.discovery_experience_id " +
-                "WHERE c.category='EXPERIENCE' AND c.status='APPROVED' AND c.enabled=TRUE AND c.deleted_at IS NULL AND c.discovery_experience_id=? AND u.id<>? AND e.active=TRUE AND e.deleted_at IS NULL " +
-                "AND u.account_status='ACTIVE' AND u.account_type=? AND u.accepting_inquiries=TRUE AND " + QUALIFIED +
-                "ORDER BY u.id DESC",
-            Long.class, experienceId, currentUserId, accountType
-        );
-        return ids.stream().map(userRepository::findById).flatMap(java.util.Optional::stream).map(this::toView).toList();
     }
 
     private boolean currentQualification(Long userId) {
@@ -111,21 +134,55 @@ public class AnswererService {
         return count != null && count > 0;
     }
 
+    private boolean hasPublishedExperience(Long userId) {
+        Integer count = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM certifications WHERE user_id=? AND category='EXPERIENCE' " +
+                "AND status='APPROVED' AND enabled=TRUE AND deleted_at IS NULL",
+            Integer.class,
+            userId
+        );
+        return count != null && count > 0;
+    }
+
+    private String normalizedBusinessType(Certification item) {
+        String value = item.getExperienceBusinessType();
+        return value == null || value.isBlank() ? "MONETIZED" : value;
+    }
+
     private String accountType(Long userId) {
         return userRepository.findById(userId)
             .map(User::getAccountType)
             .orElseThrow(() -> BusinessException.notFound("用户不存在"));
     }
 
-    private record JobView(String name, Integer years, String description) {}
+    private String fileExtension(String fileName) {
+        if (fileName == null) return ".zip";
+        int index = fileName.lastIndexOf('.');
+        if (index < 0 || index == fileName.length() - 1) return ".zip";
+        String extension = fileName.substring(index).toLowerCase();
+        return List.of(".zip", ".rar").contains(extension) ? extension : ".zip";
+    }
+
+    private record ExperienceCardRow(Long certificationId, Long userId) {}
 
     public record ExperienceView(
         Long certificationId,
         String title,
         String description,
-        Integer years,
-        Long discoveryCategoryId,
-        Long discoveryExperienceId
+        String businessType,
+        boolean canInquire,
+        List<ExperienceMaterialView> materials,
+        List<ExperienceMaterialView> publicMedia
+    ) {
+    }
+
+    public record ExperienceMaterialView(
+        Long id,
+        String kind,
+        String name,
+        String url,
+        long size,
+        String contentType
     ) {
     }
 
@@ -134,12 +191,11 @@ public class AnswererService {
         String uid,
         String nickname,
         String avatarUrl,
+        boolean identityVerified,
         boolean acceptingInquiries,
         int inquiryPriceMin,
         int inquiryPriceMax,
         String mainJob,
-        Integer mainJobYears,
-        String capabilityDescription,
         List<ExperienceView> experiences
     ) {
     }

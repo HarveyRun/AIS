@@ -10,19 +10,12 @@ import UsersPage from '../pages/users/UsersPage.jsx';
 import RecordsPage from '../pages/records/RecordsPage.jsx';
 import AuditPage from '../pages/audit/AuditPage.jsx';
 import CustomerServicePage from '../pages/customerService/CustomerServicePage.jsx';
-import DiscoveryManagementPage from '../pages/discovery/DiscoveryManagementPage.jsx';
-import JobsPage from '../pages/jobs/JobsPage.jsx';
-import ExperiencesPage from '../pages/experiences/ExperiencesPage.jsx';
 import AppTestAccountPage from '../pages/appTestAccount/AppTestAccountPage.jsx';
 import AppVersionPage from '../pages/appVersion/AppVersionPage.jsx';
 import AnnouncementsPage from '../pages/announcements/AnnouncementsPage.jsx';
 import BannersPage from '../pages/banners/BannersPage.jsx';
 import SecurityEventsPage from '../pages/security/SecurityEventsPage.jsx';
 import PlatformFeePage from '../pages/platformFee/PlatformFeePage.jsx';
-import InvitationCampaignPage from '../pages/invitationCampaign/InvitationCampaignPage.jsx';
-import InvitationReviewsPage from '../pages/invitationReviews/InvitationReviewsPage.jsx';
-import ContentContributionsPage from '../pages/contentContributions/ContentContributionsPage.jsx';
-import OfflineCertificationsPage from '../pages/offlineCertifications/OfflineCertificationsPage.jsx';
 import AdminUsersPage from '../pages/adminUsers/AdminUsersPage.jsx';
 import AdminRolesPage from '../pages/adminRoles/AdminRolesPage.jsx';
 import AdminPermissionsPage from '../pages/adminPermissions/AdminPermissionsPage.jsx';
@@ -166,66 +159,10 @@ export default function App() {
             }
           />
           <Route
-            path="/invitation-campaign"
-            element={
-              <Guard permission="INVITATION_CAMPAIGN_VIEW">
-                <InvitationCampaignPage />
-              </Guard>
-            }
-          />
-          <Route
-            path="/jobs"
-            element={
-              <Guard permission="JOB_VIEW">
-                <JobsPage />
-              </Guard>
-            }
-          />
-          <Route
-            path="/experiences"
-            element={
-              <Guard permission="EXPERIENCE_VIEW">
-                <ExperiencesPage />
-              </Guard>
-            }
-          />
-          <Route
             path="/certifications"
             element={
               <Guard permission="CERTIFICATION_VIEW">
                 <RecordsPage type="certifications" />
-              </Guard>
-            }
-          />
-          <Route
-            path="/offline-certifications"
-            element={
-              <Guard permission="OFFLINE_APPOINTMENT_VIEW">
-                <OfflineCertificationsPage />
-              </Guard>
-            }
-          />
-          <Route
-            path="/invitation-reviews"
-            element={
-              <Guard permission="INVITATION_REVIEW_VIEW">
-                <InvitationReviewsPage />
-              </Guard>
-            }
-          />
-          <Route
-            path="/content-contributions"
-            element={
-              <Guard permission="CONTENT_CONTRIBUTION_VIEW">
-                <ContentContributionsPage />
-              </Guard>
-            }
-          />
-          <Route
-            path="/discovery"
-            element={
-              <Guard permission="DISCOVERY_VIEW">
-                <DiscoveryManagementPage />
               </Guard>
             }
           />

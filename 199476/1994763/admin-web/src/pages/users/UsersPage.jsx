@@ -146,7 +146,7 @@ export default function UsersPage() {
             <tr>
               <th>用户</th>
               <th>手机号</th>
-              <th>答主状态</th>
+              <th>经历发布状态</th>
               <th>账户状态</th>
               <th>可用 / 冻结</th>
               <th>注册时间</th>

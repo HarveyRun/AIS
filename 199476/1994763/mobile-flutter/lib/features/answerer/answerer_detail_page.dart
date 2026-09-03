@@ -8,12 +8,18 @@ import '../../app/providers.dart';
 import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
-import '../../core/widgets/experience_tooltip_tag.dart';
 import '../../data/models/answerer_models.dart';
+import '../../data/models/certification_models.dart';
+import '../certification/material_viewer.dart';
 
 class AnswererDetailPage extends ConsumerStatefulWidget {
-  const AnswererDetailPage({super.key, required this.uid});
+  const AnswererDetailPage({
+    super.key,
+    required this.uid,
+    this.experienceCertificationId,
+  });
   final String uid;
+  final int? experienceCertificationId;
 
   @override
   ConsumerState<AnswererDetailPage> createState() => _AnswererDetailPageState();
@@ -22,6 +28,14 @@ class AnswererDetailPage extends ConsumerStatefulWidget {
 class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
   Answerer? _answerer;
   bool _loading = true;
+
+  AnswererExperience? get _selectedExperience {
+    final experiences = _answerer?.experiences ?? const <AnswererExperience>[];
+    for (final item in experiences) {
+      if (item.certificationId == widget.experienceCertificationId) return item;
+    }
+    return experiences.firstOrNull;
+  }
 
   @override
   void initState() {
@@ -43,7 +57,9 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
                 properties: {
                   'answerer_user_id': person.id,
                   'answerer_uid': person.uid,
-                  'job_name': person.mainJob,
+                  'experience_names': person.experiences
+                      .map((item) => item.title)
+                      .toList(),
                 },
               ),
         );
@@ -57,7 +73,7 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
 
   Future<void> _ask() async {
     final person = _answerer!;
-    if (!person.acceptingInquiries) return;
+    if (_selectedExperience?.canInquire != true) return;
     await ref
         .read(analyticsProvider)
         .track(
@@ -65,7 +81,9 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
           properties: {
             'answerer_user_id': person.id,
             'answerer_uid': person.uid,
-            'job_name': person.mainJob,
+            'experience_names': person.experiences
+                .map((item) => item.title)
+                .toList(),
           },
         );
     try {
@@ -91,14 +109,17 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _InquirySheet(answerer: person),
+      builder: (context) => _InquirySheet(
+        answerer: person,
+        preferredExperienceCertificationId: widget.experienceCertificationId,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('个人信息')),
+      appBar: AppBar(title: const Text('经历详情')),
       body: _loading
           ? const SizedBox.shrink()
           : _answerer == null
@@ -107,17 +128,24 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
               onRefresh: _load,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 92),
-                children: [_WebAnswererOverview(answerer: _answerer!)],
+                children: [
+                  _WebAnswererOverview(
+                    answerer: _answerer!,
+                    preferredExperienceCertificationId:
+                        widget.experienceCertificationId,
+                  ),
+                ],
               ),
             ),
-      bottomNavigationBar: _answerer == null
+      bottomNavigationBar:
+          _answerer == null || _selectedExperience?.canInquire != true
           ? null
           : SafeArea(
               minimum: const EdgeInsets.fromLTRB(10, 7, 10, 9),
               child: FilledButton.icon(
-                onPressed: _answerer!.acceptingInquiries ? _ask : null,
+                onPressed: _ask,
                 icon: const Icon(Icons.chat_bubble_outline_rounded),
-                label: Text(_answerer!.acceptingInquiries ? '询问' : '暂不接受询问'),
+                label: const Text('询问'),
               ),
             ),
     );
@@ -148,7 +176,7 @@ class _AnswererOverview extends StatelessWidget {
                   url: answerer.avatarUrl,
                   name: answerer.displayName,
                   radius: 30,
-                  verified: true,
+                  verified: answerer.identityVerified,
                 ),
                 const SizedBox(width: 13),
                 Expanded(
@@ -207,10 +235,6 @@ class _AnswererOverview extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                Text(
-                  '${answerer.mainJobYears}年经验',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
               ],
             ),
           ),
@@ -263,13 +287,45 @@ class _AnswererOverview extends StatelessWidget {
 }
 
 class _WebAnswererOverview extends StatelessWidget {
-  const _WebAnswererOverview({required this.answerer});
+  const _WebAnswererOverview({
+    required this.answerer,
+    this.preferredExperienceCertificationId,
+  });
 
   final Answerer answerer;
+  final int? preferredExperienceCertificationId;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    AnswererExperience? experience;
+    for (final item in answerer.experiences) {
+      if (item.certificationId == preferredExperienceCertificationId) {
+        experience = item;
+        break;
+      }
+    }
+    experience ??= answerer.experiences.firstOrNull;
+    final detailVideos =
+        experience?.materials
+            .where((item) => item.kind.toUpperCase() == 'DETAIL_VIDEO')
+            .toList(growable: false) ??
+        const <CertificationMaterial>[];
+    final publicPhotos =
+        experience?.materials
+            .where((item) => item.kind.toUpperCase() == 'IMAGE')
+            .toList(growable: false) ??
+        const <CertificationMaterial>[];
+    final publicVideos =
+        experience?.materials
+            .where((item) => item.kind.toUpperCase() == 'VIDEO')
+            .toList(growable: false) ??
+        const <CertificationMaterial>[];
+    final publicAudios =
+        experience?.materials
+            .where((item) => item.kind.toUpperCase() == 'AUDIO')
+            .toList(growable: false) ??
+        const <CertificationMaterial>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -279,57 +335,26 @@ class _WebAnswererOverview extends StatelessWidget {
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Column(
+          child: Row(
             children: [
               AppAvatar(
                 url: answerer.avatarUrl,
                 name: answerer.displayName,
-                radius: 36,
-                verified: true,
+                radius: 24,
+                verified: answerer.identityVerified,
               ),
-              const SizedBox(height: 12),
-              Text(
-                answerer.displayName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'UID ${answerer.uid} · 信息已经核实',
-                style: theme.textTheme.bodySmall,
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 13,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      width: 60,
-                      child: Text(
-                        '主职',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        answerer.mainJob,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
                     Text(
-                      '${answerer.mainJobYears}年经验',
+                      answerer.displayName,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'UID ${answerer.uid}',
                       style: theme.textTheme.bodySmall,
                     ),
                   ],
@@ -340,25 +365,166 @@ class _WebAnswererOverview extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _ProfileFactBox(
-          title: '亲身经历过的事',
+          title: experience?.title ?? '暂无经历',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: answerer.experiences.isEmpty
-                    ? const [_ExperienceLabel(text: '暂无经历')]
-                    : answerer.experiences
-                          .map((item) => ExperienceTooltipTag(experience: item))
-                          .toList(),
-              ),
-              const SizedBox(height: 10),
-              Text('这些经历的基础材料已经核实。', style: theme.textTheme.bodySmall),
+              if (experience != null && experience.description.isNotEmpty)
+                Text(
+                  experience.description,
+                  style: theme.textTheme.bodyMedium?.copyWith(height: 1.55),
+                ),
+              if (detailVideos.isNotEmpty) ...[
+                if (experience != null && experience.description.isNotEmpty)
+                  const SizedBox(height: 16),
+                _DetailMaterial(
+                  material: detailVideos.first,
+                  onTap: () => openMaterial(context, detailVideos.first),
+                  label: '详述录像',
+                ),
+              ],
             ],
           ),
         ),
+        if (publicPhotos.isNotEmpty ||
+            publicVideos.isNotEmpty ||
+            publicAudios.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _PublicMediaBox(
+            photos: publicPhotos,
+            videos: publicVideos,
+            audios: publicAudios,
+          ),
+        ],
       ],
+    );
+  }
+}
+
+class _PublicMediaBox extends StatelessWidget {
+  const _PublicMediaBox({
+    required this.photos,
+    required this.videos,
+    required this.audios,
+  });
+
+  final List<CertificationMaterial> photos;
+  final List<CertificationMaterial> videos;
+  final List<CertificationMaterial> audios;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '证明资料',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (photos.isNotEmpty)
+            _PublicMediaEntry(
+              icon: Icons.photo_library_outlined,
+              label: '用户照片',
+              count: photos.length,
+              onTap: () => openPhotoGallery(context, photos),
+            ),
+          if (videos.isNotEmpty)
+            _PublicMediaEntry(
+              icon: Icons.play_circle_outline_rounded,
+              label: '用户录像',
+              count: videos.length,
+              onTap: () => openMaterialList(context, '用户录像', videos),
+            ),
+          if (audios.isNotEmpty)
+            _PublicMediaEntry(
+              icon: Icons.graphic_eq_rounded,
+              label: '用户音频',
+              count: audios.length,
+              onTap: () => openMaterialList(context, '用户音频', audios),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PublicMediaEntry extends StatelessWidget {
+  const _PublicMediaEntry({
+    required this.icon,
+    required this.label,
+    required this.count,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      minVerticalPadding: 4,
+      leading: Icon(icon, color: theme.colorScheme.primary),
+      title: Text(label),
+      subtitle: Text('$count 项内容'),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: onTap,
+    );
+  }
+}
+
+class _DetailMaterial extends StatelessWidget {
+  const _DetailMaterial({
+    required this.material,
+    required this.onTap,
+    this.label,
+  });
+  final CertificationMaterial material;
+  final VoidCallback onTap;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: (MediaQuery.sizeOf(context).width - 62) / 2,
+          height: 112,
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const Icon(Icons.play_circle_fill_rounded, size: 40),
+              if (label != null)
+                Positioned(
+                  left: 10,
+                  bottom: 8,
+                  child: Text(
+                    label!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -394,50 +560,46 @@ class _ProfileFactBox extends StatelessWidget {
   }
 }
 
-class _ExperienceLabel extends StatelessWidget {
-  const _ExperienceLabel({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-    );
-  }
-}
-
 class _InquirySheet extends ConsumerStatefulWidget {
-  const _InquirySheet({required this.answerer});
+  const _InquirySheet({
+    required this.answerer,
+    this.preferredExperienceCertificationId,
+  });
   final Answerer answerer;
+  final int? preferredExperienceCertificationId;
   @override
   ConsumerState<_InquirySheet> createState() => _InquirySheetState();
 }
 
 class _InquirySheetState extends ConsumerState<_InquirySheet> {
-  final _question = TextEditingController();
   final _amount = TextEditingController();
   bool _submitting = false;
 
   @override
   void dispose() {
-    _question.dispose();
     _amount.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final question = _question.text.trim();
-    final amount = int.tryParse(_amount.text);
-    if (question.isEmpty) {
-      AppMessage.show(context, '请先写下你想问的事情');
+    if (widget.answerer.experiences.isEmpty) {
+      AppMessage.show(context, '对方暂无可询问的亲身经历');
       return;
     }
+    final selectedExperience = widget.answerer.experiences.firstWhere(
+      (item) =>
+          item.certificationId == widget.preferredExperienceCertificationId,
+      orElse: () => widget.answerer.experiences.first,
+    );
+    if (selectedExperience.certificationId == null) {
+      AppMessage.show(context, '所选亲身经历暂不可询问');
+      return;
+    }
+    if (!selectedExperience.canInquire) {
+      AppMessage.show(context, '这段经历暂不可询问');
+      return;
+    }
+    final amount = int.tryParse(_amount.text.trim());
     if (amount == null ||
         amount < widget.answerer.inquiryPriceMin ||
         amount > widget.answerer.inquiryPriceMax) {
@@ -455,7 +617,8 @@ class _InquirySheetState extends ConsumerState<_InquirySheet> {
             'inquiry_submit_click',
             properties: {
               'answerer_user_id': widget.answerer.id,
-              'job_name': widget.answerer.mainJob,
+              'experience_id': selectedExperience.certificationId,
+              'experience_name': selectedExperience.title,
               'amount_bucket': _amountBucket(amount),
             },
           );
@@ -463,9 +626,8 @@ class _InquirySheetState extends ConsumerState<_InquirySheet> {
           .read(repositoryProvider)
           .createInquiry(
             answererId: widget.answerer.id,
-            topic: widget.answerer.mainJob,
-            sourceType: 'PROFILE',
-            question: question,
+            sourceExperienceCertificationId:
+                selectedExperience.certificationId!,
             amount: amount,
           );
       if (!mounted) return;
@@ -509,7 +671,7 @@ class _InquirySheetState extends ConsumerState<_InquirySheet> {
                     Text('发起询问', style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 4),
                     Text(
-                      '对方接受后即可开始私聊',
+                      '发起后可先发送一条消息，对方回复后即可继续交流',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -522,32 +684,21 @@ class _InquirySheetState extends ConsumerState<_InquirySheet> {
             ],
           ),
           const SizedBox(height: 18),
-          Text('你想问什么', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 7),
-          TextField(
-            controller: _question,
-            autofocus: true,
-            maxLength: 300,
-            inputFormatters: AppInputFormatters.description(300),
-            maxLines: 3,
-            decoration: const InputDecoration(hintText: '把想了解的事情简单说清楚'),
-          ),
-          const SizedBox(height: 14),
           Text('你打算给多少钱', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 3),
           Text(
             '对方可接受 ¥${widget.answerer.inquiryPriceMin}—¥${widget.answerer.inquiryPriceMax}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: 8),
           TextField(
             controller: _amount,
             keyboardType: TextInputType.number,
             inputFormatters: AppInputFormatters.positiveInteger(max: 5000),
             decoration: InputDecoration(
+              prefixText: '¥ ',
               hintText:
                   '请输入${widget.answerer.inquiryPriceMin}—${widget.answerer.inquiryPriceMax}',
-              prefixText: '¥ ',
             ),
           ),
           const SizedBox(height: 8),

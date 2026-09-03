@@ -31,28 +31,20 @@ public class Certification {
     @Column(nullable = false, length = 30)
     private String category;
 
-    @Column(name = "discovery_category_id")
-    private Long discoveryCategoryId;
-
-    @Column(name = "discovery_experience_id")
-    private Long discoveryExperienceId;
-
     @Column(name = "certification_type", nullable = false, length = 50)
     private String certificationType;
+
+    @Column(name = "experience_business_type", length = 24)
+    private String experienceBusinessType;
+
+    @Column(name = "upgrade_source_id")
+    private Long upgradeSourceId;
 
     @Column(nullable = false, length = 100)
     private String title;
 
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String description;
-
-    private Integer years;
-
-    @Column(name = "authenticity_percent")
-    private Integer authenticityPercent;
-
-    @Column(name = "job_reapply_available_at")
-    private LocalDateTime jobReapplyAvailableAt;
 
     @Column(name = "required_item", nullable = false)
     private boolean requiredItem;
@@ -71,6 +63,18 @@ public class Certification {
 
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
+
+    @Column(name = "privacy_confirmed_at")
+    private LocalDateTime privacyConfirmedAt;
+
+    @Column(name = "media_processing_status", nullable = false, length = 20)
+    private String mediaProcessingStatus = "NOT_REQUIRED";
+
+    @Column(name = "media_processing_error", length = 500)
+    private String mediaProcessingError;
+
+    @Column(name = "media_processed_at")
+    private LocalDateTime mediaProcessedAt;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;

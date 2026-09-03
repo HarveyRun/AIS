@@ -33,15 +33,12 @@ public class AnalyticsEventService {
     private static final Set<String> ALLOWED_CLIENT_EVENTS = Set.of(
         "app_open", "page_view", "login_page_view", "login_submit", "logout_success",
         "home_view", "banner_impression", "banner_click", "home_search_submit",
-        "answerer_card_impression", "answerer_card_click", "matter_entry_click",
-        "matter_select", "experience_entry_click", "experience_select", "job_filter_select",
-        "people_result_view", "people_result_empty", "search_submit", "profile_view",
+        "answerer_card_impression", "answerer_card_click", "search_submit", "profile_view",
         "inquiry_start", "inquiry_submit_click", "chat_open", "image_preview",
         "certification_home_view", "job_certification_start", "job_method_select",
         "experience_create_start", "recharge_start", "alipay_payment_launch",
-        "alipay_authorization_start", "invitation_rules_view", "faq_view",
-        "customer_service_open", "update_prompt_view", "update_action_click",
-        "content_contribution_open", "content_contribution_preview"
+        "alipay_authorization_start", "faq_view",
+        "customer_service_open", "update_prompt_view", "update_action_click"
     );
 
     private final JdbcTemplate jdbc;

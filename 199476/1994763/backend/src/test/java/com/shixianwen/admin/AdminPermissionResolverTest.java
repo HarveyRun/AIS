@@ -24,15 +24,6 @@ class AdminPermissionResolverTest {
     }
 
     @Test
-    void separatesExperienceLibraryFromDiscoveryCategoryPermissions() {
-        assertThat(resolver.resolve("GET", "/api/admin/experience-library")).isEqualTo("EXPERIENCE_VIEW");
-        assertThat(resolver.resolve("POST", "/api/admin/discovery/experiences")).isEqualTo("EXPERIENCE_CREATE");
-        assertThat(resolver.resolve("PUT", "/api/admin/discovery/experiences/12")).isEqualTo("EXPERIENCE_EDIT");
-        assertThat(resolver.resolve("DELETE", "/api/admin/discovery/experiences/12")).isEqualTo("EXPERIENCE_DELETE");
-        assertThat(resolver.resolve("POST", "/api/admin/discovery/matters")).isEqualTo("DISCOVERY_CREATE");
-    }
-
-    @Test
     void rejectsUnregisteredAdminEndpoints() {
         assertThat(resolver.resolve("GET", "/api/admin/not-registered")).isEqualTo("__DENY__");
     }
@@ -42,33 +33,14 @@ class AdminPermissionResolverTest {
         GET;/api/admin/dashboard;DASHBOARD_VIEW
         GET;/api/admin/platform-fee;PLATFORM_FEE_VIEW
         PUT;/api/admin/platform-fee;PLATFORM_FEE_EDIT
-        GET;/api/admin/invitation-campaign;INVITATION_CAMPAIGN_VIEW
-        PUT;/api/admin/invitation-campaign;INVITATION_CAMPAIGN_EDIT
-        GET;/api/admin/invitations;INVITATION_REVIEW_VIEW
-        GET;/api/admin/invitations/8/identity-materials;INVITATION_REVIEW_VIEW
-        GET;/api/admin/invitations/8/invitee-handheld-material;INVITATION_REVIEW_VIEW
-        POST;/api/admin/invitations/8/review;INVITATION_REVIEW
-        GET;/api/admin/content-contributions;CONTENT_CONTRIBUTION_VIEW
-        GET;/api/admin/content-contributions/8;CONTENT_CONTRIBUTION_VIEW
-        GET;/api/admin/content-contributions/8/original;CONTENT_CONTRIBUTION_VIOLATION
-        POST;/api/admin/content-contributions/8/review;CONTENT_CONTRIBUTION_REVIEW
-        POST;/api/admin/content-contributions/8/violation-review;CONTENT_CONTRIBUTION_VIOLATION
         GET;/api/admin/users;USER_VIEW
         PATCH;/api/admin/users/8/status;USER_STATUS
-        GET;/api/admin/jobs;JOB_VIEW
-        GET;/api/admin/job-options;JOB_VIEW|OFFLINE_APPOINTMENT_PROCESS
-        POST;/api/admin/jobs;JOB_CREATE
-        PUT;/api/admin/jobs/8;JOB_EDIT
-        DELETE;/api/admin/jobs/8;JOB_DELETE
         GET;/api/admin/certifications;CERTIFICATION_VIEW
         GET;/api/admin/certifications/8/materials;CERTIFICATION_VIEW
         POST;/api/admin/certifications/8/review;CERTIFICATION_REVIEW
         PATCH;/api/admin/certifications/8/enabled;CERTIFICATION_TOGGLE
         PUT;/api/admin/certifications/8;CERTIFICATION_EDIT
         DELETE;/api/admin/certifications/8;CERTIFICATION_DELETE
-        GET;/api/admin/job-certification-appointments;OFFLINE_APPOINTMENT_VIEW
-        GET;/api/admin/job-certification-appointments/8/materials;OFFLINE_APPOINTMENT_VIEW
-        POST;/api/admin/job-certification-appointments/8/process;OFFLINE_APPOINTMENT_PROCESS
         GET;/api/admin/inquiries;INQUIRY_VIEW
         GET;/api/admin/inquiry-disputes/end-requests;INQUIRY_DISPUTE_VIEW
         PUT;/api/admin/inquiry-disputes/end-requests/8;INQUIRY_DISPUTE_PROCESS
@@ -104,16 +76,6 @@ class AdminPermissionResolverTest {
         PUT;/api/admin/customer-service/users/8/read;CUSTOMER_SERVICE_READ
         POST;/api/admin/customer-service/users/8/reply;CUSTOMER_SERVICE_REPLY
         GET;/api/admin/audit-logs;AUDIT_LOG_VIEW
-        GET;/api/admin/discovery;DISCOVERY_VIEW
-        POST;/api/admin/discovery/categories;DISCOVERY_CREATE
-        PUT;/api/admin/discovery/categories/8;DISCOVERY_EDIT
-        DELETE;/api/admin/discovery/categories/8;DISCOVERY_DELETE
-        GET;/api/admin/experience-library;EXPERIENCE_VIEW
-        GET;/api/admin/discovery/experiences/8/users;EXPERIENCE_VIEW
-        PATCH;/api/admin/discovery/certifications/8/experience;EXPERIENCE_RELATE_USER
-        POST;/api/admin/discovery/experiences;EXPERIENCE_CREATE
-        PUT;/api/admin/discovery/experiences/8;EXPERIENCE_EDIT
-        DELETE;/api/admin/discovery/experiences/8;EXPERIENCE_DELETE
         GET;/api/admin/announcements;ANNOUNCEMENT_VIEW
         POST;/api/admin/announcements;ANNOUNCEMENT_CREATE
         PUT;/api/admin/announcements/8;ANNOUNCEMENT_EDIT

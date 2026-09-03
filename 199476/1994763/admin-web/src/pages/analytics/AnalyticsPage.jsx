@@ -5,7 +5,6 @@ import {
   ChartNoAxesCombined,
   Download,
   Filter,
-  Gift,
   RefreshCw,
   Search,
   TrendingUp,
@@ -20,11 +19,10 @@ import './AnalyticsPage.css';
 const tabs = [
   ['overview', '数据概览', ChartNoAxesCombined],
   ['funnel', '转化漏斗', TrendingUp],
-  ['content', '事情与经历', Search],
-  ['supply', '岗位供需', Users],
-  ['answerers', '答主分析', BadgeCheck],
+  ['content', '经历内容', Search],
+  ['supply', '经历供需', Users],
+  ['answerers', '经历发布者', BadgeCheck],
   ['retention', '用户留存', Activity],
-  ['invitation', '邀请活动', Gift],
   ['quality', '数据质量', Filter],
 ];
 
@@ -38,20 +36,16 @@ const labels = {
   gmv: '完成交易金额',
   serviceFee: '平台服务费',
   answererIncome: '回答收入',
-  approvedAnswerers: '已认证答主',
+  approvedAnswerers: '经历发布者',
   acceptingAnswerers: '正在接受询问',
   pausedAnswerers: '暂停接受询问',
   identitySubmitted: '实名申请',
-  jobSubmitted: '岗位申请',
   experienceSubmitted: '经历申请',
   approved: '审核通过',
   rejected: '审核未通过',
   inquiryUsers: '发起过询问的用户',
   repeatUsers: '再次发起询问的用户',
   repeatRate: '再次询问率',
-  rulesView: '查看活动规则',
-  submitted: '邀请码提交',
-  rewardAmount: '已发奖励',
   storedEvents: '已保存事件',
   clientEvents: 'App行为事件',
   serverEvents: '后端事实事件',
@@ -62,7 +56,7 @@ const labels = {
   duplicate: '重复拦截',
 };
 
-const moneyKeys = new Set(['gmv', 'serviceFee', 'answererIncome', 'rewardAmount']);
+const moneyKeys = new Set(['gmv', 'serviceFee', 'answererIncome']);
 const percentKeys = new Set(['repeatRate']);
 
 function dateValue(date) {
@@ -213,10 +207,8 @@ function AnalyticsContent({ section, data }) {
   if (section === 'content') {
     return (
       <div className="analytics-list-grid">
-        <Ranking title="热门事情" rows={data.matters} />
         <Ranking title="热门经历" rows={data.experiences} />
         <Ranking title="轮播点击" rows={data.banners} />
-        <Ranking title="没有匹配人员" rows={data.emptyResults} />
       </div>
     );
   }
@@ -293,14 +285,14 @@ function Ranking({ title, rows = [] }) {
 function SupplyTable({ rows }) {
   return (
     <div className="analytics-panel analytics-table-wrap">
-      <div className="analytics-panel-title"><h2>岗位供需情况</h2><span>需求高、可接受询问人数少的岗位应优先补充</span></div>
-      <table><thead><tr><th>岗位</th><th>需求次数</th><th>可接受询问人数</th><th>状态</th></tr></thead>
+      <div className="analytics-panel-title"><h2>经历供需情况</h2><span>需求高、可接受询问人数少的经历应优先补充</span></div>
+      <table><thead><tr><th>经历</th><th>需求次数</th><th>可接受询问人数</th><th>状态</th></tr></thead>
         <tbody>{rows.map((row) => {
           const shortage = Number(row.demandCount || 0) > Number(row.availablePeople || 0);
-          return <tr key={row.jobId}><td>{row.jobName}</td><td>{row.demandCount || 0}</td><td>{row.availablePeople || 0}</td><td><span className={shortage ? 'supply-shortage' : 'supply-normal'}>{shortage ? '需要补充' : '供应正常'}</span></td></tr>;
+          return <tr key={row.experienceId}><td>{row.experienceName}</td><td>{row.demandCount || 0}</td><td>{row.availablePeople || 0}</td><td><span className={shortage ? 'supply-shortage' : 'supply-normal'}>{shortage ? '需要补充' : '供应正常'}</span></td></tr>;
         })}</tbody>
       </table>
-      {rows.length === 0 && <div className="analytics-empty">暂无岗位数据</div>}
+      {rows.length === 0 && <div className="analytics-empty">暂无经历数据</div>}
     </div>
   );
 }

@@ -27,12 +27,12 @@ import java.util.Set;
 public class InquiryQualityService {
     private static final Set<String> NEGATIVE_TAGS = Set.of(
         "OFF_TOPIC", "TOO_GENERAL", "NO_RESPONSE", "SUSPECTED_FABRICATION",
-        "JOB_MISMATCH", "INAPPROPRIATE_LANGUAGE", "OFF_PLATFORM_PAYMENT",
+        "INAPPROPRIATE_LANGUAGE", "OFF_PLATFORM_PAYMENT",
         "ADVERTISEMENT", "OTHER"
     );
     private static final Set<String> REVIEW_REASONS = Set.of(
         "NO_EFFECTIVE_ANSWER", "CLEARLY_OFF_TOPIC", "SUSPECTED_FABRICATION",
-        "JOB_MISMATCH", "HARASSMENT", "OFF_PLATFORM_PAYMENT", "OTHER"
+        "HARASSMENT", "OFF_PLATFORM_PAYMENT", "OTHER"
     );
 
     private final InquiryRepository inquiries;

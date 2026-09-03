@@ -44,15 +44,18 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     return 0;
   }
 
+  bool get _showBottomNavigation =>
+      !widget.location.startsWith('/profile/certifications/experiences') &&
+      !widget.location.startsWith('/answerers/');
+
   @override
   Widget build(BuildContext context) {
     final unread = ref.watch(inquiryUnreadCountProvider);
     return Scaffold(
       body: widget.child,
-      bottomNavigationBar: _AppBottomNavigation(
-        selectedIndex: _selectedIndex,
-        unread: unread,
-      ),
+      bottomNavigationBar: _showBottomNavigation
+          ? _AppBottomNavigation(selectedIndex: _selectedIndex, unread: unread)
+          : null,
     );
   }
 }

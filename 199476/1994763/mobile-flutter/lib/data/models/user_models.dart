@@ -5,6 +5,7 @@ class AppUser {
     required this.phone,
     required this.nickname,
     required this.avatarUrl,
+    required this.jobTitle,
     required this.acceptingInquiries,
     required this.acceptingInquiriesUpdatedAt,
     required this.inquiryPriceMin,
@@ -21,6 +22,7 @@ class AppUser {
       phone: json['phone']?.toString() ?? '',
       nickname: json['nickname']?.toString() ?? '',
       avatarUrl: json['avatarUrl']?.toString() ?? '',
+      jobTitle: json['jobTitle']?.toString() ?? '',
       acceptingInquiries: json['acceptingInquiries'] == true,
       acceptingInquiriesUpdatedAt: _dateTime(
         json['acceptingInquiriesUpdatedAt'],
@@ -39,6 +41,7 @@ class AppUser {
   final String phone;
   final String nickname;
   final String avatarUrl;
+  final String jobTitle;
   final bool acceptingInquiries;
   final DateTime? acceptingInquiriesUpdatedAt;
   final int inquiryPriceMin;
@@ -52,6 +55,7 @@ class AppUser {
   AppUser copyWith({
     String? nickname,
     String? avatarUrl,
+    String? jobTitle,
     bool? acceptingInquiries,
     DateTime? acceptingInquiriesUpdatedAt,
     int? inquiryPriceMin,
@@ -66,6 +70,7 @@ class AppUser {
       phone: phone,
       nickname: nickname ?? this.nickname,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      jobTitle: jobTitle ?? this.jobTitle,
       acceptingInquiries: acceptingInquiries ?? this.acceptingInquiries,
       acceptingInquiriesUpdatedAt:
           acceptingInquiriesUpdatedAt ?? this.acceptingInquiriesUpdatedAt,

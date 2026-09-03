@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.nio.file.Path;
 
 @Component
 public class FileTypeDetector {
@@ -22,6 +23,10 @@ public class FileTypeDetector {
     private SecurityEventService securityEvents;
 
     public DetectedFile detect(MultipartFile file) {
+        return detect(file, true);
+    }
+
+    private DetectedFile detect(MultipartFile file, boolean recordUnknown) {
         if (file == null || file.isEmpty()) throw BusinessException.badRequest("文件不能为空");
         byte[] header = readHeader(file, 32);
         if (startsWith(header, 0xFF, 0xD8, 0xFF)) return image(file, "image/jpeg", ".jpg", true);
@@ -66,7 +71,7 @@ public class FileTypeDetector {
             || startsWith(header, 0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00)) {
             return new DetectedFile("ARCHIVE", "application/vnd.rar", ".rar");
         }
-        if (securityEvents != null) {
+        if (recordUnknown && securityEvents != null) {
             securityEvents.recordSafely(
                 null, null, "MALICIOUS_UPLOAD_REJECTED", "HIGH", null, null,
                 "无法识别真实文件类型，name=" + safeName(file.getOriginalFilename())
@@ -85,6 +90,10 @@ public class FileTypeDetector {
             return new DetectedFile("IMAGE", "image/webp", ".webp");
         }
         return new DetectedFile("UNKNOWN", "application/octet-stream", "");
+    }
+
+    public DetectedFile detect(Path path, String originalName) {
+        return detect(new PathMultipartFile(path, originalName), false);
     }
 
     public DetectedFile requireImage(MultipartFile file) {

@@ -13,63 +13,17 @@ public class AdminPermissionResolver {
         if (path.equals("/api/admin/platform-fee")) {
             return isGet(method) ? "PLATFORM_FEE_VIEW" : "PLATFORM_FEE_EDIT";
         }
-        if (path.equals("/api/admin/invitation-campaign")) {
-            return isGet(method) ? "INVITATION_CAMPAIGN_VIEW" : "INVITATION_CAMPAIGN_EDIT";
-        }
-        if (path.equals("/api/admin/invitations") && isGet(method)) {
-            return "INVITATION_REVIEW_VIEW";
-        }
-        if (path.matches("/api/admin/invitations/\\d+/identity-materials") && isGet(method)) {
-            return "INVITATION_REVIEW_VIEW";
-        }
-        if (path.matches("/api/admin/invitations/\\d+/invitee-handheld-material") && isGet(method)) {
-            return "INVITATION_REVIEW_VIEW";
-        }
-        if (path.matches("/api/admin/invitations/\\d+/review") && "POST".equals(method)) {
-            return "INVITATION_REVIEW";
-        }
-        if (path.equals("/api/admin/content-contributions") && isGet(method)) {
-            return "CONTENT_CONTRIBUTION_VIEW";
-        }
-        if (path.matches("/api/admin/content-contributions/\\d+") && isGet(method)) {
-            return "CONTENT_CONTRIBUTION_VIEW";
-        }
-        if (path.matches("/api/admin/content-contributions/\\d+/original") && isGet(method)) {
-            return "CONTENT_CONTRIBUTION_VIOLATION";
-        }
-        if (path.matches("/api/admin/content-contributions/\\d+/review") && "POST".equals(method)) {
-            return "CONTENT_CONTRIBUTION_REVIEW";
-        }
-        if (path.matches("/api/admin/content-contributions/\\d+/violation-review") && "POST".equals(method)) {
-            return "CONTENT_CONTRIBUTION_VIOLATION";
-        }
         if (path.equals("/api/admin/users") && isGet(method)) return "USER_VIEW";
         if (path.matches("/api/admin/users/\\d+/status") && "PATCH".equals(method)) return "USER_STATUS";
 
-        if (path.equals("/api/admin/jobs") && isGet(method)) return "JOB_VIEW";
-        if (path.equals("/api/admin/jobs") && "POST".equals(method)) return "JOB_CREATE";
-        if (path.matches("/api/admin/jobs/\\d+") && "PUT".equals(method)) return "JOB_EDIT";
-        if (path.matches("/api/admin/jobs/\\d+") && "DELETE".equals(method)) return "JOB_DELETE";
-        if (path.equals("/api/admin/job-options")) return "JOB_VIEW|OFFLINE_APPOINTMENT_PROCESS";
-        if (path.equals("/api/admin/job-users")) return "JOB_VIEW";
-        if (path.equals("/api/admin/experience-options")) return "EXPERIENCE_VIEW";
 
         if (path.equals("/api/admin/certifications") && isGet(method)) return "CERTIFICATION_VIEW";
         if (path.matches("/api/admin/certifications/\\d+/materials") && isGet(method)) return "CERTIFICATION_VIEW";
         if (path.matches("/api/admin/certifications/\\d+/review") && "POST".equals(method)) return "CERTIFICATION_REVIEW";
+        if (path.matches("/api/admin/certifications/\\d+/media-processing/retry") && "POST".equals(method)) return "CERTIFICATION_REVIEW";
         if (path.matches("/api/admin/certifications/\\d+/enabled") && "PATCH".equals(method)) return "CERTIFICATION_TOGGLE";
         if (path.matches("/api/admin/certifications/\\d+") && "PUT".equals(method)) return "CERTIFICATION_EDIT";
         if (path.matches("/api/admin/certifications/\\d+") && "DELETE".equals(method)) return "CERTIFICATION_DELETE";
-
-        if (path.equals("/api/admin/job-certification-appointments") && isGet(method)) {
-            return "OFFLINE_APPOINTMENT_VIEW";
-        }
-        if (path.matches("/api/admin/job-certification-appointments/\\d+/materials") && isGet(method)) {
-            return "OFFLINE_APPOINTMENT_VIEW";
-        }
-        if (path.matches("/api/admin/job-certification-appointments/\\d+/process") && "POST".equals(method)) {
-            return "OFFLINE_APPOINTMENT_PROCESS";
-        }
 
         if (path.equals("/api/admin/inquiries") && isGet(method)) return "INQUIRY_VIEW";
         if (path.startsWith("/api/admin/inquiry-disputes/end-requests")) {
@@ -118,20 +72,6 @@ public class AdminPermissionResolver {
             return "CUSTOMER_SERVICE_VIEW";
         }
         if (path.equals("/api/admin/audit-logs")) return "AUDIT_LOG_VIEW";
-
-        if (path.equals("/api/admin/discovery") && isGet(method)) return "DISCOVERY_VIEW";
-        if (path.equals("/api/admin/experience-library") && isGet(method)) return "EXPERIENCE_VIEW";
-        if (path.matches("/api/admin/discovery/experiences/\\d+/users") && isGet(method)) return "EXPERIENCE_VIEW";
-        if (path.matches("/api/admin/discovery/certifications/\\d+/experience")) return "EXPERIENCE_RELATE_USER";
-        if (path.equals("/api/admin/discovery/experiences") && "POST".equals(method)) return "EXPERIENCE_CREATE";
-        if (path.matches("/api/admin/discovery/experiences/\\d+") && ("PUT".equals(method) || "PATCH".equals(method))) return "EXPERIENCE_EDIT";
-        if (path.matches("/api/admin/discovery/experiences/\\d+") && "DELETE".equals(method)) return "EXPERIENCE_DELETE";
-        if (path.startsWith("/api/admin/discovery/")) {
-            if ("POST".equals(method)) return "DISCOVERY_CREATE";
-            if ("PUT".equals(method) || "PATCH".equals(method)) return "DISCOVERY_EDIT";
-            if ("DELETE".equals(method)) return "DISCOVERY_DELETE";
-            return "DISCOVERY_VIEW";
-        }
 
         if (path.startsWith("/api/admin/announcements")) {
             if (path.endsWith("/publish")) return "ANNOUNCEMENT_PUBLISH";

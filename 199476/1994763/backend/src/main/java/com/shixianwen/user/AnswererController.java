@@ -4,8 +4,6 @@ import com.shixianwen.auth.CurrentUser;
 import com.shixianwen.common.ApiResponse;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/answerers")
 public class AnswererController {
@@ -33,19 +31,4 @@ public class AnswererController {
         return ApiResponse.ok(answererService.detail(currentUser.getId(), uid));
     }
 
-    @GetMapping("/by-matter/{matterId}")
-    public ApiResponse<List<AnswererService.AnswererView>> byMatter(
-        @CurrentUser User currentUser,
-        @PathVariable Long matterId
-    ) {
-        return ApiResponse.ok(answererService.forMatter(currentUser.getId(), matterId));
-    }
-
-    @GetMapping("/by-experience")
-    public ApiResponse<List<AnswererService.AnswererView>> byExperience(
-        @CurrentUser User currentUser,
-        @RequestParam Long experienceId
-    ) {
-        return ApiResponse.ok(answererService.forExperience(currentUser.getId(), experienceId));
-    }
 }

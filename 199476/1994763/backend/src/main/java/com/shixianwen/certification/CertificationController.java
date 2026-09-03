@@ -7,20 +7,19 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/certifications")
 public class CertificationController {
     private final CertificationService certificationService;
-    private final JobCertificationAppointmentService appointmentService;
+    private final CertificationPublicMediaService publicMediaService;
 
     public CertificationController(
         CertificationService certificationService,
-        JobCertificationAppointmentService appointmentService
+        CertificationPublicMediaService publicMediaService
     ) {
         this.certificationService = certificationService;
-        this.appointmentService = appointmentService;
+        this.publicMediaService = publicMediaService;
     }
 
     @GetMapping("/me")
@@ -28,15 +27,12 @@ public class CertificationController {
         return ApiResponse.ok(certificationService.list(user));
     }
 
-    @PostMapping(value = "/basic/{type}", consumes = "multipart/form-data")
+    @PostMapping(value = "/basic/IDENTITY", consumes = "multipart/form-data")
     public ApiResponse<CertificationService.CertificationView> submitBasic(
         @CurrentUser User user,
-        @PathVariable String type,
-        @RequestParam(required = false) String title,
-        @RequestParam(required = false) Integer years,
         @RequestPart("files") List<MultipartFile> files
     ) {
-        return ApiResponse.ok(certificationService.submitBasic(user, type, title, years, files));
+        return ApiResponse.ok(certificationService.submitBasic(user, files));
     }
 
     @PostMapping(value = "/experiences", consumes = "multipart/form-data")
@@ -45,38 +41,83 @@ public class CertificationController {
         @RequestParam(required = false) Long existingId,
         @RequestParam String title,
         @RequestParam(required = false) String description,
-        @RequestParam(required = false) Integer years,
-        @RequestPart(value = "files", required = false) List<MultipartFile> files
+        @RequestParam boolean privacyConfirmed,
+        @RequestParam String detailMode,
+        @RequestPart("signature") MultipartFile signature,
+        @RequestPart(value = "reviewOriginal", required = false) MultipartFile reviewOriginal,
+        @RequestPart(value = "proofArchive", required = false) MultipartFile proofArchive,
+        @RequestPart(value = "detailVideo", required = false) MultipartFile detailVideo,
+        @RequestPart(value = "files", required = false) List<MultipartFile> legacyFiles
     ) {
         return ApiResponse.ok(certificationService.submitExperience(
-            user, existingId, title, description, years, files == null ? List.of() : files
+            user,
+            existingId,
+            title,
+            description,
+            privacyConfirmed,
+            detailMode,
+            signature,
+            reviewOriginal,
+            proofArchive,
+            detailVideo,
+            legacyFiles == null ? List.of() : legacyFiles
         ));
     }
 
-    @GetMapping("/job/offline-appointment")
-    public ApiResponse<JobCertificationAppointmentService.AppointmentView> currentOfflineAppointment(
-        @CurrentUser User user
-    ) {
-        return ApiResponse.ok(appointmentService.current(user));
-    }
-
-    @PostMapping("/job/offline-appointment")
-    public ApiResponse<JobCertificationAppointmentService.AppointmentView> bookOfflineAppointment(
+    @PostMapping(value = "/experiences/public-welfare", consumes = "multipart/form-data")
+    public ApiResponse<CertificationService.CertificationView> submitPublicWelfareExperience(
         @CurrentUser User user,
-        @RequestBody OfflineAppointmentRequest request
+        @RequestParam(required = false) Long existingId,
+        @RequestParam String title,
+        @RequestParam(required = false) String description,
+        @RequestParam String detailMode,
+        @RequestPart(value = "proofArchive", required = false) MultipartFile proofArchive,
+        @RequestPart(value = "detailVideo", required = false) MultipartFile detailVideo
     ) {
-        return ApiResponse.ok(appointmentService.book(user, request.appointmentAt()));
+        return ApiResponse.ok(certificationService.submitPublicWelfareExperience(
+            user, existingId, title, description, detailMode, proofArchive, detailVideo
+        ));
     }
 
-    @GetMapping("/job/offline-appointment/availability")
-    public ApiResponse<JobCertificationAppointmentService.AvailabilityView> offlineAppointmentAvailability(
+    @PostMapping(value = "/experiences/monetized", consumes = "multipart/form-data")
+    public ApiResponse<CertificationService.CertificationView> submitMonetizedExperience(
         @CurrentUser User user,
-        @RequestParam LocalDateTime appointmentAt
+        @RequestParam(required = false) Long existingId,
+        @RequestParam(required = false) Long upgradeSourceId,
+        @RequestParam String title,
+        @RequestParam(required = false) String description,
+        @RequestParam String detailMode,
+        @RequestParam boolean privacyConfirmed,
+        @RequestPart("signature") MultipartFile signature,
+        @RequestPart(value = "reviewOriginal", required = false) MultipartFile reviewOriginal,
+        @RequestPart(value = "proofArchive", required = false) MultipartFile proofArchive,
+        @RequestPart(value = "detailVideo", required = false) MultipartFile detailVideo
     ) {
-        return ApiResponse.ok(appointmentService.availability(appointmentAt));
+        return ApiResponse.ok(certificationService.submitMonetizedExperience(
+            user, existingId, upgradeSourceId, title, description, detailMode,
+            privacyConfirmed, signature, reviewOriginal,
+            proofArchive, detailVideo
+        ));
     }
 
-    public record OfflineAppointmentRequest(LocalDateTime appointmentAt) {
+    @GetMapping("/experiences/{id}/public-media")
+    public ApiResponse<CertificationPublicMediaService.PublicMediaView> publicMedia(
+        @CurrentUser User user,
+        @PathVariable Long id
+    ) {
+        return ApiResponse.ok(publicMediaService.list(user, id));
+    }
+
+    @PutMapping("/experiences/{id}/public-media")
+    public ApiResponse<CertificationPublicMediaService.PublicMediaView> updatePublicMedia(
+        @CurrentUser User user,
+        @PathVariable Long id,
+        @RequestBody PublicMediaRequest request
+    ) {
+        return ApiResponse.ok(publicMediaService.update(user, id, request.selectedIds()));
+    }
+
+    public record PublicMediaRequest(List<Long> selectedIds) {
     }
 
 }

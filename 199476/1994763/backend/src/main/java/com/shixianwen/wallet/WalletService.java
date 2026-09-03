@@ -428,72 +428,42 @@ public class WalletService {
     }
 
     @Transactional
-    public void creditInvitationReward(Long userId, BigDecimal amount, Long invitationId) {
-        WalletAccount wallet = lock(userId);
-        ensureSources(wallet);
-        amount = MoneyAmounts.requirePositive(amount);
-        if (alreadyRecorded(
-            wallet,
-            "INVITATION_REWARD",
-            "USER_INVITATION",
-            invitationId,
-            amount
-        )) {
-            return;
-        }
-        wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), amount));
-        syncTotals(wallet);
-        record(
-            wallet,
-            "INVITATION_REWARD",
-            "IN",
-            amount,
-            "USER_INVITATION",
-            invitationId,
-            "邀请答主红包"
-        );
-        ledger.record(
-            "USER_INVITATION", invitationId, "REWARD", "邀请答主红包",
-            List.of(
-                entry("MARKETING_EXPENSE", null, amount),
-                entry("USER_INCOME_LIABILITY", userId, negative(amount))
-            )
-        );
-    }
-
-    @Transactional
-    public void creditContentContributionReward(Long userId, BigDecimal amount, Long contributionId) {
+    public void creditInvitationReward(Long userId, BigDecimal amount, Long referenceId) {
         User user = user(userId);
         WalletAccount wallet = lock(userId);
         ensureSources(wallet);
         amount = MoneyAmounts.requirePositive(amount);
+        String transactionType = isTest(user)
+            ? "TEST_INVITATION_REWARD"
+            : "INVITATION_REWARD";
         if (alreadyRecorded(
             wallet,
-            "CONTENT_CONTRIBUTION_REWARD",
-            "CONTENT_CONTRIBUTION",
-            contributionId,
+            transactionType,
+            "EXPERIENCE_INVITATION_REWARD",
+            referenceId,
             amount
         )) {
             return;
         }
+
         wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), amount));
         syncTotals(wallet);
         record(
             wallet,
-            "CONTENT_CONTRIBUTION_REWARD",
+            transactionType,
             "IN",
             amount,
-            "CONTENT_CONTRIBUTION",
-            contributionId,
-            "内容共建奖励"
+            "EXPERIENCE_INVITATION_REWARD",
+            referenceId,
+            isTest(user) ? "测试邀请奖金" : "邀请经历分享奖金"
         );
         ledger.record(
-            "CONTENT_CONTRIBUTION",
-            contributionId,
-            "REWARD",
-            "内容共建奖励",
+            "EXPERIENCE_INVITATION_REWARD",
+            referenceId,
+            "PAID",
+            isTest(user) ? "测试邀请奖金到账" : "邀请经历分享奖金到账",
             List.of(
-                entry(isTest(user) ? "TEST_CLEARING" : "MARKETING_EXPENSE", null, amount),
+                entry(isTest(user) ? "TEST_PROMOTION_EXPENSE" : "PLATFORM_PROMOTION_EXPENSE", null, amount),
                 entry("USER_INCOME_LIABILITY", userId, negative(amount))
             )
         );

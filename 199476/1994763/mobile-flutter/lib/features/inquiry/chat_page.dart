@@ -440,7 +440,22 @@ class _ChatPageState extends ConsumerState<ChatPage>
   Widget build(BuildContext context) {
     final detail = _detail;
     final inquiry = detail?.inquiry;
-    final canChat = inquiry?.canChat ?? false;
+    final currentUserId = ref.read(authControllerProvider).user?.id;
+    final sentInitialMessage = detail?.messages.any(
+          (message) =>
+              message.senderId == currentUserId &&
+              !const {'SYSTEM', 'TIMEOUT_NOTICE'}.contains(message.type.toUpperCase()),
+        ) ??
+        false;
+    final status = inquiry?.status.toUpperCase();
+    final canSendInitialMessage = status == 'PENDING' &&
+        inquiry?.isIncoming == false &&
+        !sentInitialMessage;
+    final canChat = canSendInitialMessage ||
+        (inquiry?.canChat == true &&
+            (inquiry!.isIncoming ||
+                inquiry.firstAnswererReplyAt != null ||
+                !sentInitialMessage));
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -522,6 +537,13 @@ class _ChatPageState extends ConsumerState<ChatPage>
                   controller: _textController,
                   focusNode: _composerFocusNode,
                   enabled: canChat,
+                  disabledHint:
+                      !inquiry.isIncoming &&
+                          inquiry.firstAnswererReplyAt == null &&
+                          sentInitialMessage &&
+                          const {'PENDING', 'ACTIVE'}.contains(status)
+                      ? '等待对方回复后可继续发送'
+                      : '本次交流暂不能聊天',
                   emojiOpen: _emojiOpen,
                   moreOpen: _moreOpen,
                   onSubmitted: _sendText,
@@ -681,14 +703,14 @@ class _ChatStatus extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      inquiry.isIncoming ? '用户想问：' : '我要问的：',
+                      '询问经历',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      inquiry.question.isEmpty ? '未填写' : inquiry.question,
+                      inquiry.topic.isEmpty ? '亲身经历' : inquiry.topic,
                       style: Theme.of(
                         context,
                       ).textTheme.bodyMedium?.copyWith(height: 1.45),
@@ -1178,6 +1200,7 @@ class _Composer extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.enabled,
+    required this.disabledHint,
     required this.emojiOpen,
     required this.moreOpen,
     required this.onSubmitted,
@@ -1187,6 +1210,7 @@ class _Composer extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool enabled;
+  final String disabledHint;
   final bool emojiOpen;
   final bool moreOpen;
   final VoidCallback onSubmitted;
@@ -1212,7 +1236,7 @@ class _Composer extends StatelessWidget {
               onSubmitted: (_) => onSubmitted(),
               inputFormatters: AppInputFormatters.description(500),
               decoration: InputDecoration(
-                hintText: enabled ? '说点什么…' : '本次交流暂不能聊天',
+                hintText: enabled ? '说点什么…' : disabledHint,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 13,
                   vertical: 10,

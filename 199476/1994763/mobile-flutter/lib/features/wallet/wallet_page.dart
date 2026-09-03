@@ -331,13 +331,6 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                                 fontSize: 10,
                               ),
                             ),
-                            Text(
-                              '其它收入 ¥${formatMoney(wallet?.withdrawableIncome ?? 0)} · 可提现',
-                              style: const TextStyle(
-                                color: Color(0xBFFFFFFF),
-                                fontSize: 10,
-                              ),
-                            ),
                           ],
                         ),
                       ],

@@ -106,15 +106,23 @@ class WalletServiceTest {
     }
 
     @Test
-    void invitationRewardCreditsRechargeBalanceAndIsIdempotent() {
+    void invitationRewardCreditsWithdrawableIncomeAndIsIdempotent() {
         WalletAccountRepository wallets = mock(WalletAccountRepository.class);
         WalletTransactionRepository transactions = mock(WalletTransactionRepository.class);
-        WalletAccount account = wallet(2L, "0.00", "0.00");
+        UserRepository users = mock(UserRepository.class);
+        WalletAccount account = wallet(1L, "10.00", "0.00");
+        account.setRechargeBalance(new BigDecimal("10.00"));
+        account.setIncomeBalance(MoneyAmounts.ZERO);
+        account.setPendingIncomeBalance(MoneyAmounts.ZERO);
+        account.setFrozenRechargeBalance(MoneyAmounts.ZERO);
+        account.setFrozenIncomeBalance(MoneyAmounts.ZERO);
+        User user = account.getUser();
+        user.setAccountType("NORMAL");
         AtomicReference<WalletTransaction> recorded = new AtomicReference<>();
-
-        when(wallets.findWithLockByUserId(2L)).thenReturn(Optional.of(account));
+        when(users.findById(1L)).thenReturn(Optional.of(user));
+        when(wallets.findWithLockByUserId(1L)).thenReturn(Optional.of(account));
         when(transactions.findByUserIdAndTransactionTypeAndReferenceTypeAndReferenceId(
-            2L, "INVITATION_REWARD", "USER_INVITATION", 18L
+            1L, "INVITATION_REWARD", "EXPERIENCE_INVITATION_REWARD", 90L
         )).thenAnswer(invocation -> Optional.ofNullable(recorded.get()));
         when(transactions.save(any(WalletTransaction.class))).thenAnswer(invocation -> {
             WalletTransaction transaction = invocation.getArgument(0);
@@ -122,12 +130,27 @@ class WalletServiceTest {
             return transaction;
         });
 
-        WalletService service = service(wallets, transactions);
-        service.creditInvitationReward(2L, new BigDecimal("3"), 18L);
-        service.creditInvitationReward(2L, new BigDecimal("3.00"), 18L);
+        WalletService service = new WalletService(
+            wallets,
+            transactions,
+            mock(AlipayAccountRepository.class),
+            mock(WithdrawalRepository.class),
+            mock(WalletIncomeHoldRepository.class),
+            users,
+            mock(PlatformServiceFeePolicy.class),
+            mock(PlatformFeeRecordRepository.class),
+            mock(VerificationCodeService.class),
+            mock(AppTestLoginAccountService.class),
+            mock(SecurityEventService.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            mock(com.shixianwen.finance.FinancialLedgerService.class)
+        );
 
-        assertEquals(new BigDecimal("3.00"), account.getIncomeBalance());
-        assertEquals(new BigDecimal("3.00"), account.getAvailableBalance());
+        service.creditInvitationReward(1L, new BigDecimal("7"), 90L);
+        service.creditInvitationReward(1L, new BigDecimal("7.00"), 90L);
+
+        assertEquals(new BigDecimal("7.00"), account.getIncomeBalance());
+        assertEquals(new BigDecimal("17.00"), account.getAvailableBalance());
         verify(transactions, times(1)).save(any(WalletTransaction.class));
     }
 

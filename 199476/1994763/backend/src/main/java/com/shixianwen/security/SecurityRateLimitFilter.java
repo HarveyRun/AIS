@@ -132,8 +132,10 @@ public class SecurityRateLimitFilter extends OncePerRequestFilter {
             && !"GET".equals(method)) {
             return new Rule("MONEY", 20, 60_000);
         }
-        if ("GET".equals(method)
-            && (path.startsWith("/api/public/discovery") || path.startsWith("/api/answerers"))) {
+        if ("/api/experience-invitation-rewards/redeem".equals(path) && "POST".equals(method)) {
+            return new Rule("INVITATION_REWARD", 10, 60_000);
+        }
+        if ("GET".equals(method) && path.startsWith("/api/answerers")) {
             return new Rule("SEARCH", 120, 60_000);
         }
         if (!"GET".equals(method) && !"HEAD".equals(method)) {
