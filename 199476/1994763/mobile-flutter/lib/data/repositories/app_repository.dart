@@ -40,6 +40,13 @@ class AppRepository {
         .toList(growable: false);
   }
 
+  Future<HomeBannerAvailability> homeBannerAvailability(int bannerId) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/public/banners/$bannerId/availability',
+    );
+    return HomeBannerAvailability.fromJson(data);
+  }
+
   Future<void> sendVerificationCode(String phone) {
     return _api.post<Object?>(
       '/auth/verification-codes',
@@ -146,10 +153,16 @@ class AppRepository {
     int page = 0,
     int size = 10,
     String keyword = '',
+    String experienceType = 'ALL',
   }) async {
     final data = await _api.get<Map<String, dynamic>>(
       '/answerers',
-      query: {'page': page, 'size': size, 'keyword': keyword},
+      query: {
+        'page': page,
+        'size': size,
+        'keyword': keyword,
+        'experienceType': experienceType,
+      },
     );
     return AnswererPageData.fromJson(data);
   }
@@ -157,6 +170,21 @@ class AppRepository {
   Future<Answerer> answerer(String uid) async {
     final data = await _api.get<Map<String, dynamic>>('/answerers/$uid');
     return Answerer.fromJson(data);
+  }
+
+  Future<void> tipExperience({
+    required int certificationId,
+    required int amount,
+    required String requestId,
+  }) {
+    return _api.post<Object?>(
+      '/experience-tips',
+      data: {
+        'certificationId': certificationId,
+        'amount': amount,
+        'requestId': requestId,
+      },
+    );
   }
 
   Future<List<InquirySummary>> inquiries({bool showLoading = true}) async {

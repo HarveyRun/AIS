@@ -39,6 +39,13 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
         String status
     );
 
+    boolean existsByUserIdAndCategoryAndStatusAndIdNot(
+        Long userId,
+        String category,
+        String status,
+        Long id
+    );
+
     Optional<Certification>
         findFirstByUserIdAndCategoryAndExperienceBusinessTypeAndStatusAndEnabledTrueOrderByIdAsc(
             Long userId,

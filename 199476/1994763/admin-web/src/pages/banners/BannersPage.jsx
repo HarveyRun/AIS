@@ -27,6 +27,9 @@ const ACTION_OPTIONS = [
   ['NONE', '不跳转'],
   ['MY_EXPERIENCES', '进入我的经历'],
   ['PLATFORM_INTRODUCTION', '展示平台初衷'],
+  ['FIRST_EXPERIENCE_REWARD', '首次发布奖励规则'],
+  ['INVITE_PUBLIC_EXPERIENCE', '邀请公益分享规则'],
+  ['INVITE_MONETIZED_EXPERIENCE', '邀请变现经历规则'],
 ];
 const EMPTY_FORM = {
   displayMode: 'TEXT_ONLY',
@@ -36,8 +39,30 @@ const EMPTY_FORM = {
   description: '',
   imageUrl: '',
   sortOrder: '0',
+  startAt: '',
+  endAt: '',
   enabled: true,
 };
+
+function toDateTimeInput(value) {
+  return value ? String(value).slice(0, 16) : '';
+}
+
+function toLocalDateTimeInput(date) {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function newSchedule() {
+  const start = new Date();
+  start.setSeconds(0, 0);
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + 1);
+  return {
+    startAt: toLocalDateTimeInput(start),
+    endAt: toLocalDateTimeInput(end),
+  };
+}
 
 export default function BannersPage() {
   const { can } = useAdminAccess();
@@ -69,7 +94,11 @@ export default function BannersPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm({ ...EMPTY_FORM, sortOrder: String((items.at(-1)?.sortOrder || 0) + 10) });
+    setForm({
+      ...EMPTY_FORM,
+      ...newSchedule(),
+      sortOrder: String((items.at(-1)?.sortOrder || 0) + 10),
+    });
     setEditorOpen(true);
   };
 
@@ -83,6 +112,8 @@ export default function BannersPage() {
       description: item.description || '',
       imageUrl: item.imageUrl || '',
       sortOrder: String(item.sortOrder),
+      startAt: toDateTimeInput(item.startAt),
+      endAt: toDateTimeInput(item.endAt),
       enabled: item.enabled,
     });
     setEditorOpen(true);
@@ -133,6 +164,12 @@ export default function BannersPage() {
     }
     if (form.displayMode !== 'TEXT_ONLY' && !form.imageUrl) {
       return message.warning('请上传Banner图片'), false;
+    }
+    if (!form.startAt || !form.endAt) {
+      return message.warning('请设置开始时间和结束时间'), false;
+    }
+    if (new Date(form.endAt).getTime() <= new Date(form.startAt).getTime()) {
+      return message.warning('结束时间必须晚于开始时间'), false;
     }
     return true;
   };
@@ -209,6 +246,7 @@ export default function BannersPage() {
             <col className="banner-mode-column" />
             <col className="banner-sort-column" />
             <col className="banner-status-column" />
+            <col className="banner-schedule-column" />
             <col className="banner-update-column" />
             <col className="banner-action-column" />
           </colgroup>
@@ -218,6 +256,7 @@ export default function BannersPage() {
               <th>展示方式</th>
               <th>排序</th>
               <th>状态</th>
+              <th>展示时间</th>
               <th>最近更新</th>
               <th>操作</th>
             </tr>
@@ -231,9 +270,13 @@ export default function BannersPage() {
                 <td><b>{modeLabel(item.displayMode)}</b></td>
                 <td>{item.sortOrder}</td>
                 <td>
-                  <span className={`status ${item.enabled ? 'active' : ''}`}>
-                    {item.enabled ? '启用中' : '已停用'}
+                  <span className={`status ${bannerState(item).key}`}>
+                    {bannerState(item).label}
                   </span>
+                </td>
+                <td className="banner-schedule-cell">
+                  <span>{formatDateTime(item.startAt)}</span>
+                  <small>至 {formatDateTime(item.endAt)}</small>
                 </td>
                 <td>
                   <b>{item.updatedBy || '管理员'}</b>
@@ -363,6 +406,29 @@ export default function BannersPage() {
                   </div>
                 </section>
 
+                <section>
+                  <h3>展示时间</h3>
+                  <div className="banner-schedule-fields">
+                    <label>
+                      <span>开始时间</span>
+                      <input
+                        type="datetime-local"
+                        value={form.startAt}
+                        onChange={(event) => setForm({ ...form, startAt: event.target.value })}
+                      />
+                    </label>
+                    <label>
+                      <span>结束时间</span>
+                      <input
+                        type="datetime-local"
+                        value={form.endAt}
+                        onChange={(event) => setForm({ ...form, endAt: event.target.value })}
+                      />
+                    </label>
+                  </div>
+                  <small>仅在开始时间（含）至结束时间（不含）之间展示。</small>
+                </section>
+
                 <section className="banner-settings-row">
                   <label>
                     <span>排序</span>
@@ -416,6 +482,32 @@ export default function BannersPage() {
 
 function modeLabel(mode) {
   return MODE_OPTIONS.find(([value]) => value === mode)?.[1] || mode;
+}
+
+function bannerState(item) {
+  if (!item.enabled) return { key: 'disabled', label: '已停用' };
+  const now = Date.now();
+  if (item.startAt && now < new Date(item.startAt).getTime()) {
+    return { key: 'pending', label: '未开始' };
+  }
+  if (item.endAt && now >= new Date(item.endAt).getTime()) {
+    return { key: 'ended', label: '已结束' };
+  }
+  return { key: 'active', label: '展示中' };
+}
+
+function formatDateTime(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 }
 
 function BannerPreview({ item, compact = false }) {

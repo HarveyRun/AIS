@@ -5,9 +5,6 @@ import com.shixianwen.common.ApiResponse;
 import com.shixianwen.network.ClientIpExtractor;
 import com.shixianwen.user.User;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,7 +21,7 @@ public class ExperienceInvitationRewardController {
     @PostMapping("/redeem")
     public ApiResponse<ExperienceInvitationRewardService.RewardView> redeem(
         @CurrentUser User user,
-        @Valid @RequestBody RedeemRequest request,
+        @RequestBody RedeemRequest request,
         HttpServletRequest httpRequest
     ) {
         return ApiResponse.ok(service.redeem(
@@ -36,13 +33,6 @@ public class ExperienceInvitationRewardController {
         ));
     }
 
-    public record RedeemRequest(
-        @NotBlank(message = "请输入对方UID")
-        @Pattern(regexp = "^\\d{7}$", message = "请输入对方的7位UID")
-        String invitedUid,
-        @NotBlank(message = "请输入对方的注册手机号")
-        @Pattern(regexp = "^1[3-9]\\d{9}$", message = "请输入正确的手机号")
-        String invitedPhone
-    ) {
+    public record RedeemRequest(String invitedUid, String invitedPhone) {
     }
 }

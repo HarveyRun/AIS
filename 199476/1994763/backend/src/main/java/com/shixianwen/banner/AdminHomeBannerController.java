@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/admin/banners")
@@ -98,6 +101,8 @@ public class AdminHomeBannerController {
         @Size(max = 500) String imageUrl,
         @Size(max = 40) String actionType,
         @Min(0) @Max(9999) int sortOrder,
+        @NotNull LocalDateTime startAt,
+        @NotNull LocalDateTime endAt,
         boolean enabled
     ) {
         HomeBannerService.SaveCommand command() {
@@ -109,6 +114,8 @@ public class AdminHomeBannerController {
                 imageUrl,
                 actionType,
                 sortOrder,
+                startAt,
+                endAt,
                 enabled
             );
         }

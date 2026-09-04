@@ -17,6 +17,18 @@ import '../../core/widgets/app_message.dart';
 import '../../core/widgets/platform_introduction_gate.dart';
 import '../../data/models/answerer_models.dart';
 import '../../data/models/home_banner_models.dart';
+import 'home_activity_rules_dialog.dart';
+
+enum _ExperienceFilter {
+  all('全部', 'ALL'),
+  free('免费分享', 'FREE'),
+  paid('付费询问', 'PAID');
+
+  const _ExperienceFilter(this.label, this.apiValue);
+
+  final String label;
+  final String apiValue;
+}
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -41,8 +53,11 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
   bool _loadingMore = false;
   bool _hasMore = true;
   int _page = 0;
+  int _listRequestVersion = 0;
   int _banner = 0;
+  _ExperienceFilter _experienceFilter = _ExperienceFilter.all;
   final Set<int> _seenBanners = {};
+  final Set<int> _checkingBanners = {};
   ModalRoute<void>? _route;
 
   @override
@@ -159,30 +174,35 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
   }
 
   Future<void> _load({bool reset = false}) async {
+    late final int requestVersion;
     if (reset) {
+      requestVersion = ++_listRequestVersion;
       _page = 0;
       _hasMore = true;
       setState(() => _loading = true);
     } else {
       if (!_hasMore || _loadingMore) return;
+      requestVersion = _listRequestVersion;
       setState(() => _loadingMore = true);
     }
+    final keyword = _searchController.text.trim();
+    final experienceType = _experienceFilter.apiValue;
     try {
       final result = await ref
           .read(repositoryProvider)
           .answerers(
             page: _page,
             size: 10,
-            keyword: _searchController.text.trim(),
+            keyword: keyword,
+            experienceType: experienceType,
           );
-      if (!mounted) return;
+      if (!mounted || requestVersion != _listRequestVersion) return;
       setState(() {
         if (reset) _items.clear();
         _items.addAll(result.items);
         _hasMore = result.hasMore;
         if (result.hasMore) _page++;
       });
-      final keyword = _searchController.text.trim();
       if (reset && keyword.isNotEmpty) {
         unawaited(
           ref
@@ -191,15 +211,18 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                 'home_search_submit',
                 properties: {
                   'search_term': keyword,
+                  'experience_type': experienceType,
                   'result_count': result.items.length,
                 },
               ),
         );
       }
     } catch (error) {
-      if (mounted) AppMessage.show(context, '$error');
+      if (mounted && requestVersion == _listRequestVersion) {
+        AppMessage.show(context, '$error');
+      }
     } finally {
-      if (mounted) {
+      if (mounted && requestVersion == _listRequestVersion) {
         setState(() {
           _loading = false;
           _loadingMore = false;
@@ -215,6 +238,14 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
       () => _load(reset: true),
     );
     setState(() {});
+  }
+
+  void _setExperienceFilter(_ExperienceFilter value) {
+    if (_experienceFilter == value) return;
+    _searchTimer?.cancel();
+    FocusScope.of(context).unfocus();
+    setState(() => _experienceFilter = value);
+    _load(reset: true);
   }
 
   void _trackBannerImpression(int index) {
@@ -237,7 +268,54 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
   }
 
   void _openBanner(HomeBannerItem item) {
-    if (!item.canOpen) return;
+    if (!item.canOpen || !_checkingBanners.add(item.id)) return;
+    unawaited(_verifyAndOpenBanner(item));
+  }
+
+  Future<void> _verifyAndOpenBanner(HomeBannerItem item) async {
+    try {
+      final result = await ref
+          .read(repositoryProvider)
+          .homeBannerAvailability(item.id);
+      if (!mounted) return;
+      if (!result.available || result.banner == null) {
+        _removeUnavailableBanner(item.id);
+        AppMessage.show(
+          context,
+          result.message.isEmpty ? '该内容当前不可用' : result.message,
+        );
+        return;
+      }
+
+      final current = result.banner!;
+      if (!current.canOpen) {
+        AppMessage.show(context, '该内容暂无更多信息');
+        return;
+      }
+      _performBannerAction(current);
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+    } finally {
+      _checkingBanners.remove(item.id);
+    }
+  }
+
+  void _removeUnavailableBanner(int id) {
+    final remaining = _banners.where((item) => item.id != id).toList();
+    setState(() {
+      _banners = remaining;
+      _banner = remaining.isEmpty ? 0 : min(_banner, remaining.length - 1);
+    });
+    _restartBannerTimer();
+    if (_pageController.hasClients && remaining.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_pageController.hasClients) return;
+        _pageController.jumpToPage(_banner);
+      });
+    }
+  }
+
+  void _performBannerAction(HomeBannerItem item) {
     unawaited(
       ref
           .read(analyticsProvider)
@@ -254,7 +332,20 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
       unawaited(showPlatformIntroductionDialog(context));
       return;
     }
+    if (item.opensActivityRules) {
+      unawaited(_openActivityBanner(item));
+      return;
+    }
     context.push(item.targetPath);
+  }
+
+  Future<void> _openActivityBanner(HomeBannerItem item) async {
+    final confirmed = await showHomeActivityRulesDialog(
+      context,
+      actionType: item.actionType,
+    );
+    if (!mounted || confirmed != true) return;
+    context.push('/profile/certifications/experiences');
   }
 
   void _openAnswerer(Answerer answerer, int position) {
@@ -319,53 +410,205 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: SizedBox(
+                      child: Container(
                         height: 38,
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _searchFocusNode,
-                          autofocus: false,
-                          onTap: () {
-                            _searchFocusNode.canRequestFocus = true;
-                            _searchFocusNode.requestFocus();
-                          },
-                          onChanged: _search,
-                          inputFormatters: AppInputFormatters.search,
-                          textInputAction: TextInputAction.search,
-                          decoration: InputDecoration(
-                            hintText: '搜索经历',
-                            filled: true,
-                            contentPadding: EdgeInsets.zero,
-                            prefixIcon: const Icon(
-                              Icons.search_rounded,
-                              size: 19,
-                            ),
-                            suffixIcon: _searchController.text.isEmpty
-                                ? null
-                                : IconButton(
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      _load(reset: true);
-                                      setState(() {});
-                                    },
-                                    icon: const Icon(
-                                      Icons.close_rounded,
-                                      size: 18,
+                        decoration: BoxDecoration(
+                          color:
+                              theme.inputDecorationTheme.fillColor ??
+                              theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            MenuAnchor(
+                              alignmentOffset: const Offset(-6, 7),
+                              style: MenuStyle(
+                                padding: const WidgetStatePropertyAll(
+                                  EdgeInsets.all(4),
+                                ),
+                                backgroundColor: WidgetStatePropertyAll(
+                                  theme.colorScheme.surface,
+                                ),
+                                surfaceTintColor: const WidgetStatePropertyAll(
+                                  Colors.transparent,
+                                ),
+                                elevation: const WidgetStatePropertyAll(5),
+                                shadowColor: WidgetStatePropertyAll(
+                                  Colors.black.withValues(alpha: .08),
+                                ),
+                                shape: WidgetStatePropertyAll(
+                                  RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                              menuChildren: _ExperienceFilter.values
+                                  .map(
+                                    (item) => SizedBox(
+                                      width: 82,
+                                      height: 34,
+                                      child: Builder(
+                                        builder: (menuContext) => InkWell(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          onTap: () {
+                                            MenuController.maybeOf(
+                                              menuContext,
+                                            )?.close();
+                                            _setExperienceFilter(item);
+                                          },
+                                          child: AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 150,
+                                            ),
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              color: item == _experienceFilter
+                                                  ? theme.colorScheme.primary
+                                                        .withValues(alpha: .08)
+                                                  : Colors.transparent,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              item.label,
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color:
+                                                        item ==
+                                                            _experienceFilter
+                                                        ? theme
+                                                              .colorScheme
+                                                              .primary
+                                                        : theme
+                                                              .colorScheme
+                                                              .onSurfaceVariant,
+                                                    fontWeight:
+                                                        item ==
+                                                            _experienceFilter
+                                                        ? FontWeight.w700
+                                                        : FontWeight.w500,
+                                                  ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              builder: (context, controller, child) => InkWell(
+                                borderRadius: BorderRadius.circular(18),
+                                onTap: () {
+                                  FocusScope.of(context).unfocus();
+                                  controller.isOpen
+                                      ? controller.close()
+                                      : controller.open();
+                                },
+                                child: SizedBox(
+                                  height: 38,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 12),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          _experienceFilter.label,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                height: 1,
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant
+                                                    .withValues(alpha: .82),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Icon(
+                                          controller.isOpen
+                                              ? Icons.keyboard_arrow_up_rounded
+                                              : Icons
+                                                    .keyboard_arrow_down_rounded,
+                                          size: 15,
+                                          color: theme
+                                              .colorScheme
+                                              .onSurfaceVariant
+                                              .withValues(alpha: .82),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none,
+                                ),
+                              ),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none,
+                            Container(
+                              width: 1,
+                              height: 18,
+                              margin: const EdgeInsets.symmetric(horizontal: 7),
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: .65),
                             ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none,
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                focusNode: _searchFocusNode,
+                                autofocus: false,
+                                onTap: () {
+                                  _searchFocusNode.canRequestFocus = true;
+                                  _searchFocusNode.requestFocus();
+                                },
+                                onChanged: _search,
+                                inputFormatters: AppInputFormatters.search,
+                                textInputAction: TextInputAction.search,
+                                textAlignVertical: TextAlignVertical.center,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  height: 1,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: '搜索经历',
+                                  filled: false,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  hintStyle: theme.textTheme.bodyMedium
+                                      ?.copyWith(
+                                        height: 1,
+                                        color: theme
+                                            .colorScheme
+                                            .onSurfaceVariant
+                                            .withValues(alpha: .95),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                  suffixIconConstraints: const BoxConstraints(
+                                    minWidth: 34,
+                                    minHeight: 34,
+                                  ),
+                                  suffixIcon: _searchController.text.isEmpty
+                                      ? null
+                                      : IconButton(
+                                          padding: EdgeInsets.zero,
+                                          visualDensity: VisualDensity.compact,
+                                          onPressed: () {
+                                            _searchTimer?.cancel();
+                                            _searchController.clear();
+                                            _load(reset: true);
+                                            setState(() {});
+                                          },
+                                          icon: const Icon(
+                                            Icons.close_rounded,
+                                            size: 17,
+                                          ),
+                                        ),
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ),
@@ -400,7 +643,7 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
               else if (_items.isEmpty)
                 const SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(child: Text('没有找到相关经历的人')),
+                  child: Center(child: Text('没有找到相关经历')),
                 )
               else
                 SliverPadding(

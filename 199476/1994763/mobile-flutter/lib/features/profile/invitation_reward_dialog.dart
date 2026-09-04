@@ -5,8 +5,7 @@ class InvitationRewardDialog extends StatefulWidget {
   const InvitationRewardDialog({super.key});
 
   @override
-  State<InvitationRewardDialog> createState() =>
-      _InvitationRewardDialogState();
+  State<InvitationRewardDialog> createState() => _InvitationRewardDialogState();
 }
 
 class _InvitationRewardDialogState extends State<InvitationRewardDialog> {
@@ -32,12 +31,7 @@ class _InvitationRewardDialogState extends State<InvitationRewardDialog> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            10,
-            20,
-            20 + MediaQuery.viewInsetsOf(context).bottom,
-          ),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,7 +40,7 @@ class _InvitationRewardDialogState extends State<InvitationRewardDialog> {
                 children: [
                   Expanded(
                     child: Text(
-                      '邀请得奖金',
+                      '兑换邀请奖金',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -71,11 +65,8 @@ class _InvitationRewardDialogState extends State<InvitationRewardDialog> {
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _RuleLine(text: '邀请码就是受邀好友的 UID'),
-                    _RuleLine(text: '领取时还需填写好友的注册手机号'),
-                    _RuleLine(text: '好友有审核通过的公益分享，奖励 2 元'),
-                    _RuleLine(text: '好友有审核通过的干货变现，奖励 5 元'),
-                    _RuleLine(text: '同一个 UID 只能领取一次，最高奖励 7 元'),
+                    _RuleLine(text: '同一个UID，只能领取一次'),
+                    _RuleLine(text: '请勿提交无效UID或手机号'),
                   ],
                 ),
               ),

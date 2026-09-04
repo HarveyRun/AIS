@@ -1,6 +1,7 @@
 package com.shixianwen.invitation;
 
 import com.shixianwen.analytics.AnalyticsEventService;
+import com.shixianwen.auth.AccountPenaltyException;
 import com.shixianwen.certification.Certification;
 import com.shixianwen.certification.CertificationRepository;
 import com.shixianwen.common.BusinessException;
@@ -41,6 +42,7 @@ class ExperienceInvitationRewardServiceTest {
         assertEquals(new BigDecimal("2.00"), result.publicWelfareRewardAmount());
         assertEquals(new BigDecimal("5.00"), result.monetizedRewardAmount());
         assertEquals(new BigDecimal("7.00"), result.totalRewardAmount());
+        verify(fixture.submissionGuard).clear(1L);
         verify(fixture.wallet).creditInvitationReward(1L, new BigDecimal("7.00"), 90L);
     }
 
@@ -96,6 +98,9 @@ class ExperienceInvitationRewardServiceTest {
     @Test
     void uidMustMatchTheInvitedUsersRegisteredPhone() {
         Fixture fixture = fixture();
+        when(fixture.submissionGuard.recordInvalid(
+            1L, "127.0.0.1", "device", "7654321"
+        )).thenReturn(1);
 
         BusinessException error = assertThrows(
             BusinessException.class,
@@ -104,8 +109,42 @@ class ExperienceInvitationRewardServiceTest {
             )
         );
 
-        assertEquals("UID或注册手机号不正确", error.getMessage());
+        assertEquals("UID或注册手机号不正确，已累计1次异常提交", error.getMessage());
         verify(fixture.wallet, never()).creditInvitationReward(any(), any(), any());
+    }
+
+    @Test
+    void aPreviousRelationshipBlocksReverseInvitation() {
+        Fixture fixture = fixture();
+        when(fixture.relationships.findByLowerUserIdAndHigherUserId(1L, 2L))
+            .thenReturn(Optional.of(new ExperienceInvitationRelationship()));
+
+        BusinessException error = assertThrows(
+            BusinessException.class,
+            () -> fixture.service.redeem(
+                fixture.claimant, "7654321", "13900000002", "127.0.0.1", "device"
+            )
+        );
+
+        assertEquals("双方已经存在邀请关系，不能互相邀请", error.getMessage());
+        verify(fixture.wallet, never()).creditInvitationReward(any(), any(), any());
+    }
+
+    @Test
+    void ninthInvalidIdentitySubmissionReturnsPermanentPenalty() {
+        Fixture fixture = fixture();
+        when(fixture.submissionGuard.recordInvalid(
+            1L, "127.0.0.1", "device", "7654321"
+        )).thenReturn(9);
+
+        AccountPenaltyException error = assertThrows(
+            AccountPenaltyException.class,
+            () -> fixture.service.redeem(
+                fixture.claimant, "7654321", "13900000999", "127.0.0.1", "device"
+            )
+        );
+
+        assertEquals(true, error.isPermanent());
     }
 
     private Fixture fixture() {
@@ -113,6 +152,9 @@ class ExperienceInvitationRewardServiceTest {
         UserRepository users = mock(UserRepository.class);
         CertificationRepository certifications = mock(CertificationRepository.class);
         WalletService wallet = mock(WalletService.class);
+        InvitationSubmissionGuard submissionGuard = mock(InvitationSubmissionGuard.class);
+        ExperienceInvitationRelationshipRepository relationships =
+            mock(ExperienceInvitationRelationshipRepository.class);
         User claimant = user(1L, "7123456", "NORMAL");
         User invited = user(2L, "7654321", "NORMAL");
         when(users.findByUidAndAccountStatus("7654321", "ACTIVE"))
@@ -135,9 +177,20 @@ class ExperienceInvitationRewardServiceTest {
             wallet,
             mock(NotificationService.class),
             mock(AnalyticsEventService.class),
-            mock(SecurityEventService.class)
+            mock(SecurityEventService.class),
+            submissionGuard,
+            relationships
         );
-        return new Fixture(service, rewards, certifications, wallet, claimant, invited);
+        return new Fixture(
+            service,
+            rewards,
+            certifications,
+            wallet,
+            submissionGuard,
+            relationships,
+            claimant,
+            invited
+        );
     }
 
     private User user(Long id, String uid, String accountType) {
@@ -165,6 +218,8 @@ class ExperienceInvitationRewardServiceTest {
         ExperienceInvitationRewardRepository rewards,
         CertificationRepository certifications,
         WalletService wallet,
+        InvitationSubmissionGuard submissionGuard,
+        ExperienceInvitationRelationshipRepository relationships,
         User claimant,
         User invited
     ) {

@@ -4,6 +4,8 @@ import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.auth.VerificationCodeService;
 import com.shixianwen.auth.AppTestLoginAccountService;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.certification.Certification;
+import com.shixianwen.certification.CertificationRepository;
 import com.shixianwen.finance.FinancialLedgerService;
 import com.shixianwen.inquiry.Inquiry;
 import com.shixianwen.security.SecurityEventService;
@@ -30,6 +32,8 @@ public class WalletService {
 
     private final WalletAccountRepository wallets;
     private final WalletTransactionRepository transactions;
+    private final ExperienceTipRepository experienceTips;
+    private final CertificationRepository certifications;
     private final AlipayAccountRepository alipayAccounts;
     private final WithdrawalRepository withdrawals;
     private final WalletIncomeHoldRepository incomeHolds;
@@ -184,6 +188,111 @@ public class WalletService {
         String clientPlatform
     ) {
         return serviceFeePolicy.quote(amount, clientPlatform);
+    }
+
+    @Transactional
+    public ExperienceTipView tipExperience(
+        Long payerUserId,
+        Long certificationId,
+        BigDecimal requestedAmount,
+        String requestId
+    ) {
+        String normalizedRequestId = requireRequestId(requestId, "打赏");
+        BigDecimal amount = MoneyAmounts.requireWholeAmount(
+            requestedAmount,
+            BigDecimal.ONE,
+            new BigDecimal("5000"),
+            "打赏金额"
+        );
+
+        ExperienceTip existing = experienceTips
+            .findByPayerIdAndRequestNo(payerUserId, normalizedRequestId)
+            .orElse(null);
+        if (existing != null) {
+            verifySameTip(existing, certificationId, amount);
+            return ExperienceTipView.of(existing);
+        }
+
+        Certification certification = certifications.findById(certificationId)
+            .orElseThrow(() -> BusinessException.notFound("经历不存在"));
+        if (!"EXPERIENCE".equals(certification.getCategory())
+            || !"APPROVED".equals(certification.getStatus())
+            || !certification.isEnabled()) {
+            throw BusinessException.badRequest("这段经历暂不可打赏");
+        }
+        String businessType = certification.getExperienceBusinessType();
+        validateTipAmount(businessType, amount);
+
+        Long receiverUserId = certification.getUser().getId();
+        WalletPair pair = lockPair(payerUserId, receiverUserId);
+        WalletAccount payer = pair.forUser(payerUserId);
+        WalletAccount receiver = pair.forUser(receiverUserId);
+        ensureSources(payer);
+        ensureSources(receiver);
+        if (isTest(payer.getUser()) != isTest(receiver.getUser())) {
+            throw BusinessException.forbidden("测试资金与真实资金不能互相流转");
+        }
+
+        existing = experienceTips.findByPayerIdAndRequestNo(payerUserId, normalizedRequestId).orElse(null);
+        if (existing != null) {
+            verifySameTip(existing, certificationId, amount);
+            return ExperienceTipView.of(existing);
+        }
+        if (payer.getAvailableBalance().compareTo(amount) < 0) {
+            throw BusinessException.badRequest("余额不足，请先充值");
+        }
+
+        BigDecimal rechargeAmount = min(payer.getRechargeBalance(), amount);
+        BigDecimal incomeAmount = MoneyAmounts.subtract(amount, rechargeAmount);
+        payer.setRechargeBalance(MoneyAmounts.subtract(payer.getRechargeBalance(), rechargeAmount));
+        payer.setIncomeBalance(MoneyAmounts.subtract(payer.getIncomeBalance(), incomeAmount));
+        receiver.setIncomeBalance(MoneyAmounts.add(receiver.getIncomeBalance(), amount));
+        syncTotals(payer);
+        syncTotals(receiver);
+
+        ExperienceTip tip = new ExperienceTip();
+        tip.setPayer(payer.getUser());
+        tip.setReceiver(receiver.getUser());
+        tip.setCertification(certification);
+        tip.setRequestNo(normalizedRequestId);
+        tip.setExperienceBusinessType(businessType);
+        tip.setAmount(amount);
+        tip = experienceTips.save(tip);
+
+        record(payer, "EXPERIENCE_TIP", "OUT", amount, "EXPERIENCE_TIP", tip.getId(), "经历打赏");
+        record(receiver, "EXPERIENCE_TIP_INCOME", "IN", amount, "EXPERIENCE_TIP", tip.getId(), "收到经历打赏");
+        ledger.record(
+            "EXPERIENCE_TIP",
+            tip.getId(),
+            "TRANSFER",
+            "经历打赏",
+            List.of(
+                entry("USER_RECHARGE_LIABILITY", payerUserId, rechargeAmount),
+                entry("USER_INCOME_LIABILITY", payerUserId, incomeAmount),
+                entry("USER_INCOME_LIABILITY", receiverUserId, negative(amount))
+            )
+        );
+        return ExperienceTipView.of(tip);
+    }
+
+    private void validateTipAmount(String businessType, BigDecimal amount) {
+        if ("PUBLIC_WELFARE".equals(businessType)) {
+            boolean allowed = MoneyAmounts.same(amount, new BigDecimal("1.00"))
+                || MoneyAmounts.same(amount, new BigDecimal("3.00"))
+                || MoneyAmounts.same(amount, new BigDecimal("5.00"));
+            if (!allowed) throw BusinessException.badRequest("公益分享仅支持打赏1元、3元或5元");
+            return;
+        }
+        if (!"MONETIZED".equals(businessType)) {
+            throw BusinessException.badRequest("这段经历暂不可打赏");
+        }
+    }
+
+    private void verifySameTip(ExperienceTip existing, Long certificationId, BigDecimal amount) {
+        if (!existing.getCertification().getId().equals(certificationId)
+            || !MoneyAmounts.same(existing.getAmount(), amount)) {
+            throw BusinessException.badRequest("重复打赏请求的内容不一致");
+        }
     }
 
     @Transactional
@@ -470,6 +579,52 @@ public class WalletService {
     }
 
     @Transactional
+    public void creditFirstExperienceReward(Long userId, BigDecimal amount, Long referenceId) {
+        User user = user(userId);
+        WalletAccount wallet = lock(userId);
+        ensureSources(wallet);
+        amount = MoneyAmounts.requirePositive(amount);
+        String transactionType = isTest(user)
+            ? "TEST_FIRST_EXPERIENCE_REWARD"
+            : "FIRST_EXPERIENCE_REWARD";
+        if (alreadyRecorded(
+            wallet,
+            transactionType,
+            "FIRST_EXPERIENCE_REWARD",
+            referenceId,
+            amount
+        )) {
+            return;
+        }
+
+        wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), amount));
+        syncTotals(wallet);
+        record(
+            wallet,
+            transactionType,
+            "IN",
+            amount,
+            "FIRST_EXPERIENCE_REWARD",
+            referenceId,
+            isTest(user) ? "测试首次发布经历奖励" : "首次发布经历奖励"
+        );
+        ledger.record(
+            "FIRST_EXPERIENCE_REWARD",
+            referenceId,
+            "PAID",
+            isTest(user) ? "测试首次发布经历奖励到账" : "首次发布经历奖励到账",
+            List.of(
+                entry(
+                    isTest(user) ? "TEST_PROMOTION_EXPENSE" : "PLATFORM_PROMOTION_EXPENSE",
+                    null,
+                    amount
+                ),
+                entry("USER_INCOME_LIABILITY", userId, negative(amount))
+            )
+        );
+    }
+
+    @Transactional
     public void holdForQualityReview(Long inquiryId) {
         WalletIncomeHold hold = incomeHolds.findWithLockByInquiryId(inquiryId)
             .orElseThrow(() -> BusinessException.badRequest("该询问没有待解冻收入"));
@@ -612,8 +767,14 @@ public class WalletService {
     }
 
     private String requireRequestId(String requestId) {
+        return requireRequestId(requestId, "提现");
+    }
+
+    private String requireRequestId(String requestId, String businessName) {
         String value = requestId == null ? "" : requestId.trim();
-        if (!value.matches("[A-Za-z0-9_-]{12,64}")) throw BusinessException.badRequest("提现请求标识无效");
+        if (!value.matches("[A-Za-z0-9_-]{12,64}")) {
+            throw BusinessException.badRequest(businessName + "请求标识无效");
+        }
         return value;
     }
 
@@ -687,6 +848,22 @@ public class WalletService {
     }
 
     public record FrozenAllocation(BigDecimal rechargeAmount, BigDecimal incomeAmount) {
+    }
+
+    public record ExperienceTipView(
+        Long id,
+        Long certificationId,
+        BigDecimal amount,
+        LocalDateTime createdAt
+    ) {
+        static ExperienceTipView of(ExperienceTip item) {
+            return new ExperienceTipView(
+                item.getId(),
+                item.getCertification().getId(),
+                item.getAmount(),
+                item.getCreatedAt()
+            );
+        }
     }
 
     public record WalletView(

@@ -1,6 +1,7 @@
 package com.shixianwen.invitation;
 
 import com.shixianwen.analytics.AnalyticsEventService;
+import com.shixianwen.auth.AccountPenaltyException;
 import com.shixianwen.certification.Certification;
 import com.shixianwen.certification.CertificationRepository;
 import com.shixianwen.common.BusinessException;
@@ -38,6 +39,8 @@ public class ExperienceInvitationRewardService {
     private final NotificationService notifications;
     private final AnalyticsEventService analytics;
     private final SecurityEventService securityEvents;
+    private final InvitationSubmissionGuard submissionGuard;
+    private final ExperienceInvitationRelationshipRepository relationships;
 
     @Transactional
     public RewardView redeem(
@@ -47,19 +50,18 @@ public class ExperienceInvitationRewardService {
         String ipAddress,
         String deviceId
     ) {
-        String code = normalizeUid(invitedUid);
-        String phone = normalizePhone(invitedPhone);
-        User matched = users.findByUidAndAccountStatus(code, "ACTIVE")
-            .orElseThrow(() -> BusinessException.badRequest("UID或注册手机号不正确"));
+        String code = text(invitedUid);
+        String phone = text(invitedPhone);
+        if (!code.matches("\\d{7}") || !phone.matches("^1[3-9]\\d{9}$")) {
+            rejectInvalidIdentity(currentUser, ipAddress, deviceId, code);
+        }
+        User matched = users.findByUidAndAccountStatus(code, "ACTIVE").orElse(null);
+        if (matched == null || !secureEquals(matched.getPhone(), phone)) {
+            rejectInvalidIdentity(currentUser, ipAddress, deviceId, code);
+        }
+        submissionGuard.clear(currentUser.getId());
         if (matched.getId().equals(currentUser.getId())) {
             throw BusinessException.badRequest("不能填写自己的UID");
-        }
-        if (!secureEquals(matched.getPhone(), phone)) {
-            securityEvents.recordSafely(
-                currentUser.getId(), null, "INVITATION_REWARD_IDENTITY_MISMATCH", "HIGH",
-                ipAddress, deviceId, "invitedUid=" + code
-            );
-            throw BusinessException.badRequest("UID或注册手机号不正确");
         }
 
         Long lowerUserId = Math.min(currentUser.getId(), matched.getId());
@@ -78,6 +80,12 @@ public class ExperienceInvitationRewardService {
                 ipAddress, deviceId, "invitedUid=" + code
             );
             throw BusinessException.badRequest("测试账号与普通账号不能互相领取邀请奖金");
+        }
+        if (relationships.findByLowerUserIdAndHigherUserId(
+            lowerUserId,
+            higherUserId
+        ).isPresent()) {
+            throw BusinessException.badRequest("双方已经存在邀请关系，不能互相邀请");
         }
         if (rewards.findByInvitedUserId(invitedUser.getId()).isPresent()) {
             throw BusinessException.badRequest("该UID的邀请奖金已经领取过");
@@ -112,8 +120,13 @@ public class ExperienceInvitationRewardService {
         reward.setTotalRewardAmount(total);
         try {
             reward = rewards.saveAndFlush(reward);
+            ExperienceInvitationRelationship relationship =
+                new ExperienceInvitationRelationship();
+            relationship.setLowerUserId(lowerUserId);
+            relationship.setHigherUserId(higherUserId);
+            relationships.saveAndFlush(relationship);
         } catch (DataIntegrityViolationException exception) {
-            throw BusinessException.badRequest("该UID的邀请奖金已经领取过");
+            throw BusinessException.badRequest("双方已经存在邀请关系或该UID的奖金已被领取");
         }
 
         wallet.creditInvitationReward(claimant.getId(), total, reward.getId());
@@ -152,20 +165,28 @@ public class ExperienceInvitationRewardService {
         return "TEST".equals(user.getAccountType());
     }
 
-    private String normalizeUid(String value) {
-        String uid = value == null ? "" : value.trim();
-        if (!uid.matches("\\d{7}")) {
-            throw BusinessException.badRequest("请输入对方的7位UID");
+    private void rejectInvalidIdentity(
+        User currentUser,
+        String ipAddress,
+        String deviceId,
+        String invitedUid
+    ) {
+        int attempts = submissionGuard.recordInvalid(
+            currentUser.getId(),
+            ipAddress,
+            deviceId,
+            invitedUid
+        );
+        if (attempts > 8) {
+            throw new AccountPenaltyException("违反平台规则", null);
         }
-        return uid;
+        throw BusinessException.badRequest(
+            "UID或注册手机号不正确，已累计" + attempts + "次异常提交"
+        );
     }
 
-    private String normalizePhone(String value) {
-        String phone = value == null ? "" : value.trim();
-        if (!phone.matches("^1[3-9]\\d{9}$")) {
-            throw BusinessException.badRequest("请输入对方的注册手机号");
-        }
-        return phone;
+    private String text(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private boolean secureEquals(String expected, String actual) {

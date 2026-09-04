@@ -30,7 +30,10 @@ public class HomeBannerService {
     private static final Set<String> ACTION_TYPES = Set.of(
         "NONE",
         "MY_EXPERIENCES",
-        "PLATFORM_INTRODUCTION"
+        "PLATFORM_INTRODUCTION",
+        "FIRST_EXPERIENCE_REWARD",
+        "INVITE_PUBLIC_EXPERIENCE",
+        "INVITE_MONETIZED_EXPERIENCE"
     );
     private static final Set<String> IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;
@@ -60,10 +63,37 @@ public class HomeBannerService {
 
     @Transactional(readOnly = true)
     public List<PublicBannerView> publicBanners() {
-        return repository.findAllByDeletedFalseAndEnabledTrueOrderBySortOrderAscIdAsc()
+        LocalDateTime now = LocalDateTime.now();
+        return repository
+            .findAllByDeletedFalseAndEnabledTrueAndStartAtLessThanEqualAndEndAtGreaterThanOrderBySortOrderAscIdAsc(
+                now,
+                now
+            )
             .stream()
             .map(PublicBannerView::from)
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public BannerAvailabilityView availability(Long id) {
+        HomeBanner banner = repository.findById(id).orElse(null);
+        if (banner == null || banner.isDeleted() || !banner.isEnabled()) {
+            return BannerAvailabilityView.unavailable("OFFLINE", "该内容已下架");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(banner.getStartAt())) {
+            return BannerAvailabilityView.unavailable("NOT_STARTED", "该内容暂未开始");
+        }
+        if (!now.isBefore(banner.getEndAt())) {
+            return BannerAvailabilityView.unavailable("ENDED", "该内容已结束");
+        }
+        return new BannerAvailabilityView(
+            true,
+            "AVAILABLE",
+            null,
+            PublicBannerView.from(banner)
+        );
     }
 
     public ImageUploadView uploadImage(MultipartFile image) {
@@ -140,6 +170,8 @@ public class HomeBannerService {
         banner.setImageUrl(value.imageUrl());
         banner.setActionType(value.actionType());
         banner.setSortOrder(value.sortOrder());
+        banner.setStartAt(value.startAt());
+        banner.setEndAt(value.endAt());
         banner.setEnabled(value.enabled());
         banner.setUpdatedByAdmin(admin);
     }
@@ -151,6 +183,12 @@ public class HomeBannerService {
         }
         if (command.sortOrder() < 0 || command.sortOrder() > 9999) {
             throw BusinessException.badRequest("排序必须在0到9999之间");
+        }
+        if (command.startAt() == null || command.endAt() == null) {
+            throw BusinessException.badRequest("请设置开始时间和结束时间");
+        }
+        if (!command.endAt().isAfter(command.startAt())) {
+            throw BusinessException.badRequest("结束时间必须晚于开始时间");
         }
 
         String label = optional(command.labelText(), 30, "标签最多30个字");
@@ -184,6 +222,8 @@ public class HomeBannerService {
             imageUrl,
             actionType,
             command.sortOrder(),
+            command.startAt(),
+            command.endAt(),
             command.enabled()
         );
     }
@@ -236,6 +276,8 @@ public class HomeBannerService {
         String imageUrl,
         String actionType,
         int sortOrder,
+        LocalDateTime startAt,
+        LocalDateTime endAt,
         boolean enabled
     ) {
     }
@@ -248,6 +290,8 @@ public class HomeBannerService {
         String imageUrl,
         String actionType,
         int sortOrder,
+        LocalDateTime startAt,
+        LocalDateTime endAt,
         boolean enabled
     ) {
     }
@@ -264,6 +308,8 @@ public class HomeBannerService {
         String imageUrl,
         String actionType,
         int sortOrder,
+        LocalDateTime startAt,
+        LocalDateTime endAt,
         boolean enabled,
         String updatedBy,
         LocalDateTime updatedAt
@@ -279,6 +325,8 @@ public class HomeBannerService {
                 banner.getImageUrl(),
                 banner.getActionType(),
                 banner.getSortOrder(),
+                banner.getStartAt(),
+                banner.getEndAt(),
                 banner.isEnabled(),
                 admin == null ? null : admin.getDisplayName(),
                 banner.getUpdatedAt()
@@ -305,6 +353,17 @@ public class HomeBannerService {
                 banner.getImageUrl(),
                 banner.getActionType()
             );
+        }
+    }
+
+    public record BannerAvailabilityView(
+        boolean available,
+        String state,
+        String message,
+        PublicBannerView banner
+    ) {
+        static BannerAvailabilityView unavailable(String state, String message) {
+            return new BannerAvailabilityView(false, state, message, null);
         }
     }
 

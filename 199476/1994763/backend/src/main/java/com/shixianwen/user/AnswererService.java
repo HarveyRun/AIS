@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class AnswererService {
@@ -40,7 +41,14 @@ public class AnswererService {
     }
 
     @Transactional(readOnly = true)
-    public AnswererPage search(Long currentUserId, String keyword, int page, int size) {
+    public AnswererPage search(
+        Long currentUserId,
+        String keyword,
+        String experienceType,
+        int page,
+        int size
+    ) {
+        String businessTypeFilter = businessTypeFilter(experienceType);
         String accountType = accountType(currentUserId);
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
         int safePage = Math.max(0, page);
@@ -52,10 +60,13 @@ public class AnswererService {
                 "AND u.id<>? AND u.account_type=? AND u.account_status='ACTIVE' " +
                 "AND (COALESCE(ce.experience_business_type,'MONETIZED')='PUBLIC_WELFARE' " +
                 "OR (COALESCE(ce.experience_business_type,'MONETIZED')='MONETIZED' AND u.accepting_inquiries=TRUE AND " + QUALIFIED + ")) " +
+                "AND (?='' OR COALESCE(ce.experience_business_type,'MONETIZED')=?) " +
                 "AND (?='' OR ce.title LIKE CONCAT('%',?,'%')) " +
                 "ORDER BY ce.id DESC LIMIT ? OFFSET ?",
             (rs, rowNum) -> new ExperienceCardRow(rs.getLong("certification_id"), rs.getLong("user_id")),
-            currentUserId, accountType, normalizedKeyword, normalizedKeyword,
+            currentUserId, accountType,
+            businessTypeFilter, businessTypeFilter,
+            normalizedKeyword, normalizedKeyword,
             safeSize + 1, safePage * safeSize
         );
         boolean hasMore = rows.size() > safeSize;
@@ -147,6 +158,18 @@ public class AnswererService {
     private String normalizedBusinessType(Certification item) {
         String value = item.getExperienceBusinessType();
         return value == null || value.isBlank() ? "MONETIZED" : value;
+    }
+
+    static String businessTypeFilter(String value) {
+        String normalized = value == null
+            ? "ALL"
+            : value.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "ALL" -> "";
+            case "FREE" -> "PUBLIC_WELFARE";
+            case "PAID" -> "MONETIZED";
+            default -> throw BusinessException.badRequest("经历筛选条件不正确");
+        };
     }
 
     private String accountType(Long userId) {

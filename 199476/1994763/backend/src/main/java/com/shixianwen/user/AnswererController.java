@@ -17,10 +17,19 @@ public class AnswererController {
     public ApiResponse<AnswererService.AnswererPage> search(
         @CurrentUser User currentUser,
         @RequestParam(required = false) String keyword,
+        @RequestParam(defaultValue = "ALL") String experienceType,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size
     ) {
-        return ApiResponse.ok(answererService.search(currentUser.getId(), keyword, page, size));
+        return ApiResponse.ok(
+            answererService.search(
+                currentUser.getId(),
+                keyword,
+                experienceType,
+                page,
+                size
+            )
+        );
     }
 
     @GetMapping("/{uid}")

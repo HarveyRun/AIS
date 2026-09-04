@@ -319,6 +319,7 @@ public class CertificationService {
     public CertificationView review(Long id, boolean approved, String reason) {
         Certification certification = certificationRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("认证不存在"));
+        boolean firstApproval = approved && !"APPROVED".equals(certification.getStatus());
         certification.setStatus(approved ? "APPROVED" : "REJECTED");
         certification.setRejectionReason(approved ? null : reason);
         certification.setReviewedAt(LocalDateTime.now());
@@ -351,6 +352,9 @@ public class CertificationService {
             )
         );
         if (approved && "EXPERIENCE".equals(certification.getCategory()) && events != null) {
+            if (firstApproval) {
+                events.publishEvent(new ExperienceApproved(certification.getId()));
+            }
             events.publishEvent(new CertificationMediaExtractionRequested(certification.getId()));
         }
         return view(certification);

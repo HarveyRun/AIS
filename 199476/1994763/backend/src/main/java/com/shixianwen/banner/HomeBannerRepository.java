@@ -6,11 +6,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 public interface HomeBannerRepository extends JpaRepository<HomeBanner, Long> {
     Page<HomeBanner> findAllByDeletedFalse(Pageable pageable);
 
     Optional<HomeBanner> findByIdAndDeletedFalse(Long id);
 
-    List<HomeBanner> findAllByDeletedFalseAndEnabledTrueOrderBySortOrderAscIdAsc();
+    List<HomeBanner> findAllByDeletedFalseAndEnabledTrueAndStartAtLessThanEqualAndEndAtGreaterThanOrderBySortOrderAscIdAsc(
+        LocalDateTime startAt,
+        LocalDateTime endAt
+    );
 }

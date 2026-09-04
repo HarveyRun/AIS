@@ -119,7 +119,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   children: [
                     _MenuItem(
                       icon: Icons.card_giftcard_rounded,
-                      title: '邀请得奖金',
+                      title: '兑换邀请奖金',
                       onTap: _redeemInvitationReward,
                     ),
                     _MenuItem(

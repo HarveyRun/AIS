@@ -49,6 +49,12 @@ public class HomeBanner {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
+    @Column(name = "start_at", nullable = false)
+    private LocalDateTime startAt;
+
+    @Column(name = "end_at", nullable = false)
+    private LocalDateTime endAt;
+
     @Column(nullable = false)
     private boolean enabled;
 
