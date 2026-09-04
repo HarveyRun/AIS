@@ -138,11 +138,9 @@ public class CertificationService {
         validateExperienceContent(title, description);
         String cleanDescription = description == null ? "" : description.trim();
         validateDetail(cleanDescription, detailMode, detailVideo, certification);
-        validateArchive(
-            proofArchive,
-            hasMaterial(certification, "PROOF_ARCHIVE") || hasMaterial(certification, "ARCHIVE"),
-            "请上传证明资料压缩包"
-        );
+        if (proofArchive != null && !proofArchive.isEmpty()) {
+            validateArchive(proofArchive, false, "证明资料格式不正确");
+        }
         prepareResubmission(certification, existingId);
         applyExperienceContent(certification, title, cleanDescription, detailVideo, proofArchive);
         certification.setExperienceBusinessType("PUBLIC_WELFARE");
@@ -323,8 +321,12 @@ public class CertificationService {
         certification.setStatus(approved ? "APPROVED" : "REJECTED");
         certification.setRejectionReason(approved ? null : reason);
         certification.setReviewedAt(LocalDateTime.now());
+        boolean hasProofArchive = "EXPERIENCE".equals(certification.getCategory())
+            && (hasMaterial(certification, "PROOF_ARCHIVE") || hasMaterial(certification, "ARCHIVE"));
         if ("EXPERIENCE".equals(certification.getCategory())) {
-            certification.setMediaProcessingStatus(approved ? "PENDING" : "NOT_REQUIRED");
+            certification.setMediaProcessingStatus(
+                approved && hasProofArchive ? "PENDING" : "NOT_REQUIRED"
+            );
             certification.setMediaProcessingError(null);
             certification.setMediaProcessedAt(null);
         }
@@ -355,7 +357,9 @@ public class CertificationService {
             if (firstApproval) {
                 events.publishEvent(new ExperienceApproved(certification.getId()));
             }
-            events.publishEvent(new CertificationMediaExtractionRequested(certification.getId()));
+            if (hasProofArchive) {
+                events.publishEvent(new CertificationMediaExtractionRequested(certification.getId()));
+            }
         }
         return view(certification);
     }

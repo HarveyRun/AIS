@@ -228,7 +228,9 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
       );
       return;
     }
-    if (_proofArchive == null && _existingProofArchive == null) {
+    if (!_isPublicWelfare &&
+        _proofArchive == null &&
+        _existingProofArchive == null) {
       AppMessage.show(context, '请上传已处理证明资料压缩包');
       return;
     }
@@ -336,6 +338,10 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
                   CertificationNoticeParagraph(
                     text: '无明显矛盾、无不符合常识或疑似虚构的内容',
                     marker: '2',
+                  ),
+                  CertificationNoticeParagraph(
+                    text: '上传证明资料会大幅提高审核通过率',
+                    marker: '3',
                   ),
                 ]
               : const [
@@ -540,15 +546,32 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
                         const SizedBox(height: 5),
                         Text(
                           _isPublicWelfare
-                              ? '上传ZIP 或 RAR 压缩包，最大 2GB'
+                              ? '选填，上传证明资料可大幅提高审核通过率'
                               : '请上传两份 ZIP 或 RAR 压缩包，每份最大 2GB',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                                color: _isPublicWelfare
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                fontWeight: _isPublicWelfare
+                                    ? FontWeight.w600
+                                    : null,
                               ),
                         ),
+                        if (_isPublicWelfare) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            '支持 ZIP 或 RAR 压缩包，最大 2GB',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
                       ],
                       const SizedBox(height: 12),
                       if (!_editable && _record != null)
@@ -709,8 +732,7 @@ class _PublicMediaSection extends StatelessWidget {
                           children: [
                             if (isPublicWelfare) ...[
                               const TextSpan(
-                                text:
-                                    '公开证明材料，可以让其他用户更直观地了解内容来源，未勾选的内容不会对外展示。',
+                                text: '公开证明材料，可以让其他用户更直观地了解内容来源，未勾选的内容不会对外展示。',
                               ),
                               const TextSpan(text: ''),
                             ] else ...[

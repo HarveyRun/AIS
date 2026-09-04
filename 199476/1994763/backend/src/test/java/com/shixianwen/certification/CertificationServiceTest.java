@@ -351,6 +351,36 @@ class CertificationServiceTest {
     }
 
     @Test
+    void publicWelfareExperienceDoesNotRequireProofArchive() {
+        CertificationRepository certifications = mock(CertificationRepository.class);
+        UserRepository users = mock(UserRepository.class);
+        SensitiveWordService sensitiveWords = mock(SensitiveWordService.class);
+        CertificationService service = new CertificationService(
+            certifications,
+            users,
+            mock(FileStorage.class),
+            sensitiveWords,
+            mock(FileTypeDetector.class),
+            mock(com.shixianwen.analytics.AnalyticsEventService.class)
+        );
+        User user = new User();
+        user.setId(10L);
+        user.setUid("7996710");
+        when(users.findWithLockById(10L)).thenReturn(Optional.of(user));
+        when(sensitiveWords.mask(any(String.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(certifications.save(any(Certification.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        CertificationService.CertificationView result = service.submitPublicWelfareExperience(
+            user, null, "实用内容", "把事情讲清楚", "TEXT", null, null
+        );
+
+        assertEquals("PUBLIC_WELFARE", result.experienceBusinessType());
+        assertEquals(0, result.materials().size());
+    }
+
+    @Test
     void monetizedExperienceRequiresIdentityBeforeAcceptingSubmission() {
         CertificationRepository certifications = mock(CertificationRepository.class);
         UserRepository users = mock(UserRepository.class);
