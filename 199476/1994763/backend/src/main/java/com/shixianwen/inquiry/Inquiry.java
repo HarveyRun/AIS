@@ -53,6 +53,18 @@ public class Inquiry {
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
 
+    @Column(name = "deposit_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal depositAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
+
+    @Column(name = "deposit_frozen_recharge_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal depositFrozenRechargeAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
+
+    @Column(name = "deposit_frozen_income_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal depositFrozenIncomeAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
+
+    @Column(name = "deposit_status", nullable = false, length = 20)
+    private String depositStatus = "NONE";
+
     @Column(name = "settleable_amount", nullable = false, precision = 14, scale = 2)
     private BigDecimal settleableAmount = com.shixianwen.wallet.MoneyAmounts.ZERO;
 
@@ -101,11 +113,11 @@ public class Inquiry {
     @Column(name = "response_deadline")
     private LocalDateTime responseDeadline;
 
-    @Column(name = "confirmation_deadline")
-    private LocalDateTime confirmationDeadline;
-
     @Column(name = "accepted_at")
     private LocalDateTime acceptedAt;
+
+    @Column(name = "conversation_expires_at")
+    private LocalDateTime conversationExpiresAt;
 
     @Column(name = "first_questioner_message_at")
     private LocalDateTime firstQuestionerMessageAt;
@@ -119,17 +131,35 @@ public class Inquiry {
     @Column(name = "reply_deadline")
     private LocalDateTime replyDeadline;
 
-    @Column(name = "end_requested_at")
-    private LocalDateTime endRequestedAt;
-
-    @Column(name = "end_reminder_stage", nullable = false)
-    private int endReminderStage;
-
     @Column(name = "ended_at")
     private LocalDateTime endedAt;
 
     @Column(name = "last_message_at")
     private LocalDateTime lastMessageAt;
+
+    @Column(name = "flow_version", nullable = false)
+    private int flowVersion = 2;
+
+    @Column(name = "hourly_rate_snapshot", nullable = false)
+    private int hourlyRateSnapshot;
+
+    @Column(name = "session_type", length = 20)
+    private String sessionType;
+
+    @Column(name = "purchased_minutes", nullable = false)
+    private int purchasedMinutes;
+
+    @Column(name = "paid_session_started_at")
+    private LocalDateTime paidSessionStartedAt;
+
+    @Column(name = "paid_session_ends_at")
+    private LocalDateTime paidSessionEndsAt;
+
+    @Column(name = "questioner_text_limit", nullable = false)
+    private int questionerTextLimit = 50;
+
+    @Column(name = "answerer_text_limit", nullable = false)
+    private int answererTextLimit = 50;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

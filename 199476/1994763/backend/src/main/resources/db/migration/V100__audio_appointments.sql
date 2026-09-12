@@ -1,0 +1,38 @@
+CREATE TABLE inquiry_audio_appointments (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    inquiry_id BIGINT NOT NULL,
+    questioner_id BIGINT NOT NULL,
+    answerer_id BIGINT NOT NULL,
+    scheduled_start_at DATETIME(6) NOT NULL,
+    scheduled_end_at DATETIME(6) NOT NULL,
+    duration_minutes INT NOT NULL,
+    hourly_rate_snapshot INT NOT NULL,
+    amount DECIMAL(14, 2) NOT NULL,
+    service_fee_rate DECIMAL(7, 6) NOT NULL,
+    service_fee_amount DECIMAL(14, 2) NOT NULL,
+    answerer_income_amount DECIMAL(14, 2) NOT NULL,
+    frozen_recharge_amount DECIMAL(14, 2) NOT NULL DEFAULT 0.00,
+    frozen_income_amount DECIMAL(14, 2) NOT NULL DEFAULT 0.00,
+    status VARCHAR(30) NOT NULL,
+    response_deadline DATETIME(6) NOT NULL,
+    attempt_number INT NOT NULL,
+    accepted_at DATETIME(6) NULL,
+    started_at DATETIME(6) NULL,
+    ended_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    version BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_audio_appointment_inquiry
+        FOREIGN KEY (inquiry_id) REFERENCES inquiries(id),
+    CONSTRAINT fk_audio_appointment_questioner
+        FOREIGN KEY (questioner_id) REFERENCES users(id),
+    CONSTRAINT fk_audio_appointment_answerer
+        FOREIGN KEY (answerer_id) REFERENCES users(id),
+    INDEX idx_audio_appointment_inquiry (inquiry_id, id),
+    INDEX idx_audio_appointment_answerer_time (answerer_id, scheduled_start_at, scheduled_end_at),
+    INDEX idx_audio_appointment_questioner_time (questioner_id, scheduled_start_at, scheduled_end_at),
+    INDEX idx_audio_appointment_timeout (status, response_deadline),
+    INDEX idx_audio_appointment_start (status, scheduled_start_at),
+    INDEX idx_audio_appointment_end (status, scheduled_end_at)
+);

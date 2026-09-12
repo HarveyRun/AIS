@@ -34,20 +34,38 @@ public class Certification {
     @Column(name = "certification_type", nullable = false, length = 50)
     private String certificationType;
 
-    @Column(name = "experience_business_type", length = 24)
-    private String experienceBusinessType;
-
-    @Column(name = "upgrade_source_id")
-    private Long upgradeSourceId;
-
     @Column(nullable = false, length = 100)
     private String title;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "required_item", nullable = false)
-    private boolean requiredItem;
+    @Column(name = "experience_location", length = 100)
+    private String experienceLocation;
+
+    @Column(name = "experience_start_date")
+    private String experienceStartDate;
+
+    @Column(name = "experience_end_date")
+    private String experienceEndDate;
+
+    @Column(name = "experience_count")
+    private Integer experienceCount;
+
+    @Column(name = "experience_role", length = 30)
+    private String experienceRole;
+
+    @Column(name = "experience_age_range", length = 20)
+    private String experienceAgeRange;
+
+    @Column(name = "experience_education", length = 30)
+    private String experienceEducation;
+
+    @Column(name = "experience_job", length = 50)
+    private String experienceJob;
+
+    @Column(name = "source_client_platform", nullable = false, length = 20)
+    private String sourceClientPlatform = "ANDROID";
 
     @Column(nullable = false, length = 30)
     private String status = "PENDING";

@@ -4,6 +4,7 @@ import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.auth.VerificationCodeService;
 import com.shixianwen.auth.AppTestLoginAccountService;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.config.AppGlobalSettingService;
 import com.shixianwen.certification.Certification;
 import com.shixianwen.certification.CertificationRepository;
 import com.shixianwen.finance.FinancialLedgerService;
@@ -15,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -45,6 +48,9 @@ public class WalletService {
     private final SecurityEventService securityEvents;
     private final AnalyticsEventService analytics;
     private final FinancialLedgerService ledger;
+    private final JdbcTemplate jdbc;
+    @Autowired(required = false)
+    private AppGlobalSettingService globalSettings;
 
     public WalletView get(Long userId) {
         WalletAccount wallet = wallets.findByUserId(userId)
@@ -64,6 +70,49 @@ public class WalletService {
         return transactions.findByUserIdOrderByCreatedAtDesc(userId).stream().map(TransactionView::of).toList();
     }
 
+    @Transactional
+    public void recordCuratedMembershipPurchase(
+        Long userId,
+        Long orderId,
+        BigDecimal amount,
+        boolean testPayment
+    ) {
+        BigDecimal normalizedAmount = MoneyAmounts.requirePositive(amount);
+        WalletAccount wallet = wallets.findWithLockByUserId(userId)
+            .orElseThrow(() -> BusinessException.notFound("账户不存在"));
+        ensureSources(wallet);
+        if (alreadyRecorded(
+            wallet,
+            "CURATED_MEMBERSHIP_PURCHASE",
+            "CURATED_MEMBERSHIP",
+            orderId,
+            normalizedAmount
+        )) return;
+        record(
+            wallet,
+            "CURATED_MEMBERSHIP_PURCHASE",
+            "OUT",
+            normalizedAmount,
+            "CURATED_MEMBERSHIP",
+            orderId,
+            testPayment ? "测试开通严选直聊" : "开通严选直聊"
+        );
+        ledger.record(
+            "CURATED_MEMBERSHIP",
+            orderId,
+            "PAID",
+            testPayment ? "测试开通严选直聊" : "严选直聊开通到账",
+            List.of(
+                entry(testPayment ? "TEST_CLEARING" : "ALIPAY_CLEARING", null, normalizedAmount),
+                entry(
+                    testPayment ? "TEST_MEMBERSHIP_REVENUE" : "PLATFORM_MEMBERSHIP_REVENUE",
+                    null,
+                    negative(normalizedAmount)
+                )
+            )
+        );
+    }
+
     public AlipayAccountView alipayAccount(Long userId) {
         return alipayAccounts.findByUserId(userId)
             .filter(account -> "OAUTH".equals(account.getAuthorizationType()))
@@ -73,6 +122,9 @@ public class WalletService {
 
     public void sendStepUpCode(Long userId, String purpose, String ip, String deviceId) {
         User user = user(userId);
+        if ("WITHDRAWAL".equalsIgnoreCase(purpose)) {
+            requireWithdrawalIdentity(userId);
+        }
         if (isTest(user)) {
             appTestAccounts.activeVerificationCode(user.getPhone())
                 .orElseThrow(() -> BusinessException.forbidden("测试账号已停用"));
@@ -90,7 +142,11 @@ public class WalletService {
         String ip,
         String deviceId
     ) {
-        amount = withdrawalAmount(amount);
+        AppGlobalSettingService.Settings settings = settings();
+        if (settings != null && !settings.withdrawalEnabled()) {
+            throw BusinessException.serviceUnavailable("提现功能暂时不可用");
+        }
+        amount = withdrawalAmount(amount, settings);
         String normalizedRequestId = requireRequestId(requestId);
         Withdrawal existing = withdrawals.findByUserIdAndRequestNo(userId, normalizedRequestId).orElse(null);
         if (existing != null) {
@@ -101,12 +157,14 @@ public class WalletService {
         }
 
         User user = user(userId);
+        requireWithdrawalIdentity(userId);
         AlipayAccount payoutAccount = alipayAccounts.findByUserId(userId)
             .filter(account -> "OAUTH".equals(account.getAuthorizationType()))
             .orElseThrow(() -> BusinessException.badRequest("请先完成支付宝授权"));
         if (!isTest(user) && (payoutAccount.getUpdatedAt() == null
-            || payoutAccount.getUpdatedAt().plusHours(PAYOUT_ACCOUNT_COOLDOWN_HOURS).isAfter(LocalDateTime.now()))) {
-            throw BusinessException.badRequest("支付宝账户授权或变更后24小时内暂不能提现");
+            || payoutAccount.getUpdatedAt().plusHours(settings == null ? PAYOUT_ACCOUNT_COOLDOWN_HOURS : settings.payoutAccountCooldownHours()).isAfter(LocalDateTime.now()))) {
+            int hours = settings == null ? (int) PAYOUT_ACCOUNT_COOLDOWN_HOURS : settings.payoutAccountCooldownHours();
+            throw BusinessException.badRequest("支付宝账户授权或变更后" + hours + "小时内暂不能提现");
         }
         verifyStepUpCode(user, "WITHDRAWAL", verificationCode);
 
@@ -114,7 +172,8 @@ public class WalletService {
             userId,
             LocalDateTime.now().toLocalDate().atStartOfDay()
         ));
-        if (MoneyAmounts.add(today, amount).compareTo(DAILY_WITHDRAWAL_LIMIT) > 0) {
+        BigDecimal dailyLimit = settings == null ? DAILY_WITHDRAWAL_LIMIT : settings.withdrawalDailyLimit();
+        if (MoneyAmounts.add(today, amount).compareTo(dailyLimit) > 0) {
             securityEvents.recordSafely(userId, null, "WITHDRAWAL_DAILY_LIMIT", "HIGH", ip, deviceId, null);
             throw BusinessException.badRequest("今日提现金额已达上限");
         }
@@ -135,6 +194,9 @@ public class WalletService {
         item.setAmount(amount);
         item.setFee(MoneyAmounts.ZERO);
         item.setArrivalAmount(amount);
+        WithdrawalRisk withdrawalRisk = withdrawalRisk(user);
+        item.setRiskLevel(withdrawalRisk.level());
+        item.setRiskReasons(withdrawalRisk.reasons());
         item.setPayeeNameSnapshot(payoutAccount.getRealName());
         item.setAlipayIdentifierTypeSnapshot(payoutAccount.getIdentifierType());
         item.setAlipayAccountCiphertextSnapshot(payoutAccount.getAccountCiphertext());
@@ -164,6 +226,12 @@ public class WalletService {
             isTest(user) ? "MEDIUM" : "CRITICAL", ip, deviceId,
             "withdrawalId=" + item.getId() + ", amount=" + amount.toPlainString()
         );
+        if (!"LOW".equals(withdrawalRisk.level())) {
+            securityEvents.recordSafely(
+                userId, null, "WITHDRAWAL_REVIEW_RISK", withdrawalRisk.level(), ip, deviceId,
+                "withdrawalId=" + item.getId() + ", reasons=" + withdrawalRisk.reasons()
+            );
+        }
         analytics.recordBusinessAfterCommit(user, "withdrawal_submit", java.util.Map.of(
             "withdrawal_id", item.getId(),
             "test_account", isTest(user),
@@ -176,6 +244,16 @@ public class WalletService {
         return withdrawals.findByUserIdOrderByCreatedAtDesc(userId).stream().map(WithdrawalView::of).toList();
     }
 
+    private void requireWithdrawalIdentity(Long userId) {
+        if (!certifications.existsByUserIdAndCertificationTypeAndStatusAndEnabledTrue(
+            userId,
+            "IDENTITY",
+            "APPROVED"
+        )) {
+            throw BusinessException.badRequest("完成实名认证后才能提现");
+        }
+    }
+
     private String withdrawalAmountBucket(BigDecimal amount) {
         if (amount.compareTo(new BigDecimal("100")) <= 0) return "1-100";
         if (amount.compareTo(new BigDecimal("500")) <= 0) return "101-500";
@@ -183,7 +261,52 @@ public class WalletService {
         return "2001-9999";
     }
 
+    private WithdrawalRisk withdrawalRisk(User user) {
+        List<String> reasons = new java.util.ArrayList<>();
+        Long riskyReward = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM first_experience_rewards WHERE user_id=? AND risk_level<>'LOW'",
+            Long.class,
+            user.getId()
+        );
+        if (riskyReward != null && riskyReward > 0) reasons.add("首次经历奖励存在关联风险");
+
+        Long relatedTransfers = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM (" +
+                "SELECT i.id FROM inquiries i JOIN users q ON q.id=i.questioner_id " +
+                "WHERE i.answerer_id=? AND (" +
+                "(? IS NOT NULL AND ?<>'' AND (q.register_device_id=? OR q.last_login_device_id=?)) OR " +
+                "(? IS NOT NULL AND ?<>'' AND q.register_ip=?)) " +
+                "UNION ALL " +
+                "SELECT t.id FROM experience_tips t JOIN users p ON p.id=t.payer_user_id " +
+                "WHERE t.receiver_user_id=? AND (" +
+                "(? IS NOT NULL AND ?<>'' AND (p.register_device_id=? OR p.last_login_device_id=?)) OR " +
+                "(? IS NOT NULL AND ?<>'' AND p.register_ip=?))" +
+                ") related",
+            Long.class,
+            user.getId(),
+            user.getRegisterDeviceId(), user.getRegisterDeviceId(), user.getRegisterDeviceId(), user.getRegisterDeviceId(),
+            user.getRegisterIp(), user.getRegisterIp(), user.getRegisterIp(),
+            user.getId(),
+            user.getRegisterDeviceId(), user.getRegisterDeviceId(), user.getRegisterDeviceId(), user.getRegisterDeviceId(),
+            user.getRegisterIp(), user.getRegisterIp(), user.getRegisterIp()
+        );
+        if (relatedTransfers != null && relatedTransfers > 0) {
+            reasons.add("收入来源与本人设备或IP存在关联");
+        }
+        String level = reasons.isEmpty() ? "LOW" : relatedTransfers != null && relatedTransfers > 0 ? "CRITICAL" : "HIGH";
+        return new WithdrawalRisk(level, reasons.isEmpty() ? null : String.join("；", reasons));
+    }
+
+    private record WithdrawalRisk(String level, String reasons) {}
+
     public PlatformServiceFeePolicy.SettlementQuote quoteInquirySettlement(
+        BigDecimal amount,
+        String clientPlatform
+    ) {
+        return serviceFeePolicy.quote(amount, clientPlatform);
+    }
+
+    public PlatformServiceFeePolicy.SettlementQuote quoteIncomeServiceFee(
         BigDecimal amount,
         String clientPlatform
     ) {
@@ -197,11 +320,26 @@ public class WalletService {
         BigDecimal requestedAmount,
         String requestId
     ) {
+        return tipExperience(payerUserId, certificationId, requestedAmount, requestId, "ANDROID");
+    }
+
+    @Transactional
+    public ExperienceTipView tipExperience(
+        Long payerUserId,
+        Long certificationId,
+        BigDecimal requestedAmount,
+        String requestId,
+        String clientPlatform
+    ) {
+        AppGlobalSettingService.Settings settings = settings();
+        if (settings != null && !settings.experienceTipEnabled()) {
+            throw BusinessException.serviceUnavailable("打赏功能暂时不可用");
+        }
         String normalizedRequestId = requireRequestId(requestId, "打赏");
         BigDecimal amount = MoneyAmounts.requireWholeAmount(
             requestedAmount,
             BigDecimal.ONE,
-            new BigDecimal("5000"),
+            settings == null ? new BigDecimal("5000") : BigDecimal.valueOf(settings.tipMaxAmount()),
             "打赏金额"
         );
 
@@ -220,10 +358,10 @@ public class WalletService {
             || !certification.isEnabled()) {
             throw BusinessException.badRequest("这段经历暂不可打赏");
         }
-        String businessType = certification.getExperienceBusinessType();
-        validateTipAmount(businessType, amount);
-
         Long receiverUserId = certification.getUser().getId();
+        if (payerUserId.equals(receiverUserId)) {
+            throw BusinessException.badRequest("不能打赏自己的经历");
+        }
         WalletPair pair = lockPair(payerUserId, receiverUserId);
         WalletAccount payer = pair.forUser(payerUserId);
         WalletAccount receiver = pair.forUser(receiverUserId);
@@ -232,6 +370,7 @@ public class WalletService {
         if (isTest(payer.getUser()) != isTest(receiver.getUser())) {
             throw BusinessException.forbidden("测试资金与真实资金不能互相流转");
         }
+        recordTransferRisk(payer.getUser(), receiver.getUser(), "EXPERIENCE_TIP", certificationId);
 
         existing = experienceTips.findByPayerIdAndRequestNo(payerUserId, normalizedRequestId).orElse(null);
         if (existing != null) {
@@ -246,7 +385,15 @@ public class WalletService {
         BigDecimal incomeAmount = MoneyAmounts.subtract(amount, rechargeAmount);
         payer.setRechargeBalance(MoneyAmounts.subtract(payer.getRechargeBalance(), rechargeAmount));
         payer.setIncomeBalance(MoneyAmounts.subtract(payer.getIncomeBalance(), incomeAmount));
-        receiver.setIncomeBalance(MoneyAmounts.add(receiver.getIncomeBalance(), amount));
+        var feeQuote = quoteIncomeServiceFee(amount, clientPlatform);
+        BigDecimal feeRate = feeQuote.serviceFeeRate();
+        BigDecimal feeAmount = feeQuote.serviceFeeAmount();
+        BigDecimal receiverIncome = feeQuote.answererIncomeAmount();
+        if (isTest(receiver.getUser())) {
+            receiver.setIncomeBalance(MoneyAmounts.add(receiver.getIncomeBalance(), receiverIncome));
+        } else {
+            receiver.setPendingIncomeBalance(MoneyAmounts.add(receiver.getPendingIncomeBalance(), receiverIncome));
+        }
         syncTotals(payer);
         syncTotals(receiver);
 
@@ -255,12 +402,34 @@ public class WalletService {
         tip.setReceiver(receiver.getUser());
         tip.setCertification(certification);
         tip.setRequestNo(normalizedRequestId);
-        tip.setExperienceBusinessType(businessType);
         tip.setAmount(amount);
+        tip.setFeeRate(feeRate);
+        tip.setFeeAmount(feeAmount);
+        tip.setReceiverIncomeAmount(receiverIncome);
         tip = experienceTips.save(tip);
 
         record(payer, "EXPERIENCE_TIP", "OUT", amount, "EXPERIENCE_TIP", tip.getId(), "经历打赏");
-        record(receiver, "EXPERIENCE_TIP_INCOME", "IN", amount, "EXPERIENCE_TIP", tip.getId(), "收到经历打赏");
+        record(
+            receiver,
+            isTest(receiver.getUser()) ? "TEST_EXPERIENCE_TIP_INCOME" : "EXPERIENCE_TIP_INCOME_PENDING",
+            isTest(receiver.getUser()) ? "IN" : "HOLD",
+            receiverIncome,
+            "EXPERIENCE_TIP",
+            tip.getId(),
+            isTest(receiver.getUser())
+                ? "收到测试经历打赏（已扣平台服务费）"
+                : "经历打赏收入（已扣平台服务费）待解冻"
+        );
+        if (!isTest(receiver.getUser())) {
+            WalletIncomeHold hold = new WalletIncomeHold();
+            hold.setUser(receiver.getUser());
+            hold.setInquiry(null);
+            hold.setReferenceType("EXPERIENCE_TIP");
+            hold.setReferenceId(tip.getId());
+            hold.setAmount(receiverIncome);
+            hold.setReleaseAt(LocalDateTime.now().plusHours(settings == null ? 24 : settings.incomeHoldHours()));
+            incomeHolds.save(hold);
+        }
         ledger.record(
             "EXPERIENCE_TIP",
             tip.getId(),
@@ -269,23 +438,12 @@ public class WalletService {
             List.of(
                 entry("USER_RECHARGE_LIABILITY", payerUserId, rechargeAmount),
                 entry("USER_INCOME_LIABILITY", payerUserId, incomeAmount),
-                entry("USER_INCOME_LIABILITY", receiverUserId, negative(amount))
+                entry(isTest(receiver.getUser()) ? "USER_INCOME_LIABILITY" : "ANSWERER_PENDING",
+                    receiverUserId, negative(receiverIncome)),
+                entry("PLATFORM_SERVICE_FEE", null, negative(feeAmount))
             )
         );
         return ExperienceTipView.of(tip);
-    }
-
-    private void validateTipAmount(String businessType, BigDecimal amount) {
-        if ("PUBLIC_WELFARE".equals(businessType)) {
-            boolean allowed = MoneyAmounts.same(amount, new BigDecimal("1.00"))
-                || MoneyAmounts.same(amount, new BigDecimal("3.00"))
-                || MoneyAmounts.same(amount, new BigDecimal("5.00"));
-            if (!allowed) throw BusinessException.badRequest("公益分享仅支持打赏1元、3元或5元");
-            return;
-        }
-        if (!"MONETIZED".equals(businessType)) {
-            throw BusinessException.badRequest("这段经历暂不可打赏");
-        }
     }
 
     private void verifySameTip(ExperienceTip existing, Long certificationId, BigDecimal amount) {
@@ -327,6 +485,145 @@ public class WalletService {
     }
 
     @Transactional
+    public FrozenAllocation freezeAudioAppointment(Long userId, BigDecimal amount, Long appointmentId) {
+        WalletAccount wallet = lock(userId);
+        ensureSources(wallet);
+        amount = MoneyAmounts.requirePositive(amount);
+        if (alreadyRecorded(
+            wallet,
+            "AUDIO_APPOINTMENT_FREEZE",
+            "AUDIO_APPOINTMENT",
+            appointmentId,
+            amount
+        )) {
+            throw BusinessException.badRequest("该语音通话金额已经冻结");
+        }
+        if (wallet.getAvailableBalance().compareTo(amount) < 0) {
+            throw BusinessException.badRequest("余额不足，请先充值");
+        }
+        BigDecimal rechargeAmount = min(wallet.getRechargeBalance(), amount);
+        BigDecimal incomeAmount = MoneyAmounts.subtract(amount, rechargeAmount);
+        wallet.setRechargeBalance(MoneyAmounts.subtract(wallet.getRechargeBalance(), rechargeAmount));
+        wallet.setIncomeBalance(MoneyAmounts.subtract(wallet.getIncomeBalance(), incomeAmount));
+        wallet.setFrozenRechargeBalance(MoneyAmounts.add(wallet.getFrozenRechargeBalance(), rechargeAmount));
+        wallet.setFrozenIncomeBalance(MoneyAmounts.add(wallet.getFrozenIncomeBalance(), incomeAmount));
+        syncTotals(wallet);
+        record(
+            wallet,
+            "AUDIO_APPOINTMENT_FREEZE",
+            "FREEZE",
+            amount,
+            "AUDIO_APPOINTMENT",
+            appointmentId,
+            "语音通话金额冻结"
+        );
+        ledger.record(
+            "AUDIO_APPOINTMENT",
+            appointmentId,
+            "FREEZE",
+            "语音通话金额冻结",
+            List.of(
+                entry("USER_RECHARGE_LIABILITY", userId, rechargeAmount),
+                entry("USER_INCOME_LIABILITY", userId, incomeAmount),
+                entry("INQUIRY_FROZEN", null, negative(amount))
+            )
+        );
+        return new FrozenAllocation(rechargeAmount, incomeAmount);
+    }
+
+    @Transactional
+    public FrozenAllocation reserveMeteredAudio(Long userId, Long appointmentId) {
+        WalletAccount account = lock(userId);
+        ensureSources(account);
+        BigDecimal amount = MoneyAmounts.normalize(account.getAvailableBalance());
+        if (amount.compareTo(new BigDecimal("0.01")) < 0) {
+            throw BusinessException.badRequest("余额不足，请先充值");
+        }
+        return freezeAudioAppointment(userId, amount, appointmentId);
+    }
+
+    @Transactional
+    public FrozenAllocation freezeInquiryDeposit(Long userId, BigDecimal amount, Long inquiryId) {
+        WalletAccount wallet = lock(userId);
+        ensureSources(wallet);
+        amount = MoneyAmounts.requirePositive(amount);
+        if (alreadyRecorded(wallet, "INQUIRY_DEPOSIT_FREEZE", "INQUIRY", inquiryId, amount)) {
+            throw BusinessException.badRequest("该询问的押金已经冻结");
+        }
+        if (wallet.getAvailableBalance().compareTo(amount) < 0) {
+            throw BusinessException.badRequest("余额不足2元，请先充值后再发起询问");
+        }
+        BigDecimal rechargeAmount = min(wallet.getRechargeBalance(), amount);
+        BigDecimal incomeAmount = MoneyAmounts.subtract(amount, rechargeAmount);
+        wallet.setRechargeBalance(MoneyAmounts.subtract(wallet.getRechargeBalance(), rechargeAmount));
+        wallet.setIncomeBalance(MoneyAmounts.subtract(wallet.getIncomeBalance(), incomeAmount));
+        wallet.setFrozenRechargeBalance(MoneyAmounts.add(wallet.getFrozenRechargeBalance(), rechargeAmount));
+        wallet.setFrozenIncomeBalance(MoneyAmounts.add(wallet.getFrozenIncomeBalance(), incomeAmount));
+        syncTotals(wallet);
+        record(
+            wallet,
+            "INQUIRY_DEPOSIT_FREEZE",
+            "FREEZE",
+            amount,
+            "INQUIRY",
+            inquiryId,
+            "询问押金暂存"
+        );
+        ledger.record(
+            "INQUIRY",
+            inquiryId,
+            "DEPOSIT_FREEZE",
+            "询问押金暂存",
+            List.of(
+                entry("USER_RECHARGE_LIABILITY", userId, rechargeAmount),
+                entry("USER_INCOME_LIABILITY", userId, incomeAmount),
+                entry("INQUIRY_FROZEN", null, negative(amount))
+            )
+        );
+        return new FrozenAllocation(rechargeAmount, incomeAmount);
+    }
+
+    @Transactional
+    public void refundInquiryDeposit(
+        Long userId,
+        BigDecimal rechargeAmount,
+        BigDecimal incomeAmount,
+        Long inquiryId
+    ) {
+        WalletAccount wallet = lock(userId);
+        ensureSources(wallet);
+        BigDecimal total = MoneyAmounts.add(rechargeAmount, incomeAmount);
+        if (total.compareTo(BigDecimal.ZERO) <= 0) return;
+        if (alreadyRecorded(wallet, "INQUIRY_DEPOSIT_REFUND", "INQUIRY", inquiryId, total)) return;
+        ensureSourceFrozen(wallet, rechargeAmount, incomeAmount);
+        wallet.setFrozenRechargeBalance(MoneyAmounts.subtract(wallet.getFrozenRechargeBalance(), rechargeAmount));
+        wallet.setFrozenIncomeBalance(MoneyAmounts.subtract(wallet.getFrozenIncomeBalance(), incomeAmount));
+        wallet.setRechargeBalance(MoneyAmounts.add(wallet.getRechargeBalance(), rechargeAmount));
+        wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), incomeAmount));
+        syncTotals(wallet);
+        record(
+            wallet,
+            "INQUIRY_DEPOSIT_REFUND",
+            "IN",
+            total,
+            "INQUIRY",
+            inquiryId,
+            "询问押金退回"
+        );
+        ledger.record(
+            "INQUIRY",
+            inquiryId,
+            "DEPOSIT_REFUND",
+            "询问押金退回",
+            List.of(
+                entry("INQUIRY_FROZEN", null, total),
+                entry("USER_RECHARGE_LIABILITY", userId, negative(rechargeAmount)),
+                entry("USER_INCOME_LIABILITY", userId, negative(incomeAmount))
+            )
+        );
+    }
+
+    @Transactional
     public void refund(Long userId, BigDecimal rechargeAmount, BigDecimal incomeAmount, Long referenceId) {
         WalletAccount wallet = lock(userId);
         ensureSources(wallet);
@@ -341,6 +638,52 @@ public class WalletService {
         record(wallet, "INQUIRY_REFUND", "IN", total, "INQUIRY", referenceId, "询问金额退回");
         ledger.record(
             "INQUIRY", referenceId, "REFUND", "询问金额退回",
+            List.of(
+                entry("INQUIRY_FROZEN", null, total),
+                entry("USER_RECHARGE_LIABILITY", userId, negative(rechargeAmount)),
+                entry("USER_INCOME_LIABILITY", userId, negative(incomeAmount))
+            )
+        );
+    }
+
+    @Transactional
+    public void refundAudioAppointment(
+        Long userId,
+        BigDecimal rechargeAmount,
+        BigDecimal incomeAmount,
+        Long appointmentId
+    ) {
+        WalletAccount wallet = lock(userId);
+        ensureSources(wallet);
+        BigDecimal total = MoneyAmounts.add(rechargeAmount, incomeAmount);
+        if (total.compareTo(BigDecimal.ZERO) <= 0) return;
+        if (alreadyRecorded(
+            wallet,
+            "AUDIO_APPOINTMENT_REFUND",
+            "AUDIO_APPOINTMENT",
+            appointmentId,
+            total
+        )) return;
+        ensureSourceFrozen(wallet, rechargeAmount, incomeAmount);
+        wallet.setFrozenRechargeBalance(MoneyAmounts.subtract(wallet.getFrozenRechargeBalance(), rechargeAmount));
+        wallet.setFrozenIncomeBalance(MoneyAmounts.subtract(wallet.getFrozenIncomeBalance(), incomeAmount));
+        wallet.setRechargeBalance(MoneyAmounts.add(wallet.getRechargeBalance(), rechargeAmount));
+        wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), incomeAmount));
+        syncTotals(wallet);
+        record(
+            wallet,
+            "AUDIO_APPOINTMENT_REFUND",
+            "IN",
+            total,
+            "AUDIO_APPOINTMENT",
+            appointmentId,
+            "语音通话金额退回"
+        );
+        ledger.record(
+            "AUDIO_APPOINTMENT",
+            appointmentId,
+            "REFUND",
+            "语音通话金额退回",
             List.of(
                 entry("INQUIRY_FROZEN", null, total),
                 entry("USER_RECHARGE_LIABILITY", userId, negative(rechargeAmount)),
@@ -401,6 +744,75 @@ public class WalletService {
         BigDecimal incomeAmount,
         Inquiry inquiry
     ) {
+        settleWithReference(
+            questionerId,
+            answererId,
+            rechargeAmount,
+            incomeAmount,
+            inquiry,
+            "INQUIRY",
+            inquiry.getId()
+        );
+    }
+
+    @Transactional
+    public void settleAudioAppointment(
+        Long questionerId,
+        Long answererId,
+        BigDecimal rechargeAmount,
+        BigDecimal incomeAmount,
+        Inquiry inquiry,
+        Long appointmentId
+    ) {
+        settleWithReference(
+            questionerId,
+            answererId,
+            rechargeAmount,
+            incomeAmount,
+            inquiry,
+            "AUDIO_APPOINTMENT",
+            appointmentId
+        );
+    }
+
+    @Transactional
+    public void settleMeteredAudio(
+        Long questionerId,
+        Long answererId,
+        BigDecimal reservedRecharge,
+        BigDecimal reservedIncome,
+        BigDecimal actualAmount,
+        Inquiry inquiry,
+        Long appointmentId
+    ) {
+        actualAmount = MoneyAmounts.normalize(actualAmount);
+        BigDecimal reservedTotal = MoneyAmounts.add(reservedRecharge, reservedIncome);
+        if (actualAmount.compareTo(BigDecimal.ZERO) < 0 || actualAmount.compareTo(reservedTotal) > 0) {
+            throw BusinessException.badRequest("语音通话结算金额异常");
+        }
+        BigDecimal chargedRecharge = min(reservedRecharge, actualAmount);
+        BigDecimal chargedIncome = MoneyAmounts.subtract(actualAmount, chargedRecharge);
+        BigDecimal refundRecharge = MoneyAmounts.subtract(reservedRecharge, chargedRecharge);
+        BigDecimal refundIncome = MoneyAmounts.subtract(reservedIncome, chargedIncome);
+        if (MoneyAmounts.add(refundRecharge, refundIncome).compareTo(BigDecimal.ZERO) > 0) {
+            refundAudioAppointment(questionerId, refundRecharge, refundIncome, appointmentId);
+        }
+        if (actualAmount.compareTo(BigDecimal.ZERO) == 0) return;
+        settleWithReference(
+            questionerId, answererId, chargedRecharge, chargedIncome,
+            inquiry, "AUDIO_APPOINTMENT", appointmentId
+        );
+    }
+
+    private void settleWithReference(
+        Long questionerId,
+        Long answererId,
+        BigDecimal rechargeAmount,
+        BigDecimal incomeAmount,
+        Inquiry inquiry,
+        String referenceType,
+        Long referenceId
+    ) {
         BigDecimal amount = MoneyAmounts.add(rechargeAmount, incomeAmount);
         BigDecimal serviceFee = MoneyAmounts.normalize(inquiry.getServiceFeeAmount());
         BigDecimal answererIncome = MoneyAmounts.normalize(inquiry.getAnswererIncomeAmount());
@@ -415,16 +827,23 @@ public class WalletService {
         if (isTest(payer.getUser()) != isTest(receiver.getUser())) {
             throw BusinessException.forbidden("测试资金与真实资金不能互相结算");
         }
+        recordTransferRisk(payer.getUser(), receiver.getUser(), referenceType, referenceId);
+        boolean audioCall = "AUDIO_APPOINTMENT".equals(referenceType);
+        String payerTransactionType = audioCall ? "AUDIO_CALL_PAYMENT" : "INQUIRY_PAYMENT";
         String receiverTransactionType = isTest(receiver.getUser())
-            ? "TEST_INQUIRY_INCOME"
-            : "INQUIRY_INCOME_PENDING";
-        boolean payerRecorded = alreadyRecorded(payer, "INQUIRY_PAYMENT", "INQUIRY", inquiry.getId(), amount);
+            ? (audioCall ? "TEST_AUDIO_CALL_INCOME" : "TEST_INQUIRY_INCOME")
+            : (audioCall ? "AUDIO_CALL_INCOME_PENDING" : "INQUIRY_INCOME_PENDING");
+        boolean payerRecorded = alreadyRecorded(
+            payer, payerTransactionType, referenceType, referenceId, amount
+        );
         boolean receiverRecorded = alreadyRecorded(
-            receiver, receiverTransactionType, "INQUIRY", inquiry.getId(), answererIncome
+            receiver, receiverTransactionType, referenceType, referenceId, answererIncome
         );
         if (payerRecorded && receiverRecorded) {
             savePlatformFeeRecord(
                 inquiry,
+                referenceType,
+                referenceId,
                 amount,
                 serviceFee,
                 answererIncome,
@@ -439,18 +858,37 @@ public class WalletService {
         payer.setFrozenRechargeBalance(MoneyAmounts.subtract(payer.getFrozenRechargeBalance(), rechargeAmount));
         payer.setFrozenIncomeBalance(MoneyAmounts.subtract(payer.getFrozenIncomeBalance(), incomeAmount));
         syncTotals(payer);
-        record(payer, "INQUIRY_PAYMENT", "OUT", amount, "INQUIRY", inquiry.getId(), "询问支出");
+        record(
+            payer,
+            payerTransactionType,
+            "OUT",
+            amount,
+            referenceType,
+            referenceId,
+            audioCall ? "语音通话支出" : "询问支出"
+        );
 
         if (isTest(receiver.getUser())) {
             receiver.setIncomeBalance(MoneyAmounts.add(receiver.getIncomeBalance(), answererIncome));
             syncTotals(receiver);
             record(
-                receiver, "TEST_INQUIRY_INCOME", "IN", answererIncome,
-                "INQUIRY", inquiry.getId(), "测试询问净收入"
+                receiver, receiverTransactionType, "IN", answererIncome,
+                referenceType, referenceId, audioCall ? "测试语音通话净收入" : "测试询问净收入"
             );
-            savePlatformFeeRecord(inquiry, amount, serviceFee, answererIncome, "EARNED");
+            savePlatformFeeRecord(
+                inquiry,
+                referenceType,
+                referenceId,
+                amount,
+                serviceFee,
+                answererIncome,
+                "EARNED"
+            );
             ledger.record(
-                "INQUIRY", inquiry.getId(), "SETTLE", "测试询问结算",
+                referenceType,
+                referenceId,
+                "SETTLE",
+                audioCall ? "测试语音通话结算" : "测试询问结算",
                 List.of(
                     entry("INQUIRY_FROZEN", null, amount),
                     entry("USER_INCOME_LIABILITY", answererId, negative(answererIncome)),
@@ -462,18 +900,32 @@ public class WalletService {
 
         receiver.setPendingIncomeBalance(MoneyAmounts.add(receiver.getPendingIncomeBalance(), answererIncome));
         record(
-            receiver, "INQUIRY_INCOME_PENDING", "HOLD", answererIncome,
-            "INQUIRY", inquiry.getId(), "回答净收入待解冻"
+            receiver, receiverTransactionType, "HOLD", answererIncome,
+            referenceType, referenceId, audioCall ? "语音通话净收入待解冻" : "回答净收入待解冻"
         );
         WalletIncomeHold hold = new WalletIncomeHold();
         hold.setUser(receiver.getUser());
         hold.setInquiry(inquiry);
+        hold.setReferenceType(referenceType);
+        hold.setReferenceId(referenceId);
         hold.setAmount(answererIncome);
-        hold.setReleaseAt(LocalDateTime.now().plusHours(24));
+        AppGlobalSettingService.Settings settings = settings();
+        hold.setReleaseAt(LocalDateTime.now().plusHours(settings == null ? 24 : settings.incomeHoldHours()));
         incomeHolds.save(hold);
-        savePlatformFeeRecord(inquiry, amount, serviceFee, answererIncome, "PENDING");
+        savePlatformFeeRecord(
+            inquiry,
+            referenceType,
+            referenceId,
+            amount,
+            serviceFee,
+            answererIncome,
+            "PENDING"
+        );
         ledger.record(
-            "INQUIRY", inquiry.getId(), "SETTLE", "询问结算待解冻",
+            referenceType,
+            referenceId,
+            "SETTLE",
+            audioCall ? "语音通话结算待解冻" : "询问结算待解冻",
             List.of(
                 entry("INQUIRY_FROZEN", null, amount),
                 entry("ANSWERER_PENDING", answererId, negative(answererIncome)),
@@ -484,14 +936,18 @@ public class WalletService {
 
     private void savePlatformFeeRecord(
         Inquiry inquiry,
+        String referenceType,
+        Long referenceId,
         BigDecimal grossAmount,
         BigDecimal serviceFeeAmount,
         BigDecimal answererIncomeAmount,
         String status
     ) {
-        if (platformFeeRecords.existsByInquiryId(inquiry.getId())) return;
+        if (platformFeeRecords.existsByReferenceTypeAndReferenceId(referenceType, referenceId)) return;
         PlatformFeeRecord record = new PlatformFeeRecord();
         record.setInquiry(inquiry);
+        record.setReferenceType(referenceType);
+        record.setReferenceId(referenceId);
         record.setClientPlatform(inquiry.getClientPlatform());
         record.setGrossAmount(grossAmount);
         record.setServiceFeeRate(inquiry.getServiceFeeRate());
@@ -537,49 +993,12 @@ public class WalletService {
     }
 
     @Transactional
-    public void creditInvitationReward(Long userId, BigDecimal amount, Long referenceId) {
-        User user = user(userId);
-        WalletAccount wallet = lock(userId);
-        ensureSources(wallet);
-        amount = MoneyAmounts.requirePositive(amount);
-        String transactionType = isTest(user)
-            ? "TEST_INVITATION_REWARD"
-            : "INVITATION_REWARD";
-        if (alreadyRecorded(
-            wallet,
-            transactionType,
-            "EXPERIENCE_INVITATION_REWARD",
-            referenceId,
-            amount
-        )) {
-            return;
-        }
-
-        wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), amount));
-        syncTotals(wallet);
-        record(
-            wallet,
-            transactionType,
-            "IN",
-            amount,
-            "EXPERIENCE_INVITATION_REWARD",
-            referenceId,
-            isTest(user) ? "测试邀请奖金" : "邀请经历分享奖金"
-        );
-        ledger.record(
-            "EXPERIENCE_INVITATION_REWARD",
-            referenceId,
-            "PAID",
-            isTest(user) ? "测试邀请奖金到账" : "邀请经历分享奖金到账",
-            List.of(
-                entry(isTest(user) ? "TEST_PROMOTION_EXPENSE" : "PLATFORM_PROMOTION_EXPENSE", null, amount),
-                entry("USER_INCOME_LIABILITY", userId, negative(amount))
-            )
-        );
+    public void creditFirstExperienceReward(Long userId, BigDecimal amount, Long referenceId) {
+        creditFirstExperienceReward(userId, amount, serviceFeePolicy.currentRate("ANDROID"), referenceId);
     }
 
     @Transactional
-    public void creditFirstExperienceReward(Long userId, BigDecimal amount, Long referenceId) {
+    public void creditFirstExperienceReward(Long userId, BigDecimal amount, BigDecimal feeRate, Long referenceId) {
         User user = user(userId);
         WalletAccount wallet = lock(userId);
         ensureSources(wallet);
@@ -587,26 +1006,30 @@ public class WalletService {
         String transactionType = isTest(user)
             ? "TEST_FIRST_EXPERIENCE_REWARD"
             : "FIRST_EXPERIENCE_REWARD";
+        BigDecimal feeAmount = MoneyAmounts.normalize(amount.multiply(feeRate));
+        BigDecimal incomeAmount = MoneyAmounts.subtract(amount, feeAmount);
         if (alreadyRecorded(
             wallet,
             transactionType,
             "FIRST_EXPERIENCE_REWARD",
             referenceId,
-            amount
+            incomeAmount
         )) {
             return;
         }
 
-        wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), amount));
+        wallet.setIncomeBalance(MoneyAmounts.add(wallet.getIncomeBalance(), incomeAmount));
         syncTotals(wallet);
         record(
             wallet,
             transactionType,
             "IN",
-            amount,
+            incomeAmount,
             "FIRST_EXPERIENCE_REWARD",
             referenceId,
-            isTest(user) ? "测试首次发布经历奖励" : "首次发布经历奖励"
+            isTest(user)
+                ? "测试首次发布经历奖励（已扣平台服务费）"
+                : "首次发布经历奖励（已扣平台服务费）"
         );
         ledger.record(
             "FIRST_EXPERIENCE_REWARD",
@@ -614,71 +1037,10 @@ public class WalletService {
             "PAID",
             isTest(user) ? "测试首次发布经历奖励到账" : "首次发布经历奖励到账",
             List.of(
-                entry(
-                    isTest(user) ? "TEST_PROMOTION_EXPENSE" : "PLATFORM_PROMOTION_EXPENSE",
-                    null,
-                    amount
-                ),
-                entry("USER_INCOME_LIABILITY", userId, negative(amount))
-            )
-        );
-    }
-
-    @Transactional
-    public void holdForQualityReview(Long inquiryId) {
-        WalletIncomeHold hold = incomeHolds.findWithLockByInquiryId(inquiryId)
-            .orElseThrow(() -> BusinessException.badRequest("该询问没有待解冻收入"));
-        if (!"PENDING".equals(hold.getStatus()) || !hold.getReleaseAt().isAfter(LocalDateTime.now())) {
-            throw BusinessException.badRequest("该笔收入已解冻，不能再申请资金复核");
-        }
-        hold.setStatus("DISPUTED");
-    }
-
-    @Transactional
-    public void resolveQualitySettlement(Inquiry inquiry) {
-        WalletIncomeHold hold = incomeHolds.findWithLockByInquiryId(inquiry.getId())
-            .orElseThrow(() -> BusinessException.badRequest("待解冻收入不存在"));
-        if (!"DISPUTED".equals(hold.getStatus())) {
-            throw BusinessException.badRequest("该笔收入不在质量复核中");
-        }
-        releaseHold(hold);
-    }
-
-    @Transactional
-    public void resolveQualityRefund(Inquiry inquiry) {
-        WalletIncomeHold hold = incomeHolds.findWithLockByInquiryId(inquiry.getId())
-            .orElseThrow(() -> BusinessException.badRequest("待解冻收入不存在"));
-        if (!"DISPUTED".equals(hold.getStatus())) {
-            throw BusinessException.badRequest("该笔收入不在质量复核中");
-        }
-        WalletPair pair = lockPair(inquiry.getQuestioner().getId(), inquiry.getAnswerer().getId());
-        WalletAccount questioner = pair.forUser(inquiry.getQuestioner().getId());
-        WalletAccount answerer = pair.forUser(inquiry.getAnswerer().getId());
-        ensureSources(questioner);
-        ensureSources(answerer);
-        if (answerer.getPendingIncomeBalance().compareTo(hold.getAmount()) < 0) {
-            throw BusinessException.badRequest("回答收入冻结金额异常");
-        }
-        answerer.setPendingIncomeBalance(MoneyAmounts.subtract(answerer.getPendingIncomeBalance(), hold.getAmount()));
-        syncTotals(answerer);
-        questioner.setRechargeBalance(MoneyAmounts.add(questioner.getRechargeBalance(), inquiry.getFrozenRechargeAmount()));
-        questioner.setIncomeBalance(MoneyAmounts.add(questioner.getIncomeBalance(), inquiry.getFrozenIncomeAmount()));
-        syncTotals(questioner);
-        hold.setStatus("REFUNDED");
-        hold.setReleasedAt(LocalDateTime.now());
-        record(answerer, "INQUIRY_INCOME_REVERSED", "OUT", hold.getAmount(), "INQUIRY", inquiry.getId(), "质量复核退款，回答收入撤回");
-        record(questioner, "INQUIRY_QUALITY_REFUND", "IN", inquiry.getAmount(), "INQUIRY", inquiry.getId(), "质量复核退款");
-        platformFeeRecords.findByInquiryId(inquiry.getId()).ifPresent(record -> {
-            record.setStatus("REVERSED");
-            record.setFinalizedAt(LocalDateTime.now());
-        });
-        ledger.record(
-            "INQUIRY", inquiry.getId(), "QUALITY_REFUND", "质量复核全额退款",
-            List.of(
-                entry("ANSWERER_PENDING", inquiry.getAnswerer().getId(), hold.getAmount()),
-                entry("PLATFORM_FEE_PENDING", null, inquiry.getServiceFeeAmount()),
-                entry("USER_RECHARGE_LIABILITY", inquiry.getQuestioner().getId(), negative(inquiry.getFrozenRechargeAmount())),
-                entry("USER_INCOME_LIABILITY", inquiry.getQuestioner().getId(), negative(inquiry.getFrozenIncomeAmount()))
+                entry(isTest(user) ? "TEST_PROMOTION_EXPENSE" : "PLATFORM_PROMOTION_EXPENSE",
+                    null, amount),
+                entry("USER_INCOME_LIABILITY", userId, negative(incomeAmount)),
+                entry("PLATFORM_SERVICE_FEE", null, negative(feeAmount))
             )
         );
     }
@@ -698,18 +1060,33 @@ public class WalletService {
         syncTotals(wallet);
         hold.setStatus("RELEASED");
         hold.setReleasedAt(LocalDateTime.now());
+        boolean audio = "AUDIO_APPOINTMENT".equals(hold.getReferenceType());
+        boolean tip = "EXPERIENCE_TIP".equals(hold.getReferenceType());
         record(
-            wallet, "INQUIRY_INCOME_RELEASE", "IN", hold.getAmount(), "INQUIRY",
-            hold.getInquiry().getId(), "回答收入已解冻"
+            wallet,
+            audio ? "AUDIO_CALL_INCOME_RELEASE" : tip
+                ? "EXPERIENCE_TIP_INCOME_RELEASE" : "INQUIRY_INCOME_RELEASE",
+            "IN",
+            hold.getAmount(),
+            hold.getReferenceType(),
+            hold.getReferenceId(),
+            audio ? "语音通话收入已解冻" : tip ? "经历打赏收入已解冻" : "回答收入已解冻"
         );
-        PlatformFeeRecord fee = platformFeeRecords.findByInquiryId(hold.getInquiry().getId()).orElse(null);
+        PlatformFeeRecord fee = platformFeeRecords.findByReferenceTypeAndReferenceId(
+            hold.getReferenceType(), hold.getReferenceId()
+        ).orElse(null);
         if (fee != null && "PENDING".equals(fee.getStatus())) {
             fee.setStatus("EARNED");
             fee.setFinalizedAt(LocalDateTime.now());
         }
-        BigDecimal serviceFee = fee == null ? hold.getInquiry().getServiceFeeAmount() : fee.getServiceFeeAmount();
+        BigDecimal serviceFee = fee == null
+            ? hold.getInquiry() == null ? MoneyAmounts.ZERO : hold.getInquiry().getServiceFeeAmount()
+            : fee.getServiceFeeAmount();
         ledger.record(
-            "INQUIRY", hold.getInquiry().getId(), "RELEASE", "回答收入解冻",
+            hold.getReferenceType(),
+            hold.getReferenceId(),
+            "RELEASE",
+            audio ? "语音通话收入解冻" : tip ? "经历打赏收入解冻" : "回答收入解冻",
             List.of(
                 entry("ANSWERER_PENDING", hold.getUser().getId(), hold.getAmount()),
                 entry("PLATFORM_FEE_PENDING", null, serviceFee),
@@ -717,6 +1094,37 @@ public class WalletService {
                 entry("PLATFORM_SERVICE_FEE", null, negative(serviceFee))
             )
         );
+    }
+
+    private void recordTransferRisk(User payer, User receiver, String referenceType, Long referenceId) {
+        List<String> reasons = new java.util.ArrayList<>();
+        if (sameMeaningful(payer.getRegisterDeviceId(), receiver.getRegisterDeviceId())
+            || sameMeaningful(payer.getLastLoginDeviceId(), receiver.getLastLoginDeviceId())
+            || sameMeaningful(payer.getRegisterDeviceId(), receiver.getLastLoginDeviceId())
+            || sameMeaningful(payer.getLastLoginDeviceId(), receiver.getRegisterDeviceId())) {
+            reasons.add("付款方与收款方设备关联");
+        }
+        if (sameMeaningfulIp(payer.getRegisterIp(), receiver.getRegisterIp())
+            || sameMeaningfulIp(payer.getLastLoginIp(), receiver.getLastLoginIp())) {
+            reasons.add("付款方与收款方IP关联");
+        }
+        if (!reasons.isEmpty()) {
+            securityEvents.recordSafely(
+                receiver.getId(), null, "SUSPICIOUS_FUNDS_TRANSFER", "CRITICAL",
+                receiver.getLastLoginIp(), receiver.getLastLoginDeviceId(),
+                "referenceType=" + referenceType + ",referenceId=" + referenceId +
+                    ",payerId=" + payer.getId() + ",reasons=" + String.join("|", reasons)
+            );
+        }
+    }
+
+    private boolean sameMeaningful(String left, String right) {
+        return left != null && right != null && !left.isBlank() && !right.isBlank()
+            && !"unknown".equalsIgnoreCase(left) && left.equals(right);
+    }
+
+    private boolean sameMeaningfulIp(String left, String right) {
+        return sameMeaningful(left, right) && !left.startsWith("127.") && !"::1".equals(left);
     }
 
     private User user(Long userId) {
@@ -762,8 +1170,17 @@ public class WalletService {
         return new WalletPair(lower, higher);
     }
 
-    private BigDecimal withdrawalAmount(BigDecimal amount) {
-        return MoneyAmounts.requireWholeAmount(amount, BigDecimal.ONE, new BigDecimal("9999"), "提现金额");
+    private BigDecimal withdrawalAmount(BigDecimal amount, AppGlobalSettingService.Settings settings) {
+        return MoneyAmounts.requireWholeAmount(
+            amount,
+            settings == null ? BigDecimal.ONE : settings.withdrawalMinAmount(),
+            settings == null ? new BigDecimal("9999") : settings.withdrawalMaxAmount(),
+            "提现金额"
+        );
+    }
+
+    private AppGlobalSettingService.Settings settings() {
+        return globalSettings == null ? null : globalSettings.current();
     }
 
     private String requireRequestId(String requestId) {
@@ -854,6 +1271,9 @@ public class WalletService {
         Long id,
         Long certificationId,
         BigDecimal amount,
+        BigDecimal feeRate,
+        BigDecimal feeAmount,
+        BigDecimal receiverIncomeAmount,
         LocalDateTime createdAt
     ) {
         static ExperienceTipView of(ExperienceTip item) {
@@ -861,6 +1281,9 @@ public class WalletService {
                 item.getId(),
                 item.getCertification().getId(),
                 item.getAmount(),
+                item.getFeeRate(),
+                item.getFeeAmount(),
+                item.getReceiverIncomeAmount(),
                 item.getCreatedAt()
             );
         }
@@ -914,6 +1337,8 @@ public class WalletService {
         BigDecimal amount,
         String payeeName,
         String alipayAccount,
+        String riskLevel,
+        String riskReasons,
         String status,
         String batchNo,
         LocalDateTime exportedAt,
@@ -922,7 +1347,7 @@ public class WalletService {
         static WithdrawalView of(Withdrawal item) {
             return new WithdrawalView(
                 item.getId(), item.getAmount(),
-                item.getPayeeNameSnapshot(), item.getAlipayAccountMaskedSnapshot(), item.getStatus(),
+                item.getPayeeNameSnapshot(), item.getAlipayAccountMaskedSnapshot(), item.getRiskLevel(), item.getRiskReasons(), item.getStatus(),
                 item.getBatchNo(), item.getExportedAt(), item.getCreatedAt()
             );
         }

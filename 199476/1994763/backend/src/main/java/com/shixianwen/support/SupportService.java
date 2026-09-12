@@ -8,6 +8,8 @@ import com.shixianwen.storage.StoredFile;
 import com.shixianwen.storage.StorageVisibility;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
+import com.shixianwen.inquiry.Inquiry;
+import com.shixianwen.inquiry.InquiryRepository;
 import com.shixianwen.realtime.RealtimePublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,18 +17,76 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class SupportService {
+    private static final Set<String> ENDED_INQUIRY_STATUSES = Set.of("COMPLETED", "ENDED");
+
     private final FeedbackRecordRepository feedback;
     private final BusinessCooperationRepository cooperation;
     private final CustomerServiceMessageRepository customerService;
     private final UserRepository users;
+    private final InquiryRepository inquiries;
     private final RealtimePublisher realtime;
     private final FileStorage fileStorage;
     private final SensitiveWordService sensitiveWords;
     private final AnalyticsEventService analytics;
+
+    @Transactional(readOnly = true)
+    public boolean hasInquiryComplaint(Long userId, Long inquiryId) {
+        Inquiry inquiry = inquiry(inquiryId);
+        requireParticipant(inquiry, userId);
+        requireEnded(inquiry);
+        return feedback.existsByUserIdAndInquiryIdAndFeedbackType(
+            userId,
+            inquiryId,
+            "INQUIRY_COMPLAINT"
+        );
+    }
+
+    @Transactional
+    public FeedbackView inquiryComplaint(
+        Long userId,
+        Long inquiryId,
+        String category,
+        String content
+    ) {
+        Inquiry inquiry = inquiries.findWithLockById(inquiryId)
+            .orElseThrow(() -> BusinessException.notFound("询问不存在"));
+        User target = requireParticipant(inquiry, userId);
+        requireEnded(inquiry);
+        if (feedback.existsByUserIdAndInquiryIdAndFeedbackType(
+            userId,
+            inquiryId,
+            "INQUIRY_COMPLAINT"
+        )) {
+            throw BusinessException.badRequest("本次询问已提交过投诉");
+        }
+        FeedbackRecord item = new FeedbackRecord();
+        item.setUser(user(userId));
+        item.setTargetUser(target);
+        item.setInquiry(inquiry);
+        item.setFeedbackType("INQUIRY_COMPLAINT");
+        item.setCategory(required(category));
+        item.setContent(required(content));
+        item = feedback.saveAndFlush(item);
+        analytics.recordBusinessAfterCommit(item.getUser(), "inquiry_complaint_submitted", java.util.Map.of(
+            "feedback_id", item.getId(),
+            "inquiry_id", inquiryId,
+            "target_user_id", target.getId(),
+            "category", item.getCategory()
+        ));
+        return FeedbackView.of(item);
+    }
+
+    private void requireEnded(Inquiry inquiry) {
+        String status = inquiry.getStatus();
+        if (status == null || !ENDED_INQUIRY_STATUSES.contains(status)) {
+            throw BusinessException.badRequest("询问结束后才能投诉");
+        }
+    }
 
     @Transactional
     public FeedbackView feedback(Long userId, String type, String category, String content, Long targetUserId) {
@@ -106,12 +166,21 @@ public class SupportService {
             .forEach(item -> item.setRead(true));
     }
     private User user(Long id) { return users.findById(id).orElseThrow(() -> BusinessException.notFound("用户不存在")); }
+    private Inquiry inquiry(Long id) {
+        return inquiries.findById(id)
+            .orElseThrow(() -> BusinessException.notFound("询问不存在"));
+    }
+    private User requireParticipant(Inquiry inquiry, Long userId) {
+        if (inquiry.getQuestioner().getId().equals(userId)) return inquiry.getAnswerer();
+        if (inquiry.getAnswerer().getId().equals(userId)) return inquiry.getQuestioner();
+        throw BusinessException.forbidden("无权操作该询问");
+    }
     private CustomerServiceView customerServiceView(CustomerServiceMessage item) {
         return CustomerServiceView.of(item, fileStorage);
     }
     private String required(String value) { if (value == null || value.isBlank()) throw BusinessException.badRequest("内容不能为空"); return sensitiveWords.mask(value.trim()); }
-    public record FeedbackView(Long id, String type, String category, String content, String status, java.time.LocalDateTime createdAt) {
-        static FeedbackView of(FeedbackRecord i) { return new FeedbackView(i.getId(), i.getFeedbackType(), i.getCategory(), i.getContent(), i.getStatus(), i.getCreatedAt()); }
+    public record FeedbackView(Long id, String type, String category, String content, String status, String resolution, java.time.LocalDateTime resolvedAt, java.time.LocalDateTime createdAt) {
+        static FeedbackView of(FeedbackRecord i) { return new FeedbackView(i.getId(), i.getFeedbackType(), i.getCategory(), i.getContent(), i.getStatus(), i.getResolution(), i.getResolvedAt(), i.getCreatedAt()); }
     }
     public record CustomerServiceView(Long id, String senderType, String messageType, String content, String attachmentUrl, String attachmentName, Long attachmentSize, java.time.LocalDateTime createdAt) {
         static CustomerServiceView of(CustomerServiceMessage item, FileStorage fileStorage) {

@@ -8,7 +8,7 @@ import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
 import '../shared/Page.css';
 import { message } from '../../components/feedback/message.js';
 const meta = {
-  certifications: ['认证审核', '审核实名认证与亲身经历'],
+  certifications: ['认证审核', '审核实名认证和用户发布的经历'],
   inquiries: ['询问管理', '查看询问状态和资金流转'],
   withdrawals: ['普通提现处理', '核对并处理用户主动提交的提现申请'],
   feedback: ['投诉反馈', '处理产品反馈与用户投诉'],
@@ -18,16 +18,14 @@ export default function RecordsPage({ type }) {
   const { can } = useAdminAccess();
   const [data, setData] = useState({ items: [], total: 0 });
   const [status, setStatus] = useState('');
+  const [category, setCategory] = useState('');
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
-  const [certificationCategory, setCertificationCategory] = useState('EXPERIENCE');
-  const [experienceType, setExperienceType] = useState('MONETIZED');
   const [selected, setSelected] = useState(null);
   const [modalMode, setModalMode] = useState('view');
   const [materials, setMaterials] = useState([]);
   const [reason, setReason] = useState('');
-  const [editTitle, setEditTitle] = useState('');
-  const [editDescription, setEditDescription] = useState('');
+  const [resolution, setResolution] = useState('');
   const [page, setPage] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deletingCertification, setDeletingCertification] = useState(false);
@@ -39,11 +37,7 @@ export default function RecordsPage({ type }) {
     return adminApi
       .table(type, new URLSearchParams({
         status,
-        category: type === 'certifications' ? certificationCategory : '',
-        experienceType:
-          type === 'certifications' && certificationCategory === 'EXPERIENCE'
-            ? experienceType
-            : '',
+        category: type === 'certifications' ? category : '',
         keyword: supportsUserSearch ? appliedKeyword : '',
         page: targetPage,
         size,
@@ -55,7 +49,7 @@ export default function RecordsPage({ type }) {
     setSelected(null);
     setPage(0);
     load(0);
-  }, [type, status, certificationCategory, experienceType, appliedKeyword]);
+  }, [type, status, category, appliedKeyword]);
   const search = (event) => {
     event.preventDefault();
     const nextKeyword = keyword.trim();
@@ -92,8 +86,7 @@ export default function RecordsPage({ type }) {
       setSelected(row);
       setModalMode(mode);
       setReason('');
-      setEditTitle(row.title || '');
-      setEditDescription(row.description || '');
+      setResolution(row.resolution || '');
       setMaterials([]);
       if (type === 'certifications') {
         setMaterials(await adminApi.materials(row.id));
@@ -123,23 +116,16 @@ export default function RecordsPage({ type }) {
   const process = async (statusValue) => {
     try {
       if (type === 'withdrawals') await adminApi.withdrawalStatus(selected.id, statusValue);
-      else await adminApi.recordStatus(type, selected.id, statusValue);
+      else {
+        if (type === 'feedback' && ['RESOLVED', 'CLOSED'].includes(statusValue) && !resolution.trim()) {
+          message.warning('请填写处理结果');
+          return;
+        }
+        await adminApi.recordStatus(type, selected.id, statusValue, resolution.trim());
+      }
       setSelected(null);
       await load();
       message.success(type === 'withdrawals' ? '提现状态已更新' : '处理状态已更新');
-    } catch (e) {
-      message.error(e.message);
-    }
-  };
-  const saveCertification = async () => {
-    try {
-      await adminApi.updateCertification(selected.id, {
-        title: editTitle.trim(),
-        description: editDescription.trim(),
-      });
-      message.success('基础信息认证已修改');
-      setSelected(null);
-      await load();
     } catch (e) {
       message.error(e.message);
     }
@@ -223,31 +209,15 @@ export default function RecordsPage({ type }) {
             </option>
           ))}
         </select>
+        {type === 'certifications' && (
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="">全部认证</option>
+            <option value="BASIC">实名认证</option>
+            <option value="EXPERIENCE">经历认证</option>
+          </select>
+        )}
         {supportsUserSearch && <button type="submit">查询</button>}
       </form>
-      {type === 'certifications' && (
-        <div className="certification-tabs">
-          <button
-            className={certificationCategory === 'EXPERIENCE' && experienceType === 'MONETIZED' ? 'active' : ''}
-            onClick={() => {
-              setCertificationCategory('EXPERIENCE');
-              setExperienceType('MONETIZED');
-            }}
-          >
-            干货变现
-          </button>
-          <button
-            className={certificationCategory === 'EXPERIENCE' && experienceType === 'PUBLIC_WELFARE' ? 'active' : ''}
-            onClick={() => {
-              setCertificationCategory('EXPERIENCE');
-              setExperienceType('PUBLIC_WELFARE');
-            }}
-          >
-            公益分享
-          </button>
-          <button className={certificationCategory === 'BASIC' ? 'active' : ''} onClick={() => setCertificationCategory('BASIC')}>实名认证</button>
-        </div>
-      )}
       <div className="table-card">
         <table>
           <thead>
@@ -266,9 +236,6 @@ export default function RecordsPage({ type }) {
                   {type === 'certifications' && can('CERTIFICATION_REVIEW') && row.status === 'PENDING' && (
                     <button className="primary" onClick={() => open(row, 'review')}>审核</button>
                   )}
-                  {type === 'certifications' && can('CERTIFICATION_EDIT') && row.category === 'BASIC' && (
-                    <button className="plain" onClick={() => open(row, 'edit')}>编辑</button>
-                  )}
                   {type === 'certifications' && can('CERTIFICATION_TOGGLE') && row.status === 'APPROVED' && (
                     <button
                       className="plain"
@@ -281,7 +248,7 @@ export default function RecordsPage({ type }) {
                   {type === 'certifications' && can('CERTIFICATION_DELETE') && (
                     <button className="danger" onClick={() => setDeleteTarget(row)}>删除</button>
                   )}
-                  {type === 'certifications' && can('CERTIFICATION_REVIEW') && row.category === 'EXPERIENCE' && row.status === 'APPROVED' && ['FAILED', 'NOT_REQUIRED'].includes(row.mediaProcessingStatus) && (
+                  {type === 'certifications' && can('CERTIFICATION_REVIEW') && row.category === 'EXPERIENCE' && row.status === 'APPROVED' && row.mediaProcessingStatus === 'FAILED' && (
                     <button
                       className="plain"
                       disabled={operatingCertificationId === row.id}
@@ -331,10 +298,10 @@ export default function RecordsPage({ type }) {
             </header>
             <div className="detail-fields">
               {Object.entries(selected)
-                .filter(([k]) => k !== 'id')
+                .filter(([key]) => shouldShowDetailField(key))
                 .map(([k, v]) => (
                   <div key={k}>
-                    <span>{labels[k] || k}</span>
+                    <span>{detailFieldLabel(k, selected)}</span>
                     <b>
                       {formatDetailValue(k, v, type)}
                     </b>
@@ -344,43 +311,57 @@ export default function RecordsPage({ type }) {
             {type === 'certifications' && (
               <>
                 {selected.category === 'EXPERIENCE' && (
-                  <div className={`review-standard ${selected.experienceBusinessType === 'PUBLIC_WELFARE' ? 'simple' : 'strict'}`}>
-                    <strong>
-                      {selected.experienceBusinessType === 'PUBLIC_WELFARE'
-                        ? '公益分享审核标准'
-                        : '干货变现审核标准'}
-                    </strong>
+                  <div className="review-standard strict">
+                    <strong>经历审核标准</strong>
                     <p>
-                      {selected.experienceBusinessType === 'PUBLIC_WELFARE'
-                        ? '仅审核内容及材料中是否存在敏感信息。'
-                        : '除敏感信息外，需核验本人经历及证明材料，并判断时间、人物、经过和前后逻辑是否合理。'}
+                      核对内容是否完整、表述是否清楚，并检查是否存在明显矛盾、违规或敏感信息。
                     </p>
                   </div>
                 )}
-                <h3>认证材料</h3>
+                {selected.type === 'IDENTITY' && (
+                  <div className="review-standard">
+                    <strong>实名认证审核</strong>
+                    <p>核对身份证正面、反面及手持身份证照片是否清晰、完整并属于同一人。</p>
+                  </div>
+                )}
+                <h3>
+                  {selected.category === 'EXPERIENCE' ? '证明资料（选填）' : '认证材料'}
+                </h3>
                 <div className="materials">
-                  {materials.map((m) => (
+                  {proofMaterials(materials, selected.category).map((m) => (
                     <a href={m.url} target="_blank" rel="noreferrer" key={m.id}>
                       <span>{m.name}</span>
                       <ExternalLink />
                     </a>
                   ))}
+                  {!proofMaterials(materials, selected.category).length && (
+                    <p className="materials-empty">
+                      {selected.category === 'EXPERIENCE'
+                        ? '用户未提供证明资料（选填，不影响审核）'
+                        : '暂无认证材料'}
+                    </p>
+                  )}
                 </div>
-                {modalMode === 'edit' && selected.category === 'BASIC' && (
-                  <div className="certification-edit-panel">
-                    <h3>编辑基础信息认证</h3>
-                    {selected.type === 'IDENTITY' && (
-                      <label className="review-job-field">
-                        <span>认证名称</span>
-                        <input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} />
-                      </label>
-                    )}
-                    <label className="review-job-field"><span>说明</span><input value={editDescription} onChange={(event) => setEditDescription(event.target.value)} placeholder="选填" /></label>
-                    <button className="plain" type="button" onClick={saveCertification}>保存认证信息</button>
-                  </div>
+                {selected.category === 'EXPERIENCE' && signatureMaterials(materials).length > 0 && (
+                  <>
+                    <h3>签字确认</h3>
+                    <div className="materials">
+                      {signatureMaterials(materials).map((material) => (
+                        <a href={material.url} target="_blank" rel="noreferrer" key={material.id}>
+                          <span>{material.name}</span>
+                          <ExternalLink />
+                        </a>
+                      ))}
+                    </div>
+                  </>
                 )}
                 {modalMode === 'review' && selected.status === 'PENDING' && (
                   <>
+                    {selected.category === 'EXPERIENCE' && (
+                      <p className="review-optional-note">
+                        证明资料为选填项。未提供证明资料时，仍可根据经历内容正常审核。
+                      </p>
+                    )}
                     <textarea
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
@@ -410,17 +391,27 @@ export default function RecordsPage({ type }) {
             )}
             {modalMode === 'process' && ['feedback', 'cooperations'].includes(type) &&
               !['RESOLVED', 'CLOSED'].includes(selected.status) && (
-                <footer>
-                  <button className="plain" onClick={() => process('PROCESSING')}>
-                    处理中
-                  </button>
-                  <button
-                    className="primary"
-                    onClick={() => process(type === 'feedback' ? 'RESOLVED' : 'CLOSED')}
-                  >
-                    完成处理
-                  </button>
-                </footer>
+                <>
+                  {type === 'feedback' && (
+                    <textarea
+                      value={resolution}
+                      onChange={(event) => setResolution(event.target.value)}
+                      maxLength={1000}
+                      placeholder="填写给用户查看的处理结果"
+                    />
+                  )}
+                  <footer>
+                    <button className="plain" onClick={() => process('PROCESSING')}>
+                      处理中
+                    </button>
+                    <button
+                      className="primary"
+                      onClick={() => process(type === 'feedback' ? 'RESOLVED' : 'CLOSED')}
+                    >
+                      完成处理
+                    </button>
+                  </footer>
+                </>
               )}
           </section>
         </>
@@ -447,7 +438,9 @@ const statusOptions = {
   inquiries: [
     ['PENDING', '待接受'],
     ['ACTIVE', '交流中'],
-    ['AWAITING_CONFIRMATION', '待确认结束'],
+    ['TEXT_LIMIT_REACHED', '文字额度已用完'],
+    ['TEXT_ENDED', '文字交流已结束'],
+    ['PAID_ACTIVE', '付费时段进行中'],
     ['COMPLETED', '已完成'],
     ['REJECTED', '未接受'],
     ['CANCELLED', '已撤销'],
@@ -478,8 +471,14 @@ const labels = {
   type: '类型',
   title: '标题',
   description: '说明',
-  experienceBusinessType: '发布类型',
-  upgradeSourceId: '升级来源编号',
+  experienceLocation: '发生地点',
+  experienceStartDate: '开始时间',
+  experienceEndDate: '结束时间',
+  experienceCount: '已经历的次数',
+  experienceRole: '本人当时的身份',
+  experienceAgeRange: '当时年龄段',
+  experienceEducation: '当时学历',
+  experienceJob: '当时职业',
   status: '状态',
   rejectionReason: '驳回原因',
   submittedAt: '提交时间',
@@ -503,12 +502,17 @@ const labels = {
   contact: '联系方式',
   content: '内容',
   targetUid: '投诉对象UID',
+  resolution: '处理结果',
+  resolvedAt: '处理完成时间',
+  handledBy: '处理人',
+  riskLevel: '风险等级',
+  riskReasons: '风险说明',
 };
 function headers(type) {
   return {
     certifications: ['用户', '认证', '状态', '提交时间', '操作'],
     inquiries: ['双方UID', '询问内容', '金额', '状态', '操作'],
-    withdrawals: ['用户', '支付宝收款账户', '提现金额', '状态', '操作'],
+    withdrawals: ['用户', '支付宝收款账户', '提现金额', '风险', '状态', '操作'],
     feedback: ['用户', '类型', '内容', '状态', '操作'],
     cooperations: ['用户', '联系方式', '内容', '状态', '操作'],
   }[type];
@@ -525,9 +529,7 @@ function cells(type, r) {
           <b>{certificationTitle(r)}</b>
           <small>
             {r.category === 'EXPERIENCE'
-              ? r.experienceBusinessType === 'PUBLIC_WELFARE'
-                ? '公益分享'
-                : '干货变现'
+              ? '亲身经历'
               : certificationTypeName(r.type)}
           </small>
         </td>
@@ -583,6 +585,10 @@ function cells(type, r) {
           <small>全额到账</small>
         </td>
         <td>
+          <Status value={r.riskLevel || 'LOW'} />
+          {r.riskReasons && <small>{r.riskReasons}</small>}
+        </td>
+        <td>
           <Status value={r.status} />
         </td>
       </>
@@ -624,15 +630,13 @@ function modalTitle(type, mode) {
     return `${meta[type][0]}详情`;
   }
   if (mode === 'review') return '审核认证';
-  if (mode === 'edit') return '编辑认证';
   return '认证详情';
 }
 function certificationTitle(record) {
-  if (record.type === 'IDENTITY') return '身份信息';
   return record.title;
 }
 function certificationTypeName(type) {
-  return { IDENTITY: '实名认证', EXPERIENCE: '亲身经历' }[type] || type;
+  return { EXPERIENCE: '亲身经历', IDENTITY: '实名认证' }[type] || type;
 }
 
 function mediaProcessingLabel(status) {
@@ -641,21 +645,21 @@ function mediaProcessingLabel(status) {
     PROCESSING: '证明资料整理中',
     READY: '证明资料已整理',
     FAILED: '证明资料整理失败',
-    NOT_REQUIRED: '未开始整理',
+    NOT_REQUIRED: '未提交证明资料',
   }[status] || '未开始整理';
 }
 
 const DETAIL_VALUE_LABELS = {
-  BASIC: '基础信息',
   EXPERIENCE: '亲身经历',
+  BASIC: '基础认证',
   IDENTITY: '实名认证',
-  PUBLIC_WELFARE: '公益分享',
-  MONETIZED: '干货变现',
   PRODUCT: '产品反馈',
   COMPLAINT: '投诉',
   PENDING: '待处理',
   ACTIVE: '交流中',
-  AWAITING_CONFIRMATION: '待确认结束',
+  TEXT_LIMIT_REACHED: '文字额度已用完',
+  TEXT_ENDED: '文字交流已结束',
+  PAID_ACTIVE: '付费时段进行中',
   APPROVED: '已通过',
   REJECTED: '已驳回',
   CANCELLED: '已撤销',
@@ -688,4 +692,32 @@ function formatDetailValue(key, value, recordType) {
   if (typeof value === 'boolean') return value ? '是' : '否';
   if (key === 'status' && recordType === 'certifications' && value === 'PENDING') return '待审核';
   return DETAIL_VALUE_LABELS[String(value)] || String(value);
+}
+
+function shouldShowDetailField(key) {
+  return ![
+    'id',
+    'detailMode',
+    'detailVideo',
+    'detailVideoUrl',
+    'narrativeMode',
+  ].includes(key);
+}
+
+function detailFieldLabel(key, record) {
+  if (key === 'description' && record.category === 'EXPERIENCE') {
+    return '文字叙述（必填，最多400字）';
+  }
+  return labels[key] || key;
+}
+
+function proofMaterials(items, category) {
+  if (category !== 'EXPERIENCE') {
+    return items.filter((item) => item.kind !== 'DETAIL_VIDEO');
+  }
+  return items.filter((item) => ['PROOF_ARCHIVE', 'ARCHIVE'].includes(item.kind));
+}
+
+function signatureMaterials(items) {
+  return items.filter((item) => item.kind === 'SIGNATURE');
 }

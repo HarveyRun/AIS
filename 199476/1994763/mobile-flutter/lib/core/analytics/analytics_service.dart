@@ -85,7 +85,7 @@ class AnalyticsService with WidgetsBindingObserver {
       'login' => 'login_page_view',
       'home' => 'home_view',
       'chat' => 'chat_open',
-      'certifications' || 'basicCertification' => 'certification_home_view',
+      'experienceCertifications' => 'experience_list_view',
       'faq' => 'faq_view',
       'customerService' => 'customer_service_open',
       _ => 'page_view',

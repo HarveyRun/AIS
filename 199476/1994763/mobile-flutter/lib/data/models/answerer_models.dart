@@ -5,7 +5,7 @@ class AnswererExperience {
     required this.certificationId,
     required this.title,
     required this.description,
-    required this.businessType,
+    required this.additionalInfo,
     required this.canInquire,
     required this.materials,
   });
@@ -15,7 +15,7 @@ class AnswererExperience {
       certificationId: _nullableInt(json['certificationId']),
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
-      businessType: json['businessType']?.toString() ?? 'MONETIZED',
+      additionalInfo: ExperienceAdditionalInfo.fromJson(json),
       canInquire: json['canInquire'] == true,
       materials:
           [
@@ -35,11 +35,9 @@ class AnswererExperience {
   final int? certificationId;
   final String title;
   final String description;
-  final String businessType;
+  final ExperienceAdditionalInfo additionalInfo;
   final bool canInquire;
   final List<CertificationMaterial> materials;
-
-  bool get isPublicWelfare => businessType == 'PUBLIC_WELFARE';
 }
 
 class Answerer {
@@ -48,10 +46,8 @@ class Answerer {
     required this.uid,
     required this.nickname,
     required this.avatarUrl,
-    required this.identityVerified,
     required this.acceptingInquiries,
-    required this.inquiryPriceMin,
-    required this.inquiryPriceMax,
+    required this.inquiryHourlyRate,
     required this.mainJob,
     required this.experiences,
   });
@@ -63,10 +59,8 @@ class Answerer {
       uid: json['uid']?.toString() ?? '',
       nickname: json['nickname']?.toString() ?? '',
       avatarUrl: json['avatarUrl']?.toString() ?? '',
-      identityVerified: json['identityVerified'] == true,
       acceptingInquiries: json['acceptingInquiries'] == true,
-      inquiryPriceMin: _boundedInt(json['inquiryPriceMin'], 1),
-      inquiryPriceMax: _boundedInt(json['inquiryPriceMax'], 5000),
+      inquiryHourlyRate: _boundedInt(json['inquiryHourlyRate'], 60),
       mainJob: json['mainJob']?.toString() ?? '-',
       experiences: experienceData
           .whereType<Map<String, dynamic>>()
@@ -79,10 +73,8 @@ class Answerer {
   final String uid;
   final String nickname;
   final String avatarUrl;
-  final bool identityVerified;
   final bool acceptingInquiries;
-  final int inquiryPriceMin;
-  final int inquiryPriceMax;
+  final int inquiryHourlyRate;
   final String mainJob;
   final List<AnswererExperience> experiences;
 

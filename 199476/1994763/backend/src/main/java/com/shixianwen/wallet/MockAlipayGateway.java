@@ -14,7 +14,9 @@ public class MockAlipayGateway implements PaymentGateway {
 
     @Override
     public PaymentOrder createOrder(String orderNo, BigDecimal amount, String subject) {
-        String paymentUrl = "/api/recharges/mock-cashier?orderNo=" + orderNo;
+        String paymentUrl = (orderNo.startsWith("RXL")
+            ? "/api/curated-chat/membership/mock-cashier?orderNo="
+            : "/api/recharges/mock-cashier?orderNo=") + orderNo;
         return new PaymentOrder(orderNo, "ALIPAY", null, paymentUrl, "WAITING_FOR_PAYMENT");
     }
 

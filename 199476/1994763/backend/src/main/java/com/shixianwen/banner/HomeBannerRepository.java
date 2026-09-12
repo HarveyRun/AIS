@@ -13,6 +13,12 @@ public interface HomeBannerRepository extends JpaRepository<HomeBanner, Long> {
 
     Optional<HomeBanner> findByIdAndDeletedFalse(Long id);
 
+    boolean existsByActionTypeAndDeletedFalseAndEnabledTrueAndStartAtLessThanEqualAndEndAtGreaterThan(
+        String actionType,
+        LocalDateTime startAt,
+        LocalDateTime endAt
+    );
+
     List<HomeBanner> findAllByDeletedFalseAndEnabledTrueAndStartAtLessThanEqualAndEndAtGreaterThanOrderBySortOrderAscIdAsc(
         LocalDateTime startAt,
         LocalDateTime endAt

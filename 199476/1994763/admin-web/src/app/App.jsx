@@ -15,7 +15,8 @@ import AppVersionPage from '../pages/appVersion/AppVersionPage.jsx';
 import AnnouncementsPage from '../pages/announcements/AnnouncementsPage.jsx';
 import BannersPage from '../pages/banners/BannersPage.jsx';
 import SecurityEventsPage from '../pages/security/SecurityEventsPage.jsx';
-import PlatformFeePage from '../pages/platformFee/PlatformFeePage.jsx';
+import AppSettingsPage from '../pages/appSettings/AppSettingsPage.jsx';
+import CuratedChatPage from '../pages/curatedChat/CuratedChatPage.jsx';
 import AdminUsersPage from '../pages/adminUsers/AdminUsersPage.jsx';
 import AdminRolesPage from '../pages/adminRoles/AdminRolesPage.jsx';
 import AdminPermissionsPage from '../pages/adminPermissions/AdminPermissionsPage.jsx';
@@ -135,6 +136,14 @@ export default function App() {
             }
           />
           <Route
+            path="/curated-chat"
+            element={
+              <Guard permission="CURATED_CHAT_VIEW">
+                <CuratedChatPage />
+              </Guard>
+            }
+          />
+          <Route
             path="/announcements"
             element={
               <Guard permission="ANNOUNCEMENT_VIEW">
@@ -151,13 +160,15 @@ export default function App() {
             }
           />
           <Route
-            path="/platform-fee"
+            path="/app-settings"
             element={
-              <Guard permission="PLATFORM_FEE_VIEW">
-                <PlatformFeePage />
+              <Guard permissions={['PLATFORM_FEE_VIEW', 'INQUIRY_CAPACITY_VIEW', 'APP_GLOBAL_SETTING_VIEW']}>
+                <AppSettingsPage />
               </Guard>
             }
           />
+          <Route path="/platform-fee" element={<Navigate to="/app-settings" replace />} />
+          <Route path="/inquiry-capacity" element={<Navigate to="/app-settings" replace />} />
           <Route
             path="/certifications"
             element={
@@ -199,7 +210,7 @@ export default function App() {
             }
           />
           <Route
-            path="/answer-quality"
+            path="/communication-evaluations"
             element={
               <Guard permission="ANSWER_QUALITY_VIEW">
                 <AnswerQualityPage />
@@ -207,13 +218,15 @@ export default function App() {
             }
           />
           <Route
-            path="/inquiry-disputes"
+            path="/user-risk"
             element={
-              <Guard permission="INQUIRY_DISPUTE_VIEW">
+              <Guard permission="RISK_WATCH_VIEW">
                 <InquiryDisputesPage />
               </Guard>
             }
           />
+          <Route path="/answer-quality" element={<Navigate to="/communication-evaluations" replace />} />
+          <Route path="/inquiry-disputes" element={<Navigate to="/user-risk" replace />} />
           <Route
             path="/feedback"
             element={
@@ -305,10 +318,11 @@ export default function App() {
   );
 }
 
-function Guard({ permission, children }) {
+function Guard({ permission, permissions, children }) {
   const { admin, can } = useAdminAccess();
   if (!admin) return null;
-  if (can(permission)) return children;
+  const required = permissions || [permission];
+  if (required.some((item) => can(item))) return children;
   return (
     <section className="table-card" style={{ minHeight: 220 }}>
       <div className="empty">当前账号没有访问此页面的权限</div>

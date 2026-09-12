@@ -116,7 +116,7 @@ public class AuthService {
 
         var existingUser = userRepository.findByPhone(phone);
         boolean newlyCreated = existingUser.isEmpty();
-        User user = existingUser.orElseGet(() -> createUser(phone, network));
+        User user = existingUser.orElseGet(() -> createUser(phone, network, safeDevice));
         if (testLogin) {
             user.setAccountType("TEST");
         } else if ("TEST".equals(user.getAccountType())) {
@@ -125,6 +125,7 @@ public class AuthService {
         ensureAccountAvailable(user);
         user.setLastLoginIp(network.ipAddress());
         user.setLastLoginLocation(network.location());
+        user.setLastLoginDeviceId(safeDevice);
         user.setLastLoginAt(LocalDateTime.now());
 
         UserLoginRecord loginRecord = new UserLoginRecord();
@@ -152,13 +153,14 @@ public class AuthService {
         return createSession(user);
     }
 
-    private User createUser(String phone, ClientNetworkInfo network) {
+    private User createUser(String phone, ClientNetworkInfo network, String deviceId) {
         User user = new User();
         user.setUid(uidAllocator.allocate());
         user.setPhone(phone);
         user.setPlatformIntroRequired(true);
         user.setRegisterIp(network.ipAddress());
         user.setRegisterLocation(network.location());
+        user.setRegisterDeviceId(deviceId);
         user = userRepository.save(user);
 
         WalletAccount wallet = new WalletAccount();
@@ -243,8 +245,7 @@ public class AuthService {
         String jobTitle,
         boolean acceptingInquiries,
         LocalDateTime acceptingInquiriesUpdatedAt,
-        int inquiryPriceMin,
-        int inquiryPriceMax,
+        int inquiryHourlyRate,
         LocalDateTime inquiryPriceUpdatedAt,
         String answererStatus,
         boolean platformIntroductionRequired
@@ -253,7 +254,7 @@ public class AuthService {
             return new UserView(
                 user.getId(), user.getUid(), user.getPhone(), user.getNickname(), user.getAvatarUrl(), user.getJobTitle(),
                 user.isAcceptingInquiries(), user.getAcceptingInquiriesUpdatedAt(),
-                user.getInquiryPriceMin(), user.getInquiryPriceMax(), user.getInquiryPriceUpdatedAt(),
+                user.getInquiryHourlyRate(), user.getInquiryPriceUpdatedAt(),
                 user.getAnswererStatus(), user.isPlatformIntroRequired()
             );
         }

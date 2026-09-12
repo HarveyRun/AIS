@@ -2,11 +2,14 @@ package com.shixianwen.wallet;
 
 import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.config.AppGlobalSettingService;
+import com.shixianwen.curated.CuratedChatService;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,6 +24,9 @@ public class RechargeService {
     private final WalletService wallet;
     private final PaymentGateway gateway;
     private final AnalyticsEventService analytics;
+    private final CuratedChatService curatedChatService;
+    @Autowired(required = false)
+    private AppGlobalSettingService globalSettings;
 
     public PaymentGateway.PaymentCapability capability(Long userId) {
         User user = users.findById(userId)
@@ -44,6 +50,9 @@ public class RechargeService {
 
     @Transactional
     public RechargeView create(Long userId, BigDecimal rawAmount, String requestId) {
+        if (globalSettings != null && !globalSettings.current().rechargeEnabled()) {
+            throw BusinessException.serviceUnavailable("充值功能暂时不可用");
+        }
         BigDecimal amount = MoneyAmounts.requireWholeAmount(
             rawAmount,
             BigDecimal.ONE,
@@ -124,6 +133,10 @@ public class RechargeService {
         if (!"PAID".equals(notification.status())) return;
         if (notification.orderNo() == null || notification.orderNo().isBlank()) {
             throw BusinessException.badRequest("支付回调缺少平台订单号");
+        }
+        if (notification.orderNo().startsWith("RXL")) {
+            curatedChatService.applyPaid(notification);
+            return;
         }
         Recharge item = recharges.findWithLockByOrderNo(notification.orderNo())
             .orElseThrow(() -> BusinessException.notFound("充值订单不存在"));

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/answerer_models.dart';
-import '../../features/certification/material_viewer.dart';
 import 'app_avatar.dart';
 import 'experience_tooltip_tag.dart';
 
@@ -43,9 +42,13 @@ class _ExperienceContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final detailVideos = experience.materials
-        .where((item) => item.kind.toUpperCase() == 'DETAIL_VIDEO')
-        .toList(growable: false);
+    final location = experience.additionalInfo.location.trim();
+    final startDate = experience.additionalInfo.startDate.trim();
+    final locationSummary = location.isEmpty
+        ? ''
+        : startDate.isEmpty
+        ? location
+        : '$startDate · $location';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -66,7 +69,6 @@ class _ExperienceContent extends StatelessWidget {
               url: answerer.avatarUrl,
               name: answerer.displayName,
               radius: 15,
-              verified: answerer.identityVerified,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -96,33 +98,20 @@ class _ExperienceContent extends StatelessWidget {
         const SizedBox(height: 20),
         Row(
           children: [
-            if (detailVideos.isNotEmpty)
-              InkWell(
-                onTap: () => openMaterial(context, detailVideos.first),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.play_circle_fill_rounded,
-                        size: 22,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 7),
-                      Text(
-                        '查看详述录像',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+            if (locationSummary.isNotEmpty)
+              Expanded(
+                child: Text(
+                  locationSummary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.58),
                   ),
                 ),
-              ),
-            const Spacer(),
+              )
+            else
+              const Spacer(),
+            const SizedBox(width: 12),
             Text(
               '查看详情',
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -153,7 +142,6 @@ class _LegacyContent extends StatelessWidget {
               url: answerer.avatarUrl,
               name: answerer.displayName,
               radius: 24,
-              verified: answerer.identityVerified,
             ),
             const SizedBox(width: 13),
             Expanded(

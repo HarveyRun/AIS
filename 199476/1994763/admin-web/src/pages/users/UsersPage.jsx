@@ -340,9 +340,11 @@ export const Status = ({ value }) => (
       BOOKED: '已预约',
       NO_SHOW: '未到场',
       EXPIRED: '已过期',
-      AWAITING_CONFIRMATION: '待确认结束',
       ADOPTED: '已采用',
       VIOLATION_REJECTED: '违规驳回',
+      LOW: '低风险',
+      HIGH: '高风险',
+      CRITICAL: '严重风险',
     }[value] ||
       value ||
       '—'}

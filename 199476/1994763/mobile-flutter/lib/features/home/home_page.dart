@@ -19,17 +19,6 @@ import '../../data/models/answerer_models.dart';
 import '../../data/models/home_banner_models.dart';
 import 'home_activity_rules_dialog.dart';
 
-enum _ExperienceFilter {
-  all('全部', 'ALL'),
-  free('免费分享', 'FREE'),
-  paid('付费询问', 'PAID');
-
-  const _ExperienceFilter(this.label, this.apiValue);
-
-  final String label;
-  final String apiValue;
-}
-
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -55,7 +44,7 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
   int _page = 0;
   int _listRequestVersion = 0;
   int _banner = 0;
-  _ExperienceFilter _experienceFilter = _ExperienceFilter.all;
+  int _pageSize = 20;
   final Set<int> _seenBanners = {};
   final Set<int> _checkingBanners = {};
   ModalRoute<void>? _route;
@@ -64,10 +53,18 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _load(reset: true);
+    _initializeList();
     _loadBanners();
     _refreshNoticeCount();
     _releaseSearchFocus();
+  }
+
+  Future<void> _initializeList() async {
+    try {
+      final settings = await ref.read(repositoryProvider).appGlobalSettings();
+      _pageSize = settings.homePageSize;
+    } catch (_) {}
+    if (mounted) await _load(reset: true);
   }
 
   @override
@@ -186,16 +183,10 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
       setState(() => _loadingMore = true);
     }
     final keyword = _searchController.text.trim();
-    final experienceType = _experienceFilter.apiValue;
     try {
       final result = await ref
           .read(repositoryProvider)
-          .answerers(
-            page: _page,
-            size: 10,
-            keyword: keyword,
-            experienceType: experienceType,
-          );
+          .answerers(page: _page, size: _pageSize, keyword: keyword);
       if (!mounted || requestVersion != _listRequestVersion) return;
       setState(() {
         if (reset) _items.clear();
@@ -211,7 +202,6 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                 'home_search_submit',
                 properties: {
                   'search_term': keyword,
-                  'experience_type': experienceType,
                   'result_count': result.items.length,
                 },
               ),
@@ -238,14 +228,6 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
       () => _load(reset: true),
     );
     setState(() {});
-  }
-
-  void _setExperienceFilter(_ExperienceFilter value) {
-    if (_experienceFilter == value) return;
-    _searchTimer?.cancel();
-    FocusScope.of(context).unfocus();
-    setState(() => _experienceFilter = value);
-    _load(reset: true);
   }
 
   void _trackBannerImpression(int index) {
@@ -420,191 +402,72 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                         ),
                         child: Row(
                           children: [
-                            MenuAnchor(
-                              alignmentOffset: const Offset(-6, 7),
-                              style: MenuStyle(
-                                padding: const WidgetStatePropertyAll(
-                                  EdgeInsets.all(4),
-                                ),
-                                backgroundColor: WidgetStatePropertyAll(
-                                  theme.colorScheme.surface,
-                                ),
-                                surfaceTintColor: const WidgetStatePropertyAll(
-                                  Colors.transparent,
-                                ),
-                                elevation: const WidgetStatePropertyAll(5),
-                                shadowColor: WidgetStatePropertyAll(
-                                  Colors.black.withValues(alpha: .08),
-                                ),
-                                shape: WidgetStatePropertyAll(
-                                  RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 14),
+                                child: TextField(
+                                  controller: _searchController,
+                                  focusNode: _searchFocusNode,
+                                  autofocus: false,
+                                  onTap: () {
+                                    _searchFocusNode.canRequestFocus = true;
+                                    _searchFocusNode.requestFocus();
+                                  },
+                                  onChanged: _search,
+                                  inputFormatters: AppInputFormatters.search,
+                                  textInputAction: TextInputAction.search,
+                                  textAlignVertical: TextAlignVertical.center,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    height: 1,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                ),
-                              ),
-                              menuChildren: _ExperienceFilter.values
-                                  .map(
-                                    (item) => SizedBox(
-                                      width: 82,
-                                      height: 34,
-                                      child: Builder(
-                                        builder: (menuContext) => InkWell(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          onTap: () {
-                                            MenuController.maybeOf(
-                                              menuContext,
-                                            )?.close();
-                                            _setExperienceFilter(item);
-                                          },
-                                          child: AnimatedContainer(
-                                            duration: const Duration(
-                                              milliseconds: 150,
-                                            ),
-                                            alignment: Alignment.center,
-                                            decoration: BoxDecoration(
-                                              color: item == _experienceFilter
-                                                  ? theme.colorScheme.primary
-                                                        .withValues(alpha: .08)
-                                                  : Colors.transparent,
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              item.label,
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                    color:
-                                                        item ==
-                                                            _experienceFilter
-                                                        ? theme
-                                                              .colorScheme
-                                                              .primary
-                                                        : theme
-                                                              .colorScheme
-                                                              .onSurfaceVariant,
-                                                    fontWeight:
-                                                        item ==
-                                                            _experienceFilter
-                                                        ? FontWeight.w700
-                                                        : FontWeight.w500,
-                                                  ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                                  decoration: InputDecoration(
+                                    hintText: '搜索经历',
+                                    filled: false,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    prefixIcon: const Icon(
+                                      Icons.search_rounded,
+                                      size: 18,
                                     ),
-                                  )
-                                  .toList(growable: false),
-                              builder: (context, controller, child) => InkWell(
-                                borderRadius: BorderRadius.circular(18),
-                                onTap: () {
-                                  FocusScope.of(context).unfocus();
-                                  controller.isOpen
-                                      ? controller.close()
-                                      : controller.open();
-                                },
-                                child: SizedBox(
-                                  height: 38,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(left: 12),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          _experienceFilter.label,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                height: 1,
-                                                color: theme
-                                                    .colorScheme
-                                                    .onSurfaceVariant
-                                                    .withValues(alpha: .82),
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Icon(
-                                          controller.isOpen
-                                              ? Icons.keyboard_arrow_up_rounded
-                                              : Icons
-                                                    .keyboard_arrow_down_rounded,
-                                          size: 15,
+                                    prefixIconConstraints: const BoxConstraints(
+                                      minWidth: 30,
+                                      minHeight: 30,
+                                    ),
+                                    hintStyle: theme.textTheme.bodyMedium
+                                        ?.copyWith(
+                                          height: 1,
                                           color: theme
                                               .colorScheme
                                               .onSurfaceVariant
-                                              .withValues(alpha: .82),
+                                              .withValues(alpha: .95),
+                                          fontWeight: FontWeight.w500,
                                         ),
-                                      ],
+                                    suffixIconConstraints: const BoxConstraints(
+                                      minWidth: 34,
+                                      minHeight: 34,
                                     ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              width: 1,
-                              height: 18,
-                              margin: const EdgeInsets.symmetric(horizontal: 7),
-                              color: theme.colorScheme.outlineVariant
-                                  .withValues(alpha: .65),
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: _searchController,
-                                focusNode: _searchFocusNode,
-                                autofocus: false,
-                                onTap: () {
-                                  _searchFocusNode.canRequestFocus = true;
-                                  _searchFocusNode.requestFocus();
-                                },
-                                onChanged: _search,
-                                inputFormatters: AppInputFormatters.search,
-                                textInputAction: TextInputAction.search,
-                                textAlignVertical: TextAlignVertical.center,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  height: 1,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: '搜索经历',
-                                  filled: false,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  hintStyle: theme.textTheme.bodyMedium
-                                      ?.copyWith(
-                                        height: 1,
-                                        color: theme
-                                            .colorScheme
-                                            .onSurfaceVariant
-                                            .withValues(alpha: .95),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                  suffixIconConstraints: const BoxConstraints(
-                                    minWidth: 34,
-                                    minHeight: 34,
-                                  ),
-                                  suffixIcon: _searchController.text.isEmpty
-                                      ? null
-                                      : IconButton(
-                                          padding: EdgeInsets.zero,
-                                          visualDensity: VisualDensity.compact,
-                                          onPressed: () {
-                                            _searchTimer?.cancel();
-                                            _searchController.clear();
-                                            _load(reset: true);
-                                            setState(() {});
-                                          },
-                                          icon: const Icon(
-                                            Icons.close_rounded,
-                                            size: 17,
+                                    suffixIcon: _searchController.text.isEmpty
+                                        ? null
+                                        : IconButton(
+                                            padding: EdgeInsets.zero,
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            onPressed: () {
+                                              _searchTimer?.cancel();
+                                              _searchController.clear();
+                                              _load(reset: true);
+                                              setState(() {});
+                                            },
+                                            icon: const Icon(
+                                              Icons.close_rounded,
+                                              size: 17,
+                                            ),
                                           ),
-                                        ),
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                  ),
                                 ),
                               ),
                             ),

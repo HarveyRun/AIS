@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Optional;
 
 public interface InquiryMessageRepository extends JpaRepository<InquiryMessage, Long> {
@@ -34,6 +35,20 @@ public interface InquiryMessageRepository extends JpaRepository<InquiryMessage, 
     long countByInquiryIdAndSenderIdAndCreatedAtAfter(Long inquiryId, Long senderId, LocalDateTime after);
 
     long countByInquiryIdAndSenderId(Long inquiryId, Long senderId);
+
+    long countByInquiryIdAndSenderIdAndMessageType(Long inquiryId, Long senderId, String messageType);
+
+    long countByInquiryIdAndSenderIdAndMessageTypeIn(
+        Long inquiryId,
+        Long senderId,
+        Collection<String> messageTypes
+    );
+
+    long countByInquiryIdAndSenderIdAndCountsTowardFreeLimitTrueAndMessageTypeIn(
+        Long inquiryId,
+        Long senderId,
+        Collection<String> messageTypes
+    );
 
     long countByInquiryIdAndSenderIdAndMessageTypeAndCreatedAtAfter(
         Long inquiryId,

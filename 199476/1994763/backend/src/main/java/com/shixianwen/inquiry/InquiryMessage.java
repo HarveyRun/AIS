@@ -30,6 +30,9 @@ public class InquiryMessage {
     @Column(name = "message_type", nullable = false, length = 30)
     private String messageType = "TEXT";
 
+    @Column(name = "counts_toward_free_limit", nullable = false)
+    private boolean countsTowardFreeLimit = true;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 

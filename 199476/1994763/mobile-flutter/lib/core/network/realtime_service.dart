@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../data/repositories/app_repository.dart';
 import '../config/app_config.dart';
@@ -22,15 +23,19 @@ class RealtimeEvent {
   final Map<String, dynamic> payload;
 }
 
-class RealtimeService {
-  RealtimeService(this._repository);
+class RealtimeService with WidgetsBindingObserver {
+  RealtimeService(this._repository) {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   final AppRepository _repository;
   final StreamController<RealtimeEvent> _events = StreamController.broadcast();
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _subscription;
   Timer? _retryTimer;
+  Timer? _heartbeatTimer;
   bool _enabled = false;
+  bool _foreground = true;
 
   Stream<RealtimeEvent> get events => _events.stream;
 
@@ -46,6 +51,7 @@ class RealtimeService {
       final ticket = ticketData['ticket']?.toString() ?? '';
       if (ticket.isEmpty) return;
       _channel = WebSocketChannel.connect(AppConfig.realtimeUri(ticket));
+      _startHeartbeat();
       _subscription = _channel!.stream.listen(
         (raw) {
           final decoded = jsonDecode(raw.toString());
@@ -64,6 +70,7 @@ class RealtimeService {
   }
 
   void _reconnect() {
+    _heartbeatTimer?.cancel();
     _subscription?.cancel();
     _subscription = null;
     _channel = null;
@@ -74,6 +81,7 @@ class RealtimeService {
   Future<void> disconnect() async {
     _enabled = false;
     _retryTimer?.cancel();
+    _heartbeatTimer?.cancel();
     await _subscription?.cancel();
     await _channel?.sink.close();
     _subscription = null;
@@ -81,7 +89,35 @@ class RealtimeService {
   }
 
   Future<void> dispose() async {
+    WidgetsBinding.instance.removeObserver(this);
     await disconnect();
     await _events.close();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+    _sendHeartbeat();
+  }
+
+  void _startHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _sendHeartbeat();
+    _heartbeatTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _sendHeartbeat(),
+    );
+  }
+
+  void _sendHeartbeat() {
+    if (!_enabled || _channel == null) return;
+    try {
+      _channel!.sink.add(jsonEncode({
+        'type': 'HEARTBEAT',
+        'foreground': _foreground,
+      }));
+    } catch (_) {
+      _reconnect();
+    }
   }
 }

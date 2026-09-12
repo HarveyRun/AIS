@@ -2,6 +2,7 @@ package com.shixianwen.inquiry;
 
 import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.config.AppGlobalSettingService;
 import com.shixianwen.content.SensitiveContentCipher;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.notification.NotificationService;
@@ -22,6 +23,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -36,7 +38,16 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class InquiryService {
-    private static final Set<String> OPEN = Set.of("PENDING", "ACTIVE", "AWAITING_CONFIRMATION", "DISPUTED");
+    private static final Set<String> OPEN = Set.of(
+        "PENDING", "ACTIVE", "TEXT_LIMIT_REACHED", "TEXT_ENDED", "PAID_ACTIVE"
+    );
+    private static final Set<String> CAPACITY_OCCUPYING = Set.of(
+        "ACTIVE", "TEXT_LIMIT_REACHED", "TEXT_ENDED", "PAID_ACTIVE"
+    );
+    private static final int CURRENT_FLOW_VERSION = 2;
+    private static final int INITIAL_TEXT_MESSAGE_LIMIT = 50;
+    private static final Set<String> FREE_MESSAGE_TYPES = Set.of("TEXT", "IMAGE");
+    private static final BigDecimal INQUIRY_DEPOSIT = new BigDecimal("2.00");
     private final InquiryRepository inquiries;
     private final InquiryMessageRepository messages;
     private final UserRepository users;
@@ -51,12 +62,22 @@ public class InquiryService {
     private final SecurityEventService securityEvents;
     private final AnalyticsEventService analytics;
     private final JdbcTemplate jdbc;
+    private final UserCommunicationBlockService communicationBlocks;
+
+    @Autowired(required = false)
+    private AppGlobalSettingService globalSettings;
 
     @Transactional
     public InquiryView create(Long questionerId, CreateCommand command, ClientNetworkInfo network) {
+        AppGlobalSettingService.Settings settings = settings();
+        if (settings != null && !settings.inquiryEnabled()) {
+            throw BusinessException.badRequest("平台暂时关闭了发起询问");
+        }
         if (questionerId.equals(command.answererId())) throw BusinessException.badRequest("不能向自己发起询问");
-        User questioner = user(questionerId);
-        User answerer = user(command.answererId());
+        LockedParticipants participants = lockParticipants(questionerId, command.answererId());
+        User questioner = participants.questioner();
+        User answerer = participants.answerer();
+        requireCommunicationAllowed(questionerId, answerer.getId());
         if (!questioner.getAccountType().equals(answerer.getAccountType())) {
             securityEvents.recordSafely(
                 questionerId, null, "CROSS_ENVIRONMENT_INQUIRY_BLOCKED", "HIGH",
@@ -87,11 +108,16 @@ public class InquiryService {
             );
         }
         answererEligibility.requireAvailable(answerer.getId());
+        InquiryCapacity capacity = inquiryCapacity();
+        requireInquiryCapacity(questionerId, answerer.getId(), capacity);
         if (inquiries.existsByQuestionerIdAndAnswererIdAndStatusIn(questionerId, answerer.getId(), OPEN))
             throw BusinessException.badRequest("你们已有一条进行中的询问");
+        int freePendingLimit = settings == null ? 3 : settings.freePendingInquiryLimit();
+        BigDecimal depositAmount = settings == null ? INQUIRY_DEPOSIT : settings.inquiryDepositAmount();
+        boolean depositRequired = inquiries.countByQuestionerIdAndStatus(questionerId, "PENDING") >= freePendingLimit;
         List<InquiryExperience> matchedExperiences = jdbc.query(
             "SELECT title FROM certifications WHERE id=? AND user_id=? " +
-                "AND category='EXPERIENCE' AND COALESCE(experience_business_type,'MONETIZED')='MONETIZED' " +
+                "AND category='EXPERIENCE' " +
                 "AND status='APPROVED' AND enabled=TRUE AND deleted_at IS NULL",
             (resultSet, rowNumber) -> new InquiryExperience(resultSet.getString("title")),
             command.sourceExperienceCertificationId(),
@@ -101,33 +127,40 @@ public class InquiryService {
             throw BusinessException.badRequest("这段亲身经历已不可询问");
         }
         InquiryExperience selectedExperience = matchedExperiences.get(0);
-        BigDecimal amount = MoneyAmounts.requireWholeAmount(
-            command.amount(), BigDecimal.ONE, new BigDecimal("5000"), "询问金额"
-        );
-        requirePriceInRange(answerer, amount);
-        var settlementQuote = wallet.quoteInquirySettlement(amount, command.clientPlatform());
         String topic = selectedExperience.title();
+        String question = required(command.question(), "请填写你的情况", 200);
         Inquiry item = new Inquiry();
         item.setQuestioner(questioner); item.setAnswerer(answerer); item.setTopic(sensitiveWords.mask(topic));
         item.setSourceType("EXPERIENCE");
         item.setSourceExperienceCertificationId(command.sourceExperienceCertificationId());
-        item.setQuestion(sensitiveWords.mask(topic));
-        item.setQuestionRawEncrypted(sensitiveContentCipher.encrypt(topic));
+        item.setQuestion(sensitiveWords.mask(question));
+        item.setQuestionRawEncrypted(sensitiveContentCipher.encrypt(question));
         item.setRequestIp(network.ipAddress());
         item.setRequestLocation(network.location());
-        item.setAmount(amount);
-        item.setSettleableAmount(amount);
-        item.setClientPlatform(settlementQuote.clientPlatform());
-        item.setServiceFeeRate(settlementQuote.serviceFeeRate());
-        item.setServiceFeeAmount(settlementQuote.serviceFeeAmount());
-        item.setAnswererIncomeAmount(settlementQuote.answererIncomeAmount());
-        item.setStatus("PENDING"); item.setFundsStatus("FROZEN");
+        item.setAmount(MoneyAmounts.ZERO);
+        item.setDepositAmount(depositRequired ? depositAmount : MoneyAmounts.ZERO);
+        item.setDepositStatus(depositRequired ? "FROZEN" : "NONE");
+        item.setSettleableAmount(MoneyAmounts.ZERO);
+        item.setClientPlatform(normalizePlatform(command.clientPlatform()));
+        item.setFlowVersion(CURRENT_FLOW_VERSION);
+        item.setHourlyRateSnapshot(answerer.getInquiryHourlyRate());
+        int initialTextLimit = settings == null ? INITIAL_TEXT_MESSAGE_LIMIT : settings.initialTextMessageLimit();
+        item.setQuestionerTextLimit(initialTextLimit);
+        item.setAnswererTextLimit(initialTextLimit);
+        item.setStatus("PENDING"); item.setFundsStatus("NONE");
         item.setAnswererUnreadCount(1);
-        item.setResponseDeadline(LocalDateTime.now().plusHours(24));
+        int responseHours = settings == null ? 72 : settings.inquiryResponseTimeoutHours();
+        item.setResponseDeadline(LocalDateTime.now().plusHours(responseHours));
         item = inquiries.save(item);
-        WalletService.FrozenAllocation allocation = wallet.freeze(questionerId, item.getAmount(), item.getId());
-        item.setFrozenRechargeAmount(allocation.rechargeAmount());
-        item.setFrozenIncomeAmount(allocation.incomeAmount());
+        if (depositRequired) {
+            WalletService.FrozenAllocation deposit = wallet.freezeInquiryDeposit(
+                questionerId,
+                item.getDepositAmount(),
+                item.getId()
+            );
+            item.setDepositFrozenRechargeAmount(deposit.rechargeAmount());
+            item.setDepositFrozenIncomeAmount(deposit.incomeAmount());
+        }
         notifications.send(answerer, "收到新的询问", displayName(questioner) + "：" + notificationSubject(item), "/inquiries/" + item.getId());
         publishInquiryChanged(answerer.getId(), item);
         analytics.recordBusinessAfterCommit(questioner, "inquiry_created", java.util.Map.of(
@@ -135,19 +168,9 @@ public class InquiryService {
             "answerer_id", answerer.getId(),
             "source_type", item.getSourceType(),
             "platform", item.getClientPlatform(),
-            "amount_bucket", amountBucket(item.getAmount())
+            "flow_version", item.getFlowVersion()
         ));
         return view(item, questionerId);
-    }
-
-    private void requirePriceInRange(User answerer, BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.valueOf(answerer.getInquiryPriceMin())) < 0
-            || amount.compareTo(BigDecimal.valueOf(answerer.getInquiryPriceMax())) > 0) {
-            throw BusinessException.badRequest(
-                "对方可接受的询问金额为¥" + answerer.getInquiryPriceMin() + "—¥" +
-                    answerer.getInquiryPriceMax()
-            );
-        }
     }
 
     public record InquiryExperience(String title) {}
@@ -213,10 +236,17 @@ public class InquiryService {
     @Transactional
     public InquiryView accept(Long userId, Long inquiryId) {
         Inquiry item = lockedParticipant(userId, inquiryId, true);
+        requireCommunicationAllowed(item);
         requireStatus(item, "PENDING");
+        lockParticipants(item);
+        InquiryCapacity capacity = inquiryCapacity();
+        requireInquiryCapacity(item.getQuestioner().getId(), userId, capacity);
         answererEligibility.requireCanAccept(userId);
         item.setAnswererUnreadCount(0);
-        item.setStatus("ACTIVE"); item.setAcceptedAt(LocalDateTime.now()); item.setResponseDeadline(null);
+        LocalDateTime acceptedAt = LocalDateTime.now();
+        item.setStatus("ACTIVE"); item.setAcceptedAt(acceptedAt); item.setResponseDeadline(null);
+        int maxDays = settings() == null ? 20 : settings().inquiryMaxDurationDays();
+        item.setConversationExpiresAt(acceptedAt.plusDays(maxDays));
         increaseUnread(item, item.getQuestioner().getId());
         notifications.send(item.getQuestioner(), "询问已接受", displayName(item.getAnswerer()) + "已接受：" + notificationSubject(item), "/inquiries/" + item.getId());
         publishInquiryChanged(item.getQuestioner().getId(), item);
@@ -233,9 +263,9 @@ public class InquiryService {
         Inquiry item = lockedParticipant(userId, inquiryId, true);
         requireStatus(item, "PENDING");
         item.setAnswererUnreadCount(0);
-        refund(item, "REJECTED");
+        closePending(item, "REJECTED");
         increaseUnread(item, item.getQuestioner().getId());
-        notifications.send(item.getQuestioner(), "询问未被接受", notificationSubject(item) + "；冻结金额已退回余额", "/inquiries/" + item.getId());
+        notifications.send(item.getQuestioner(), "询问未被接受", notificationSubject(item), "/inquiries/" + item.getId());
         publishInquiryChanged(item.getQuestioner().getId(), item);
         analytics.recordBusinessAfterCommit(item.getAnswerer(), "inquiry_rejected", java.util.Map.of(
             "inquiry_id", item.getId(), "platform", item.getClientPlatform()
@@ -248,7 +278,7 @@ public class InquiryService {
         Inquiry item = lockedParticipant(userId, inquiryId, false);
         requireStatus(item, "PENDING");
         item.setQuestionerUnreadCount(0);
-        refund(item, "CANCELLED");
+        closePending(item, "CANCELLED");
         increaseUnread(item, item.getAnswerer().getId());
         notifications.send(item.getAnswerer(), "询问已撤销", displayName(item.getQuestioner()) + "撤销了：" + notificationSubject(item), "/inquiries/" + item.getId());
         publishInquiryChanged(item.getAnswerer().getId(), item);
@@ -261,22 +291,35 @@ public class InquiryService {
     @Transactional
     public MessageView send(Long userId, Long inquiryId, String content) {
         Inquiry item = lockedAccessible(userId, inquiryId);
+        requireCommunicationAllowed(item);
         requireMessagingStatus(item, userId);
-        requireQuestionerFirstTurn(item, userId);
-        requireConsecutiveMessageCapacity(item, userId);
+        if (item.getFlowVersion() < CURRENT_FLOW_VERSION) {
+            requireConsecutiveMessageCapacity(item, userId);
+        } else {
+            requireTextMessageCapacity(item, userId);
+        }
         chatAbuseGuard.requireTextAllowed(inquiryId, userId, content == null ? "" : content.trim());
         if (item.getQuestioner().getId().equals(userId)) item.setQuestionerUnreadCount(0);
         else item.setAnswererUnreadCount(0);
         InquiryMessage message = new InquiryMessage();
         message.setInquiry(item); message.setSender(user(userId));
-        String originalContent = required(content, "消息不能为空", 500);
+        message.setCountsTowardFreeLimit(!"PAID_ACTIVE".equals(item.getStatus()));
+        int messageLimit = item.getFlowVersion() >= CURRENT_FLOW_VERSION
+            ? settings() == null ? 100 : settings().textMessageMaxLength()
+            : 500;
+        String originalContent = required(content, "消息不能为空", messageLimit);
         message.setRawContentEncrypted(sensitiveContentCipher.encrypt(originalContent));
         message.setContent(sensitiveWords.mask(originalContent));
         message = messages.saveAndFlush(message);
         item.setLastMessageAt(message.getCreatedAt());
-        processOverdueBeforeReply(item, userId, message.getCreatedAt());
-        if ("ACTIVE".equals(item.getStatus())) {
+        if (item.getFlowVersion() < CURRENT_FLOW_VERSION) {
+            processOverdueBeforeReply(item, userId, message.getCreatedAt());
+        }
+        if (item.getFlowVersion() < CURRENT_FLOW_VERSION && "ACTIVE".equals(item.getStatus())) {
             updateReplyCycle(item, userId, message.getCreatedAt());
+        } else if (item.getFlowVersion() >= CURRENT_FLOW_VERSION) {
+            updateFirstMessageTimes(item, userId, message.getCreatedAt());
+            closeWhenTextLimitReached(item, userId);
         }
         Long recipientId = item.getQuestioner().getId().equals(userId)
             ? item.getAnswerer().getId()
@@ -298,9 +341,16 @@ public class InquiryService {
     @Transactional
     public MessageView sendImage(Long userId, Long inquiryId, MultipartFile image) {
         Inquiry item = lockedAccessible(userId, inquiryId);
+        requireCommunicationAllowed(item);
         requireMessagingStatus(item, userId);
-        requireQuestionerFirstTurn(item, userId);
-        requireConsecutiveMessageCapacity(item, userId);
+        if (!"PAID_ACTIVE".equals(item.getStatus())) {
+            throw BusinessException.badRequest("语音通话中才能发送图片");
+        }
+        if (item.getFlowVersion() < CURRENT_FLOW_VERSION) {
+            requireConsecutiveMessageCapacity(item, userId);
+        } else {
+            requireTextMessageCapacity(item, userId);
+        }
         chatAbuseGuard.requireImageAllowed(inquiryId, userId);
         validateChatImage(image);
         if (item.getQuestioner().getId().equals(userId)) item.setQuestionerUnreadCount(0);
@@ -315,6 +365,7 @@ public class InquiryService {
         message.setInquiry(item);
         message.setSender(user(userId));
         message.setMessageType("IMAGE");
+        message.setCountsTowardFreeLimit(false);
         message.setContent("");
         message.setAttachmentKey(stored.storageKey());
         message.setAttachmentUrl(null);
@@ -322,9 +373,14 @@ public class InquiryService {
         message.setAttachmentSize(stored.size());
         message = messages.saveAndFlush(message);
         item.setLastMessageAt(message.getCreatedAt());
-        processOverdueBeforeReply(item, userId, message.getCreatedAt());
-        if ("ACTIVE".equals(item.getStatus())) {
+        if (item.getFlowVersion() < CURRENT_FLOW_VERSION) {
+            processOverdueBeforeReply(item, userId, message.getCreatedAt());
+        }
+        if (item.getFlowVersion() < CURRENT_FLOW_VERSION && "ACTIVE".equals(item.getStatus())) {
             updateReplyCycle(item, userId, message.getCreatedAt());
+        } else if (item.getFlowVersion() >= CURRENT_FLOW_VERSION) {
+            updateFirstMessageTimes(item, userId, message.getCreatedAt());
+            closeWhenTextLimitReached(item, userId);
         }
 
         Long recipientId = item.getQuestioner().getId().equals(userId)
@@ -345,80 +401,29 @@ public class InquiryService {
     }
 
     @Transactional
-    public InquiryView requestEnd(Long userId, Long inquiryId) {
-        Inquiry item = lockedParticipant(userId, inquiryId, true);
-        requireStatus(item, "ACTIVE");
-        if (item.getFirstAnswererReplyAt() == null) {
-            throw BusinessException.badRequest("发送回复后才能申请结束");
-        }
-        if (item.getFirstAnswererReplyAt().plusHours(72).isAfter(LocalDateTime.now())) {
-            throw BusinessException.badRequest("满72小时后才能申请结束");
-        }
-        item.setAnswererUnreadCount(0);
-        LocalDateTime now = LocalDateTime.now();
-        item.setStatus("AWAITING_CONFIRMATION");
-        item.setEndRequestedAt(now);
-        item.setEndReminderStage(0);
-        item.setConfirmationDeadline(now.plusHours(6));
-        item.setReplyCycleStartedAt(null);
-        item.setReplyDeadline(null);
-        createSystemMessage(item, "SYSTEM", "回答者已申请结束本次交流。申请提交后不能撤回，双方暂时无法继续发送消息。");
-        increaseUnread(item, item.getQuestioner().getId());
-        notifications.send(item.getQuestioner(), "对方申请结束交流", notificationSubject(item) + "；请同意结束或提出不同意", "/inquiries/" + item.getId());
-        publishInquiryChanged(item.getQuestioner().getId(), item);
-        return view(item, userId);
-    }
-
-    @Transactional
-    public InquiryView disagreeEnd(Long userId, Long inquiryId) {
+    public InquiryView endInquiry(Long userId, Long inquiryId) {
         Inquiry item = lockedParticipant(userId, inquiryId, false);
-        requireStatus(item, "AWAITING_CONFIRMATION");
-        item.setQuestionerUnreadCount(0);
-        createEndDispute(item, "QUESTIONER_DISAGREED");
-        increaseUnread(item, item.getAnswerer().getId());
-        notifications.send(item.getAnswerer(), "本次交流进入平台处理", notificationSubject(item) + "；提问者不同意结束", "/inquiries/" + item.getId());
-        publishInquiryChanged(item.getAnswerer().getId(), item);
-        return view(item, userId);
-    }
-
-    @Transactional
-    public InquiryView confirmEnd(Long userId, Long inquiryId) {
-        Inquiry item = lockedParticipant(userId, inquiryId, false);
-        if (!Set.of("ACTIVE", "AWAITING_CONFIRMATION").contains(item.getStatus()))
+        if (item.getFlowVersion() < CURRENT_FLOW_VERSION) {
+            throw BusinessException.badRequest("该询问不能直接结束");
+        }
+        if (!Set.of("ACTIVE", "TEXT_LIMIT_REACHED").contains(item.getStatus())) {
             throw BusinessException.badRequest("当前状态不能结束交流");
-        item.setQuestionerUnreadCount(0);
-        settle(item);
-        publishInquiryChanged(item.getAnswerer().getId(), item);
+        }
+        Long openAppointmentCount = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM inquiry_audio_appointments " +
+                "WHERE inquiry_id=? AND status IN ('CONNECTING','ACTIVE')",
+            Long.class,
+            inquiryId
+        );
+        if (openAppointmentCount != null && openAppointmentCount > 0) {
+            throw BusinessException.badRequest("请先结束当前语音通话");
+        }
+        closeWithoutFunds(item, "COMPLETED", "提问者已结束本次询问。");
+        Long otherId = item.getAnswerer().getId();
+        increaseUnread(item, otherId);
+        notifications.send(user(otherId), "本次询问已结束", notificationSubject(item), "/inquiries/" + item.getId());
+        publishInquiryChanged(otherId, item);
         return view(item, userId);
-    }
-
-    @Transactional
-    public void resolveEndDisputeFunds(Long inquiryId, boolean settleRemaining) {
-        Inquiry item = inquiries.findWithLockById(inquiryId)
-            .orElseThrow(() -> BusinessException.notFound("询问不存在"));
-        if (!"DISPUTED".equals(item.getStatus()) || !"END_DISPUTE".equals(item.getFundsStatus())) {
-            throw BusinessException.badRequest("该询问不在结束纠纷处理中");
-        }
-        if (settleRemaining) {
-            settle(item);
-            notifications.send(item.getQuestioner(), "平台处理完成", "本次询问剩余金额已结算", "/inquiries/" + item.getId());
-        } else {
-            wallet.refund(
-                item.getQuestioner().getId(),
-                item.getFrozenRechargeAmount(),
-                item.getFrozenIncomeAmount(),
-                item.getId()
-            );
-            item.setStatus("END_DISPUTE_REFUNDED");
-            item.setFundsStatus("REFUNDED");
-            item.setSettleableAmount(MoneyAmounts.ZERO);
-            item.setServiceFeeAmount(MoneyAmounts.ZERO);
-            item.setAnswererIncomeAmount(MoneyAmounts.ZERO);
-            notifications.send(item.getQuestioner(), "平台处理完成", "本次询问剩余金额已退回余额", "/inquiries/" + item.getId());
-            notifications.send(item.getAnswerer(), "平台处理完成", "本次询问剩余金额已退回提问者", "/inquiries/" + item.getId());
-        }
-        publishInquiryChanged(item.getQuestioner().getId(), item);
-        publishInquiryChanged(item.getAnswerer().getId(), item);
     }
 
     @Scheduled(fixedDelayString = "${app.inquiry.timeout-scan-ms:60000}")
@@ -432,11 +437,16 @@ public class InquiryService {
         ).forEach(id -> {
             Inquiry item = inquiries.findWithLockById(id).orElse(null);
             if (item != null && "PENDING".equals(item.getStatus())) {
-                refund(item, "EXPIRED");
+                if (item.getFlowVersion() >= CURRENT_FLOW_VERSION) closePending(item, "EXPIRED");
+                else refund(item, "EXPIRED");
                 increaseUnread(item, item.getQuestioner().getId());
                 increaseUnread(item, item.getAnswerer().getId());
-                notifications.send(item.getQuestioner(), "询问已超时", notificationSubject(item) + "；冻结金额已退回余额", "/inquiries/" + item.getId());
-                notifications.send(item.getAnswerer(), "询问已超时", notificationSubject(item) + "；已自动关闭", "/inquiries/" + item.getId());
+                notifications.send(item.getQuestioner(), "询问已超时", notificationSubject(item) +
+                    (item.getFlowVersion() >= CURRENT_FLOW_VERSION
+                        ? "；对方72小时内未处理，询问已自动结束"
+                        : "；冻结金额已退回余额"), "/inquiries/" + item.getId());
+                notifications.send(item.getAnswerer(), "询问已超时", notificationSubject(item) +
+                    "；72小时内未处理，询问已自动结束", "/inquiries/" + item.getId());
                 publishInquiryChanged(item.getQuestioner().getId(), item);
                 publishInquiryChanged(item.getAnswerer().getId(), item);
                 analytics.recordBusinessAfterCommit(item.getQuestioner(), "inquiry_expired", java.util.Map.of(
@@ -455,15 +465,43 @@ public class InquiryService {
                 processReplyTimeout(item);
             }
         });
+        inquiries.findByStatusAndPaidSessionEndsAtBefore("PAID_ACTIVE", now).forEach(candidate -> {
+            Inquiry item = inquiries.findWithLockById(candidate.getId()).orElse(null);
+            if (item != null && "PAID_ACTIVE".equals(item.getStatus()) &&
+                !"AUDIO_APPOINTMENT".equals(item.getSessionType()) &&
+                item.getPaidSessionEndsAt() != null && !item.getPaidSessionEndsAt().isAfter(LocalDateTime.now())) {
+                settle(item);
+                createSystemMessage(item, "SYSTEM", "购买的交流时长已结束，本次询问已自动完成结算。");
+                increaseUnread(item, item.getQuestioner().getId());
+                increaseUnread(item, item.getAnswerer().getId());
+                publishInquiryChanged(item.getQuestioner().getId(), item);
+                publishInquiryChanged(item.getAnswerer().getId(), item);
+            }
+        });
         jdbc.queryForList(
-            "SELECT id FROM inquiries WHERE status='AWAITING_CONFIRMATION' AND confirmation_deadline<=?",
+            "SELECT i.id FROM inquiries i WHERE i.flow_version>=? " +
+                "AND i.status IN ('ACTIVE','TEXT_LIMIT_REACHED','TEXT_ENDED') " +
+                "AND i.conversation_expires_at IS NOT NULL AND i.conversation_expires_at<=? " +
+                "AND NOT EXISTS (SELECT 1 FROM inquiry_audio_appointments a " +
+                "WHERE a.inquiry_id=i.id AND a.status IN ('PENDING','ACCEPTED','CONNECTING','ACTIVE')) " +
+                "ORDER BY i.conversation_expires_at ASC LIMIT 100",
             Long.class,
+            CURRENT_FLOW_VERSION,
             now
         ).forEach(id -> {
             Inquiry item = inquiries.findWithLockById(id).orElse(null);
-            if (item != null && "AWAITING_CONFIRMATION".equals(item.getStatus())) {
-                processEndReminder(item);
+            if (item == null || item.getConversationExpiresAt() == null
+                || item.getConversationExpiresAt().isAfter(LocalDateTime.now())
+                || !Set.of("ACTIVE", "TEXT_LIMIT_REACHED", "TEXT_ENDED").contains(item.getStatus())) {
+                return;
             }
+            closeWithoutFunds(item, "COMPLETED", "本次询问已达到20天期限，系统已自动结束。");
+            increaseUnread(item, item.getQuestioner().getId());
+            increaseUnread(item, item.getAnswerer().getId());
+            notifications.send(item.getQuestioner(), "本次询问已结束", "已达到20天交流期限", "/inquiries/" + item.getId());
+            notifications.send(item.getAnswerer(), "本次询问已结束", "已达到20天交流期限", "/inquiries/" + item.getId());
+            publishInquiryChanged(item.getQuestioner().getId(), item);
+            publishInquiryChanged(item.getAnswerer().getId(), item);
         });
     }
 
@@ -499,9 +537,11 @@ public class InquiryService {
             targetIncome, item.getTimeoutRefundedIncomeAmount()
         );
 
-        wallet.refundInquiryTimeout(
-            item.getQuestioner().getId(), rechargeRefund, incomeRefund, item.getId(), timeoutNo
-        );
+        if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
+            wallet.refundInquiryTimeout(
+                item.getQuestioner().getId(), rechargeRefund, incomeRefund, item.getId(), timeoutNo
+            );
+        }
         jdbc.update(
             "INSERT INTO inquiry_timeout_refunds(" +
                 "inquiry_id,timeout_no,cycle_started_at,deadline_at,refund_amount," +
@@ -531,13 +571,13 @@ public class InquiryService {
             "/inquiries/" + item.getId()
         );
         if (timeoutNo >= 5) {
+            refundDeposit(item);
             item.setStatus("TIMEOUT_REFUNDED");
             item.setFundsStatus("REFUNDED");
             item.setEndedAt(LocalDateTime.now());
             item.setReplyCycleStartedAt(null);
             item.setReplyDeadline(null);
             item.setResponseDeadline(null);
-            item.setConfirmationDeadline(null);
             increaseUnread(item, item.getQuestioner().getId());
             notifications.send(
                 item.getQuestioner(),
@@ -568,44 +608,6 @@ public class InquiryService {
         }
     }
 
-    private void processEndReminder(Inquiry item) {
-        int stage = item.getEndReminderStage();
-        if (stage == 0) {
-            item.setEndReminderStage(1);
-            item.setConfirmationDeadline(item.getEndRequestedAt().plusHours(12));
-            createSystemMessage(item, "SYSTEM", "结束申请已等待6小时，请提问者及时处理。");
-            increaseUnread(item, item.getQuestioner().getId());
-            notifications.send(item.getQuestioner(), "请处理结束申请", "结束申请已等待6小时", "/inquiries/" + item.getId());
-        } else if (stage == 1) {
-            item.setEndReminderStage(2);
-            item.setConfirmationDeadline(item.getEndRequestedAt().plusHours(24));
-            createSystemMessage(item, "SYSTEM", "结束申请已等待12小时，请提问者及时处理；24小时未处理将交由平台处理。");
-            increaseUnread(item, item.getQuestioner().getId());
-            notifications.send(item.getQuestioner(), "结束申请即将交由平台处理", "结束申请已等待12小时", "/inquiries/" + item.getId());
-        } else {
-            createEndDispute(item, "QUESTIONER_NO_RESPONSE");
-            notifications.send(item.getQuestioner(), "本次交流已结束", "结束申请已交由平台处理", "/inquiries/" + item.getId());
-            notifications.send(item.getAnswerer(), "本次交流已结束", "结束申请已交由平台处理", "/inquiries/" + item.getId());
-        }
-        publishInquiryChanged(item.getQuestioner().getId(), item);
-        publishInquiryChanged(item.getAnswerer().getId(), item);
-    }
-
-    private void createEndDispute(Inquiry item, String triggerType) {
-        jdbc.update(
-            "INSERT IGNORE INTO inquiry_end_disputes(inquiry_id,trigger_type) VALUES(?,?)",
-            item.getId(), triggerType
-        );
-        item.setStatus("DISPUTED");
-        item.setFundsStatus("END_DISPUTE");
-        item.setEndedAt(LocalDateTime.now());
-        item.setConfirmationDeadline(null);
-        item.setReplyCycleStartedAt(null);
-        item.setReplyDeadline(null);
-        createSystemMessage(item, "SYSTEM", "本次订单已结束，剩余金额继续冻结，等待平台处理纠纷。");
-        recordEvidence(item.getId(), "END_DISPUTE_CREATED", "SYSTEM", null, triggerType);
-    }
-
     private void updateReplyCycle(Inquiry item, Long senderId, LocalDateTime sentAt) {
         if (item.getQuestioner().getId().equals(senderId)) {
             if (item.getFirstQuestionerMessageAt() == null) item.setFirstQuestionerMessageAt(sentAt);
@@ -626,21 +628,87 @@ public class InquiryService {
         }
     }
 
-    private void requireQuestionerFirstTurn(Inquiry item, Long senderId) {
-        if (!item.getQuestioner().getId().equals(senderId)) return;
-        if (item.getFirstAnswererReplyAt() != null) return;
-        if (messages.countByInquiryIdAndSenderId(item.getId(), senderId) >= 1) {
-            throw BusinessException.badRequest("请等待对方回复后再继续发送");
+    private void requireTextMessageCapacity(Inquiry item, Long senderId) {
+        if ("PAID_ACTIVE".equals(item.getStatus())) return;
+        long used = messages.countByInquiryIdAndSenderIdAndCountsTowardFreeLimitTrueAndMessageTypeIn(
+            item.getId(), senderId, FREE_MESSAGE_TYPES
+        );
+        int limit = textMessageLimitFor(item, senderId);
+        if (used >= limit) {
+            throw BusinessException.badRequest("你的免费消息额度已用完");
+        }
+    }
+
+    private void closeWhenTextLimitReached(Inquiry item, Long senderId) {
+        if ("PAID_ACTIVE".equals(item.getStatus())) return;
+        long used = messages.countByInquiryIdAndSenderIdAndCountsTowardFreeLimitTrueAndMessageTypeIn(
+            item.getId(), senderId, FREE_MESSAGE_TYPES
+        );
+        if (used < textMessageLimitFor(item, senderId)) return;
+        refundDeposit(item);
+        item.setStatus("TEXT_LIMIT_REACHED");
+        item.setFundsStatus("NONE");
+        item.setReplyCycleStartedAt(null);
+        item.setReplyDeadline(null);
+        createSystemMessage(item, "SYSTEM", "本次免费消息额度已用完，完成一次不少于5分钟的语音通话后，双方各增加50条文字消息。 ");
+        increaseUnread(item, item.getQuestioner().getId().equals(senderId)
+            ? item.getAnswerer().getId() : item.getQuestioner().getId());
+        publishInquiryChanged(item.getQuestioner().getId(), item);
+        publishInquiryChanged(item.getAnswerer().getId(), item);
+    }
+
+    private void updateFirstMessageTimes(Inquiry item, Long senderId, LocalDateTime sentAt) {
+        if (item.getQuestioner().getId().equals(senderId) && item.getFirstQuestionerMessageAt() == null) {
+            item.setFirstQuestionerMessageAt(sentAt);
+        }
+        if (item.getAnswerer().getId().equals(senderId) && item.getFirstAnswererReplyAt() == null) {
+            item.setFirstAnswererReplyAt(sentAt);
         }
     }
 
     private void requireMessagingStatus(Inquiry item, Long senderId) {
         if ("ACTIVE".equals(item.getStatus())) return;
-        if ("PENDING".equals(item.getStatus()) && item.getQuestioner().getId().equals(senderId)) {
-            return;
+        if ("PAID_ACTIVE".equals(item.getStatus())) {
+            if (item.getPaidSessionEndsAt() == null || item.getPaidSessionEndsAt().isAfter(LocalDateTime.now())) return;
+            throw BusinessException.badRequest("购买的交流时长已结束");
         }
         throw BusinessException.badRequest("当前状态不能发送消息");
     }
+
+    private InquiryCapacity inquiryCapacity() {
+        InquiryCapacity capacity = jdbc.queryForObject(
+            "SELECT questioner_active_limit,answerer_active_limit " +
+                "FROM inquiry_capacity_settings WHERE id=1",
+            (resultSet, rowNumber) -> new InquiryCapacity(
+                resultSet.getInt("questioner_active_limit"),
+                resultSet.getInt("answerer_active_limit")
+            )
+        );
+        return capacity == null ? new InquiryCapacity(1, 3) : capacity;
+    }
+
+    private void requireInquiryCapacity(Long questionerId, Long answererId, InquiryCapacity capacity) {
+        long questionerActive = inquiries.countByQuestionerIdAndStatusIn(
+            questionerId,
+            CAPACITY_OCCUPYING
+        );
+        if (questionerActive >= capacity.questionerLimit()) {
+            throw BusinessException.badRequest(
+                "你同时进行的询问已达" + capacity.questionerLimit() + "条，结束后才能发起新的询问"
+            );
+        }
+        long answererActive = inquiries.countByAnswererIdAndStatusIn(
+            answererId,
+            CAPACITY_OCCUPYING
+        );
+        if (answererActive >= capacity.answererLimit()) {
+            throw BusinessException.badRequest(
+                "对方同时接受的询问已达" + capacity.answererLimit() + "条，请稍后再试"
+            );
+        }
+    }
+
+    private record InquiryCapacity(int questionerLimit, int answererLimit) {}
 
     private InquiryMessage createSystemMessage(Inquiry item, String type, String content) {
         InquiryMessage message = new InquiryMessage();
@@ -658,26 +726,6 @@ public class InquiryService {
             item.getId(), unreadFor(item, item.getAnswerer().getId()), view
         ));
         return message;
-    }
-
-    private void recordEvidence(Long inquiryId, String eventType, String actorType, Long actorId, String detail) {
-        String cleanDetail = clean(detail, 1000);
-        String hash = sha256(inquiryId + "|" + eventType + "|" + actorType + "|" + actorId + "|" + cleanDetail);
-        jdbc.update(
-            "INSERT INTO inquiry_dispute_events(inquiry_id,event_type,actor_type,actor_id,detail,evidence_hash) " +
-                "VALUES(?,?,?,?,?,?)",
-            inquiryId, eventType, actorType, actorId, cleanDetail, hash
-        );
-    }
-
-    private String sha256(String value) {
-        try {
-            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
-                .digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            return java.util.HexFormat.of().formatHex(digest);
-        } catch (java.security.NoSuchAlgorithmException exception) {
-            throw new IllegalStateException(exception);
-        }
     }
 
     private void refund(Inquiry item, String status) {
@@ -698,6 +746,41 @@ public class InquiryService {
             "amount_bucket", amountBucket(item.getAmount())
         ));
     }
+
+    private void refundDeposit(Inquiry item) {
+        if (!"FROZEN".equals(item.getDepositStatus()) ||
+            item.getDepositAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        wallet.refundInquiryDeposit(
+            item.getQuestioner().getId(),
+            item.getDepositFrozenRechargeAmount(),
+            item.getDepositFrozenIncomeAmount(),
+            item.getId()
+        );
+        item.setDepositStatus("REFUNDED");
+    }
+
+    private void closePending(Inquiry item, String status) {
+        if (item.getFlowVersion() < CURRENT_FLOW_VERSION && item.getAmount().compareTo(BigDecimal.ZERO) > 0) {
+            refund(item, status);
+            refundDeposit(item);
+            return;
+        }
+        closeWithoutFunds(item, status, null);
+        item.setResponseDeadline(null);
+    }
+
+    private void closeWithoutFunds(Inquiry item, String status, String systemMessage) {
+        refundDeposit(item);
+        item.setStatus(status);
+        item.setFundsStatus("NONE");
+        item.setEndedAt(LocalDateTime.now());
+        item.setResponseDeadline(null);
+        item.setReplyCycleStartedAt(null);
+        item.setReplyDeadline(null);
+        if (systemMessage != null) createSystemMessage(item, "SYSTEM", systemMessage);
+    }
     private void settle(Inquiry item) {
         updateSettlementQuote(item);
         wallet.settle(
@@ -708,7 +791,6 @@ public class InquiryService {
             item
         );
         item.setStatus("COMPLETED"); item.setFundsStatus("SETTLED"); item.setEndedAt(LocalDateTime.now());
-        item.setConfirmationDeadline(null);
         item.setReplyCycleStartedAt(null);
         item.setReplyDeadline(null);
         increaseUnread(item, item.getAnswerer().getId());
@@ -769,6 +851,29 @@ public class InquiryService {
         ));
     }
     private User user(Long id) { return users.findById(id).orElseThrow(() -> BusinessException.notFound("用户不存在")); }
+    private User lockedUser(Long id) {
+        return users.findWithLockById(id).orElseThrow(() -> BusinessException.notFound("用户不存在"));
+    }
+    private void lockParticipants(Inquiry item) {
+        Long questionerId = item.getQuestioner().getId();
+        Long answererId = item.getAnswerer().getId();
+        if (questionerId < answererId) {
+            lockedUser(questionerId);
+            lockedUser(answererId);
+        } else {
+            lockedUser(answererId);
+            lockedUser(questionerId);
+        }
+    }
+    private LockedParticipants lockParticipants(Long questionerId, Long answererId) {
+        if (questionerId < answererId) {
+            return new LockedParticipants(lockedUser(questionerId), lockedUser(answererId));
+        }
+        User answerer = lockedUser(answererId);
+        User questioner = lockedUser(questionerId);
+        return new LockedParticipants(questioner, answerer);
+    }
+    private record LockedParticipants(User questioner, User answerer) {}
     private void requireStatus(Inquiry i, String status) { if (!status.equals(i.getStatus())) throw BusinessException.badRequest("当前状态不能执行该操作"); }
     private String required(String s, String message, int max) { if (s == null || s.isBlank()) throw BusinessException.badRequest(message); return clean(s, max); }
     private String clean(String s, int max) { if (s == null) return null; String v = s.trim(); return v.length() <= max ? v : v.substring(0, max); }
@@ -797,6 +902,15 @@ public class InquiryService {
         return "1001-5000";
     }
 
+    private String normalizePlatform(String platform) {
+        String value = platform == null ? "ANDROID" : platform.trim().toUpperCase();
+        return Set.of("ANDROID", "IOS").contains(value) ? value : "ANDROID";
+    }
+
+    private AppGlobalSettingService.Settings settings() {
+        return globalSettings == null ? null : globalSettings.current();
+    }
+
     private String storagePrefix(User user) {
         return "TEST".equals(user.getAccountType()) ? "test/" : "";
     }
@@ -807,31 +921,91 @@ public class InquiryService {
 
     private InquiryView view(Inquiry i, Long me) {
         User other = i.getQuestioner().getId().equals(me) ? i.getAnswerer() : i.getQuestioner();
+        boolean communicationBlocked = isCommunicationBlocked(
+            i.getQuestioner().getId(),
+            i.getAnswerer().getId()
+        );
+        int questionerTextCount = Math.toIntExact(messages.countByInquiryIdAndSenderIdAndCountsTowardFreeLimitTrueAndMessageTypeIn(
+            i.getId(), i.getQuestioner().getId(), FREE_MESSAGE_TYPES
+        ));
+        int answererTextCount = Math.toIntExact(messages.countByInquiryIdAndSenderIdAndCountsTowardFreeLimitTrueAndMessageTypeIn(
+            i.getId(), i.getAnswerer().getId(), FREE_MESSAGE_TYPES
+        ));
         return new InquiryView(i.getId(), i.getQuestioner().getId().equals(me) ? "QUESTIONER" : "ANSWERER",
                 other.getId(), other.getNickname() == null || other.getNickname().isBlank() ? other.getUid() : other.getNickname(),
-                other.getAvatarUrl(), i.getTopic(), i.getQuestion(), i.getAmount(), i.getSettleableAmount(),
+                other.getAvatarUrl(), i.getTopic(), i.getQuestion(), sourceExperienceCertificationId(i),
+                i.getAmount(), i.getDepositAmount(), i.getDepositStatus(), i.getSettleableAmount(),
                 i.getTimeoutRefundedAmount(), i.getTimeoutCount(), i.getServiceFeeRate(),
                 i.getServiceFeeAmount(), i.getAnswererIncomeAmount(), i.getStatus(), i.getFundsStatus(),
-                unreadFor(i, me), i.getResponseDeadline(), i.getConfirmationDeadline(), i.getCreatedAt(),
-                i.getLastMessageAt(), i.getFirstAnswererReplyAt(), i.getEndRequestedAt());
+                unreadFor(i, me), i.getResponseDeadline(), i.getConversationExpiresAt(), i.getCreatedAt(),
+                i.getLastMessageAt(), i.getFirstAnswererReplyAt(),
+                i.getFlowVersion(), i.getHourlyRateSnapshot(),
+                i.getSessionType(), i.getPurchasedMinutes(), i.getPaidSessionStartedAt(), i.getPaidSessionEndsAt(),
+                questionerTextCount, answererTextCount,
+                i.getQuestioner().getId().equals(me) ? i.getQuestionerTextLimit() : i.getAnswererTextLimit(),
+                communicationBlocked);
+    }
+
+    private int textMessageLimitFor(Inquiry inquiry, Long userId) {
+        int configured = inquiry.getQuestioner().getId().equals(userId)
+            ? inquiry.getQuestionerTextLimit()
+            : inquiry.getAnswererTextLimit();
+        return configured > 0 ? configured : INITIAL_TEXT_MESSAGE_LIMIT;
+    }
+
+    private void requireCommunicationAllowed(Inquiry inquiry) {
+        requireCommunicationAllowed(
+            inquiry.getQuestioner().getId(),
+            inquiry.getAnswerer().getId()
+        );
+    }
+
+    private void requireCommunicationAllowed(Long firstUserId, Long secondUserId) {
+        communicationBlocks.requireCommunicationAllowed(firstUserId, secondUserId);
+    }
+
+    private boolean isCommunicationBlocked(Long firstUserId, Long secondUserId) {
+        return communicationBlocks.isBlocked(firstUserId, secondUserId);
+    }
+
+    private Long sourceExperienceCertificationId(Inquiry inquiry) {
+        if (inquiry.getSourceExperienceCertificationId() != null) {
+            return inquiry.getSourceExperienceCertificationId();
+        }
+        List<Long> matched = jdbc.queryForList(
+            "SELECT id FROM certifications WHERE user_id=? AND category='EXPERIENCE' " +
+                "AND status='APPROVED' AND enabled=TRUE AND deleted_at IS NULL AND title=? " +
+                "ORDER BY id DESC LIMIT 1",
+            Long.class,
+            inquiry.getAnswerer().getId(),
+            inquiry.getTopic()
+        );
+        return matched.isEmpty() ? null : matched.get(0);
     }
     public record CreateCommand(
         Long answererId,
         Long sourceExperienceCertificationId,
-        BigDecimal amount,
+        String question,
         String clientPlatform
     ) {}
     public record InquiryView(Long id, String role, Long otherUserId, String otherName, String otherAvatar, String topic,
-                              String question, BigDecimal amount, BigDecimal settleableAmount,
+                              String question, Long sourceExperienceCertificationId,
+                              BigDecimal amount, BigDecimal depositAmount, String depositStatus,
+                              BigDecimal settleableAmount,
                               BigDecimal timeoutRefundedAmount, int timeoutCount, BigDecimal serviceFeeRate,
                               BigDecimal serviceFeeAmount, BigDecimal answererIncomeAmount,
                               String status, String fundsStatus,
-                              int unreadCount, LocalDateTime responseDeadline, LocalDateTime confirmationDeadline,
+                              int unreadCount, LocalDateTime responseDeadline, LocalDateTime conversationExpiresAt,
                               LocalDateTime createdAt, LocalDateTime lastMessageAt,
-                              LocalDateTime firstAnswererReplyAt, LocalDateTime endRequestedAt) {}
+                              LocalDateTime firstAnswererReplyAt,
+                              int flowVersion, int hourlyRateSnapshot,
+                              String sessionType, int purchasedMinutes,
+                              LocalDateTime paidSessionStartedAt, LocalDateTime paidSessionEndsAt,
+                              int questionerTextCount, int answererTextCount, int textMessageLimit,
+                              boolean communicationBlocked) {}
     public record MessageView(Long id, Long senderId, String senderName, String senderAvatar, String type, String content,
                               String attachmentUrl, String attachmentName, Long attachmentSize,
-                              LocalDateTime createdAt, boolean reportable) {
+                              LocalDateTime createdAt) {
         static MessageView of(InquiryMessage m, FileStorage fileStorage) {
             User sender = m.getSender();
             String attachmentUrl = m.getAttachmentKey() == null || m.getAttachmentKey().isBlank()
@@ -849,8 +1023,7 @@ public class InquiryService {
                 attachmentUrl,
                 m.getAttachmentName(),
                 m.getAttachmentSize(),
-                m.getCreatedAt(),
-                sender != null && Set.of("TEXT", "IMAGE").contains(m.getMessageType())
+                m.getCreatedAt()
             );
         }
     }

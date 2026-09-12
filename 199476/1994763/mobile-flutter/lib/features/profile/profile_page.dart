@@ -5,8 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
-import '../../data/models/certification_models.dart';
-import 'invitation_reward_dialog.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -16,8 +14,6 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
-  List<CertificationRecord> _certifications = const [];
-
   @override
   void initState() {
     super.initState();
@@ -28,37 +24,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     try {
       final results = await Future.wait([
         ref.read(authControllerProvider).refreshUser(),
-        ref.read(repositoryProvider).certifications(),
         ref.read(repositoryProvider).customerServiceUnreadCount(),
+        ref.read(repositoryProvider).curatedUnreadCount(),
       ]);
       if (!mounted) return;
-      setState(() => _certifications = results[1] as List<CertificationRecord>);
       ref.read(customerServiceUnreadProvider.notifier).state =
-          results[2] as int;
-    } catch (error) {
-      if (mounted) AppMessage.show(context, '$error');
-    }
-  }
-
-  Future<void> _redeemInvitationReward() async {
-    final input = await showDialog<InvitationRewardInput>(
-      context: context,
-      builder: (context) => const InvitationRewardDialog(),
-    );
-    if (!mounted || input == null) return;
-    try {
-      final result = await ref
-          .read(repositoryProvider)
-          .redeemExperienceInvitationReward(input.uid, input.phone);
-      if (!mounted) return;
-      final value = result['totalRewardAmount'];
-      final amount = value is num
-          ? value.toDouble()
-          : double.tryParse('$value') ?? 0;
-      final amountText = amount == amount.roundToDouble()
-          ? amount.toInt().toString()
-          : amount.toStringAsFixed(2);
-      AppMessage.show(context, '领取成功，$amountText元已到账');
+          results[1] as int;
+      ref.read(curatedChatUnreadProvider.notifier).state = results[2] as int;
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     }
@@ -70,6 +42,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     if (user == null) return const SizedBox.shrink();
     final theme = ref.watch(themeControllerProvider);
     final customerUnread = ref.watch(customerServiceUnreadProvider);
+    final curatedUnread = ref.watch(curatedChatUnreadProvider);
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
@@ -98,11 +71,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 avatarUrl: user.avatarUrl,
                 displayName: user.displayName,
                 uid: user.uid,
-                verified: _certifications.any(
-                  (item) =>
-                      (item.type == 'IDENTITY' || item.type.contains('实名')) &&
-                      item.approved,
-                ),
                 onSettings: () => context.push('/profile/settings'),
                 onExperiences: () =>
                     context.push('/profile/certifications/experiences'),
@@ -118,9 +86,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 child: Column(
                   children: [
                     _MenuItem(
-                      icon: Icons.card_giftcard_rounded,
-                      title: '兑换邀请奖金',
-                      onTap: _redeemInvitationReward,
+                      icon: Icons.workspace_premium_outlined,
+                      title: '严选直聊',
+                      badge: curatedUnread,
+                      onTap: () => context.push('/curated'),
                     ),
                     _MenuItem(
                       icon: Icons.help_outline_rounded,
@@ -173,7 +142,6 @@ class _ProfileOverview extends StatelessWidget {
     required this.avatarUrl,
     required this.displayName,
     required this.uid,
-    required this.verified,
     required this.onSettings,
     required this.onExperiences,
     required this.onWallet,
@@ -182,7 +150,6 @@ class _ProfileOverview extends StatelessWidget {
   final String avatarUrl;
   final String displayName;
   final String uid;
-  final bool verified;
   final VoidCallback onSettings;
   final VoidCallback onExperiences;
   final VoidCallback onWallet;
@@ -222,12 +189,7 @@ class _ProfileOverview extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(18, 18, 12, 16),
                   child: Row(
                     children: [
-                      AppAvatar(
-                        url: avatarUrl,
-                        name: displayName,
-                        radius: 28,
-                        verified: verified,
-                      ),
+                      AppAvatar(url: avatarUrl, name: displayName, radius: 28),
                       const SizedBox(width: 13),
                       Expanded(
                         child: Column(

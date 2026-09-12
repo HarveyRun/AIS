@@ -248,16 +248,17 @@ class _IntroductionContent extends StatelessWidget {
       TextSpan(
         style: style,
         children: [
-          const TextSpan(text: '我们相信，每个人一路走来，都在自己的'),
-          TextSpan(text: '生活、工作和事业中', style: strong),
+          const TextSpan(text: '我们相信，每个人一路走来，都'),
+          TextSpan(text: '在自己的生活、工作和事业中积累了一些属于自己的能力和经验', style: strong),
           const TextSpan(
             text:
-                '积累了一些属于自己的能力和经验，也走过一些只有亲身经历过才真正明白的路；这些对自己来说也许早已习以为常，但当他人恰好遇到同样的问题时，就可能变得很有价值。\n\n我们想做的，就是让这些',
+                '，也走过一些只有亲身经历过才真正明白的路；这些对自己来说也许早已习以为常，但当他人恰好遇到同样的问题时，就可能变得很有价值。\n\n我们想做的，就是',
           ),
-          TextSpan(text: '能力、经验或经历', style: strong),
+          TextSpan(text: '让这些能力、经验或经历', style: strong),
+          const TextSpan(text: '，在他人迷茫无助、身边又无人可问时，'),
+          TextSpan(text: '能帮上一把', style: strong),
           const TextSpan(
-            text:
-                '，在他人迷茫无助、身边又无人可问时，用亲身经验帮上一把。\n\n当然，如果您有更合适的人、更好的办法，或者能够自己解决，我们真心建议您选择更适合自己的方式。我们更希望在这里，能为你多提供一种可能。',
+            text: '。\n\n当然，如果您有更合适的人、更好的办法，或者能够自己解决，我们真心建议您选择更适合自己的方式。',
           ),
         ],
       ),

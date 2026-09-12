@@ -33,20 +33,16 @@ class AdminPermissionResolverTest {
         GET;/api/admin/dashboard;DASHBOARD_VIEW
         GET;/api/admin/platform-fee;PLATFORM_FEE_VIEW
         PUT;/api/admin/platform-fee;PLATFORM_FEE_EDIT
+        GET;/api/admin/inquiry-capacity;INQUIRY_CAPACITY_VIEW
+        PUT;/api/admin/inquiry-capacity;INQUIRY_CAPACITY_EDIT
         GET;/api/admin/users;USER_VIEW
         PATCH;/api/admin/users/8/status;USER_STATUS
         GET;/api/admin/certifications;CERTIFICATION_VIEW
         GET;/api/admin/certifications/8/materials;CERTIFICATION_VIEW
         POST;/api/admin/certifications/8/review;CERTIFICATION_REVIEW
         PATCH;/api/admin/certifications/8/enabled;CERTIFICATION_TOGGLE
-        PUT;/api/admin/certifications/8;CERTIFICATION_EDIT
         DELETE;/api/admin/certifications/8;CERTIFICATION_DELETE
         GET;/api/admin/inquiries;INQUIRY_VIEW
-        GET;/api/admin/inquiry-disputes/end-requests;INQUIRY_DISPUTE_VIEW
-        PUT;/api/admin/inquiry-disputes/end-requests/8;INQUIRY_DISPUTE_PROCESS
-        GET;/api/admin/inquiry-disputes/message-reports;INQUIRY_DISPUTE_VIEW
-        PUT;/api/admin/inquiry-disputes/message-reports/8;MESSAGE_REPORT_PROCESS
-        GET;/api/admin/inquiry-disputes/message-reports/details/8/original;SENSITIVE_ORIGINAL_VIEW
         GET;/api/admin/inquiry-disputes/risk-watch;RISK_WATCH_VIEW
         PUT;/api/admin/inquiry-disputes/risk-watch/8;RISK_WATCH_PROCESS
         GET;/api/admin/withdrawals;WITHDRAWAL_VIEW
@@ -64,10 +60,8 @@ class AdminPermissionResolverTest {
         POST;/api/admin/finance-reconciliation/alipay-bills;FINANCE_RECONCILIATION_IMPORT
         POST;/api/admin/finance-reconciliation/withdrawal-results;FINANCE_RECONCILIATION_IMPORT
         POST;/api/admin/finance-reconciliation/differences/8/resolve;FINANCE_RECONCILIATION_RESOLVE
-        GET;/api/admin/answer-quality;ANSWER_QUALITY_VIEW
+        GET;/api/admin/answer-quality/summary;ANSWER_QUALITY_VIEW
         GET;/api/admin/answer-quality/evaluations;ANSWER_QUALITY_VIEW
-        GET;/api/admin/answer-quality/8/evidence;ANSWER_QUALITY_EVIDENCE
-        POST;/api/admin/answer-quality/8/resolve;ANSWER_QUALITY_REVIEW
         GET;/api/admin/feedback;FEEDBACK_VIEW
         PATCH;/api/admin/feedback/8/status;FEEDBACK_PROCESS
         GET;/api/admin/cooperations;COOPERATION_VIEW

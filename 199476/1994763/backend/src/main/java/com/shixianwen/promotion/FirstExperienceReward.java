@@ -37,11 +37,23 @@ public class FirstExperienceReward {
     @JoinColumn(name = "certification_id", nullable = false)
     private Certification certification;
 
-    @Column(name = "experience_business_type", nullable = false, length = 24)
-    private String experienceBusinessType;
-
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
+
+    @Column(name = "fee_rate", nullable = false, precision = 7, scale = 6)
+    private BigDecimal feeRate = new BigDecimal("0.500000");
+
+    @Column(name = "fee_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal feeAmount = BigDecimal.ZERO.setScale(2);
+
+    @Column(name = "user_income_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal userIncomeAmount = BigDecimal.ZERO.setScale(2);
+
+    @Column(name = "risk_level", nullable = false, length = 20)
+    private String riskLevel = "LOW";
+
+    @Column(name = "risk_reasons", length = 1000)
+    private String riskReasons;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

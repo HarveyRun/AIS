@@ -18,10 +18,15 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
     @EntityGraph(attributePaths = {"questioner", "answerer"})
     Optional<Inquiry> findById(Long id);
     List<Inquiry> findByStatusAndResponseDeadlineBefore(String status, LocalDateTime now);
-    List<Inquiry> findByStatusAndConfirmationDeadlineBefore(String status, LocalDateTime now);
     List<Inquiry> findByStatusAndReplyDeadlineBefore(String status, LocalDateTime now);
+    List<Inquiry> findByStatusAndPaidSessionEndsAtBefore(String status, LocalDateTime now);
     boolean existsByQuestionerIdAndStatusIn(Long userId, Collection<String> statuses);
     boolean existsByAnswererIdAndStatusIn(Long userId, Collection<String> statuses);
+    long countByQuestionerIdAndStatusIn(Long userId, Collection<String> statuses);
+    long countByAnswererIdAndStatusIn(Long userId, Collection<String> statuses);
+    boolean existsByQuestionerIdAndIdNotAndStatusIn(Long userId, Long inquiryId, Collection<String> statuses);
+    boolean existsByAnswererIdAndIdNotAndStatusIn(Long userId, Long inquiryId, Collection<String> statuses);
+    long countByQuestionerIdAndStatus(Long userId, String status);
     boolean existsByQuestionerIdAndAnswererIdAndStatusIn(Long questionerId, Long answererId, Collection<String> statuses);
     long countByQuestionerIdAndCreatedAtAfter(Long questionerId, LocalDateTime after);
     long countByQuestionerIdAndAnswererIdAndCreatedAtAfter(

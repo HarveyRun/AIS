@@ -44,14 +44,11 @@ public class User {
     @Column(name = "accepting_inquiries_updated_at")
     private LocalDateTime acceptingInquiriesUpdatedAt;
 
-    @Column(name = "inquiry_price_min", nullable = false)
-    private int inquiryPriceMin = 1;
-
-    @Column(name = "inquiry_price_max", nullable = false)
-    private int inquiryPriceMax = 5000;
-
     @Column(name = "inquiry_price_updated_at")
     private LocalDateTime inquiryPriceUpdatedAt;
+
+    @Column(name = "inquiry_hourly_rate", nullable = false)
+    private int inquiryHourlyRate = 60;
 
     @Column(name = "answerer_status", nullable = false, length = 30)
     private String answererStatus = "NOT_APPLIED";
@@ -81,11 +78,17 @@ public class User {
     @Column(name = "register_location", length = 100, updatable = false)
     private String registerLocation;
 
+    @Column(name = "register_device_id", length = 100, updatable = false)
+    private String registerDeviceId;
+
     @Column(name = "last_login_ip", length = 45)
     private String lastLoginIp;
 
     @Column(name = "last_login_location", length = 100)
     private String lastLoginLocation;
+
+    @Column(name = "last_login_device_id", length = 100)
+    private String lastLoginDeviceId;
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;

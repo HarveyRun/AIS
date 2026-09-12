@@ -21,7 +21,7 @@ class AccountSettingsPage extends ConsumerStatefulWidget {
 class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
   late final TextEditingController _nickname;
   List<ViolationCounter>? _violationCounters;
-  CertificationRecord? _identity;
+  CertificationRecord? _identityRecord;
   bool _editingNickname = false;
   bool _savingNickname = false;
 
@@ -37,14 +37,16 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
   Future<void> _loadSettingsData() async {
     try {
       final results = await Future.wait([
-        ref.read(repositoryProvider).certifications(),
         ref.read(repositoryProvider).violationCounters(),
+        ref.read(repositoryProvider).certifications(),
       ]);
       if (!mounted) return;
-      final certifications = results[0] as List<CertificationRecord>;
+      final certifications = results[1] as List<CertificationRecord>;
       setState(() {
-        _identity = _findIdentity(certifications);
-        _violationCounters = results[1] as List<ViolationCounter>;
+        _violationCounters = results[0] as List<ViolationCounter>;
+        _identityRecord = certifications
+            .where((item) => item.type == 'IDENTITY')
+            .firstOrNull;
       });
     } catch (error) {
       if (!mounted) return;
@@ -53,31 +55,9 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
     }
   }
 
-  CertificationRecord? _findIdentity(List<CertificationRecord> certifications) {
-    for (final item in certifications) {
-      if (item.type == 'IDENTITY') return item;
-    }
-    return null;
-  }
-
   Future<void> _openIdentityCertification() async {
-    try {
-      final certifications = await ref
-          .read(repositoryProvider)
-          .certifications();
-      if (!mounted) return;
-      final identity = _findIdentity(certifications);
-      setState(() => _identity = identity);
-      await context.push(
-        '/profile/certifications/basic/IDENTITY/apply',
-        extra: identity,
-      );
-      if (!mounted) return;
-      final latest = await ref.read(repositoryProvider).certifications();
-      if (mounted) setState(() => _identity = _findIdentity(latest));
-    } catch (error) {
-      if (mounted) AppMessage.show(context, '$error');
-    }
+    await context.pushNamed('identityCertification');
+    if (mounted) await _loadSettingsData();
   }
 
   @override
@@ -293,8 +273,8 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
             ),
           ),
           const SizedBox(height: 16),
-          _IdentitySettingCard(
-            record: _identity,
+          _IdentitySettingsEntry(
+            record: _identityRecord,
             onTap: _openIdentityCertification,
           ),
           const SizedBox(height: 16),
@@ -471,44 +451,44 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
   }
 }
 
-class _IdentitySettingCard extends StatelessWidget {
-  const _IdentitySettingCard({required this.record, required this.onTap});
+class _IdentitySettingsEntry extends StatelessWidget {
+  const _IdentitySettingsEntry({required this.record, required this.onTap});
 
   final CertificationRecord? record;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final status = record?.status ?? '';
-    final style = appStatusStyle(context, status);
-    final label = switch (status.toUpperCase()) {
-      'PENDING' => '审核中',
+    final colors = Theme.of(context).colorScheme;
+    final status = record?.status.toUpperCase();
+    final label = switch (status) {
       'APPROVED' => '已认证',
+      'PENDING' => '审核中',
       'REJECTED' => '未通过',
-      _ => '去认证',
+      _ => '未认证',
     };
+    final style = appStatusStyle(context, status ?? '');
     return Material(
-      color: Theme.of(context).colorScheme.surface,
+      color: colors.surface,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           child: Row(
             children: [
               Container(
                 width: 40,
                 height: 40,
-                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  color: colors.primary.withValues(alpha: .09),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.verified_user_outlined,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.primary,
+                  size: 21,
+                  color: colors.primary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -524,21 +504,30 @@ class _IdentitySettingCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '查看和管理实名认证',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      status == 'APPROVED' ? '身份信息已通过平台核验' : '提现前需要完成认证',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
               ),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: style.foreground,
-                  fontWeight: FontWeight.w700,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: style.background,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: style.foreground,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-              const SizedBox(width: 2),
-              const Icon(Icons.chevron_right_rounded, size: 20),
+              const SizedBox(width: 5),
+              Icon(Icons.chevron_right_rounded, color: colors.onSurfaceVariant),
             ],
           ),
         ),

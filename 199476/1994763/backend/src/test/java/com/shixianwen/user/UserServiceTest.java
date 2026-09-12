@@ -45,7 +45,7 @@ class UserServiceTest {
     }
 
     @Test
-    void inquiryPriceRangeMustBeOrderedAndIsPersisted() {
+    void inquiryHourlyRateMustBeWithinRangeAndIsPersisted() {
         UserRepository users = mock(UserRepository.class);
         UserService service = new UserService(
             users,
@@ -64,15 +64,14 @@ class UserServiceTest {
 
         assertThrows(
             BusinessException.class,
-            () -> service.setInquiryPriceRange(user, 500, 100)
+            () -> service.setInquiryHourlyRate(user, 0)
         );
-        service.setInquiryPriceRange(user, 50, 300);
+        service.setInquiryHourlyRate(user, 300);
 
-        assertEquals(50, user.getInquiryPriceMin());
-        assertEquals(300, user.getInquiryPriceMax());
+        assertEquals(300, user.getInquiryHourlyRate());
         assertThrows(
             BusinessException.class,
-            () -> service.setInquiryPriceRange(user, 60, 300)
+            () -> service.setInquiryHourlyRate(user, 5001)
         );
     }
 
@@ -98,7 +97,7 @@ class UserServiceTest {
             BusinessException.class,
             () -> service.setAcceptingInquiries(user, true)
         );
-        service.setInquiryPriceRange(user, 1, 5000);
+        service.setInquiryHourlyRate(user, 100);
         service.setAcceptingInquiries(user, true);
         assertThrows(
             BusinessException.class,

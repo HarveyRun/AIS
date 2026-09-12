@@ -59,6 +59,62 @@ class ExperiencePublicMediaView {
   final List<CertificationMaterial> items;
 }
 
+class ExperienceAdditionalInfo {
+  const ExperienceAdditionalInfo({
+    this.location = '',
+    this.startDate = '',
+    this.endDate = '',
+    this.count,
+    this.role = '',
+    this.ageRange = '',
+    this.education = '',
+    this.job = '',
+  });
+
+  factory ExperienceAdditionalInfo.fromJson(Map<String, dynamic> json) {
+    return ExperienceAdditionalInfo(
+      location: json['experienceLocation']?.toString() ?? '',
+      startDate: json['experienceStartDate']?.toString() ?? '',
+      endDate: json['experienceEndDate']?.toString() ?? '',
+      count: _nullableInt(json['experienceCount']),
+      role: json['experienceRole']?.toString() ?? '',
+      ageRange: json['experienceAgeRange']?.toString() ?? '',
+      education: json['experienceEducation']?.toString() ?? '',
+      job: json['experienceJob']?.toString() ?? '',
+    );
+  }
+
+  final String location;
+  final String startDate;
+  final String endDate;
+  final int? count;
+  final String role;
+  final String ageRange;
+  final String education;
+  final String job;
+
+  bool get isEmpty =>
+      location.isEmpty &&
+      startDate.isEmpty &&
+      endDate.isEmpty &&
+      count == null &&
+      role.isEmpty &&
+      ageRange.isEmpty &&
+      education.isEmpty &&
+      job.isEmpty;
+
+  int get completedCount => [
+    location.isNotEmpty,
+    startDate.isNotEmpty,
+    endDate.isNotEmpty,
+    count != null,
+    role.isNotEmpty,
+    ageRange.isNotEmpty,
+    education.isNotEmpty,
+    job.isNotEmpty,
+  ].where((item) => item).length;
+}
+
 class CertificationRecord {
   const CertificationRecord({
     required this.id,
@@ -66,12 +122,10 @@ class CertificationRecord {
     required this.type,
     required this.title,
     required this.description,
-    required this.required,
+    required this.additionalInfo,
     required this.status,
     required this.enabled,
     required this.rejectionReason,
-    required this.experienceBusinessType,
-    required this.upgradeSourceId,
     required this.mediaProcessingStatus,
     required this.mediaProcessingError,
     required this.lastOperatedAt,
@@ -85,13 +139,10 @@ class CertificationRecord {
       type: json['type']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
-      required: json['required'] == true,
+      additionalInfo: ExperienceAdditionalInfo.fromJson(json),
       status: json['status']?.toString() ?? '',
       enabled: json['enabled'] != false,
       rejectionReason: json['rejectionReason']?.toString() ?? '',
-      experienceBusinessType:
-          json['experienceBusinessType']?.toString() ?? 'MONETIZED',
-      upgradeSourceId: _nullableInt(json['upgradeSourceId']),
       mediaProcessingStatus:
           json['mediaProcessingStatus']?.toString() ?? 'NOT_REQUIRED',
       mediaProcessingError: json['mediaProcessingError']?.toString() ?? '',
@@ -113,12 +164,10 @@ class CertificationRecord {
   final String type;
   final String title;
   final String description;
-  final bool required;
+  final ExperienceAdditionalInfo additionalInfo;
   final String status;
   final bool enabled;
   final String rejectionReason;
-  final String experienceBusinessType;
-  final int? upgradeSourceId;
   final String mediaProcessingStatus;
   final String mediaProcessingError;
   final DateTime? lastOperatedAt;
@@ -126,8 +175,6 @@ class CertificationRecord {
 
   bool get approved => status.toUpperCase() == 'APPROVED' || status == '已认证';
   bool get pending => status.toUpperCase() == 'PENDING' || status == '审核中';
-  bool get isPublicWelfare => experienceBusinessType == 'PUBLIC_WELFARE';
-  bool get isMonetized => !isPublicWelfare;
 }
 
 int _int(Object? value) {
@@ -135,4 +182,8 @@ int _int(Object? value) {
   return num.tryParse('$value')?.toInt() ?? 0;
 }
 
-int? _nullableInt(Object? value) => value == null ? null : _int(value);
+int? _nullableInt(Object? value) {
+  if (value == null || '$value'.trim().isEmpty) return null;
+  if (value is num) return value.toInt();
+  return int.tryParse('$value');
+}

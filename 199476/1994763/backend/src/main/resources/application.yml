@@ -69,6 +69,10 @@ app:
   ip-location:
     ipv4-xdb-path: ${IP2REGION_V4_PATH:./ip2region_v4.xdb}
     ipv6-xdb-path: ${IP2REGION_V6_PATH:./ip2region_v6.xdb}
+  voice:
+    ice-urls: ${VOICE_ICE_URLS:stun:stun.l.google.com:19302}
+    turn-username: ${VOICE_TURN_USERNAME:}
+    turn-credential: ${VOICE_TURN_CREDENTIAL:}
   payment:
     provider: ${PAYMENT_PROVIDER:alipay}
     mock-return-url: ${PAYMENT_MOCK_RETURN_URL:http://localhost:5173/profile/wallet}

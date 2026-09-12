@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import 'package:tobias/tobias.dart' as tobias;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,6 +15,7 @@ import '../../core/input/app_input_formatters.dart';
 import '../../core/network/request_id.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/wallet_models.dart';
+import '../../data/models/app_global_settings.dart';
 
 enum WalletTab { transactions, withdrawals, recharge, withdraw }
 
@@ -26,6 +28,7 @@ class WalletPage extends ConsumerStatefulWidget {
 class _WalletPageState extends ConsumerState<WalletPage> {
   WalletTab _tab = WalletTab.transactions;
   WalletInfo? _wallet;
+  AppGlobalSettings? _settings;
   AlipayAccountInfo? _alipayAccount;
   List<WalletTransaction> _transactions = const [];
   List<WithdrawalRecord> _withdrawals = const [];
@@ -56,6 +59,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
         ref.read(repositoryProvider).walletTransactions(),
         ref.read(repositoryProvider).withdrawals(),
         ref.read(repositoryProvider).alipayAccount(),
+        ref.read(repositoryProvider).appGlobalSettings(),
       ]);
       if (!mounted) return;
       setState(() {
@@ -63,6 +67,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
         _transactions = results[1] as List<WalletTransaction>;
         _withdrawals = results[2] as List<WithdrawalRecord>;
         _alipayAccount = results[3] as AlipayAccountInfo?;
+        _settings = results[4] as AppGlobalSettings;
       });
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
@@ -109,9 +114,23 @@ class _WalletPageState extends ConsumerState<WalletPage> {
   }
 
   Future<void> _submit() async {
+    if (_tab == WalletTab.withdraw) {
+      if (!await _ensureIdentityForWithdrawal()) return;
+      if (!mounted) return;
+      if (_alipayAccount == null) {
+        AppMessage.show(context, '请先完成支付宝授权');
+        return;
+      }
+    }
     final amount = int.tryParse(_amount.text);
-    if (amount == null || amount <= 0 || amount > 9999) {
-      AppMessage.show(context, '请输入1—9999的整数金额');
+    final minimum = _tab == WalletTab.withdraw
+        ? (_settings?.withdrawalMinAmount ?? 1).round()
+        : 1;
+    final maximum = _tab == WalletTab.withdraw
+        ? (_settings?.withdrawalMaxAmount ?? 9999).round()
+        : 9999;
+    if (amount == null || amount < minimum || amount > maximum) {
+      AppMessage.show(context, '请输入$minimum—$maximum的整数金额');
       return;
     }
     setState(() => _submitting = true);
@@ -159,11 +178,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
           }
         }
       } else {
-        if (_alipayAccount == null) {
-          AppMessage.show(context, '请先完成支付宝授权');
-          return;
-        }
-        if (!mounted || !await _confirmWithdrawal(amount)) return;
+        if (!await _confirmWithdrawal(amount)) return;
         final requestId =
             _withdrawalRequestId ?? RequestId.create('withdrawal');
         _withdrawalRequestId = requestId;
@@ -188,6 +203,18 @@ class _WalletPageState extends ConsumerState<WalletPage> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  Future<bool> _ensureIdentityForWithdrawal() async {
+    final certifications = await ref.read(repositoryProvider).certifications();
+    final approved = certifications.any(
+      (item) => item.type == 'IDENTITY' && item.approved && item.enabled,
+    );
+    if (approved) return true;
+    if (!mounted) return false;
+    AppMessage.show(context, '完成实名认证后才能提现');
+    await context.pushNamed('identityCertification');
+    return false;
   }
 
   Future<bool> _confirmWithdrawal(int amount) async {
@@ -319,19 +346,26 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                             fontSize: 12,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 16,
-                          runSpacing: 4,
-                          children: [
-                            Text(
-                              '充值余额 ¥${formatMoney(wallet?.rechargeBalance ?? 0)} · 不可提现',
-                              style: const TextStyle(
-                                color: Color(0xBFFFFFFF),
-                                fontSize: 10,
-                              ),
+                        const SizedBox(height: 5),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: _showMoneyExplanation,
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 30),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                          ],
+                            icon: const Icon(
+                              Icons.help_outline_rounded,
+                              size: 16,
+                            ),
+                            label: const Text(
+                              '资金说明',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -351,19 +385,14 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                     _WalletAmountField(
                       controller: _amount,
                       label: _tab == WalletTab.recharge ? '充值金额' : '提现金额',
-                      maxAmount: 9999,
+                      maxAmount: _tab == WalletTab.withdraw
+                          ? (_settings?.withdrawalMaxAmount ?? 9999).round()
+                          : 9999,
                       onChanged: (_) => setState(() {
                         _rechargeRequestId = null;
                         _withdrawalRequestId = null;
                       }),
                     ),
-                    if (_tab == WalletTab.withdraw) ...[
-                      const SizedBox(height: 7),
-                      Text(
-                        '只有平台收入类可以提现，充值余额不可提现。',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
                     const SizedBox(height: 12),
                     if (_tab == WalletTab.recharge)
                       Container(
@@ -429,7 +458,14 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                     ],
                     const SizedBox(height: 16),
                     FilledButton(
-                      onPressed: amount > 0 && !_submitting ? _submit : null,
+                      onPressed:
+                          amount > 0 &&
+                              !_submitting &&
+                              (_tab == WalletTab.recharge
+                                  ? (_settings?.rechargeEnabled ?? true)
+                                  : (_settings?.withdrawalEnabled ?? true))
+                          ? _submit
+                          : null,
                       child: Text(
                         _tab == WalletTab.recharge ? '支付宝充值' : '确认提现',
                       ),
@@ -440,6 +476,158 @@ class _WalletPageState extends ConsumerState<WalletPage> {
             ),
     );
   }
+
+  Future<void> _showMoneyExplanation() async {
+    final settings = _settings;
+    if (settings == null) return;
+    final laborRate = Theme.of(context).platform == TargetPlatform.iOS
+        ? settings.iosLaborFeeRate
+        : settings.androidLaborFeeRate;
+    final wallet = _wallet;
+    String percent(double value) =>
+        '${(value * 100).toStringAsFixed(value * 100 % 1 == 0 ? 0 : 2)}%';
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '资金与手续费说明',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MoneyBalance(
+                      title: '可提现收入',
+                      amount: wallet?.withdrawableIncome ?? 0,
+                      note: '可申请提现',
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _MoneyBalance(
+                      title: '充值余额',
+                      amount: wallet?.rechargeBalance ?? 0,
+                      note: '不可提现',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _MoneyRule(
+                title: '服务费',
+                content: '收入按${percent(laborRate)}服务费率结算。',
+              ),
+              _MoneyRule(
+                title: '提现',
+                content: '收入结算后冻结${settings.incomeHoldHours}小时。',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoneyBalance extends StatelessWidget {
+  const _MoneyBalance({
+    required this.title,
+    required this.amount,
+    required this.note,
+  });
+
+  final String title;
+  final double amount;
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            '¥${formatMoney(amount)}',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            note,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoneyRule extends StatelessWidget {
+  const _MoneyRule({required this.title, required this.content});
+  final String title;
+  final String content;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 14),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          margin: const EdgeInsets.only(top: 7, right: 10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            shape: BoxShape.circle,
+          ),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 3),
+              Text(
+                content,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.55,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _WithdrawalCodeDialog extends StatefulWidget {
@@ -659,7 +847,25 @@ class _TransactionList extends StatelessWidget {
     }
     return Column(
       children: items.map((item) {
-        final income = item.direction.toUpperCase() == 'INCOME';
+        final direction = item.direction.trim().toUpperCase();
+        final income = direction == 'IN' || direction == 'INCOME';
+        final expense = direction == 'OUT' || direction == 'EXPENSE';
+        final frozen = direction == 'FREEZE';
+        final pending = direction == 'HOLD';
+        final marker = income
+            ? '收'
+            : expense
+            ? '支'
+            : frozen
+            ? '冻'
+            : pending
+            ? '待'
+            : '变';
+        final amountPrefix = income
+            ? '+'
+            : expense
+            ? '-'
+            : '';
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
@@ -673,13 +879,7 @@ class _TransactionList extends StatelessWidget {
                 context,
               ).colorScheme.surfaceContainerHighest,
               foregroundColor: Theme.of(context).colorScheme.primary,
-              child: Text(
-                income
-                    ? '收'
-                    : item.direction.toUpperCase() == 'FREEZE'
-                    ? '冻'
-                    : '支',
-              ),
+              child: Text(marker),
             ),
             title: Text(item.description),
             subtitle: Text(
@@ -688,7 +888,7 @@ class _TransactionList extends StatelessWidget {
                   : DateFormat('yyyy-MM-dd HH:mm').format(item.createdAt!),
             ),
             trailing: Text(
-              '${income ? '+' : '-'}¥${formatMoney(item.amount)}',
+              '$amountPrefix¥${formatMoney(item.amount)}',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: income ? const Color(0xFF26865C) : null,

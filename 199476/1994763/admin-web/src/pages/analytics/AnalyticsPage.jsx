@@ -39,7 +39,6 @@ const labels = {
   approvedAnswerers: '经历发布者',
   acceptingAnswerers: '正在接受询问',
   pausedAnswerers: '暂停接受询问',
-  identitySubmitted: '实名申请',
   experienceSubmitted: '经历申请',
   approved: '审核通过',
   rejected: '审核未通过',

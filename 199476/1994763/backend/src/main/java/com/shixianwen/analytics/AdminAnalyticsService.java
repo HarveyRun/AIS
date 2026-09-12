@@ -195,7 +195,6 @@ public class AdminAnalyticsService {
         );
         Map<String, Object> period = one(
             "SELECT " +
-                "SUM(event_name='identity_submitted') AS identitySubmitted," +
                 "SUM(event_name='experience_submitted') AS experienceSubmitted," +
                 "SUM(event_name='certification_approved') AS approved," +
                 "SUM(event_name='certification_rejected') AS rejected " +

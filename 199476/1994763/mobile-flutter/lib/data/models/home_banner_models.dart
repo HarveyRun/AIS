@@ -32,11 +32,8 @@ class HomeBannerItem {
   bool get showsImage => displayMode != 'TEXT_ONLY' && imageUrl.isNotEmpty;
   bool get showsText => displayMode != 'IMAGE_ONLY';
   bool get opensPlatformIntroduction => actionType == 'PLATFORM_INTRODUCTION';
-  bool get opensActivityRules => const {
-    'FIRST_EXPERIENCE_REWARD',
-    'INVITE_PUBLIC_EXPERIENCE',
-    'INVITE_MONETIZED_EXPERIENCE',
-  }.contains(actionType);
+  bool get opensActivityRules =>
+      const {'FIRST_EXPERIENCE_REWARD'}.contains(actionType);
 
   String get targetPath {
     return switch (actionType) {

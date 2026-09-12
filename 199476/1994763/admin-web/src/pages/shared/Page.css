@@ -313,15 +313,33 @@ button.primary {
 }
 .materials a {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 11px;
   background: #f6f7f8;
   color: #34373c;
   text-decoration: none;
   border-radius: 8px;
 }
+.materials a > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .materials svg {
+  flex: 0 0 auto;
   width: 16px;
+}
+.materials-empty {
+  margin: 0;
+  padding: 18px 12px;
+  border-radius: 8px;
+  background: #f6f7f8;
+  color: #8a8f98;
+  font-size: 13px;
+  text-align: center;
 }
 .detail-modal textarea {
   width: 100%;
@@ -453,11 +471,6 @@ button.primary {
   color: #3f454d;
 }
 
-.review-standard.simple {
-  background: #eef8f2;
-  color: #24613b;
-}
-
 .review-standard.strict {
   background: #fff6e8;
   color: #77501c;
@@ -473,4 +486,11 @@ button.primary {
   margin-top: 5px;
   font-size: 13px;
   line-height: 1.65;
+}
+
+.review-optional-note {
+  margin: 16px 0 10px;
+  color: #68717d;
+  font-size: 13px;
+  line-height: 1.6;
 }

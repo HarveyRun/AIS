@@ -13,6 +13,20 @@ public class AdminPermissionResolver {
         if (path.equals("/api/admin/platform-fee")) {
             return isGet(method) ? "PLATFORM_FEE_VIEW" : "PLATFORM_FEE_EDIT";
         }
+        if (path.equals("/api/admin/inquiry-capacity")) {
+            return isGet(method) ? "INQUIRY_CAPACITY_VIEW" : "INQUIRY_CAPACITY_EDIT";
+        }
+        if (path.equals("/api/admin/app-settings")) {
+            return isGet(method) ? "APP_GLOBAL_SETTING_VIEW" : "APP_GLOBAL_SETTING_EDIT";
+        }
+        if (path.startsWith("/api/admin/curated-chat/applications")) {
+            if (path.endsWith("/identity-review")) return "CURATED_CHAT_IDENTITY_REVIEW";
+            if (path.endsWith("/job-review")) return "CURATED_CHAT_JOB_REVIEW";
+            return "CURATED_CHAT_VIEW";
+        }
+        if (path.startsWith("/api/admin/curated-chat/members/")) {
+            return "CURATED_CHAT_MEMBER_MANAGE";
+        }
         if (path.equals("/api/admin/users") && isGet(method)) return "USER_VIEW";
         if (path.matches("/api/admin/users/\\d+/status") && "PATCH".equals(method)) return "USER_STATUS";
 
@@ -22,19 +36,9 @@ public class AdminPermissionResolver {
         if (path.matches("/api/admin/certifications/\\d+/review") && "POST".equals(method)) return "CERTIFICATION_REVIEW";
         if (path.matches("/api/admin/certifications/\\d+/media-processing/retry") && "POST".equals(method)) return "CERTIFICATION_REVIEW";
         if (path.matches("/api/admin/certifications/\\d+/enabled") && "PATCH".equals(method)) return "CERTIFICATION_TOGGLE";
-        if (path.matches("/api/admin/certifications/\\d+") && "PUT".equals(method)) return "CERTIFICATION_EDIT";
         if (path.matches("/api/admin/certifications/\\d+") && "DELETE".equals(method)) return "CERTIFICATION_DELETE";
 
         if (path.equals("/api/admin/inquiries") && isGet(method)) return "INQUIRY_VIEW";
-        if (path.startsWith("/api/admin/inquiry-disputes/end-requests")) {
-            return isGet(method) ? "INQUIRY_DISPUTE_VIEW" : "INQUIRY_DISPUTE_PROCESS";
-        }
-        if (path.matches("/api/admin/inquiry-disputes/message-reports/details/\\d+/original") && isGet(method)) {
-            return "SENSITIVE_ORIGINAL_VIEW";
-        }
-        if (path.startsWith("/api/admin/inquiry-disputes/message-reports")) {
-            return isGet(method) ? "INQUIRY_DISPUTE_VIEW" : "MESSAGE_REPORT_PROCESS";
-        }
         if (path.startsWith("/api/admin/inquiry-disputes/risk-watch")) {
             return isGet(method) ? "RISK_WATCH_VIEW" : "RISK_WATCH_PROCESS";
         }
@@ -57,8 +61,6 @@ public class AdminPermissionResolver {
             return "FINANCE_RECONCILIATION_VIEW";
         }
         if (path.startsWith("/api/admin/answer-quality")) {
-            if (path.endsWith("/evidence")) return "ANSWER_QUALITY_EVIDENCE";
-            if (path.endsWith("/resolve")) return "ANSWER_QUALITY_REVIEW";
             return "ANSWER_QUALITY_VIEW";
         }
         if (path.equals("/api/admin/feedback") && isGet(method)) return "FEEDBACK_VIEW";

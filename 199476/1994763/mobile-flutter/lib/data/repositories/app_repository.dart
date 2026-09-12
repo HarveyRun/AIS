@@ -1,11 +1,11 @@
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
 
 import '../../core/network/api_client.dart';
 import '../models/answerer_models.dart';
 import '../models/app_version_models.dart';
+import '../models/app_global_settings.dart';
 import '../models/certification_models.dart';
+import '../models/curated_chat_models.dart';
 import '../models/home_banner_models.dart';
 import '../models/inquiry_models.dart';
 import '../models/support_models.dart';
@@ -39,6 +39,221 @@ class AppRepository {
         .map((item) => HomeBannerItem.fromJson(Map<String, dynamic>.from(item)))
         .toList(growable: false);
   }
+
+  Future<AppGlobalSettings> appGlobalSettings() async {
+    final data = await _api.get<Map<String, dynamic>>('/app-settings');
+    return AppGlobalSettings.fromJson(data);
+  }
+
+  Future<CuratedMembership> curatedMembership({
+    bool showLoading = true,
+  }) async => CuratedMembership.fromJson(
+    await _api.get<Map<String, dynamic>>(
+      '/curated-chat/membership',
+      showLoading: showLoading,
+    ),
+  );
+  Future<CuratedMembership> submitCuratedApplication({
+    List<UploadFile> jobFiles = const [],
+  }) async {
+    final jobs = <MultipartFile>[];
+    for (final f in jobFiles) {
+      jobs.add(await MultipartFile.fromFile(f.path, filename: f.name));
+    }
+    final parts = <String, dynamic>{'jobFiles': jobs};
+    final data = await _api.post<Map<String, dynamic>>(
+      '/curated-chat/membership/application',
+      data: FormData.fromMap(parts),
+    );
+    return CuratedMembership.fromJson(data);
+  }
+
+  Future<List<CuratedCertificationMaterial>> curatedMaterials({
+    bool showLoading = true,
+  }) async =>
+      (await _api.get<List<dynamic>>(
+            '/curated-chat/membership/materials',
+            showLoading: showLoading,
+          ))
+          .whereType<Map>()
+          .map((item) {
+            return CuratedCertificationMaterial.fromJson(
+              Map<String, dynamic>.from(item),
+            );
+          })
+          .toList(growable: false);
+
+  Future<CuratedPayment> createCuratedPayment(String requestId) async =>
+      CuratedPayment.fromJson(
+        await _api.post<Map<String, dynamic>>(
+          '/curated-chat/membership/orders',
+          data: {'requestId': requestId},
+        ),
+      );
+  Future<CuratedPayment> curatedPayment(String orderNo) async =>
+      CuratedPayment.fromJson(
+        await _api.get<Map<String, dynamic>>(
+          '/curated-chat/membership/orders/$orderNo',
+        ),
+      );
+  Future<CuratedMemberPage> curatedMembers({
+    String keyword = '',
+    int page = 0,
+    int size = 20,
+  }) async => CuratedMemberPage.fromJson(
+    await _api.get<Map<String, dynamic>>(
+      '/curated-chat/members',
+      query: {'keyword': keyword, 'page': page, 'size': size},
+    ),
+  );
+  Future<CuratedConversation> openCuratedConversation(int otherUserId) async =>
+      CuratedConversation.fromJson(
+        await _api.post<Map<String, dynamic>>(
+          '/curated-chat/conversations',
+          data: {'otherUserId': otherUserId},
+        ),
+      );
+  Future<List<CuratedConversation>> curatedConversations({
+    bool showLoading = true,
+  }) async =>
+      (await _api.get<List<dynamic>>(
+            '/curated-chat/conversations',
+            showLoading: showLoading,
+          ))
+          .whereType<Map>()
+          .map(
+            (x) => CuratedConversation.fromJson(Map<String, dynamic>.from(x)),
+          )
+          .toList();
+  Future<int> curatedUnreadCount() async {
+    final v = await _api.get<Object?>(
+      '/curated-chat/conversations/unread-count',
+      showLoading: false,
+    );
+    return v is num ? v.toInt() : int.tryParse('$v') ?? 0;
+  }
+
+  Future<CuratedConversation> curatedConversation(
+    int id, {
+    bool showLoading = true,
+  }) async => CuratedConversation.fromJson(
+    await _api.get<Map<String, dynamic>>(
+      '/curated-chat/conversations/$id',
+      showLoading: showLoading,
+    ),
+  );
+  Future<List<CuratedMessage>> curatedMessages(
+    int id, {
+    int afterId = 0,
+    int beforeId = 0,
+    bool showLoading = false,
+  }) async =>
+      (await _api.get<List<dynamic>>(
+            '/curated-chat/conversations/$id/messages',
+            query: {'afterId': afterId, 'beforeId': beforeId},
+            showLoading: showLoading,
+          ))
+          .whereType<Map>()
+          .map((x) => CuratedMessage.fromJson(Map<String, dynamic>.from(x)))
+          .toList();
+  Future<void> readCuratedConversation(int id) => _api.put<Object?>(
+    '/curated-chat/conversations/$id/read',
+    showLoading: false,
+  );
+  Future<CuratedMessage> sendCuratedText(int id, String content) async =>
+      CuratedMessage.fromJson(
+        await _api.post<Map<String, dynamic>>(
+          '/curated-chat/conversations/$id/messages',
+          data: {'content': content},
+          showLoading: false,
+        ),
+      );
+  Future<CuratedMessage> sendCuratedImage(int id, UploadFile file) async =>
+      CuratedMessage.fromJson(
+        await _api.post<Map<String, dynamic>>(
+          '/curated-chat/conversations/$id/images',
+          data: FormData.fromMap({
+            'image': await MultipartFile.fromFile(
+              file.path,
+              filename: file.name,
+            ),
+          }),
+          showLoading: false,
+        ),
+      );
+  Future<void> blockCuratedUser(int conversationId) =>
+      _api.post<Object?>('/curated-chat/conversations/$conversationId/block');
+  Future<CuratedVoiceCall> startCuratedVoiceCall(int conversationId) async =>
+      CuratedVoiceCall.fromJson(
+        await _api.post<Map<String, dynamic>>(
+          '/curated-chat/conversations/$conversationId/voice-calls',
+        ),
+      );
+  Future<CuratedVoiceCall> curatedVoiceCall(int callId) async =>
+      CuratedVoiceCall.fromJson(
+        await _api.get<Map<String, dynamic>>(
+          '/curated-chat/voice-calls/$callId',
+          showLoading: false,
+        ),
+      );
+  Future<VoiceIceConfig> curatedVoiceIceConfig(int callId) async =>
+      VoiceIceConfig.fromJson(
+        await _api.get<Map<String, dynamic>>(
+          '/curated-chat/voice-calls/$callId/ice-config',
+          showLoading: false,
+        ),
+      );
+  Future<CuratedVoiceCall> answerCuratedVoiceCall(int callId) async =>
+      CuratedVoiceCall.fromJson(
+        await _api.post<Map<String, dynamic>>(
+          '/curated-chat/voice-calls/$callId/answer',
+          showLoading: false,
+        ),
+      );
+  Future<CuratedVoiceCall> rejectCuratedVoiceCall(int callId) async =>
+      CuratedVoiceCall.fromJson(
+        await _api.post<Map<String, dynamic>>(
+          '/curated-chat/voice-calls/$callId/reject',
+          showLoading: false,
+        ),
+      );
+  Future<CuratedVoiceCall> connectCuratedVoiceCall(int callId) async =>
+      CuratedVoiceCall.fromJson(
+        await _api.post<Map<String, dynamic>>(
+          '/curated-chat/voice-calls/$callId/connected',
+          showLoading: false,
+        ),
+      );
+  Future<CuratedVoiceCall> endCuratedVoiceCall(int callId) async =>
+      CuratedVoiceCall.fromJson(
+        await _api.post<Map<String, dynamic>>(
+          '/curated-chat/voice-calls/$callId/end',
+          showLoading: false,
+        ),
+      );
+  Future<CuratedVoiceSignal> sendCuratedVoiceSignal(
+    int callId,
+    String type,
+    String payload,
+  ) async => CuratedVoiceSignal.fromJson(
+    await _api.post<Map<String, dynamic>>(
+      '/curated-chat/voice-calls/$callId/signals',
+      data: {'type': type, 'payload': payload},
+      showLoading: false,
+    ),
+  );
+  Future<List<CuratedVoiceSignal>> curatedVoiceSignals(
+    int callId, {
+    int afterId = 0,
+  }) async =>
+      (await _api.get<List<dynamic>>(
+            '/curated-chat/voice-calls/$callId/signals',
+            query: {'afterId': afterId},
+            showLoading: false,
+          ))
+          .whereType<Map>()
+          .map((x) => CuratedVoiceSignal.fromJson(Map<String, dynamic>.from(x)))
+          .toList();
 
   Future<HomeBannerAvailability> homeBannerAvailability(int bannerId) async {
     final data = await _api.get<Map<String, dynamic>>(
@@ -92,16 +307,6 @@ class AppRepository {
 
   Future<void> deleteAccount() => _api.delete<Object?>('/users/me');
 
-  Future<Map<String, dynamic>> redeemExperienceInvitationReward(
-    String invitedUid,
-    String invitedPhone,
-  ) {
-    return _api.post<Map<String, dynamic>>(
-      '/experience-invitation-rewards/redeem',
-      data: {'invitedUid': invitedUid, 'invitedPhone': invitedPhone},
-    );
-  }
-
   Future<AccountDeletionEligibility> accountDeletionEligibility() async {
     final data = await _api.get<Map<String, dynamic>>(
       '/users/me/deletion-eligibility',
@@ -134,35 +339,22 @@ class AppRepository {
     return AppUser.fromJson(data);
   }
 
-  Future<AppUser> setInquiryPriceRange({
-    required int minimum,
-    required int maximum,
-  }) async {
+  Future<AppUser> setInquiryHourlyRate(int hourlyRate) async {
     final data = await _api.patch<Map<String, dynamic>>(
-      '/users/me/inquiry-price-range',
-      data: {'minimum': minimum, 'maximum': maximum},
+      '/users/me/inquiry-hourly-rate',
+      data: {'hourlyRate': hourlyRate},
     );
     return AppUser.fromJson(data);
-  }
-
-  Future<Map<String, dynamic>> answererEligibility() {
-    return _api.get<Map<String, dynamic>>('/users/me/answerer-eligibility');
   }
 
   Future<AnswererPageData> answerers({
     int page = 0,
     int size = 10,
     String keyword = '',
-    String experienceType = 'ALL',
   }) async {
     final data = await _api.get<Map<String, dynamic>>(
       '/answerers',
-      query: {
-        'page': page,
-        'size': size,
-        'keyword': keyword,
-        'experienceType': experienceType,
-      },
+      query: {'page': page, 'size': size, 'keyword': keyword},
     );
     return AnswererPageData.fromJson(data);
   }
@@ -219,14 +411,14 @@ class AppRepository {
   Future<InquirySummary> createInquiry({
     required int answererId,
     required int sourceExperienceCertificationId,
-    required int amount,
+    required String question,
   }) async {
     final data = await _api.post<Map<String, dynamic>>(
       '/inquiries',
       data: {
         'answererId': answererId,
         'sourceExperienceCertificationId': sourceExperienceCertificationId,
-        'amount': amount,
+        'question': question,
       },
     );
     return InquirySummary.fromJson(data);
@@ -238,12 +430,129 @@ class AppRepository {
       _api.post<Object?>('/inquiries/$id/reject');
   Future<void> cancelInquiry(int id) =>
       _api.post<Object?>('/inquiries/$id/cancel');
-  Future<void> requestInquiryEnd(int id) =>
-      _api.post<Object?>('/inquiries/$id/request-end');
-  Future<void> disagreeInquiryEnd(int id) =>
-      _api.post<Object?>('/inquiries/$id/disagree-end');
-  Future<void> confirmInquiryEnd(int id) =>
-      _api.post<Object?>('/inquiries/$id/confirm-end');
+  Future<void> endInquiry(int id) => _api.post<Object?>('/inquiries/$id/end');
+  Future<AudioAppointment> latestAudioAppointment(int inquiryId) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/audio-appointments/latest',
+      showLoading: false,
+    );
+    return AudioAppointment.fromJson(data);
+  }
+
+  Future<AudioAppointment> createAudioCall({required int inquiryId}) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/audio-appointments',
+    );
+    return AudioAppointment.fromJson(data);
+  }
+
+  Future<AudioAppointment> answerAudioCall(
+    int inquiryId,
+    int appointmentId,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/audio-appointments/$appointmentId/answer',
+    );
+    return AudioAppointment.fromJson(data);
+  }
+
+  Future<AudioAppointment> rejectAudioAppointment(
+    int inquiryId,
+    int appointmentId,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/audio-appointments/$appointmentId/reject',
+    );
+    return AudioAppointment.fromJson(data);
+  }
+
+  Future<AudioAppointment> joinAudioCall(
+    int inquiryId,
+    int appointmentId,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/audio-appointments/$appointmentId/join',
+      showLoading: false,
+    );
+    return AudioAppointment.fromJson(data);
+  }
+
+  Future<AudioAppointment> markAudioCallConnected(
+    int inquiryId,
+    int appointmentId,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/audio-appointments/$appointmentId/connected',
+      showLoading: false,
+    );
+    return AudioAppointment.fromJson(data);
+  }
+
+  Future<AudioAppointment> markAudioCallDisconnected(
+    int inquiryId,
+    int appointmentId,
+    String reason,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/audio-appointments/$appointmentId/disconnected',
+      data: {'reason': reason},
+      showLoading: false,
+    );
+    return AudioAppointment.fromJson(data);
+  }
+
+  Future<AudioAppointment> finishAudioCall(
+    int inquiryId,
+    int appointmentId,
+  ) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/audio-appointments/$appointmentId/finish',
+      showLoading: false,
+    );
+    return AudioAppointment.fromJson(data);
+  }
+
+  Future<VoiceIceConfig> voiceIceConfig(
+    int inquiryId,
+    int appointmentId,
+  ) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/audio-appointments/$appointmentId/voice/ice-config',
+      showLoading: false,
+    );
+    return VoiceIceConfig.fromJson(data);
+  }
+
+  Future<List<VoiceSignal>> voiceSignals(
+    int inquiryId,
+    int appointmentId, {
+    int afterId = 0,
+  }) async {
+    final data = await _api.get<List<dynamic>>(
+      '/inquiries/$inquiryId/audio-appointments/$appointmentId/voice/signals',
+      query: {'afterId': afterId},
+      showLoading: false,
+    );
+    return data
+        .whereType<Map>()
+        .map((item) => VoiceSignal.fromJson(Map<String, dynamic>.from(item)))
+        .toList(growable: false);
+  }
+
+  Future<VoiceSignal> sendVoiceSignal({
+    required int inquiryId,
+    required int appointmentId,
+    required String signalType,
+    required String payload,
+  }) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/audio-appointments/$appointmentId/voice/signals',
+      data: {'signalType': signalType, 'payload': payload},
+      showLoading: false,
+    );
+    return VoiceSignal.fromJson(data);
+  }
+
   Future<void> markInquiryRead(int id) =>
       _api.put<Object?>('/inquiries/$id/read', showLoading: false);
 
@@ -280,24 +589,24 @@ class AppRepository {
     return ChatMessage.fromJson(data);
   }
 
-  Future<void> reportInquiryMessage(
-    int inquiryId,
-    String messageId,
-    String reportType,
-  ) => _api.post<Object?>(
-    '/inquiries/$inquiryId/messages/$messageId/reports',
-    data: {'reportType': reportType},
+  Future<bool> hasComplainedAboutInquiry(int inquiryId) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/inquiries/$inquiryId/complaints/status',
+    );
+    return data['complained'] == true;
+  }
+
+  Future<void> complainAboutInquiry({
+    required int inquiryId,
+    required String category,
+    required String content,
+  }) => _api.post<Object?>(
+    '/inquiries/$inquiryId/complaints',
+    data: {'category': category, 'content': content},
   );
 
-  Future<bool> hasReportedInquiryMessage(
-    int inquiryId,
-    String messageId,
-  ) async {
-    final data = await _api.get<Map<String, dynamic>>(
-      '/inquiries/$inquiryId/messages/$messageId/reports/status',
-    );
-    return data['reported'] == true;
-  }
+  Future<void> blockInquiryUser(int inquiryId) =>
+      _api.post<Object?>('/inquiries/$inquiryId/block');
 
   Future<WalletInfo> wallet() async {
     final data = await _api.get<Map<String, dynamic>>('/wallet');
@@ -401,7 +710,7 @@ class AppRepository {
 
   Future<void> submitIdentityCertification(List<UploadFile> files) async {
     await _api.post<Object?>(
-      '/certifications/basic/IDENTITY',
+      '/certifications/identity',
       data: FormData.fromMap({
         'files': await Future.wait(
           files.map(
@@ -412,16 +721,13 @@ class AppRepository {
     );
   }
 
-  Future<void> submitExperienceCertification({
+  Future<void> submitExperience({
     int? existingId,
     required String title,
     required String description,
-    required bool privacyConfirmed,
-    required Uint8List signatureBytes,
-    required String detailMode,
-    UploadFile? reviewOriginal,
+    required ExperienceAdditionalInfo additionalInfo,
     UploadFile? proofArchive,
-    UploadFile? detailVideo,
+    bool removeProofArchive = false,
   }) async {
     await _api.post<Object?>(
       '/certifications/experiences',
@@ -429,26 +735,26 @@ class AppRepository {
         if (existingId != null) 'existingId': existingId,
         'title': title,
         'description': description,
-        'privacyConfirmed': privacyConfirmed,
-        'detailMode': detailMode,
-        'signature': MultipartFile.fromBytes(
-          signatureBytes,
-          filename: 'signature.png',
-        ),
-        if (reviewOriginal != null)
-          'reviewOriginal': await MultipartFile.fromFile(
-            reviewOriginal.path,
-            filename: reviewOriginal.name,
-          ),
+        if (additionalInfo.location.isNotEmpty)
+          'experienceLocation': additionalInfo.location,
+        if (additionalInfo.startDate.isNotEmpty)
+          'experienceStartDate': additionalInfo.startDate,
+        if (additionalInfo.endDate.isNotEmpty)
+          'experienceEndDate': additionalInfo.endDate,
+        if (additionalInfo.count != null)
+          'experienceCount': additionalInfo.count,
+        if (additionalInfo.role.isNotEmpty)
+          'experienceRole': additionalInfo.role,
+        if (additionalInfo.ageRange.isNotEmpty)
+          'experienceAgeRange': additionalInfo.ageRange,
+        if (additionalInfo.education.isNotEmpty)
+          'experienceEducation': additionalInfo.education,
+        if (additionalInfo.job.isNotEmpty) 'experienceJob': additionalInfo.job,
+        'removeProofArchive': removeProofArchive,
         if (proofArchive != null)
           'proofArchive': await MultipartFile.fromFile(
             proofArchive.path,
             filename: proofArchive.name,
-          ),
-        if (detailVideo != null)
-          'detailVideo': await MultipartFile.fromFile(
-            detailVideo.path,
-            filename: detailVideo.name,
           ),
       }),
       sendTimeout: const Duration(hours: 2),
@@ -456,80 +762,8 @@ class AppRepository {
     );
   }
 
-  Future<void> submitPublicWelfareExperience({
-    int? existingId,
-    required String title,
-    required String description,
-    required String detailMode,
-    UploadFile? proofArchive,
-    UploadFile? detailVideo,
-  }) async {
-    await _api.post<Object?>(
-      '/certifications/experiences/public-welfare',
-      data: FormData.fromMap({
-        if (existingId != null) 'existingId': existingId,
-        'title': title,
-        'description': description,
-        'detailMode': detailMode,
-        if (proofArchive != null)
-          'proofArchive': await MultipartFile.fromFile(
-            proofArchive.path,
-            filename: proofArchive.name,
-          ),
-        if (detailVideo != null)
-          'detailVideo': await MultipartFile.fromFile(
-            detailVideo.path,
-            filename: detailVideo.name,
-          ),
-      }),
-      sendTimeout: const Duration(hours: 2),
-      receiveTimeout: const Duration(hours: 2),
-    );
-  }
-
-  Future<void> submitMonetizedExperience({
-    int? existingId,
-    int? upgradeSourceId,
-    required String title,
-    required String description,
-    required Uint8List signatureBytes,
-    required String detailMode,
-    UploadFile? reviewOriginal,
-    UploadFile? proofArchive,
-    UploadFile? detailVideo,
-  }) async {
-    await _api.post<Object?>(
-      '/certifications/experiences/monetized',
-      data: FormData.fromMap({
-        if (existingId != null) 'existingId': existingId,
-        if (upgradeSourceId != null) 'upgradeSourceId': upgradeSourceId,
-        'title': title,
-        'description': description,
-        'privacyConfirmed': true,
-        'detailMode': detailMode,
-        'signature': MultipartFile.fromBytes(
-          signatureBytes,
-          filename: 'signature.png',
-        ),
-        if (reviewOriginal != null)
-          'reviewOriginal': await MultipartFile.fromFile(
-            reviewOriginal.path,
-            filename: reviewOriginal.name,
-          ),
-        if (proofArchive != null)
-          'proofArchive': await MultipartFile.fromFile(
-            proofArchive.path,
-            filename: proofArchive.name,
-          ),
-        if (detailVideo != null)
-          'detailVideo': await MultipartFile.fromFile(
-            detailVideo.path,
-            filename: detailVideo.name,
-          ),
-      }),
-      sendTimeout: const Duration(hours: 2),
-      receiveTimeout: const Duration(hours: 2),
-    );
+  Future<void> deleteExperience(int certificationId) async {
+    await _api.delete<Object?>('/certifications/experiences/$certificationId');
   }
 
   Future<ExperiencePublicMediaView> experiencePublicMedia(

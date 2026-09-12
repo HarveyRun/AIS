@@ -1,11 +1,14 @@
 package com.shixianwen.wallet;
 
+import com.shixianwen.curated.CuratedChatService;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
 import com.shixianwen.common.BusinessException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,6 +23,28 @@ import static org.mockito.Mockito.when;
 
 class RechargeServiceTest {
     @Test
+    void curatedMembershipPaymentCallbackUsesItsIndependentSettlementFlow() {
+        PaymentGateway gateway = mock(PaymentGateway.class);
+        CuratedChatService curated = mock(CuratedChatService.class);
+        PaymentGateway.PaymentNotification notification = new PaymentGateway.PaymentNotification(
+            "RXL123", "trade-1", "PAID", new BigDecimal("99.00"), LocalDateTime.now()
+        );
+        when(gateway.verifyNotification("payload", Map.of())).thenReturn(notification);
+        RechargeService service = new RechargeService(
+            mock(RechargeRepository.class),
+            mock(UserRepository.class),
+            mock(WalletService.class),
+            gateway,
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            curated
+        );
+
+        service.paidCallback("payload", Map.of());
+
+        verify(curated).applyPaid(notification);
+    }
+
+    @Test
     void mockPaymentRunsTheSameIdempotentCreditFlow() {
         RechargeRepository recharges = mock(RechargeRepository.class);
         UserRepository users = mock(UserRepository.class);
@@ -29,7 +54,8 @@ class RechargeServiceTest {
             users,
             wallet,
             new MockAlipayGateway(),
-            mock(com.shixianwen.analytics.AnalyticsEventService.class)
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            mock(CuratedChatService.class)
         );
 
         User user = new User();
@@ -61,7 +87,8 @@ class RechargeServiceTest {
             mock(UserRepository.class),
             mock(WalletService.class),
             new MockAlipayGateway(),
-            mock(com.shixianwen.analytics.AnalyticsEventService.class)
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            mock(CuratedChatService.class)
         );
 
         assertThrows(BusinessException.class, () -> service.create(1L, new BigDecimal("12.34")));
@@ -79,7 +106,8 @@ class RechargeServiceTest {
             users,
             wallet,
             gateway,
-            mock(com.shixianwen.analytics.AnalyticsEventService.class)
+            mock(com.shixianwen.analytics.AnalyticsEventService.class),
+            mock(CuratedChatService.class)
         );
         User user = new User();
         user.setId(1L);

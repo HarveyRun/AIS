@@ -1,11 +1,7 @@
-import 'dart:typed_data';
-import 'dart:ui' as ui;
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../core/theme/app_status_style.dart';
@@ -14,51 +10,44 @@ import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/certification_models.dart';
 import '../../data/repositories/app_repository.dart';
-import 'certification_notice_card.dart';
+import '../../data/models/app_global_settings.dart';
 import 'material_viewer.dart';
-
-enum ExperienceBusinessType { publicWelfare, monetized }
+import 'experience_additional_info_page.dart';
 
 class ExperienceFormPage extends ConsumerStatefulWidget {
-  const ExperienceFormPage({
-    super.key,
-    this.id,
-    this.upgradeSourceId,
-    required this.businessType,
-  });
+  const ExperienceFormPage({super.key, this.id});
+
   final int? id;
-  final int? upgradeSourceId;
-  final ExperienceBusinessType businessType;
+
   @override
   ConsumerState<ExperienceFormPage> createState() => _ExperienceFormPageState();
 }
 
 class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
-  static const int _maxProofArchiveBytes = 2 * 1024 * 1024 * 1024;
-
   final _title = TextEditingController();
   final _description = TextEditingController();
-  final _picker = ImagePicker();
+  ExperienceAdditionalInfo _additionalInfo = const ExperienceAdditionalInfo();
   CertificationRecord? _record;
-  CertificationRecord? _upgradeSource;
-  XFile? _detailVideo;
-  PlatformFile? _reviewOriginalArchive;
   PlatformFile? _proofArchive;
-  bool _showVideoDetail = false;
+  bool _removeExistingProofArchive = false;
   bool _loading = false;
   bool _submitting = false;
   bool _savingPublicMedia = false;
   ExperiencePublicMediaView? _publicMedia;
   Set<int> _selectedPublicMediaIds = <int>{};
+  int _titleMaxLength = 18;
+  int _descriptionMaxLength = 400;
+  int _maxProofArchiveBytes = 2 * 1024 * 1024 * 1024;
   bool get _editable =>
       widget.id == null || _record?.status.toUpperCase() == 'REJECTED';
-  bool get _isPublicWelfare =>
-      widget.businessType == ExperienceBusinessType.publicWelfare;
-  CertificationRecord? get _materialSource => _record ?? _upgradeSource;
-  CertificationMaterial? get _existingDetailVideo => _materialSource?.materials
-      .where((item) => item.kind.toUpperCase() == 'DETAIL_VIDEO')
-      .firstOrNull;
-  CertificationMaterial? get _existingProofArchive => _materialSource?.materials
+  bool get _hasPublicMediaConfiguration {
+    final publicMedia = _publicMedia;
+    if (publicMedia == null) return false;
+    return publicMedia.processingStatus.toUpperCase() != 'NOT_REQUIRED' ||
+        publicMedia.items.isNotEmpty;
+  }
+
+  CertificationMaterial? get _existingProofArchive => _record?.materials
       .where(
         (item) => const [
           'ARCHIVE',
@@ -66,15 +55,23 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
         ].contains(item.kind.toUpperCase()),
       )
       .firstOrNull;
-  CertificationMaterial? get _existingReviewOriginalArchive => _record
-      ?.materials
-      .where((item) => item.kind.toUpperCase() == 'REVIEW_ORIGINAL_ARCHIVE')
-      .firstOrNull;
-
+  bool get _hasSelectedProofArchive =>
+      _proofArchive != null ||
+      (!_removeExistingProofArchive && _existingProofArchive != null);
   @override
   void initState() {
     super.initState();
-    if (widget.id != null || widget.upgradeSourceId != null) _load();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    try {
+      final AppGlobalSettings settings = await ref.read(repositoryProvider).appGlobalSettings();
+      _titleMaxLength = settings.experienceTitleMaxLength;
+      _descriptionMaxLength = settings.experienceDescriptionMaxLength;
+      _maxProofArchiveBytes = settings.proofArchiveMaxBytes;
+    } catch (_) {}
+    if (widget.id != null) await _load();
   }
 
   @override
@@ -89,28 +86,19 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
     try {
       final records = await ref.read(repositoryProvider).certifications();
       final record = records.where((item) => item.id == widget.id).firstOrNull;
-      final upgradeSource = records
-          .where((item) => item.id == widget.upgradeSourceId)
-          .firstOrNull;
-      final contentSource = record ?? upgradeSource;
-      if (contentSource != null && mounted) {
+      if (record != null && mounted) {
         ExperiencePublicMediaView? publicMedia;
-        if (record?.approved == true) {
+        if (record.approved) {
           publicMedia = await ref
               .read(repositoryProvider)
-              .experiencePublicMedia(record!.id);
+              .experiencePublicMedia(record.id);
         }
         if (!mounted) return;
         setState(() {
           _record = record;
-          _upgradeSource = upgradeSource;
-          _title.text = contentSource.title;
-          _description.text = contentSource.description;
-          _showVideoDetail =
-              contentSource.description.trim().isEmpty &&
-              contentSource.materials.any(
-                (item) => item.kind.toUpperCase() == 'DETAIL_VIDEO',
-              );
+          _title.text = record.title;
+          _description.text = record.description;
+          _additionalInfo = record.additionalInfo;
           _publicMedia = publicMedia;
           _selectedPublicMediaIds =
               publicMedia?.items
@@ -151,26 +139,6 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
     }
   }
 
-  Future<XFile?> _pickDetailVideo() async {
-    final file = await _picker.pickVideo(source: ImageSource.gallery);
-    if (file == null) return null;
-    if (await file.length() > 1024 * 1024 * 1024) {
-      if (mounted) AppMessage.show(context, '视频不能超过1GB');
-      return null;
-    }
-    return file;
-  }
-
-  Future<void> _selectDetailVideo() async {
-    final file = await _pickDetailVideo();
-    if (file != null && mounted) setState(() => _detailVideo = file);
-  }
-
-  void _selectDetailMode(bool video) {
-    if (_showVideoDetail == video) return;
-    setState(() => _showVideoDetail = video);
-  }
-
   Future<PlatformFile?> _pickArchive() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -185,120 +153,78 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
       return null;
     }
     if (file.size > _maxProofArchiveBytes) {
-      if (mounted) AppMessage.show(context, '每个压缩包不能超过2GB');
+      final gigabytes = _maxProofArchiveBytes / 1024 / 1024 / 1024;
+      final label = gigabytes >= 1
+          ? '${gigabytes.toStringAsFixed(gigabytes % 1 == 0 ? 0 : 1)}GB'
+          : '${(_maxProofArchiveBytes / 1024 / 1024).round()}MB';
+      if (mounted) AppMessage.show(context, '每个压缩包不能超过$label');
       return null;
     }
     return file;
   }
 
-  Future<void> _pickReviewOriginalArchive() async {
+  Future<void> _pickProofArchive() async {
     final file = await _pickArchive();
     if (file != null && mounted) {
-      setState(() => _reviewOriginalArchive = file);
+      setState(() {
+        _proofArchive = file;
+        _removeExistingProofArchive = false;
+      });
     }
   }
 
-  Future<void> _pickProofArchive() async {
-    final file = await _pickArchive();
-    if (file != null && mounted) setState(() => _proofArchive = file);
+  void _removeProofArchive() {
+    setState(() {
+      _proofArchive = null;
+      _removeExistingProofArchive = true;
+    });
+  }
+
+  Future<void> _openAdditionalInfo() async {
+    final result = await context.push<ExperienceAdditionalInfo>(
+      '/profile/certifications/experiences/additional-info',
+      extra: _additionalInfo,
+    );
+    if (result != null && mounted) {
+      setState(() => _additionalInfo = result);
+    }
   }
 
   Future<void> _submit() async {
     if (_title.text.trim().isEmpty) {
-      AppMessage.show(context, _isPublicWelfare ? '请填写经历标题' : '请填写经历标题');
+      AppMessage.show(context, '请填写经历标题');
       return;
     }
-    if (_title.text.trim().length > 20) {
-      AppMessage.show(context, _isPublicWelfare ? '经历标题最多20个字' : '经历标题最多20个字');
+    if (_title.text.trim().length > _titleMaxLength) {
+      AppMessage.show(context, '经历标题最多$_titleMaxLength个字');
       return;
     }
     final description = _description.text.trim();
-    if (description.length > 5000) {
-      AppMessage.show(
-        context,
-        _isPublicWelfare ? '经历叙述最多5000个字' : '经历叙述最多5000个字',
-      );
+    if (description.isEmpty) {
+      AppMessage.show(context, '请填写经历叙述');
       return;
     }
-    final hasDetailVideo = _detailVideo != null || _existingDetailVideo != null;
-    if (description.isEmpty && !hasDetailVideo) {
-      AppMessage.show(
-        context,
-        _isPublicWelfare ? '请填写文字叙述或选择叙述视频' : '请填写文字叙述或选择叙述视频',
-      );
+    if (description.length > _descriptionMaxLength) {
+      AppMessage.show(context, '经历叙述最多$_descriptionMaxLength个字');
       return;
     }
-    if (!_isPublicWelfare &&
-        _proofArchive == null &&
-        _existingProofArchive == null) {
-      AppMessage.show(context, '请上传已处理证明资料压缩包');
-      return;
-    }
-    if (!_isPublicWelfare &&
-        _reviewOriginalArchive == null &&
-        _existingReviewOriginalArchive == null) {
-      AppMessage.show(context, '请上传未处理证明资料压缩包');
-      return;
-    }
-    Uint8List? confirmation;
-    if (!_isPublicWelfare) {
-      confirmation = await _confirmSubmission();
-      if (confirmation == null || !mounted) return;
-    }
+    final confirmed = await _confirmSubmission();
+    if (confirmed != true || !mounted) return;
     setState(() => _submitting = true);
     try {
       final repository = ref.read(repositoryProvider);
-      if (_isPublicWelfare) {
-        await repository.submitPublicWelfareExperience(
-          existingId: widget.id,
-          title: _title.text.trim(),
-          description: description,
-          detailMode: description.isNotEmpty && hasDetailVideo
-              ? 'BOTH'
-              : hasDetailVideo
-              ? 'VIDEO'
-              : 'TEXT',
-          proofArchive: _proofArchive == null
-              ? null
-              : UploadFile(
-                  path: _proofArchive!.path!,
-                  name: _proofArchive!.name,
-                ),
-          detailVideo: _detailVideo == null
-              ? null
-              : UploadFile(path: _detailVideo!.path, name: _detailVideo!.name),
-        );
-      } else {
-        await repository.submitMonetizedExperience(
-          existingId: widget.id,
-          upgradeSourceId: widget.upgradeSourceId,
-          title: _title.text.trim(),
-          description: description,
-          signatureBytes: confirmation!,
-          detailMode: description.isNotEmpty && hasDetailVideo
-              ? 'BOTH'
-              : hasDetailVideo
-              ? 'VIDEO'
-              : 'TEXT',
-          reviewOriginal: _reviewOriginalArchive == null
-              ? null
-              : UploadFile(
-                  path: _reviewOriginalArchive!.path!,
-                  name: _reviewOriginalArchive!.name,
-                ),
-          proofArchive: _proofArchive == null
-              ? null
-              : UploadFile(
-                  path: _proofArchive!.path!,
-                  name: _proofArchive!.name,
-                ),
-          detailVideo: _detailVideo == null
-              ? null
-              : UploadFile(path: _detailVideo!.path, name: _detailVideo!.name),
-        );
-      }
+      await repository.submitExperience(
+        existingId: widget.id,
+        title: _title.text.trim(),
+        description: description,
+        additionalInfo: _additionalInfo,
+        proofArchive: _proofArchive == null
+            ? null
+            : UploadFile(path: _proofArchive!.path!, name: _proofArchive!.name),
+        removeProofArchive: _removeExistingProofArchive,
+      );
       if (!mounted) return;
-      AppMessage.show(context, _isPublicWelfare ? '公益分享已提交审核' : '干货变现已提交审核');
+      AppMessage.show(context, '经历已提交审核');
       Navigator.pop(context);
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
@@ -307,13 +233,28 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
     }
   }
 
-  Future<Uint8List?> _confirmSubmission() => showModalBottomSheet<Uint8List>(
+  Future<bool?> _confirmSubmission() => showDialog<bool>(
     context: context,
-    isScrollControlled: true,
-    isDismissible: false,
-    enableDrag: false,
-    backgroundColor: Colors.transparent,
-    builder: (context) => const _SubmissionConfirmationDialog(),
+    builder: (dialogContext) => AlertDialog(
+      titlePadding: const EdgeInsets.fromLTRB(24, 14, 8, 0),
+      title: Row(
+        children: [
+          const Expanded(child: Text('确认提交？')),
+          IconButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            tooltip: '关闭',
+            icon: const Icon(Icons.close_rounded),
+          ),
+        ],
+      ),
+      content: const Text('提交后将进入审核，是否继续？'),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: const Text('确认提交'),
+        ),
+      ],
+    ),
   );
 
   Future<void> _showPrivacyInformationDialog() => showDialog<void>(
@@ -321,69 +262,9 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
     builder: (context) => const _PrivacyInformationDialog(),
   );
 
-  Future<void> _showReviewStandard() => showDialog<void>(
-    context: context,
-    builder: (dialogContext) => Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-      child: SingleChildScrollView(
-        child: CertificationNoticeCard(
-          tone: CertificationNoticeTone.warning,
-          label: '审核标准',
-          prominentLabel: true,
-          onClose: () => Navigator.pop(dialogContext),
-          paragraphs: _isPublicWelfare
-              ? const [
-                  CertificationNoticeParagraph(text: '不需要完成实名认证', marker: '1'),
-                  CertificationNoticeParagraph(
-                    text: '无明显矛盾、无不符合常识或疑似虚构的内容',
-                    marker: '2',
-                  ),
-                  CertificationNoticeParagraph(
-                    text: '上传证明资料会大幅提高审核通过率',
-                    marker: '3',
-                  ),
-                ]
-              : const [
-                  CertificationNoticeParagraph(text: '须完成实名认证', marker: '1'),
-                  CertificationNoticeParagraph(
-                    text: '除敏感信息外，整个事情的时间、人物、经过及前后逻辑必须合理，无明显矛盾、无不符合常识或疑似虚构的内容',
-                    marker: '2',
-                  ),
-                  CertificationNoticeParagraph(
-                    text: '必须是自己经历的事情，家人、亲戚、朋友以及听说、转述、道听途说的内容，均不作为有效经历采纳',
-                    marker: '3',
-                  ),
-                  CertificationNoticeParagraph(
-                    text: '必须提交能证明该经历与本人直接相关的证明材料',
-                    marker: '4',
-                  ),
-                  CertificationNoticeParagraph(
-                    text:
-                        '已审核通过的可变现经历，为确保信息真实，平台将视情况安排线下二次审核，多次拒审者视为放弃账户；线上审核通过后即可享受变现以及其它完整功能。感谢您的理解与配合！',
-                    marker: '5',
-                  ),
-                ],
-        ),
-      ),
-    ),
-  );
-
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: Text(widget.id == null ? '发布经历' : '经历详情'),
-      actions: [
-        IconButton(
-          onPressed: _showReviewStandard,
-          tooltip: '审核标准',
-          color: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFFE0A24A)
-              : const Color(0xFFB36B18),
-          icon: const Icon(Icons.warning_amber_rounded),
-        ),
-      ],
-    ),
+    appBar: AppBar(title: Text(widget.id == null ? '发布经历' : '经历详情')),
     body: _loading
         ? const SizedBox.shrink()
         : ListView(
@@ -393,9 +274,10 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
                 _ExperienceStatus(record: _record!),
                 const SizedBox(height: 12),
               ],
-              if (!_editable && _record?.approved == true) ...[
+              if (!_editable &&
+                  _record?.approved == true &&
+                  _hasPublicMediaConfiguration) ...[
                 _PublicMediaSection(
-                  isPublicWelfare: _isPublicWelfare,
                   data: _publicMedia,
                   selectedIds: _selectedPublicMediaIds,
                   saving: _savingPublicMedia,
@@ -420,210 +302,155 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _isPublicWelfare ? '经历标题' : '经历标题',
+                      '经历标题',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 7),
                     TextField(
                       controller: _title,
                       enabled: _editable,
-                      maxLength: 20,
-                      inputFormatters: AppInputFormatters.description(20),
-                      decoration: InputDecoration(
-                        hintText: _isPublicWelfare
-                            ? '例如：我的房屋装修经历'
-                            : '例如：我的房屋装修经历',
+                      maxLength: _titleMaxLength,
+                      inputFormatters: AppInputFormatters.description(_titleMaxLength),
+                      decoration: const InputDecoration(
+                        hintText: '例如：我的房屋装修经历',
                       ),
                     ),
                     const SizedBox(height: 14),
                     Row(
                       children: [
-                        Text(
-                          _isPublicWelfare ? '叙述' : '叙述',
-                          style: Theme.of(context).textTheme.titleMedium,
+                        Expanded(
+                          child: Text(
+                            '经历叙述',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
                         ),
-                        const Spacer(),
-                        Text(
-                          '文字和录像可同时提供',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
+                        if (_editable)
+                          TextButton(
+                            onPressed: _openAdditionalInfo,
+                            child: Text(
+                              _additionalInfo.isEmpty
+                                  ? '补充更多信息'
+                                  : '已填写${_additionalInfo.completedCount}项',
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 7),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DetailModeButton(
-                            label: _isPublicWelfare ? '文字叙述' : '文字叙述',
-                            selected: !_showVideoDetail,
-                            enabled:
-                                _editable ||
-                                _description.text.trim().isNotEmpty,
-                            onTap: () => _selectDetailMode(false),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _DetailModeButton(
-                            label: _isPublicWelfare ? '录像叙述' : '录像叙述',
-                            selected: _showVideoDetail,
-                            enabled: _editable || _existingDetailVideo != null,
-                            onTap: () => _selectDetailMode(true),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (_showVideoDetail)
-                      if (_detailVideo == null && _existingDetailVideo != null)
-                        Column(
-                          children: [
-                            _ExistingMaterialRow(
-                              material: _existingDetailVideo!,
-                            ),
-                            if (_editable)
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton(
-                                  onPressed: _selectDetailVideo,
-                                  child: const Text('更换叙述录像'),
-                                ),
-                              ),
-                          ],
-                        )
-                      else if (!_editable && _record != null)
-                        for (final material in _record!.materials.where(
-                          (item) => item.kind.toUpperCase() == 'DETAIL_VIDEO',
-                        ))
-                          _ExistingMaterialRow(
-                            material: material,
-                            label:
-                                material.kind.toUpperCase() ==
-                                    'REVIEW_ORIGINAL_ARCHIVE'
-                                ? '原件'
-                                : '副件（需处理）',
-                          )
-                      else
-                        _MaterialRow(
-                          icon: Icons.video_camera_back_outlined,
-                          title: _isPublicWelfare ? '选择叙述录像' : '选择叙述录像',
-                          subtitle: _detailVideo?.name ?? '从相册选择，最大1GB',
-                          action: _detailVideo == null ? '选择' : '重选',
-                          onTap: _selectDetailVideo,
-                        )
-                    else
-                      TextField(
-                        controller: _description,
-                        enabled: _editable,
-                        maxLength: 5000,
-                        inputFormatters: AppInputFormatters.description(5000),
-                        minLines: 8,
-                        maxLines: 16,
-                        decoration: InputDecoration(
-                          hintText: _isPublicWelfare ? '请叙述经历内容' : '请叙述经历内容',
-                        ),
+                    TextField(
+                      controller: _description,
+                      enabled: _editable,
+                      maxLength: _descriptionMaxLength,
+                      inputFormatters: AppInputFormatters.description(_descriptionMaxLength),
+                      minLines: 6,
+                      maxLines: 10,
+                      decoration: const InputDecoration(
+                        hintText:
+                            '请叙述您经历了什么、当时是什么身份、亲自做过哪些事，以及最后怎么样。\n\n例如：2023年我第一次装修自己的房子，当时什么都不懂。我自己找了装修公司，选的是半包，主材自己买。中间遇到过报价漏项、工期拖延，也跟着做了水电和完工验收，最后多花了两万多，延期一个月才住进去。',
                       ),
+                    ),
                   ],
                 ),
               ),
+              if (!_editable && !_additionalInfo.isEmpty) ...[
+                const SizedBox(height: 12),
+                ExperienceAdditionalInfoCard(value: _additionalInfo),
+              ],
               const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '证明资料',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      if (_editable) ...[
-                        const SizedBox(height: 5),
-                        Text(
-                          _isPublicWelfare
-                              ? '选填，上传证明资料可大幅提高审核通过率'
-                              : '请上传两份 ZIP 或 RAR 压缩包，每份最大 2GB',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: _isPublicWelfare
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                fontWeight: _isPublicWelfare
-                                    ? FontWeight.w600
-                                    : null,
+              if (_editable || _existingProofArchive != null)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              '证明资料',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            if (_editable) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF0D8),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  '选填',
+                                  style: TextStyle(
+                                    color: Color(0xFF9A5B0B),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
+                            ],
+                          ],
                         ),
-                        if (_isPublicWelfare) ...[
-                          const SizedBox(height: 3),
+                        if (_editable) ...[
+                          const SizedBox(height: 9),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: .07),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '资料越完整，越容易获得他人信任，也更有机会收到付费询问。',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(height: 1.45),
+                            ),
+                          ),
+                          const SizedBox(height: 7),
                           Text(
                             '支持 ZIP 或 RAR 压缩包，最大 2GB',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
-                      ],
-                      const SizedBox(height: 12),
-                      if (!_editable && _record != null)
-                        for (final material in _record!.materials.where(
-                          (item) => const [
-                            'REVIEW_ORIGINAL_ARCHIVE',
-                            'PROOF_ARCHIVE',
-                            'ARCHIVE',
-                          ].contains(item.kind.toUpperCase()),
-                        ))
-                          _ExistingMaterialRow(material: material)
-                      else ...[
-                        if (!_isPublicWelfare) ...[
+                        const SizedBox(height: 12),
+                        if (!_editable && _record != null)
+                          for (final material in _record!.materials.where(
+                            (item) => const [
+                              'PROOF_ARCHIVE',
+                              'ARCHIVE',
+                            ].contains(item.kind.toUpperCase()),
+                          ))
+                            _ExistingMaterialRow(material: material)
+                        else ...[
                           _MaterialRow(
-                            icon: Icons.lock_outline_rounded,
-                            title: '原件',
+                            icon: Icons.folder_zip_outlined,
+                            title: '证明资料',
                             subtitle:
-                                _reviewOriginalArchive?.name ??
-                                _existingReviewOriginalArchive?.name ??
-                                '完整版本，仅供平台审核，永不公开',
-                            action:
-                                _reviewOriginalArchive == null &&
-                                    _existingReviewOriginalArchive == null
-                                ? '上传'
-                                : '重选',
-                            onTap: _pickReviewOriginalArchive,
+                                _proofArchive?.name ??
+                                (!_removeExistingProofArchive
+                                    ? _existingProofArchive?.name
+                                    : null) ??
+                                '请先处理其中的个人隐私',
+                            notice: '不知道如何处理？',
+                            onNoticeTap: _showPrivacyInformationDialog,
+                            action: _hasSelectedProofArchive ? '重选' : '上传',
+                            onTap: _pickProofArchive,
+                            onRemove: _hasSelectedProofArchive
+                                ? _removeProofArchive
+                                : null,
                           ),
-                          const SizedBox(height: 4),
                         ],
-                        _MaterialRow(
-                          icon: Icons.folder_zip_outlined,
-                          title: _isPublicWelfare ? '证明资料' : '副件（需处理）',
-                          subtitle:
-                              _proofArchive?.name ??
-                              _existingProofArchive?.name ??
-                              (_isPublicWelfare
-                                  ? '请先处理其中的个人隐私'
-                                  : '需处理隐私的版本，可自行公开'),
-                          notice: '不知道如何处理？',
-                          onNoticeTap: _showPrivacyInformationDialog,
-                          action:
-                              _proofArchive == null &&
-                                  _existingProofArchive == null
-                              ? '上传'
-                              : '重选',
-                          onTap: _pickProofArchive,
-                        ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
     bottomNavigationBar: !_editable
@@ -632,7 +459,7 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
             minimum: const EdgeInsets.fromLTRB(10, 8, 10, 12),
             child: FilledButton(
               onPressed: _submitting ? null : _submit,
-              child: Text(_isPublicWelfare ? '提交审核' : '提交审核'),
+              child: const Text('提交审核'),
             ),
           ),
   );
@@ -640,7 +467,6 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
 
 class _PublicMediaSection extends StatelessWidget {
   const _PublicMediaSection({
-    required this.isPublicWelfare,
     required this.data,
     required this.selectedIds,
     required this.saving,
@@ -648,7 +474,6 @@ class _PublicMediaSection extends StatelessWidget {
     required this.onSave,
   });
 
-  final bool isPublicWelfare;
   final ExperiencePublicMediaView? data;
   final Set<int> selectedIds;
   final bool saving;
@@ -730,38 +555,19 @@ class _PublicMediaSection extends StatelessWidget {
                             color: colorScheme.onSurfaceVariant,
                           ),
                           children: [
-                            if (isPublicWelfare) ...[
-                              const TextSpan(
-                                text: '公开证明材料，可以让其他用户更直观地了解内容来源，未勾选的内容不会对外展示。',
+                            const TextSpan(
+                              text: '仅靠文字叙述，很难完全消除他人对内容真实性的疑虑。\n\n',
+                            ),
+                            TextSpan(
+                              text: '选择公开证明材料',
+                              style: TextStyle(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.w700,
                               ),
-                              const TextSpan(text: ''),
-                            ] else ...[
-                              const TextSpan(
-                                text:
-                                    '在信息泛滥的当下，仅仅叙述事情经过，很难完全消除他人对“胡编乱造”的疑虑。\n\n',
-                              ),
-                              TextSpan(
-                                text: '选择公开证明材料',
-                                style: TextStyle(
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const TextSpan(
-                                text: '，是用最直观的真实背书，是向其他用户展示诚意与真实性的最佳方式。\n\n',
-                              ),
-                              const TextSpan(
-                                text: '当你的干货有了确凿的证据支撑，不仅能大幅提升内容的说服力，更能有效增强他人的',
-                              ),
-                              TextSpan(
-                                text: '付费意愿',
-                                style: TextStyle(
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const TextSpan(text: '，为你的干货变现创造更大的可能性。'),
-                            ],
+                            ),
+                            const TextSpan(
+                              text: '，可以为这段经历提供更直观的真实依据，也能帮助其他用户判断是否需要进一步了解。',
+                            ),
                           ],
                         ),
                       ),
@@ -810,23 +616,23 @@ class _PublicMediaSection extends StatelessWidget {
             ),
             const SizedBox(height: 5),
             Text(
-              isPublicWelfare ? '只会公开您勾选的证明资料内容' : '只会公开您勾选的副件内容',
+              '只会公开您勾选的证明资料内容',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 14),
             if (status == 'PENDING' || status == 'PROCESSING')
-              const _MediaProcessingNotice(text: '正在整理副件中的图片、视频和音频')
+              const _MediaProcessingNotice(text: '正在整理证明资料中的图片、视频和音频')
             else if (status == 'FAILED')
               _MediaProcessingNotice(
                 text: data?.processingError.isNotEmpty == true
                     ? data!.processingError
-                    : '副件整理失败，请联系平台处理',
+                    : '证明资料整理失败，请联系平台处理',
                 error: true,
               )
             else if (data == null || data!.items.isEmpty)
-              const _MediaProcessingNotice(text: '副件中没有可供选择的图片、视频或音频')
+              const _MediaProcessingNotice(text: '证明资料中没有可供选择的图片、视频或音频')
             else ...[
               for (final group in const [
                 ('IMAGE', '图片'),
@@ -967,319 +773,10 @@ class _PublicMediaItem extends StatelessWidget {
   }
 }
 
-class _SubmissionConfirmationDialog extends StatefulWidget {
-  const _SubmissionConfirmationDialog();
-
-  @override
-  State<_SubmissionConfirmationDialog> createState() =>
-      _SubmissionConfirmationDialogState();
-}
-
-class _SubmissionConfirmationDialogState
-    extends State<_SubmissionConfirmationDialog> {
-  final GlobalKey _signatureBoundaryKey = GlobalKey();
-  final List<Offset?> _points = [];
-  bool _privacyConfirmed = false;
-  bool _saving = false;
-
-  bool get _hasSignature => _points.whereType<Offset>().length >= 8;
-
-  void _addPoint(Offset? point) {
-    setState(() => _points.add(point));
-  }
-
-  void _clearSignature() {
-    setState(_points.clear);
-  }
-
-  Future<void> _confirm() async {
-    if (!_privacyConfirmed || !_hasSignature || _saving) return;
-    setState(() => _saving = true);
-    try {
-      await WidgetsBinding.instance.endOfFrame;
-      final boundary =
-          _signatureBoundaryKey.currentContext?.findRenderObject()
-              as RenderRepaintBoundary?;
-      if (boundary == null) return;
-      final image = await boundary.toImage(pixelRatio: 2.5);
-      final data = await image.toByteData(format: ui.ImageByteFormat.png);
-      image.dispose();
-      if (!mounted || data == null) return;
-      Navigator.pop(context, data.buffer.asUint8List());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final warningStyle = appStatusStyle(context, 'PENDING');
-    final canSubmit = _privacyConfirmed && _hasSignature && !_saving;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '确认提交',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '二次确认，并完成本人签字',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: _saving ? null : () => Navigator.pop(context),
-                    tooltip: '关闭',
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Material(
-                color: warningStyle.background,
-                borderRadius: BorderRadius.circular(16),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: _saving
-                      ? null
-                      : () => setState(
-                          () => _privacyConfirmed = !_privacyConfirmed,
-                        ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(15),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          _privacyConfirmed
-                              ? Icons.check_circle_rounded
-                              : Icons.radio_button_unchecked_rounded,
-                          size: 24,
-                          color: _privacyConfirmed
-                              ? warningStyle.foreground
-                              : warningStyle.foreground.withValues(alpha: .72),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '本人已对副件中的隐私信息完成脱敏处理，并自愿承担产生的一切风险与责任。',
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: warningStyle.foreground,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                '提交前，请务必自行核查并脱敏副件中的敏感隐私。',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  height: 1.45,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 22),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '本人签字',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  if (_points.isNotEmpty)
-                    TextButton(
-                      onPressed: _saving ? null : _clearSignature,
-                      child: const Text('重新签写'),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: RepaintBoundary(
-                  key: _signatureBoundaryKey,
-                  child: ColoredBox(
-                    color: Colors.white,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onPanStart: (details) => _addPoint(details.localPosition),
-                      onPanUpdate: (details) =>
-                          _addPoint(details.localPosition),
-                      onPanEnd: (_) => _addPoint(null),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 160,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            if (_points.isEmpty)
-                              const Text(
-                                '在此处手写签字',
-                                style: TextStyle(
-                                  color: Color(0xFFB8B8B8),
-                                  fontSize: 14,
-                                ),
-                              ),
-                            Positioned.fill(
-                              child: CustomPaint(
-                                painter: _SignaturePainter(_points),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      '审核通过后，经历内容及两份证明资料均不支持修改',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: canSubmit ? _confirm : null,
-                  child: Text(_saving ? '正在提交…' : '确认并提交'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SignaturePainter extends CustomPainter {
-  const _SignaturePainter(this.points);
-
-  final List<Offset?> points;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF222222)
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    for (var index = 0; index < points.length - 1; index++) {
-      final current = points[index];
-      final next = points[index + 1];
-      if (current != null && next != null) {
-        canvas.drawLine(current, next, paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _SignaturePainter oldDelegate) => true;
-}
-
-class _DetailModeButton extends StatelessWidget {
-  const _DetailModeButton({
-    required this.label,
-    required this.selected,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: selected
-          ? theme.colorScheme.primaryContainer
-          : theme.colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(10),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 11),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: selected
-                  ? theme.colorScheme.onPrimaryContainer
-                  : theme.colorScheme.onSurfaceVariant,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _ExistingMaterialRow extends StatelessWidget {
-  const _ExistingMaterialRow({required this.material, this.label});
+  const _ExistingMaterialRow({required this.material});
 
   final CertificationMaterial material;
-  final String? label;
 
   @override
   Widget build(BuildContext context) => ListTile(
@@ -1289,14 +786,7 @@ class _ExistingMaterialRow extends StatelessWidget {
       'IMAGE' => Icons.image_outlined,
       _ => Icons.archive_outlined,
     }),
-    title: Text(
-      label ?? material.name,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    ),
-    subtitle: label == null
-        ? null
-        : Text(material.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+    title: Text(material.name, maxLines: 1, overflow: TextOverflow.ellipsis),
     trailing: material.url.trim().isEmpty
         ? null
         : TextButton(
@@ -1329,12 +819,10 @@ class _ExperienceStatus extends StatelessWidget {
       ),
       child: Text(
         status == 'APPROVED'
-            ? record.isPublicWelfare
-                  ? '已通过审核'
-                  : '已经通过认证'
+            ? '已通过审核'
             : status == 'REJECTED'
             ? (record.rejectionReason.isEmpty
-                  ? '认证未通过'
+                  ? '审核未通过'
                   : record.rejectionReason)
             : '正在审核',
         style: TextStyle(color: style.foreground, fontWeight: FontWeight.w600),
@@ -1352,6 +840,7 @@ class _MaterialRow extends StatelessWidget {
     required this.onTap,
     this.notice,
     this.onNoticeTap,
+    this.onRemove,
   });
   final IconData icon;
   final String title;
@@ -1360,6 +849,7 @@ class _MaterialRow extends StatelessWidget {
   final VoidCallback? onTap;
   final String? notice;
   final VoidCallback? onNoticeTap;
+  final VoidCallback? onRemove;
   @override
   Widget build(BuildContext context) => ListTile(
     contentPadding: EdgeInsets.zero,
@@ -1396,7 +886,14 @@ class _MaterialRow extends StatelessWidget {
         ],
       ],
     ),
-    trailing: TextButton(onPressed: onTap, child: Text(action)),
+    trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (onRemove != null)
+          TextButton(onPressed: onRemove, child: const Text('移除')),
+        TextButton(onPressed: onTap, child: Text(action)),
+      ],
+    ),
   );
 }
 

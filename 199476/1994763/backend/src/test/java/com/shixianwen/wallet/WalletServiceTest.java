@@ -25,14 +25,14 @@ import static org.mockito.Mockito.when;
 
 class WalletServiceTest {
     @Test
-    void publicWelfareTipTransfersOnlyAllowedAmountAndIsIdempotent() {
+    void experienceUsesUnifiedTipRules() {
         WalletAccountRepository wallets = mock(WalletAccountRepository.class);
         WalletTransactionRepository transactions = mock(WalletTransactionRepository.class);
         ExperienceTipRepository tips = mock(ExperienceTipRepository.class);
         CertificationRepository certifications = mock(CertificationRepository.class);
         WalletAccount payer = sourcedWallet(1L, "10.00", "5.00");
         WalletAccount receiver = sourcedWallet(2L, "0.00", "2.00");
-        Certification certification = experience(88L, receiver.getUser(), "PUBLIC_WELFARE");
+        Certification certification = experience(88L, receiver.getUser());
         AtomicReference<ExperienceTip> savedTip = new AtomicReference<>();
 
         when(wallets.findWithLockByUserId(1L)).thenReturn(Optional.of(payer));
@@ -54,19 +54,22 @@ class WalletServiceTest {
         assertEquals(new BigDecimal("12.00"), payer.getAvailableBalance());
         assertEquals(new BigDecimal("7.00"), payer.getRechargeBalance());
         assertEquals(new BigDecimal("5.00"), payer.getIncomeBalance());
-        assertEquals(new BigDecimal("5.00"), receiver.getIncomeBalance());
-        assertEquals(new BigDecimal("5.00"), receiver.getAvailableBalance());
+        assertEquals(new BigDecimal("2.00"), receiver.getIncomeBalance());
+        assertEquals(new BigDecimal("2.00"), receiver.getAvailableBalance());
+        assertEquals(new BigDecimal("2.85"), receiver.getPendingIncomeBalance());
+        assertEquals(new BigDecimal("0.15"), savedTip.get().getFeeAmount());
+        assertEquals(new BigDecimal("2.85"), savedTip.get().getReceiverIncomeAmount());
         verify(tips, times(1)).save(any(ExperienceTip.class));
         verify(transactions, times(2)).save(any(WalletTransaction.class));
     }
 
     @Test
-    void publicWelfareTipRejectsDisabledAmount() {
+    void experienceTipRejectsAmountAboveUnifiedLimit() {
         WalletAccountRepository wallets = mock(WalletAccountRepository.class);
         CertificationRepository certifications = mock(CertificationRepository.class);
         User receiver = new User();
         receiver.setId(2L);
-        Certification certification = experience(88L, receiver, "PUBLIC_WELFARE");
+        Certification certification = experience(88L, receiver);
         when(certifications.findById(88L)).thenReturn(Optional.of(certification));
 
         WalletService service = service(
@@ -78,7 +81,7 @@ class WalletServiceTest {
 
         assertThrows(
             RuntimeException.class,
-            () -> service.tipExperience(1L, 88L, new BigDecimal("18"), "tip_request_123456")
+            () -> service.tipExperience(1L, 88L, new BigDecimal("5001"), "tip_request_123456")
         );
         verify(wallets, times(0)).findWithLockByUserId(any());
     }
@@ -122,7 +125,7 @@ class WalletServiceTest {
         when(transactions.findByUserIdAndTransactionTypeAndReferenceTypeAndReferenceId(
             any(), any(), any(), any()
         )).thenReturn(Optional.empty());
-        when(feeRecords.existsByInquiryId(8L)).thenReturn(false);
+        when(feeRecords.existsByReferenceTypeAndReferenceId("INQUIRY", 8L)).thenReturn(false);
 
         Inquiry inquiry = new Inquiry();
         inquiry.setId(8L);
@@ -145,7 +148,8 @@ class WalletServiceTest {
             mock(AppTestLoginAccountService.class),
             mock(SecurityEventService.class),
             mock(com.shixianwen.analytics.AnalyticsEventService.class),
-            mock(com.shixianwen.finance.FinancialLedgerService.class)
+            mock(com.shixianwen.finance.FinancialLedgerService.class),
+            mock(org.springframework.jdbc.core.JdbcTemplate.class)
         );
 
         service.settle(
@@ -169,57 +173,6 @@ class WalletServiceTest {
         assertEquals(new BigDecimal("95.00"), feeCaptor.getValue().getAnswererIncomeAmount());
     }
 
-    @Test
-    void invitationRewardCreditsWithdrawableIncomeAndIsIdempotent() {
-        WalletAccountRepository wallets = mock(WalletAccountRepository.class);
-        WalletTransactionRepository transactions = mock(WalletTransactionRepository.class);
-        UserRepository users = mock(UserRepository.class);
-        WalletAccount account = wallet(1L, "10.00", "0.00");
-        account.setRechargeBalance(new BigDecimal("10.00"));
-        account.setIncomeBalance(MoneyAmounts.ZERO);
-        account.setPendingIncomeBalance(MoneyAmounts.ZERO);
-        account.setFrozenRechargeBalance(MoneyAmounts.ZERO);
-        account.setFrozenIncomeBalance(MoneyAmounts.ZERO);
-        User user = account.getUser();
-        user.setAccountType("NORMAL");
-        AtomicReference<WalletTransaction> recorded = new AtomicReference<>();
-        when(users.findById(1L)).thenReturn(Optional.of(user));
-        when(wallets.findWithLockByUserId(1L)).thenReturn(Optional.of(account));
-        when(transactions.findByUserIdAndTransactionTypeAndReferenceTypeAndReferenceId(
-            1L, "INVITATION_REWARD", "EXPERIENCE_INVITATION_REWARD", 90L
-        )).thenAnswer(invocation -> Optional.ofNullable(recorded.get()));
-        when(transactions.save(any(WalletTransaction.class))).thenAnswer(invocation -> {
-            WalletTransaction transaction = invocation.getArgument(0);
-            recorded.set(transaction);
-            return transaction;
-        });
-
-        WalletService service = new WalletService(
-            wallets,
-            transactions,
-            mock(ExperienceTipRepository.class),
-            mock(com.shixianwen.certification.CertificationRepository.class),
-            mock(AlipayAccountRepository.class),
-            mock(WithdrawalRepository.class),
-            mock(WalletIncomeHoldRepository.class),
-            users,
-            mock(PlatformServiceFeePolicy.class),
-            mock(PlatformFeeRecordRepository.class),
-            mock(VerificationCodeService.class),
-            mock(AppTestLoginAccountService.class),
-            mock(SecurityEventService.class),
-            mock(com.shixianwen.analytics.AnalyticsEventService.class),
-            mock(com.shixianwen.finance.FinancialLedgerService.class)
-        );
-
-        service.creditInvitationReward(1L, new BigDecimal("7"), 90L);
-        service.creditInvitationReward(1L, new BigDecimal("7.00"), 90L);
-
-        assertEquals(new BigDecimal("7.00"), account.getIncomeBalance());
-        assertEquals(new BigDecimal("17.00"), account.getAvailableBalance());
-        verify(transactions, times(1)).save(any(WalletTransaction.class));
-    }
-
     private WalletService service(
         WalletAccountRepository wallets,
         WalletTransactionRepository transactions
@@ -238,6 +191,16 @@ class WalletServiceTest {
         ExperienceTipRepository tips,
         CertificationRepository certifications
     ) {
+        PlatformServiceFeePolicy feePolicy = mock(PlatformServiceFeePolicy.class);
+        when(feePolicy.quote(any(BigDecimal.class), any())).thenAnswer(invocation -> {
+            BigDecimal amount = invocation.getArgument(0);
+            BigDecimal fee = MoneyAmounts.normalize(amount.multiply(new BigDecimal("0.050000")));
+            return new PlatformServiceFeePolicy.SettlementQuote(
+                "ANDROID", amount, new BigDecimal("0.050000"), fee,
+                MoneyAmounts.subtract(amount, fee)
+            );
+        });
+        when(feePolicy.currentRate(any())).thenReturn(new BigDecimal("0.050000"));
         return new WalletService(
             wallets,
             transactions,
@@ -247,13 +210,14 @@ class WalletServiceTest {
             mock(WithdrawalRepository.class),
             mock(WalletIncomeHoldRepository.class),
             mock(UserRepository.class),
-            mock(PlatformServiceFeePolicy.class),
+            feePolicy,
             mock(PlatformFeeRecordRepository.class),
             mock(VerificationCodeService.class),
             mock(AppTestLoginAccountService.class),
             mock(SecurityEventService.class),
             mock(com.shixianwen.analytics.AnalyticsEventService.class),
-            mock(com.shixianwen.finance.FinancialLedgerService.class)
+            mock(com.shixianwen.finance.FinancialLedgerService.class),
+            mock(org.springframework.jdbc.core.JdbcTemplate.class)
         );
     }
 
@@ -280,14 +244,13 @@ class WalletServiceTest {
         return wallet;
     }
 
-    private Certification experience(Long id, User owner, String businessType) {
+    private Certification experience(Long id, User owner) {
         Certification certification = new Certification();
         certification.setId(id);
         certification.setUser(owner);
         certification.setCategory("EXPERIENCE");
         certification.setStatus("APPROVED");
         certification.setEnabled(true);
-        certification.setExperienceBusinessType(businessType);
         return certification;
     }
 }

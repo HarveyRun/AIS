@@ -15,6 +15,7 @@ import '../../core/theme/app_status_style.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/inquiry_models.dart';
+import '../../data/models/app_global_settings.dart';
 import '../../data/repositories/app_repository.dart';
 import 'inquiry_quality_sheet.dart';
 
@@ -34,10 +35,12 @@ class _ChatPageState extends ConsumerState<ChatPage>
   final _picker = ImagePicker();
   StreamSubscription<RealtimeEvent>? _subscription;
   InquiryDetail? _detail;
+  AudioAppointment? _audioAppointment;
   bool _loading = true;
   bool _emojiOpen = false;
   bool _moreOpen = false;
   InquiryQualityOptions? _quality;
+  AppGlobalSettings? _settings;
 
   static const _emojis = [
     '😀',
@@ -209,17 +212,16 @@ class _ChatPageState extends ConsumerState<ChatPage>
     if (!silent) setState(() => _loading = true);
     try {
       InquiryDetail? detail;
+      AudioAppointment? audioAppointment;
       InquiryQualityOptions? quality;
 
       Future<void> fetchDetail() async {
         final repository = ref.read(repositoryProvider);
+        _settings ??= await repository.appGlobalSettings();
         detail = await repository.inquiry(widget.id, showLoading: false);
+        audioAppointment = await repository.latestAudioAppointment(widget.id);
         if (!detail!.inquiry.isIncoming &&
-            [
-              'COMPLETED',
-              'QUALITY_REFUNDED',
-              'DISPUTED',
-            ].contains(detail!.inquiry.status.toUpperCase())) {
+            detail!.inquiry.status.toUpperCase() == 'COMPLETED') {
           quality = await repository.inquiryQualityOptions(
             widget.id,
             showLoading: false,
@@ -235,6 +237,7 @@ class _ChatPageState extends ConsumerState<ChatPage>
       if (!mounted) return;
       setState(() {
         _detail = detail;
+        _audioAppointment = audioAppointment;
         _quality = quality;
       });
       _scheduleScrollToEnd(animate: false);
@@ -297,7 +300,6 @@ class _ChatPageState extends ConsumerState<ChatPage>
       attachmentName: '',
       attachmentSize: 0,
       createdAt: DateTime.now(),
-      reportable: false,
       sending: true,
     );
     _textController.clear();
@@ -315,6 +317,8 @@ class _ChatPageState extends ConsumerState<ChatPage>
           .sendInquiryMessage(widget.id, content);
       if (!mounted) return;
       setState(() => _detail = _replaceMessage(pending.id, saved));
+      await _load(silent: true);
+      if (!mounted) return;
       _composerFocusNode.requestFocus();
       _scheduleScrollToEnd();
     } catch (error) {
@@ -327,6 +331,70 @@ class _ChatPageState extends ConsumerState<ChatPage>
       );
       AppMessage.show(context, '$error');
     }
+  }
+
+  Future<void> _createAudioCall() async {
+    final inquiry = _detail?.inquiry;
+    if (inquiry == null) return;
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '发起语音通话',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(sheetContext, false),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text('对方的询问费用为 ¥${inquiry.hourlyRateSnapshot}/小时，接通后开始计费。'),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(sheetContext, true),
+                  child: const Text('呼叫'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      final call = await ref
+          .read(repositoryProvider)
+          .createAudioCall(inquiryId: widget.id);
+      if (!mounted) return;
+      await context.push('/voice-call/${widget.id}/${call.id}?initiator=1');
+      if (mounted) await _load(silent: true);
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+    }
+  }
+
+  Future<void> _enterAudioCall() async {
+    final appointment = _audioAppointment;
+    if (appointment == null || !appointment.exists) return;
+    await context.push(
+      '/voice-call/${widget.id}/${appointment.id}?initiator=${appointment.isIncoming ? 0 : 1}',
+    );
+    if (mounted) await _load(silent: true);
   }
 
   InquiryDetail _replaceMessage(String id, ChatMessage replacement) {
@@ -359,6 +427,7 @@ class _ChatPageState extends ConsumerState<ChatPage>
           .sendInquiryMessage(widget.id, failedMessage.content);
       if (!mounted) return;
       setState(() => _detail = _replaceMessage(failedMessage.id, saved));
+      await _load(silent: true);
     } catch (error) {
       if (!mounted) return;
       setState(
@@ -405,57 +474,25 @@ class _ChatPageState extends ConsumerState<ChatPage>
     }
   }
 
-  Future<void> _reportMessage(ChatMessage chatMessage) async {
-    if (!chatMessage.reportable) return;
-    try {
-      final reported = await ref
-          .read(repositoryProvider)
-          .hasReportedInquiryMessage(widget.id, chatMessage.id);
-      if (!mounted) return;
-      if (reported) {
-        AppMessage.show(context, '你已经举报过这条消息');
-        return;
-      }
-    } catch (error) {
-      if (mounted) AppMessage.show(context, '$error');
-      return;
-    }
-    final reportType = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const _MessageReportDialog(),
-    );
-    if (reportType == null || !mounted) return;
-    try {
-      await ref
-          .read(repositoryProvider)
-          .reportInquiryMessage(widget.id, chatMessage.id, reportType);
-      if (mounted) AppMessage.show(context, '举报已提交');
-    } catch (error) {
-      if (mounted) AppMessage.show(context, '$error');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final detail = _detail;
     final inquiry = detail?.inquiry;
-    final currentUserId = ref.read(authControllerProvider).user?.id;
-    final sentInitialMessage = detail?.messages.any(
-          (message) =>
-              message.senderId == currentUserId &&
-              !const {'SYSTEM', 'TIMEOUT_NOTICE'}.contains(message.type.toUpperCase()),
-        ) ??
-        false;
     final status = inquiry?.status.toUpperCase();
-    final canSendInitialMessage = status == 'PENDING' &&
-        inquiry?.isIncoming == false &&
-        !sentInitialMessage;
-    final canChat = canSendInitialMessage ||
-        (inquiry?.canChat == true &&
-            (inquiry!.isIncoming ||
-                inquiry.firstAnswererReplyAt != null ||
-                !sentInitialMessage));
+    final canChat = inquiry?.canChat == true;
+    final appointment = _audioAppointment;
+    final appointmentOpen = appointment?.isOpen == true;
+    final allowImages = status == 'PAID_ACTIVE';
+    final canEnd =
+        inquiry != null &&
+        !inquiry.isIncoming &&
+        status == 'ACTIVE' &&
+        !appointmentOpen;
+    final canCreateAudioCall =
+        inquiry?.canCreateAudioAppointment == true &&
+        (appointment == null || !appointment.isOpen);
+    final hasMoreActions =
+        inquiry != null && (allowImages || canEnd || canCreateAudioCall);
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -480,9 +517,11 @@ class _ChatPageState extends ConsumerState<ChatPage>
                   padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
                   child: _ChatStatus(
                     inquiry: inquiry!,
+                    audioAppointment: appointment,
                     quality: _quality,
                     onAction: _action,
                     onEvaluate: _evaluate,
+                    onEnterAudioCall: _enterAudioCall,
                   ),
                 ),
                 Expanded(
@@ -515,15 +554,6 @@ class _ChatPageState extends ConsumerState<ChatPage>
                           return _MessageBubble(
                             message: message,
                             showTime: showTime,
-                            onReport:
-                                message.reportable &&
-                                    message.senderId !=
-                                        ref
-                                            .read(authControllerProvider)
-                                            .user
-                                            ?.id
-                                ? () => _reportMessage(message)
-                                : null,
                             onRetry: message.failed
                                 ? () => _retryMessage(message)
                                 : null,
@@ -537,18 +567,20 @@ class _ChatPageState extends ConsumerState<ChatPage>
                   controller: _textController,
                   focusNode: _composerFocusNode,
                   enabled: canChat,
-                  disabledHint:
-                      !inquiry.isIncoming &&
-                          inquiry.firstAnswererReplyAt == null &&
-                          sentInitialMessage &&
-                          const {'PENDING', 'ACTIVE'}.contains(status)
-                      ? '等待对方回复后可继续发送'
+                  disabledHint: inquiry.communicationBlocked
+                      ? '你与对方已无法继续交流'
+                      : status == 'PENDING'
+                      ? '对方接受后可以聊天'
                       : '本次交流暂不能聊天',
                   emojiOpen: _emojiOpen,
                   moreOpen: _moreOpen,
+                  moreEnabled: hasMoreActions,
                   onSubmitted: _sendText,
                   onEmoji: _toggleEmojiPanel,
                   onMore: _toggleMorePanel,
+                  maxLength: inquiry.isCurrentFlow
+                      ? (_settings?.textMessageMaxLength ?? 100)
+                      : 500,
                 ),
                 if (_emojiOpen && canChat)
                   _EmojiPanel(
@@ -560,19 +592,24 @@ class _ChatPageState extends ConsumerState<ChatPage>
                       );
                     },
                   ),
-                if (_moreOpen && canChat)
+                if (_moreOpen && hasMoreActions)
                   _MorePanel(
+                    allowImages: allowImages,
                     onPhoto: () => _sendPhoto(ImageSource.gallery),
                     onCamera: () => _sendPhoto(ImageSource.camera),
-                    onEnd: () {
-                      setState(() => _moreOpen = false);
-                      final repository = ref.read(repositoryProvider);
-                      if (inquiry.isIncoming) {
-                        _action(repository.requestInquiryEnd, '结束申请已发送');
-                      } else {
-                        _confirmEnd(repository);
-                      }
-                    },
+                    onAudioCall: canCreateAudioCall
+                        ? () {
+                            setState(() => _moreOpen = false);
+                            _createAudioCall();
+                          }
+                        : null,
+                    onEnd: canEnd
+                        ? () {
+                            setState(() => _moreOpen = false);
+                            final repository = ref.read(repositoryProvider);
+                            _confirmEnd(repository);
+                          }
+                        : null,
                   ),
               ],
             ),
@@ -582,22 +619,30 @@ class _ChatPageState extends ConsumerState<ChatPage>
   Future<void> _confirmEnd(AppRepository repository) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('结束本次询问？'),
-        content: const Text('结束后，本次费用将结算给回答者，聊天不能继续。'),
+      builder: (dialogContext) => AlertDialog(
+        titlePadding: const EdgeInsets.fromLTRB(24, 14, 8, 0),
+        title: Row(
+          children: [
+            const Expanded(child: Text('结束本次询问？')),
+            IconButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              tooltip: '关闭',
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ],
+        ),
+        content: const Text('确定结束本次询问吗？'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('继续交流'),
-          ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('确认结束'),
           ),
         ],
       ),
     );
-    if (confirmed == true) _action(repository.confirmInquiryEnd, '本次交流已结束');
+    if (confirmed == true) {
+      _action(repository.endInquiry, '本次询问已结束');
+    }
   }
 
   Future<void> _evaluate() async {
@@ -616,14 +661,18 @@ class _ChatPageState extends ConsumerState<ChatPage>
 class _ChatStatus extends ConsumerWidget {
   const _ChatStatus({
     required this.inquiry,
+    required this.audioAppointment,
     required this.quality,
     required this.onAction,
     required this.onEvaluate,
+    required this.onEnterAudioCall,
   });
   final InquirySummary inquiry;
+  final AudioAppointment? audioAppointment;
   final InquiryQualityOptions? quality;
   final void Function(Future<void> Function(int), String) onAction;
   final VoidCallback onEvaluate;
+  final VoidCallback onEnterAudioCall;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -635,12 +684,11 @@ class _ChatStatus extends ConsumerWidget {
     final text = switch (status) {
       'PENDING' => inquiry.isIncoming ? '等待你的决定' : '等待对方接受',
       'ACTIVE' => '交流进行中',
-      'AWAITING_CONFIRMATION' => inquiry.isIncoming ? '等待提问者确认结束' : '对方申请结束',
+      'TEXT_LIMIT_REACHED' => '文字交流额度已用完',
+      'TEXT_ENDED' => '文字交流已经结束',
+      'PAID_ACTIVE' => '语音通话进行中',
       'COMPLETED' || 'ENDED' => '本次交流已经结束',
-      'DISPUTED' => '平台正在核对本次交流',
-      'QUALITY_REFUNDED' => '本次询问已经全额退款',
       'TIMEOUT_REFUNDED' => '本次询问已因超时全额退款',
-      'END_DISPUTE_REFUNDED' => '平台已退回本次询问剩余金额',
       'REJECTED' => '本次询问未接受',
       'CANCELLED' => '本次询问已撤销',
       'EXPIRED' => '本次询问已超时',
@@ -678,13 +726,14 @@ class _ChatStatus extends ConsumerWidget {
                     ),
                   ),
                 ),
-                Text(
-                  '$amountLabel ¥${formatMoney(amountValue)}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.primary,
+                if (!inquiry.isCurrentFlow || inquiry.amount > 0)
+                  Text(
+                    '$amountLabel ¥${formatMoney(amountValue)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
-                ),
               ],
             ),
             if (status == 'PENDING') ...[
@@ -703,17 +752,26 @@ class _ChatStatus extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '询问经历',
+                      inquiry.isIncoming ? '用户想问' : '我要问的',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      inquiry.topic.isEmpty ? '亲身经历' : inquiry.topic,
+                      inquiry.question.isEmpty ? '-' : inquiry.question,
                       style: Theme.of(
                         context,
                       ).textTheme.bodyMedium?.copyWith(height: 1.45),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      inquiry.isIncoming
+                          ? '请在72小时内处理，超时后询问将自动结束'
+                          : '对方72小时内未处理，询问将自动结束',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -746,32 +804,54 @@ class _ChatStatus extends ConsumerWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () =>
-                      onAction(repository.cancelInquiry, '询问已撤销，金额已退回'),
+                  onPressed: () => onAction(repository.cancelInquiry, '询问已撤销'),
                   child: const Text('撤销询问'),
                 ),
               ),
             ],
-            if (status == 'AWAITING_CONFIRMATION' && !inquiry.isIncoming) ...[
-              const SizedBox(height: 10),
+            if (inquiry.isCurrentFlow &&
+                const {
+                  'PENDING',
+                  'ACTIVE',
+                  'TEXT_LIMIT_REACHED',
+                  'TEXT_ENDED',
+                }.contains(status)) ...[
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: () =>
-                          onAction(repository.disagreeInquiryEnd, '已提交平台处理'),
-                      child: const Text('不同意'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () =>
-                          onAction(repository.confirmInquiryEnd, '本次交流已结束'),
-                      child: const Text('确认结束'),
+                    child: Text(
+                      const {
+                            'TEXT_LIMIT_REACHED',
+                            'TEXT_ENDED',
+                          }.contains(status)
+                          ? (status == 'TEXT_LIMIT_REACHED'
+                                ? '免费消息额度已用完'
+                                : '文字交流已主动结束')
+                          : '免费消息剩余 ${inquiry.remainingTextCount}/${inquiry.textMessageLimit}',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
                 ],
+              ),
+            ],
+            if (audioAppointment?.exists == true) ...[
+              const SizedBox(height: 10),
+              _AudioAppointmentCard(
+                appointment: audioAppointment!,
+                onEnter: onEnterAudioCall,
+              ),
+            ],
+            if (inquiry.isCurrentFlow &&
+                status == 'PAID_ACTIVE' &&
+                audioAppointment?.exists != true) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${inquiry.purchasedMinutes}分钟 · 文字消息不限量${inquiry.paidSessionEndsAt == null ? '' : ' · ${DateFormat('HH:mm').format(inquiry.paidSessionEndsAt!)}结束'}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
             ],
             if (!inquiry.isIncoming && quality?.canEvaluate == true) ...[
@@ -797,25 +877,13 @@ class _ChatStatus extends ConsumerWidget {
     if (inquiry.isIncoming) {
       return switch (status) {
         'COMPLETED' || 'ENDED' => '实际收入',
-        'DISPUTED' => '待结算',
-        'REJECTED' ||
-        'CANCELLED' ||
-        'EXPIRED' ||
-        'QUALITY_REFUNDED' ||
-        'TIMEOUT_REFUNDED' ||
-        'END_DISPUTE_REFUNDED' => '实际收入',
+        'REJECTED' || 'CANCELLED' || 'EXPIRED' || 'TIMEOUT_REFUNDED' => '实际收入',
         _ => '预计收入',
       };
     }
     return switch (status) {
       'COMPLETED' || 'ENDED' => '实际支付',
-      'DISPUTED' => '待处理金额',
-      'REJECTED' ||
-      'CANCELLED' ||
-      'EXPIRED' ||
-      'QUALITY_REFUNDED' ||
-      'TIMEOUT_REFUNDED' ||
-      'END_DISPUTE_REFUNDED' => '已退款',
+      'REJECTED' || 'CANCELLED' || 'EXPIRED' || 'TIMEOUT_REFUNDED' => '已退款',
       _ when inquiry.timeoutCount > 0 => '剩余金额',
       _ => '询问金额',
     };
@@ -826,9 +894,7 @@ class _ChatStatus extends ConsumerWidget {
       'REJECTED',
       'CANCELLED',
       'EXPIRED',
-      'QUALITY_REFUNDED',
       'TIMEOUT_REFUNDED',
-      'END_DISPUTE_REFUNDED',
     };
     if (inquiry.isIncoming) {
       return noIncomeStatuses.contains(status)
@@ -845,12 +911,10 @@ class _MessageBubble extends ConsumerWidget {
   const _MessageBubble({
     required this.message,
     required this.showTime,
-    this.onReport,
     this.onRetry,
   });
   final ChatMessage message;
   final bool showTime;
-  final VoidCallback? onReport;
   final VoidCallback? onRetry;
 
   @override
@@ -884,7 +948,6 @@ class _MessageBubble extends ConsumerWidget {
     }
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onLongPress: onReport,
       child: Column(
         children: [
           if (showTime && message.createdAt != null)
@@ -1037,114 +1100,6 @@ class _MessageBubble extends ConsumerWidget {
   }
 }
 
-class _MessageReportDialog extends StatefulWidget {
-  const _MessageReportDialog();
-
-  @override
-  State<_MessageReportDialog> createState() => _MessageReportDialogState();
-}
-
-class _MessageReportDialogState extends State<_MessageReportDialog> {
-  String? _selected;
-
-  static const _options = <(String, String)>[
-    ('LOW_RELEVANCE', '回复内容与原始提问基本无关'),
-    ('PORN_GAMBLING_DRUGS', '黄赌毒内容'),
-    ('NATIONAL_SECURITY', '危害国家安全、破坏社会稳定的言论'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      child: AlertDialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        titlePadding: const EdgeInsets.fromLTRB(24, 14, 10, 8),
-        title: Row(
-          children: [
-            const Expanded(child: Text('举报这条消息')),
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              tooltip: '关闭',
-              icon: const Icon(Icons.close_rounded),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _options
-                .map(
-                  (option) => _ReportOption(
-                    label: option.$2,
-                    selected: _selected == option.$1,
-                    onTap: () => setState(() => _selected = option.$1),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: _selected == null
-                ? null
-                : () => Navigator.pop(context, _selected),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReportOption extends StatelessWidget {
-  const _ReportOption({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: selected
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: selected
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.onSurface,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _ChatImageViewer extends StatelessWidget {
   const _ChatImageViewer({required this.imageUrl});
 
@@ -1195,6 +1150,103 @@ class _ChatImageViewer extends StatelessWidget {
   }
 }
 
+class _AudioAppointmentCard extends StatelessWidget {
+  const _AudioAppointmentCard({
+    required this.appointment,
+    required this.onEnter,
+  });
+
+  final AudioAppointment appointment;
+  final VoidCallback onEnter;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = appointment.status.toUpperCase();
+    final title = switch (status) {
+      'CONNECTING' => appointment.isIncoming ? '语音来电' : '正在呼叫',
+      'ACTIVE' => '语音通话中',
+      'REJECTED' => '对方未接听',
+      'CANCELLED' => '已取消呼叫',
+      'EXPIRED' => '对方未接听',
+      'COMPLETED' => '语音通话已结束',
+      'CONNECTION_FAILED' => '对方未接听',
+      _ => '语音通话',
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.phone_in_talk_outlined,
+                size: 18,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              Text(
+                status == 'COMPLETED'
+                    ? '实付 ¥${formatMoney(appointment.actualAmount)}'
+                    : '¥${appointment.hourlyRateSnapshot}/小时',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Text(
+            status == 'COMPLETED'
+                ? '实际通话 ${_formatSeconds(appointment.actualDurationSeconds)}'
+                : status == 'ACTIVE'
+                ? '通话已接通'
+                : '等待接听',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (const {'CONNECTING', 'ACTIVE'}.contains(status)) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onEnter,
+                icon: const Icon(Icons.call_rounded),
+                label: Text(
+                  status == 'CONNECTING' && appointment.isIncoming
+                      ? '查看来电'
+                      : '进入通话',
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+String _formatSeconds(int seconds) {
+  if (seconds < 60) return '$seconds秒';
+  final hours = seconds ~/ 3600;
+  final minutes = (seconds % 3600) ~/ 60;
+  final rest = seconds % 60;
+  if (hours > 0) return '$hours小时$minutes分$rest秒';
+  return '$minutes分$rest秒';
+}
+
 class _Composer extends StatelessWidget {
   const _Composer({
     required this.controller,
@@ -1203,9 +1255,11 @@ class _Composer extends StatelessWidget {
     required this.disabledHint,
     required this.emojiOpen,
     required this.moreOpen,
+    required this.moreEnabled,
     required this.onSubmitted,
     required this.onEmoji,
     required this.onMore,
+    required this.maxLength,
   });
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -1213,9 +1267,11 @@ class _Composer extends StatelessWidget {
   final String disabledHint;
   final bool emojiOpen;
   final bool moreOpen;
+  final bool moreEnabled;
   final VoidCallback onSubmitted;
   final VoidCallback onEmoji;
   final VoidCallback onMore;
+  final int maxLength;
   @override
   Widget build(BuildContext context) => SafeArea(
     top: false,
@@ -1234,7 +1290,7 @@ class _Composer extends StatelessWidget {
               textInputAction: TextInputAction.send,
               onEditingComplete: () {},
               onSubmitted: (_) => onSubmitted(),
-              inputFormatters: AppInputFormatters.description(500),
+              inputFormatters: AppInputFormatters.description(maxLength),
               decoration: InputDecoration(
                 hintText: enabled ? '说点什么…' : disabledHint,
                 contentPadding: const EdgeInsets.symmetric(
@@ -1255,7 +1311,7 @@ class _Composer extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: enabled ? onMore : null,
+            onPressed: moreEnabled ? onMore : null,
             visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.add_circle_outline_rounded),
           ),
@@ -1293,27 +1349,55 @@ class _MorePanel extends StatelessWidget {
   const _MorePanel({
     required this.onPhoto,
     required this.onCamera,
+    required this.onAudioCall,
     required this.onEnd,
+    required this.allowImages,
   });
   final VoidCallback onPhoto;
   final VoidCallback onCamera;
-  final VoidCallback onEnd;
+  final VoidCallback? onAudioCall;
+  final VoidCallback? onEnd;
+  final bool allowImages;
+
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 190,
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _MoreItem(icon: Icons.photo_outlined, label: '照片', onTap: onPhoto),
+  Widget build(BuildContext context) {
+    final items = <Widget>[
+      if (allowImages)
         _MoreItem(
           icon: Icons.photo_camera_outlined,
           label: '拍照',
           onTap: onCamera,
         ),
-        _MoreItem(icon: Icons.payments_outlined, label: '结束并结算', onTap: onEnd),
-      ],
-    ),
-  );
+      if (allowImages)
+        _MoreItem(icon: Icons.photo_outlined, label: '相册', onTap: onPhoto),
+      if (onAudioCall != null)
+        _MoreItem(
+          icon: Icons.phone_in_talk_outlined,
+          label: '语音通话',
+          onTap: onAudioCall!,
+        ),
+      if (onEnd != null)
+        _MoreItem(
+          icon: Icons.stop_circle_outlined,
+          label: '结束交流',
+          onTap: onEnd!,
+        ),
+    ];
+
+    return SizedBox(
+      height: 190,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(4, (index) {
+          return Expanded(
+            child: index < items.length
+                ? Align(alignment: Alignment.topCenter, child: items[index])
+                : const SizedBox.shrink(),
+          );
+        }),
+      ),
+    );
+  }
 }
 
 class _MoreItem extends StatelessWidget {
@@ -1328,25 +1412,28 @@ class _MoreItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
-    child: SizedBox(
-      width: 100,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 18),
-        child: Column(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(6, 18, 6, 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(14),
             ),
-            const SizedBox(height: 7),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
+            child: Icon(icon),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
       ),
     ),
   );

@@ -49,21 +49,12 @@ public class UserController {
         return ApiResponse.ok(userService.setAcceptingInquiries(user, request.accepting()));
     }
 
-    @PatchMapping("/inquiry-price-range")
-    public ApiResponse<AuthService.UserView> updateInquiryPriceRange(
+    @PatchMapping("/inquiry-hourly-rate")
+    public ApiResponse<AuthService.UserView> updateInquiryHourlyRate(
         @CurrentUser User user,
-        @Valid @RequestBody InquiryPriceRangeRequest request
+        @Valid @RequestBody InquiryHourlyRateRequest request
     ) {
-        return ApiResponse.ok(
-            userService.setInquiryPriceRange(user, request.minimum(), request.maximum())
-        );
-    }
-
-    @GetMapping("/answerer-eligibility")
-    public ApiResponse<AnswererEligibilityService.Eligibility> answererEligibility(
-        @CurrentUser User user
-    ) {
-        return ApiResponse.ok(userService.answererEligibility(user));
+        return ApiResponse.ok(userService.setInquiryHourlyRate(user, request.hourlyRate()));
     }
 
     @GetMapping("/violation-counters")
@@ -103,9 +94,7 @@ public class UserController {
     public record AcceptingRequest(boolean accepting) {
     }
 
-    public record InquiryPriceRangeRequest(
-        @NotNull @Min(1) @Max(5000) Integer minimum,
-        @NotNull @Min(1) @Max(5000) Integer maximum
-    ) {
+    public record InquiryHourlyRateRequest(@NotNull Integer hourlyRate) {
     }
+
 }

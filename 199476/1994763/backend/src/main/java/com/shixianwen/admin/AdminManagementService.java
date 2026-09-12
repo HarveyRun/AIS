@@ -3,12 +3,15 @@ package com.shixianwen.admin;
 import com.shixianwen.certification.CertificationService;
 import com.shixianwen.certification.CertificationPublicMediaService;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.config.AppGlobalSettingService;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StorageVisibility;
 import com.shixianwen.security.SecurityEventService;
 import com.shixianwen.wallet.PlatformServiceFeePolicy;
 import com.shixianwen.wallet.PermanentBanPayoutService;
+import com.shixianwen.notification.NotificationService;
+import com.shixianwen.user.UserRepository;
 import com.shixianwen.finance.FinancialLedgerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -33,14 +36,16 @@ public class AdminManagementService {
     private final PlatformServiceFeePolicy platformServiceFeePolicy;
     private final FinancialLedgerService financialLedger;
     private final PermanentBanPayoutService permanentBanPayouts;
+    private final NotificationService notifications;
+    private final UserRepository users;
+    private final AppGlobalSettingService appGlobalSettings;
 
     public Map<String,Object> dashboard() {
         Map<String,Object> result=new LinkedHashMap<>();
         result.put("users", count("users","account_status='ACTIVE' AND account_type='NORMAL'"));
         result.put("answerers", jdbc.queryForObject(
             "SELECT COUNT(*) FROM users u WHERE u.account_status='ACTIVE' AND u.account_type='NORMAL' " +
-                "AND EXISTS (SELECT 1 FROM certifications ci WHERE ci.user_id=u.id AND ci.certification_type='IDENTITY' AND ci.status='APPROVED' AND ci.enabled=TRUE AND ci.deleted_at IS NULL) " +
-                "AND EXISTS (SELECT 1 FROM certifications ce WHERE ce.user_id=u.id AND ce.category='EXPERIENCE' AND COALESCE(ce.experience_business_type,'MONETIZED')='MONETIZED' AND ce.status='APPROVED' AND ce.enabled=TRUE AND ce.deleted_at IS NULL)",
+                "AND EXISTS (SELECT 1 FROM certifications ce WHERE ce.user_id=u.id AND ce.category='EXPERIENCE' AND ce.status='APPROVED' AND ce.enabled=TRUE AND ce.deleted_at IS NULL)",
             Long.class
         ));
         result.put("approvedExperiences", jdbc.queryForObject(
@@ -56,7 +61,7 @@ public class AdminManagementService {
             Long.class
         ));
         result.put("activeInquiries", jdbc.queryForObject(
-            "SELECT COUNT(*) FROM inquiries i JOIN users u ON u.id=i.questioner_id WHERE i.status IN ('PENDING','ACTIVE','AWAITING_CONFIRMATION','DISPUTED') AND u.account_type='NORMAL'",
+            "SELECT COUNT(*) FROM inquiries i JOIN users u ON u.id=i.questioner_id WHERE i.status IN ('PENDING','ACTIVE','TEXT_LIMIT_REACHED','TEXT_ENDED','PAID_ACTIVE') AND u.account_type='NORMAL'",
             Long.class
         ));
         result.put("pendingWithdrawals", jdbc.queryForObject(
@@ -74,6 +79,35 @@ public class AdminManagementService {
         result.put("totalFrozen", jdbc.queryForObject(
             "SELECT COALESCE(SUM(w.frozen_balance),0) FROM wallet_accounts w JOIN users u ON u.id=w.user_id WHERE u.account_type='NORMAL'",
             java.math.BigDecimal.class
+        ));
+        result.put("pendingAudioRequests", count(
+            "inquiry_audio_appointments",
+            "status='CONNECTING'"
+        ));
+        result.put("inquiriesExpiringWithin24Hours", jdbc.queryForObject(
+            "SELECT COUNT(*) FROM inquiries WHERE status IN ('ACTIVE','TEXT_LIMIT_REACHED','TEXT_ENDED','PAID_ACTIVE') " +
+                "AND conversation_expires_at>NOW(6) AND conversation_expires_at<=DATE_ADD(NOW(6),INTERVAL 24 HOUR)",
+            Long.class
+        ));
+        result.put("voiceCallsToday", jdbc.queryForObject(
+            "SELECT COUNT(DISTINCT appointment_id) FROM voice_call_events WHERE event_type='PEER_CONNECTED' AND created_at>=CURRENT_DATE()",
+            Long.class
+        ));
+        result.put("voiceConnectionFailuresToday", jdbc.queryForObject(
+            "SELECT COUNT(*) FROM voice_call_events WHERE event_type IN ('CONNECT_TIMEOUT','RECONNECT_TIMEOUT') AND created_at>=CURRENT_DATE()",
+            Long.class
+        ));
+        result.put("mediaProcessingFailures", count(
+            "certifications",
+            "media_processing_status='FAILED' AND deleted_at IS NULL"
+        ));
+        result.put("feedbackOver24Hours", jdbc.queryForObject(
+            "SELECT COUNT(*) FROM feedback_records WHERE status IN ('SUBMITTED','PROCESSING') AND created_at<DATE_SUB(NOW(6),INTERVAL 24 HOUR)",
+            Long.class
+        ));
+        result.put("riskyWithdrawals", count(
+            "withdrawals",
+            "status IN ('PROCESSING','EXPORTED') AND risk_level<>'LOW'"
         ));
         return result;
     }
@@ -130,6 +164,71 @@ public class AdminManagementService {
         );
         if (changed != 1) throw BusinessException.badRequest(platform + "平台服务费配置不存在");
     }
+
+    public Map<String, Object> inquiryCapacitySetting() {
+        return jdbc.queryForMap(
+            "SELECT questioner_active_limit AS questionerLimit," +
+                "answerer_active_limit AS answererLimit,updated_at AS updatedAt " +
+                "FROM inquiry_capacity_settings WHERE id=1"
+        );
+    }
+
+    public AppGlobalSettingService.Settings appGlobalSetting() {
+        return appGlobalSettings.current();
+    }
+
+    @Transactional
+    public AppGlobalSettingService.Settings updateAppGlobalSetting(
+        AdminUser admin,
+        AppGlobalSettingService.Settings value,
+        String ip
+    ) {
+        AppGlobalSettingService.Settings result = appGlobalSettings.update(value, admin.getId());
+        audit(
+            admin,
+            "UPDATE_APP_GLOBAL_SETTING",
+            "APP_GLOBAL_SETTING",
+            "1",
+            "修改App全局业务规则",
+            ip
+        );
+        return result;
+    }
+
+    @Transactional
+    public Map<String, Object> updateInquiryCapacity(
+        AdminUser admin,
+        Integer questionerLimit,
+        Integer answererLimit,
+        String ip
+    ) {
+        int normalizedQuestioner = capacityLimit(questionerLimit, "询问人");
+        int normalizedAnswerer = capacityLimit(answererLimit, "被询问人");
+        int changed = jdbc.update(
+            "UPDATE inquiry_capacity_settings SET questioner_active_limit=?," +
+                "answerer_active_limit=?,updated_by_admin_id=? WHERE id=1",
+            normalizedQuestioner,
+            normalizedAnswerer,
+            admin.getId()
+        );
+        if (changed != 1) throw BusinessException.badRequest("询问容量配置不存在");
+        audit(
+            admin,
+            "UPDATE_INQUIRY_CAPACITY",
+            "INQUIRY_CAPACITY_SETTING",
+            "1",
+            "询问人=" + normalizedQuestioner + "，被询问人=" + normalizedAnswerer,
+            ip
+        );
+        return inquiryCapacitySetting();
+    }
+
+    private int capacityLimit(Integer value, String label) {
+        if (value == null || value < 1 || value > 20) {
+            throw BusinessException.badRequest(label + "同时交流上限必须在1至20之间");
+        }
+        return value;
+    }
     public PageResult users(String keyword,String status,int page,int size) {
         jdbc.update("UPDATE users SET account_status='ACTIVE',ban_reason=NULL,banned_at=NULL,ban_until=NULL,banned_by_admin_id=NULL WHERE account_status='SUSPENDED' AND ban_until IS NOT NULL AND ban_until<=NOW(6)");
         String where=" WHERE (?='' OR u.uid LIKE ? OR u.phone LIKE ? OR COALESCE(u.nickname,'') LIKE ?) AND (?='' OR u.account_status=?) ";
@@ -138,11 +237,10 @@ public class AdminManagementService {
         List<Map<String,Object>> items=jdbc.queryForList("SELECT u.id,u.uid,u.phone,u.nickname,u.avatar_url AS avatarUrl,u.account_type AS accountType,u.answerer_status AS answererStatus,u.account_status AS accountStatus,u.accepting_inquiries AS acceptingInquiries,u.ban_reason AS banReason,u.banned_at AS bannedAt,u.ban_until AS banUntil,u.created_at AS createdAt,COALESCE(w.available_balance,0) AS availableBalance,COALESCE(w.frozen_balance,0) AS frozenBalance FROM users u LEFT JOIN wallet_accounts w ON w.user_id=u.id"+where+" ORDER BY u.id DESC LIMIT ? OFFSET ?",q,like,like,like,s,s,size,page*size);
         return new PageResult(items,total,page,size);
     }
-    public PageResult table(String type,String status,String category,String experienceType,String keyword,int page,int size) {
+    public PageResult table(String type,String status,String category,String keyword,int page,int size) {
         TableSpec spec = spec(type);
         String normalizedStatus = status == null ? "" : status.trim();
         String normalizedCategory = category == null ? "" : category.trim();
-        String normalizedExperienceType = experienceType == null ? "" : experienceType.trim();
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
 
         StringBuilder where = new StringBuilder(" WHERE (?='' OR t.status=?)");
@@ -151,12 +249,9 @@ public class AdminManagementService {
         parameters.add(normalizedStatus);
 
         if ("certifications".equals(type)) {
-            where.append(" AND (?='' OR t.category=?) AND t.certification_type IN ('IDENTITY','EXPERIENCE') AND t.deleted_at IS NULL");
+            where.append(" AND (?='' OR t.category=?) AND t.certification_type IN ('EXPERIENCE','IDENTITY') AND t.deleted_at IS NULL");
             parameters.add(normalizedCategory);
             parameters.add(normalizedCategory);
-            where.append(" AND (?='' OR COALESCE(t.experience_business_type,'MONETIZED')=?)");
-            parameters.add(normalizedExperienceType);
-            parameters.add(normalizedExperienceType);
         }
 
         if (!normalizedKeyword.isBlank() && !spec.userAliases().isEmpty()) {
@@ -189,7 +284,18 @@ public class AdminManagementService {
     }
     public List<Map<String,Object>> certificationMaterials(Long id) {
         return jdbc.queryForList(
-            "SELECT id,material_kind AS kind,original_name AS name,storage_key AS storageKey,public_url AS publicUrl,content_type AS contentType,file_size AS size FROM certification_materials WHERE certification_id=? AND deleted_at IS NULL ORDER BY id",
+            "SELECT cm.id," +
+                "CASE WHEN cm.material_kind IN ('ARCHIVE','PROOF_ARCHIVE','REVIEW_ORIGINAL_ARCHIVE') " +
+                "THEN 'PROOF_ARCHIVE' ELSE cm.material_kind END AS kind," +
+                "cm.original_name AS name,cm.storage_key AS storageKey,cm.public_url AS publicUrl," +
+                "cm.content_type AS contentType,cm.file_size AS size " +
+                "FROM certification_materials cm WHERE cm.certification_id=? AND cm.deleted_at IS NULL " +
+                "AND (cm.material_kind NOT IN ('ARCHIVE','PROOF_ARCHIVE','REVIEW_ORIGINAL_ARCHIVE') " +
+                "OR cm.id=(SELECT COALESCE(" +
+                "MAX(CASE WHEN candidate.material_kind IN ('ARCHIVE','PROOF_ARCHIVE') THEN candidate.id END)," +
+                "MAX(CASE WHEN candidate.material_kind='REVIEW_ORIGINAL_ARCHIVE' THEN candidate.id END)) " +
+                "FROM certification_materials candidate WHERE candidate.certification_id=cm.certification_id " +
+                "AND candidate.deleted_at IS NULL)) ORDER BY cm.id",
             id
         ).stream().map(this::withPrivateMaterialUrl).toList();
     }
@@ -210,7 +316,7 @@ public class AdminManagementService {
         if(!approved && (reason==null||reason.isBlank())) throw BusinessException.badRequest("驳回时请填写原因");
         Map<String,Object> certification=jdbc.queryForMap("SELECT user_id AS userId,certification_type AS type,title,status FROM certifications WHERE id=? AND deleted_at IS NULL FOR UPDATE",id);
         if(!"PENDING".equals(certification.get("status"))) throw BusinessException.badRequest("该认证已经处理");
-        if (!List.of("IDENTITY", "EXPERIENCE").contains(String.valueOf(certification.get("type")))) {
+        if (!List.of("EXPERIENCE", "IDENTITY").contains(String.valueOf(certification.get("type")))) {
             throw BusinessException.badRequest("该认证类型已停止使用");
         }
         certifications.review(id,approved,reason);
@@ -236,7 +342,7 @@ public class AdminManagementService {
         Map<String,Object> item=certificationForUpdate(id);
         if(!"APPROVED".equals(item.get("status"))) throw BusinessException.badRequest("仅可调整已通过的认证");
         jdbc.update("UPDATE certifications SET enabled=? WHERE id=?",enabled,id);
-        // 恢复认证只恢复经历发布资格，不替用户打开“接受新询问”。
+        // 恢复经历只恢复询问资格，不替用户打开“接受新询问”。
         syncAnswererStatus(((Number)item.get("userId")).longValue(),false);
         audit(admin,"CHANGE_CERTIFICATION_ENABLED","CERTIFICATION",id,String.valueOf(enabled),ip);
     }
@@ -246,20 +352,13 @@ public class AdminManagementService {
         syncAnswererStatus(((Number)item.get("userId")).longValue(),false);
         audit(admin,"DELETE_CERTIFICATION","CERTIFICATION",id,"SOFT_DELETE",ip);
     }
-    @Transactional public void editCertification(AdminUser admin,Long id,String title,String description,String ip){
-        Map<String,Object> item=certificationForUpdate(id); String type=String.valueOf(item.get("type"));
-        if(!"IDENTITY".equals(type)) throw BusinessException.badRequest("亲身经历认证暂不支持编辑");
-        jdbc.update("UPDATE certifications SET title=?,description=? WHERE id=?",required(title,"认证名称不能为空"),cleanDescription(description),id);
-        audit(admin,"EDIT_CERTIFICATION","CERTIFICATION",id,type,ip);
-    }
     private Map<String,Object> certificationForUpdate(Long id){
         List<Map<String,Object>> rows=jdbc.queryForList("SELECT user_id AS userId,certification_type AS type,status,enabled FROM certifications WHERE id=? AND deleted_at IS NULL FOR UPDATE",id);
         if(rows.isEmpty()) throw BusinessException.notFound("认证不存在"); return rows.get(0);
     }
     private void syncAnswererStatus(Long userId,boolean allowEnable){
-        Long identity=jdbc.queryForObject("SELECT COUNT(*) FROM certifications WHERE user_id=? AND certification_type='IDENTITY' AND status='APPROVED' AND enabled=TRUE AND deleted_at IS NULL",Long.class,userId);
-        Long experience=jdbc.queryForObject("SELECT COUNT(*) FROM certifications WHERE user_id=? AND category='EXPERIENCE' AND COALESCE(experience_business_type,'MONETIZED')='MONETIZED' AND status='APPROVED' AND enabled=TRUE AND deleted_at IS NULL",Long.class,userId);
-        boolean approved=identity!=null&&identity>0&&experience!=null&&experience>0;
+        Long experience=jdbc.queryForObject("SELECT COUNT(*) FROM certifications WHERE user_id=? AND category='EXPERIENCE' AND status='APPROVED' AND enabled=TRUE AND deleted_at IS NULL",Long.class,userId);
+        boolean approved=experience!=null&&experience>0;
         jdbc.update("UPDATE users SET answerer_status=?,accepting_inquiries=CASE WHEN ?=TRUE AND account_status='ACTIVE' AND ?=TRUE THEN TRUE WHEN ?=FALSE THEN FALSE ELSE accepting_inquiries END WHERE id=?",approved?"APPROVED":"PENDING",approved,allowEnable,approved,userId);
     }
     @Transactional
@@ -380,8 +479,31 @@ public class AdminManagementService {
             "withdrawalId=" + id + ", amount=" + row.get("amount")
         );
     }
-    @Transactional public void updateRecordStatus(AdminUser admin,String type,Long id,String status,String ip) {
+    @Transactional public void updateRecordStatus(AdminUser admin,String type,Long id,String status,String resolution,String ip) {
         TableSpec spec=spec(type); if(!List.of("PROCESSING","RESOLVED","CLOSED").contains(status)) throw BusinessException.badRequest("处理状态不正确");
+        if ("feedback".equals(type) && List.of("RESOLVED", "CLOSED").contains(status)) {
+            String result = required(resolution, "请填写处理结果");
+            Map<String,Object> row;
+            try {
+                row = jdbc.queryForMap("SELECT user_id,feedback_type FROM feedback_records WHERE id=?", id);
+            } catch (org.springframework.dao.EmptyResultDataAccessException exception) {
+                throw BusinessException.notFound("记录不存在");
+            }
+            if(jdbc.update(
+                "UPDATE feedback_records SET status=?,resolution=?,resolved_at=NOW(6),handled_by_admin_id=? WHERE id=?",
+                status, result, admin.getId(), id
+            )!=1) throw BusinessException.notFound("记录不存在");
+            Long userId = ((Number) row.get("user_id")).longValue();
+            users.findById(userId).ifPresent(user -> notifications.send(
+                user,
+                "投诉反馈已处理",
+                result,
+                "/profile/feedback"
+            ));
+            realtime.afterCommit(userId, "FEEDBACK_RESOLVED", Map.of("feedbackId", id, "status", status));
+            audit(admin,"UPDATE_FEEDBACK","FEEDBACK",id,status+":"+result,ip);
+            return;
+        }
         if(jdbc.update("UPDATE "+spec.table+" SET status=? WHERE id=?",status,id)!=1) throw BusinessException.notFound("记录不存在");
         audit(admin,"UPDATE_"+type.toUpperCase(Locale.ROOT),type.toUpperCase(Locale.ROOT),id,status,ip);
     }
@@ -428,7 +550,7 @@ public class AdminManagementService {
         case "certifications" -> new TableSpec(
             "certifications",
             "certifications t JOIN users u ON u.id=t.user_id",
-            "SELECT t.id,t.category,t.certification_type AS type,t.experience_business_type AS experienceBusinessType,t.upgrade_source_id AS upgradeSourceId,t.title,t.description,t.status,t.enabled,t.rejection_reason AS rejectionReason,t.submitted_at AS submittedAt,t.privacy_confirmed_at AS privacyConfirmedAt,t.media_processing_status AS mediaProcessingStatus,t.media_processing_error AS mediaProcessingError,t.media_processed_at AS mediaProcessedAt,u.uid,u.nickname,(u.account_type='TEST') AS testData FROM certifications t JOIN users u ON u.id=t.user_id",
+            "SELECT t.id,t.category,t.certification_type AS type,t.title,t.description,t.experience_location AS experienceLocation,t.experience_start_date AS experienceStartDate,t.experience_end_date AS experienceEndDate,t.experience_count AS experienceCount,t.experience_role AS experienceRole,t.experience_age_range AS experienceAgeRange,t.experience_education AS experienceEducation,t.experience_job AS experienceJob,t.status,t.enabled,t.rejection_reason AS rejectionReason,t.submitted_at AS submittedAt,t.privacy_confirmed_at AS privacyConfirmedAt,t.media_processing_status AS mediaProcessingStatus,t.media_processing_error AS mediaProcessingError,t.media_processed_at AS mediaProcessedAt,u.uid,u.nickname,(u.account_type='TEST') AS testData FROM certifications t JOIN users u ON u.id=t.user_id",
             List.of("u")
         );
         case "inquiries" -> new TableSpec(
@@ -440,13 +562,13 @@ public class AdminManagementService {
         case "withdrawals" -> new TableSpec(
             "withdrawals",
             "withdrawals t JOIN users u ON u.id=t.user_id",
-            "SELECT t.id,t.amount,t.payee_name_snapshot AS payeeName,t.alipay_account_masked_snapshot AS alipayAccount,t.status,t.batch_no AS batchNo,t.exported_at AS exportedAt,t.created_at AS createdAt,u.uid,u.nickname,(u.account_type='TEST') AS testData FROM withdrawals t JOIN users u ON u.id=t.user_id",
+            "SELECT t.id,t.amount,t.payee_name_snapshot AS payeeName,t.alipay_account_masked_snapshot AS alipayAccount,t.risk_level AS riskLevel,t.risk_reasons AS riskReasons,t.status,t.batch_no AS batchNo,t.exported_at AS exportedAt,t.created_at AS createdAt,u.uid,u.nickname,(u.account_type='TEST') AS testData FROM withdrawals t JOIN users u ON u.id=t.user_id",
             List.of("u")
         );
         case "feedback" -> new TableSpec(
             "feedback_records",
             "feedback_records t JOIN users u ON u.id=t.user_id LEFT JOIN users tu ON tu.id=t.target_user_id",
-            "SELECT t.id,t.feedback_type AS type,t.category,t.content,t.status,t.created_at AS createdAt,u.uid,u.nickname,tu.uid AS targetUid,(u.account_type='TEST') AS testData FROM feedback_records t JOIN users u ON u.id=t.user_id LEFT JOIN users tu ON tu.id=t.target_user_id",
+            "SELECT t.id,t.inquiry_id AS inquiryId,t.feedback_type AS type,t.category,t.content,t.status,t.resolution,t.resolved_at AS resolvedAt,a.display_name AS handledBy,t.created_at AS createdAt,u.uid,u.nickname,tu.uid AS targetUid,(u.account_type='TEST') AS testData FROM feedback_records t JOIN users u ON u.id=t.user_id LEFT JOIN users tu ON tu.id=t.target_user_id LEFT JOIN admin_users a ON a.id=t.handled_by_admin_id",
             List.of("u", "tu")
         );
         case "cooperations" -> new TableSpec(

@@ -6,7 +6,6 @@ import '../../app/providers.dart';
 import '../../core/theme/app_status_style.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/certification_models.dart';
-import 'experience_form_page.dart';
 
 class ExperienceCertificationPage extends ConsumerStatefulWidget {
   const ExperienceCertificationPage({super.key});
@@ -16,23 +15,17 @@ class ExperienceCertificationPage extends ConsumerStatefulWidget {
 }
 
 class _ExperienceCertificationPageState
-    extends ConsumerState<ExperienceCertificationPage>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabs;
+    extends ConsumerState<ExperienceCertificationPage> {
   List<CertificationRecord> _items = const [];
   bool _loading = true;
-  bool _identityApproved = false;
+
+  bool get _hasApprovedExperience =>
+      _items.any((item) => item.status.toUpperCase() == 'APPROVED');
+
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
     _load();
-  }
-
-  @override
-  void dispose() {
-    _tabs.dispose();
-    super.dispose();
   }
 
   Future<void> _load() async {
@@ -42,9 +35,6 @@ class _ExperienceCertificationPageState
       final items = await repository.certifications();
       if (mounted) {
         setState(() {
-          _identityApproved = items.any(
-            (item) => item.type == 'IDENTITY' && item.approved && item.enabled,
-          );
           _items =
               items
                   .where(
@@ -91,142 +81,98 @@ class _ExperienceCertificationPageState
         return;
       }
       if (!mounted) return;
-      final businessType = await _selectBusinessType();
-      if (businessType == null || !mounted) return;
-      if (businessType == ExperienceBusinessType.publicWelfare) {
-        await context.push(
-          '/profile/certifications/experiences/public-welfare/new',
-        );
-        await _load();
-        return;
-      }
-      final identityApproved = records.any(
-        (record) =>
-            record.type == 'IDENTITY' &&
-            record.status.toUpperCase() == 'APPROVED' &&
-            record.enabled,
-      );
-      if (!identityApproved) {
-        if (!mounted) return;
-        final goToIdentity = await _showIdentityRequiredDialog();
-        if (goToIdentity == true && mounted) {
-          CertificationRecord? identityRecord;
-          for (final record in records) {
-            if (record.type == 'IDENTITY') {
-              identityRecord = record;
-              break;
-            }
-          }
-          if (!mounted) return;
-          await context.push(
-            '/profile/certifications/basic/IDENTITY/apply',
-            extra: identityRecord,
-          );
-          await _load();
-        }
-        return;
-      }
-      await context.push('/profile/certifications/experiences/monetized/new');
+      await context.push('/profile/certifications/experiences/new');
       await _load();
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     }
   }
 
-  Future<ExperienceBusinessType?> _selectBusinessType() =>
-      showModalBottomSheet<ExperienceBusinessType>(
-        context: context,
-        showDragHandle: true,
-        builder: (context) => SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('发布经历', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 14),
-                _BusinessTypeOption(
-                  icon: Icons.volunteer_activism_rounded,
-                  title: '公益分享',
-                  subtitle: '无需实名认证、审核简单，但无法变现',
-                  color: const Color(0xFF27855A),
-                  onTap: () => Navigator.pop(
-                    context,
-                    ExperienceBusinessType.publicWelfare,
+  Future<void> _deleteExperience(CertificationRecord item) async {
+    if (item.status.toUpperCase() != 'REJECTED') return;
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final colors = Theme.of(sheetContext).colorScheme;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 10),
-                _BusinessTypeOption(
-                  icon: Icons.workspace_premium_rounded,
-                  title: '干货变现',
-                  subtitle: '本人真实经历、审核严格，可设定变现金额',
-                  color: Theme.of(context).colorScheme.primary,
-                  onTap: () =>
-                      Navigator.pop(context, ExperienceBusinessType.monetized),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                '删除这段经历？',
+                style: Theme.of(
+                  sheetContext,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '删除后将不再显示，且无法恢复。',
+                style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(sheetContext, false),
+                      child: const Text('取消'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colors.error,
+                        foregroundColor: colors.onError,
+                      ),
+                      onPressed: () => Navigator.pop(sheetContext, true),
+                      child: const Text('确认删除'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ),
-      );
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
 
-  Future<void> _upgrade(CertificationRecord item) async {
     try {
-      final records = await ref.read(repositoryProvider).certifications();
-      final identityApproved = records.any(
-        (record) =>
-            record.type == 'IDENTITY' && record.approved && record.enabled,
-      );
-      if (!identityApproved) {
-        if (!mounted) return;
-        final goToIdentity = await _showIdentityRequiredDialog();
-        if (goToIdentity == true && mounted) {
-          final identityRecord = records
-              .where((record) => record.type == 'IDENTITY')
-              .firstOrNull;
-          await context.push(
-            '/profile/certifications/basic/IDENTITY/apply',
-            extra: identityRecord,
-          );
-          await _load();
-        }
-        return;
-      }
+      await ref.read(repositoryProvider).deleteExperience(item.id);
       if (!mounted) return;
-      await context.push(
-        '/profile/certifications/experiences/monetized/new?upgradeSourceId=${item.id}',
-      );
+      AppMessage.show(context, '已删除');
       await _load();
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     }
   }
 
-  Future<bool?> _showIdentityRequiredDialog() => showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text(
-        '需实名认证',
-        style: TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.w700,
-          fontSize: 22,
-        ),
-      ),
-      content: const Text('需先完成实名认证，且年龄须满 25 周岁。'),
-      actions: [
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('去实名认证'),
-          ),
-        ),
-      ],
-    ),
-  );
+  Future<void> _openExperience(CertificationRecord item) async {
+    await context.push('/profile/certifications/experiences/${item.id}');
+    await _load();
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -250,7 +196,7 @@ class _ExperienceCertificationPageState
                 tooltip: '添加经历',
                 visualDensity: VisualDensity.compact,
               ),
-              if (_identityApproved)
+              if (_hasApprovedExperience)
                 IconButton(
                   onPressed: () => context.push('/profile/inquiry-settings'),
                   icon: const Icon(Icons.settings_outlined, size: 22),
@@ -261,47 +207,10 @@ class _ExperienceCertificationPageState
           ),
         ),
       ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(58),
-        child: Container(
-          height: 46,
-          margin: const EdgeInsets.fromLTRB(10, 0, 10, 12),
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainer,
-            borderRadius: BorderRadius.circular(13),
-          ),
-          child: TabBar(
-            controller: _tabs,
-            dividerColor: Colors.transparent,
-            indicatorSize: TabBarIndicatorSize.tab,
-            indicator: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            tabs: const [
-              Tab(text: '干货变现'),
-              Tab(text: '公益分享'),
-            ],
-          ),
-        ),
-      ),
     ),
     body: _loading
         ? const SizedBox.shrink()
-        : TabBarView(
-            controller: _tabs,
-            children: [
-              _buildExperienceList(
-                _items.where((item) => item.isMonetized).toList(),
-                emptyText: '还没有干货变现经历',
-              ),
-              _buildExperienceList(
-                _items.where((item) => item.isPublicWelfare).toList(),
-                emptyText: '还没有公益分享经历',
-              ),
-            ],
-          ),
+        : _buildExperienceList(_items, emptyText: '还没有经历'),
   );
 
   Widget _buildExperienceList(
@@ -336,12 +245,6 @@ class _ExperienceCertificationPageState
               final index = entry.$1;
               final item = entry.$2;
               final statusStyle = appStatusStyle(context, item.status);
-              final canUpgrade =
-                  item.isPublicWelfare &&
-                  item.approved &&
-                  !_items.any(
-                    (candidate) => candidate.upgradeSourceId == item.id,
-                  );
               return Padding(
                 padding: EdgeInsets.only(
                   bottom: index == items.length - 1 ? 0 : 10,
@@ -352,71 +255,79 @@ class _ExperienceCertificationPageState
                     borderRadius: BorderRadius.circular(16),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    leading: Container(
-                      width: 42,
-                      height: 42,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.route_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    title: Text(item.title),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.description.isEmpty ? '视频详述' : item.description,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: const EdgeInsets.fromLTRB(
+                          16,
+                          10,
+                          10,
+                          2,
+                        ),
+                        leading: Container(
+                          width: 42,
+                          height: 42,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.route_outlined,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        title: Text(item.title),
+                        subtitle: Text(
+                          item.description,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        if (canUpgrade) ...[
-                          const SizedBox(height: 4),
-                          TextButton(
-                            onPressed: () => _upgrade(item),
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: const Size(0, 32),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => _openExperience(item),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 10, 8),
+                        child: Row(
+                          children: [
+                            const Spacer(),
+                            Text(
+                              _status(item),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: statusStyle.foreground,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                             ),
-                            child: const Text('升级为干货变现'),
-                          ),
-                        ],
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _status(item),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: statusStyle.foreground,
-                                fontWeight: FontWeight.w700,
+                            if (item.status.toUpperCase() == 'REJECTED') ...[
+                              const SizedBox(width: 18),
+                              TextButton.icon(
+                                onPressed: () => _deleteExperience(item),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.error,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 6,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 18,
+                                ),
+                                label: const Text('删除'),
                               ),
+                            ],
+                          ],
                         ),
-                        const Icon(Icons.chevron_right_rounded),
-                      ],
-                    ),
-                    onTap: () async {
-                      await context.push(
-                        item.isPublicWelfare
-                            ? '/profile/certifications/experiences/public-welfare/${item.id}'
-                            : '/profile/certifications/experiences/monetized/${item.id}',
-                      );
-                      await _load();
-                    },
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -429,62 +340,8 @@ class _ExperienceCertificationPageState
   String _status(CertificationRecord item) =>
       switch (item.status.toUpperCase()) {
         'PENDING' => '审核中',
-        'APPROVED' => item.isPublicWelfare ? '已发布' : '已认证',
-        'REJECTED' => '退回修改',
+        'APPROVED' => '已通过审核',
+        'REJECTED' => '已被驳回',
         _ => item.status,
       };
-}
-
-class _BusinessTypeOption extends StatelessWidget {
-  const _BusinessTypeOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Color.alphaBlend(
-      color.withValues(alpha: .07),
-      Theme.of(context).colorScheme.surface,
-    ),
-    borderRadius: BorderRadius.circular(16),
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded),
-          ],
-        ),
-      ),
-    ),
-  );
 }

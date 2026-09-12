@@ -144,18 +144,9 @@ class _ActivityRuleContent {
         rules: [
           '首次发布且审核通过的经历可获奖励。',
           '每账号仅限一次，以最先审核通过的经历为准。',
-          '后续发布或升级经历，不重复奖励，不补差额。',
+          '后续发布经历，不重复奖励。',
+          '活动奖励按平台当前劳动报酬服务费率结算，扣费后计入可提现收入。',
         ],
-        actionLabel: '去发布',
-      ),
-      'INVITE_PUBLIC_EXPERIENCE' => const _ActivityRuleContent(
-        title: '邀请好友分享公益经历',
-        rules: ['被邀请人发布经历且通过审核后，您即可获得奖励。', '每成功邀请一位完成发布，即可获得一次奖励。', '同一被邀请人仅限奖励一次。'],
-        actionLabel: '去发布',
-      ),
-      'INVITE_MONETIZED_EXPERIENCE' => const _ActivityRuleContent(
-        title: '邀请好友分享变现经历',
-        rules: ['被邀请人发布经历且通过审核后，您即可获得奖励。', '每成功邀请一位完成发布，即可获得一次奖励。', '同一被邀请人仅限奖励一次。'],
         actionLabel: '去发布',
       ),
       _ => const _ActivityRuleContent(

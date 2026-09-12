@@ -28,8 +28,6 @@ const ACTION_OPTIONS = [
   ['MY_EXPERIENCES', '进入我的经历'],
   ['PLATFORM_INTRODUCTION', '展示平台初衷'],
   ['FIRST_EXPERIENCE_REWARD', '首次发布奖励规则'],
-  ['INVITE_PUBLIC_EXPERIENCE', '邀请公益分享规则'],
-  ['INVITE_MONETIZED_EXPERIENCE', '邀请变现经历规则'],
 ];
 const EMPTY_FORM = {
   displayMode: 'TEXT_ONLY',

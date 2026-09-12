@@ -27,26 +27,32 @@ public class CertificationController {
         return ApiResponse.ok(certificationService.list(user));
     }
 
-    @PostMapping(value = "/basic/IDENTITY", consumes = "multipart/form-data")
-    public ApiResponse<CertificationService.CertificationView> submitBasic(
+    @PostMapping(value = "/identity", consumes = "multipart/form-data")
+    public ApiResponse<CertificationService.CertificationView> submitIdentity(
         @CurrentUser User user,
         @RequestPart("files") List<MultipartFile> files
     ) {
-        return ApiResponse.ok(certificationService.submitBasic(user, files));
+        return ApiResponse.ok(certificationService.submitIdentity(user, files));
     }
 
     @PostMapping(value = "/experiences", consumes = "multipart/form-data")
     public ApiResponse<CertificationService.CertificationView> submitExperience(
         @CurrentUser User user,
+        @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform,
         @RequestParam(required = false) Long existingId,
         @RequestParam String title,
-        @RequestParam(required = false) String description,
-        @RequestParam boolean privacyConfirmed,
-        @RequestParam String detailMode,
-        @RequestPart("signature") MultipartFile signature,
-        @RequestPart(value = "reviewOriginal", required = false) MultipartFile reviewOriginal,
+        @RequestParam String description,
+        @RequestParam(required = false) String experienceLocation,
+        @RequestParam(required = false) String experienceStartDate,
+        @RequestParam(required = false) String experienceEndDate,
+        @RequestParam(required = false) Integer experienceCount,
+        @RequestParam(required = false) String experienceRole,
+        @RequestParam(required = false) String experienceAgeRange,
+        @RequestParam(required = false) String experienceEducation,
+        @RequestParam(required = false) String experienceJob,
+        @RequestParam(defaultValue = "false") boolean removeProofArchive,
+        @RequestPart(value = "reviewOriginal", required = false) MultipartFile legacyReviewOriginal,
         @RequestPart(value = "proofArchive", required = false) MultipartFile proofArchive,
-        @RequestPart(value = "detailVideo", required = false) MultipartFile detailVideo,
         @RequestPart(value = "files", required = false) List<MultipartFile> legacyFiles
     ) {
         return ApiResponse.ok(certificationService.submitExperience(
@@ -54,49 +60,19 @@ public class CertificationController {
             existingId,
             title,
             description,
-            privacyConfirmed,
-            detailMode,
-            signature,
-            reviewOriginal,
+            experienceLocation,
+            experienceStartDate,
+            experienceEndDate,
+            experienceCount,
+            experienceRole,
+            experienceAgeRange,
+            experienceEducation,
+            experienceJob,
+            removeProofArchive,
+            legacyReviewOriginal,
             proofArchive,
-            detailVideo,
-            legacyFiles == null ? List.of() : legacyFiles
-        ));
-    }
-
-    @PostMapping(value = "/experiences/public-welfare", consumes = "multipart/form-data")
-    public ApiResponse<CertificationService.CertificationView> submitPublicWelfareExperience(
-        @CurrentUser User user,
-        @RequestParam(required = false) Long existingId,
-        @RequestParam String title,
-        @RequestParam(required = false) String description,
-        @RequestParam String detailMode,
-        @RequestPart(value = "proofArchive", required = false) MultipartFile proofArchive,
-        @RequestPart(value = "detailVideo", required = false) MultipartFile detailVideo
-    ) {
-        return ApiResponse.ok(certificationService.submitPublicWelfareExperience(
-            user, existingId, title, description, detailMode, proofArchive, detailVideo
-        ));
-    }
-
-    @PostMapping(value = "/experiences/monetized", consumes = "multipart/form-data")
-    public ApiResponse<CertificationService.CertificationView> submitMonetizedExperience(
-        @CurrentUser User user,
-        @RequestParam(required = false) Long existingId,
-        @RequestParam(required = false) Long upgradeSourceId,
-        @RequestParam String title,
-        @RequestParam(required = false) String description,
-        @RequestParam String detailMode,
-        @RequestParam boolean privacyConfirmed,
-        @RequestPart("signature") MultipartFile signature,
-        @RequestPart(value = "reviewOriginal", required = false) MultipartFile reviewOriginal,
-        @RequestPart(value = "proofArchive", required = false) MultipartFile proofArchive,
-        @RequestPart(value = "detailVideo", required = false) MultipartFile detailVideo
-    ) {
-        return ApiResponse.ok(certificationService.submitMonetizedExperience(
-            user, existingId, upgradeSourceId, title, description, detailMode,
-            privacyConfirmed, signature, reviewOriginal,
-            proofArchive, detailVideo
+            legacyFiles == null ? List.of() : legacyFiles,
+            clientPlatform
         ));
     }
 
@@ -115,6 +91,15 @@ public class CertificationController {
         @RequestBody PublicMediaRequest request
     ) {
         return ApiResponse.ok(publicMediaService.update(user, id, request.selectedIds()));
+    }
+
+    @DeleteMapping("/experiences/{id}")
+    public ApiResponse<Void> deleteExperience(
+        @CurrentUser User user,
+        @PathVariable Long id
+    ) {
+        certificationService.deleteExperience(user, id);
+        return ApiResponse.ok();
     }
 
     public record PublicMediaRequest(List<Long> selectedIds) {

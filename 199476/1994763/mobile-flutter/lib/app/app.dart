@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:go_router/go_router.dart';
@@ -7,8 +8,10 @@ import 'package:go_router/go_router.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/account_penalty_gate.dart';
 import '../core/widgets/app_update_gate.dart';
+import '../core/widgets/curated_realtime_gate.dart';
 import '../core/widgets/notification_realtime_gate.dart';
 import '../core/widgets/platform_introduction_gate.dart';
+import '../core/widgets/voice_call_realtime_gate.dart';
 import '../features/auth/pre_privacy_page.dart';
 import 'providers.dart';
 import 'router.dart';
@@ -48,6 +51,9 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
+        locale: const Locale('zh', 'CN'),
+        supportedLocales: const [Locale('zh', 'CN')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         home: const Scaffold(backgroundColor: Colors.white),
       );
     }
@@ -57,6 +63,9 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
         title: '事先问',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
+        locale: const Locale('zh', 'CN'),
+        supportedLocales: const [Locale('zh', 'CN')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         builder: FlutterSmartDialog.init(
           builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
             value: const SystemUiOverlayStyle(
@@ -82,6 +91,9 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
+        locale: const Locale('zh', 'CN'),
+        supportedLocales: const [Locale('zh', 'CN')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         builder: FlutterSmartDialog.init(builder: _systemChromeBuilder),
         home: const Scaffold(
           body: Center(child: CircularProgressIndicator(strokeWidth: 2)),
@@ -96,6 +108,9 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: theme.dark ? ThemeMode.dark : ThemeMode.light,
+      locale: const Locale('zh', 'CN'),
+      supportedLocales: const [Locale('zh', 'CN')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: _router,
       builder: FlutterSmartDialog.init(
         builder: (context, child) => _systemChromeBuilder(
@@ -104,9 +119,15 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
             loading: requestLoading.isLoading,
             child: AppUpdateGate(
               child: NotificationRealtimeGate(
-                child: AccountPenaltyGate(
-                  child: PlatformIntroductionGate(
-                    child: child ?? const SizedBox.shrink(),
+                child: CuratedRealtimeGate(
+                  router: _router!,
+                  child: VoiceCallRealtimeGate(
+                    router: _router!,
+                    child: AccountPenaltyGate(
+                      child: PlatformIntroductionGate(
+                        child: child ?? const SizedBox.shrink(),
+                      ),
+                    ),
                   ),
                 ),
               ),

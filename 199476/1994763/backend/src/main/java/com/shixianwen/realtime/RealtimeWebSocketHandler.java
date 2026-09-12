@@ -3,6 +3,7 @@ package com.shixianwen.realtime;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -18,6 +19,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 @Component
 @RequiredArgsConstructor
 public class RealtimeWebSocketHandler extends TextWebSocketHandler {
+    private static final long ONLINE_HEARTBEAT_TIMEOUT_MILLIS = 35_000L;
+    private static final long STALE_SESSION_TIMEOUT_MILLIS = 90_000L;
     private static final int MAX_SESSIONS_PER_SUBJECT = 3;
     private static final int MAX_SESSIONS_PER_IP = 20;
     private static final int MAX_TOTAL_SESSIONS = 5000;
@@ -39,12 +42,32 @@ public class RealtimeWebSocketHandler extends TextWebSocketHandler {
             return;
         }
         subjectConnections.add(session);
+        if (!"ADMIN".equals(session.getAttributes().get("subjectType"))) {
+            session.getAttributes().put("lastHeartbeatAt", System.currentTimeMillis());
+            session.getAttributes().put("appForeground", true);
+        }
         send(session, new RealtimeEvent("CONNECTED", Map.of(), Instant.now()));
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        session.close(CloseStatus.POLICY_VIOLATION.withReason("不接受客户端消息"));
+        if ("ADMIN".equals(session.getAttributes().get("subjectType"))) {
+            session.close(CloseStatus.POLICY_VIOLATION.withReason("不接受客户端消息"));
+            return;
+        }
+        Map<?, ?> payload;
+        try {
+            payload = objectMapper.readValue(message.getPayload(), Map.class);
+        } catch (Exception exception) {
+            session.close(CloseStatus.BAD_DATA.withReason("消息格式无效"));
+            return;
+        }
+        if (!"HEARTBEAT".equals(payload.get("type"))) {
+            session.close(CloseStatus.POLICY_VIOLATION.withReason("不接受此客户端消息"));
+            return;
+        }
+        session.getAttributes().put("lastHeartbeatAt", System.currentTimeMillis());
+        session.getAttributes().put("appForeground", Boolean.TRUE.equals(payload.get("foreground")));
     }
 
     @Override
@@ -75,6 +98,31 @@ public class RealtimeWebSocketHandler extends TextWebSocketHandler {
         userSessions.values().forEach(
             connectedSessions -> send(connectedSessions, type, payload)
         );
+    }
+
+    public boolean isUserOnline(Long userId) {
+        Set<WebSocketSession> sessions = userSessions.get(userId);
+        long threshold = System.currentTimeMillis() - ONLINE_HEARTBEAT_TIMEOUT_MILLIS;
+        return sessions != null && sessions.stream().anyMatch(session ->
+            session.isOpen()
+                && Boolean.TRUE.equals(session.getAttributes().get("appForeground"))
+                && heartbeatAt(session) >= threshold
+        );
+    }
+
+    @Scheduled(fixedDelay = 30_000L)
+    public void closeStaleUserSessions() {
+        long threshold = System.currentTimeMillis() - STALE_SESSION_TIMEOUT_MILLIS;
+        userSessions.values().stream().flatMap(Set::stream).toList().forEach(session -> {
+            if (heartbeatAt(session) >= threshold) return;
+            try { session.close(CloseStatus.SESSION_NOT_RELIABLE.withReason("心跳超时")); }
+            catch (IOException ignored) { }
+        });
+    }
+
+    private long heartbeatAt(WebSocketSession session) {
+        Object value = session.getAttributes().get("lastHeartbeatAt");
+        return value instanceof Number number ? number.longValue() : 0L;
     }
 
     private void send(Set<WebSocketSession> connectedSessions, String type, Object payload) {

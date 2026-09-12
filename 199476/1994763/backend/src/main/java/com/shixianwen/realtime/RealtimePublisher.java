@@ -25,6 +25,10 @@ public class RealtimePublisher {
         afterCommit(publish);
     }
 
+    public boolean isUserOnline(Long userId) {
+        return handler.isUserOnline(userId);
+    }
+
     private void afterCommit(Runnable publish) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
             publish.run();

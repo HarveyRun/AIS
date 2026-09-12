@@ -39,6 +39,8 @@ class FeedbackRecord {
     required this.category,
     required this.content,
     required this.status,
+    required this.resolution,
+    required this.resolvedAt,
     required this.createdAt,
   });
 
@@ -49,6 +51,8 @@ class FeedbackRecord {
       category: json['category']?.toString() ?? '',
       content: json['content']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
+      resolution: json['resolution']?.toString() ?? '',
+      resolvedAt: _date(json['resolvedAt']),
       createdAt: _date(json['createdAt']),
     );
   }
@@ -58,6 +62,8 @@ class FeedbackRecord {
   final String category;
   final String content;
   final String status;
+  final String resolution;
+  final DateTime? resolvedAt;
   final DateTime? createdAt;
 }
 

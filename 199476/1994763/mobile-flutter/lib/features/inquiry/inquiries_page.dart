@@ -12,6 +12,8 @@ import '../../core/network/realtime_service.dart';
 import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/inquiry_models.dart';
+import 'ended_inquiry_actions.dart';
+import 'experience_tip_sheet.dart';
 
 class InquiriesPage extends ConsumerStatefulWidget {
   const InquiriesPage({super.key});
@@ -161,13 +163,13 @@ class _TabLabel extends StatelessWidget {
   );
 }
 
-class _InquiryList extends StatelessWidget {
+class _InquiryList extends ConsumerWidget {
   const _InquiryList({required this.items, required this.onRefresh});
   final List<InquirySummary> items;
   final Future<void> Function({bool silent}) onRefresh;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (items.isEmpty) {
       return RefreshIndicator(
         onRefresh: onRefresh,
@@ -199,6 +201,9 @@ class _InquiryList extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: () => context.push('/chat/${item.id}'),
+              onLongPress: _isEnded(item)
+                  ? () => _openEndedActions(context, ref, item)
+                  : null,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -240,7 +245,8 @@ class _InquiryList extends StatelessWidget {
                           const SizedBox(height: 9),
                           Row(
                             children: [
-                              if (!_hideCompletedIncome(item)) ...[
+                              if (!_hideCompletedIncome(item) &&
+                                  (!item.isCurrentFlow || item.amount > 0)) ...[
                                 Text(
                                   '${item.isIncoming ? '预计收入' : '询问金额'} ¥${formatMoney(item.visibleAmount)}',
                                   style: TextStyle(
@@ -255,6 +261,20 @@ class _InquiryList extends StatelessWidget {
                               ],
                               _StatusChip(item: item),
                               const Spacer(),
+                              if (_canTip(item))
+                                TextButton(
+                                  onPressed: () => _tip(context, item),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text('打赏'),
+                                ),
                               if (item.unreadCount > 0)
                                 Badge(
                                   label: Text(
@@ -290,6 +310,96 @@ class _InquiryList extends StatelessWidget {
     final status = item.status.toUpperCase();
     return item.isIncoming && (status == 'COMPLETED' || status == 'ENDED');
   }
+
+  bool _canTip(InquirySummary item) {
+    if (item.isIncoming || item.sourceExperienceCertificationId <= 0) {
+      return false;
+    }
+    return const {'COMPLETED', 'ENDED'}.contains(item.status.toUpperCase());
+  }
+
+  bool _isEnded(InquirySummary item) {
+    return const {'COMPLETED', 'ENDED'}.contains(item.status.toUpperCase());
+  }
+
+  Future<void> _openEndedActions(
+    BuildContext context,
+    WidgetRef ref,
+    InquirySummary item,
+  ) async {
+    final action = await showEndedInquiryActions(context);
+    if (action == null || !context.mounted) return;
+
+    if (action == EndedInquiryAction.complaint) {
+      await _complain(context, ref, item);
+      return;
+    }
+    await _block(context, ref, item);
+  }
+
+  Future<void> _complain(
+    BuildContext context,
+    WidgetRef ref,
+    InquirySummary item,
+  ) async {
+    try {
+      final complained = await ref
+          .read(repositoryProvider)
+          .hasComplainedAboutInquiry(item.id);
+      if (!context.mounted) return;
+      if (complained) {
+        AppMessage.show(context, '本次询问已提交过投诉');
+        return;
+      }
+    } catch (error) {
+      if (context.mounted) AppMessage.show(context, '$error');
+      return;
+    }
+
+    final complaint = await showInquiryComplaintDialog(context);
+    if (complaint == null || !context.mounted) return;
+    try {
+      await ref
+          .read(repositoryProvider)
+          .complainAboutInquiry(
+            inquiryId: item.id,
+            category: complaint.category,
+            content: complaint.content,
+          );
+      if (context.mounted) AppMessage.show(context, '投诉已提交');
+    } catch (error) {
+      if (context.mounted) AppMessage.show(context, '$error');
+    }
+  }
+
+  Future<void> _block(
+    BuildContext context,
+    WidgetRef ref,
+    InquirySummary item,
+  ) async {
+    final confirmed = await showBlockInquiryConfirmation(
+      context,
+      item.otherName,
+    );
+    if (!confirmed || !context.mounted) return;
+    try {
+      await ref.read(repositoryProvider).blockInquiryUser(item.id);
+      if (context.mounted) AppMessage.show(context, '已拉黑对方');
+    } catch (error) {
+      if (context.mounted) AppMessage.show(context, '$error');
+    }
+  }
+
+  Future<void> _tip(BuildContext context, InquirySummary item) async {
+    final amount = await showExperienceTipSheet(
+      context,
+      certificationId: item.sourceExperienceCertificationId,
+      experienceTitle: item.topic,
+    );
+    if (amount != null && context.mounted) {
+      AppMessage.show(context, '打赏成功');
+    }
+  }
 }
 
 class _StatusChip extends StatelessWidget {
@@ -301,10 +411,10 @@ class _StatusChip extends StatelessWidget {
     final label = switch (status) {
       'PENDING' => item.isIncoming ? '待你处理' : '等待接受',
       'ACTIVE' => '交流中',
-      'AWAITING_CONFIRMATION' => item.isIncoming ? '等待确认' : '待你确认',
+      'TEXT_LIMIT_REACHED' => '文字已结束',
+      'TEXT_ENDED' => '文字已结束',
+      'PAID_ACTIVE' => '语音通话中',
       'COMPLETED' || 'ENDED' => '已结束',
-      'DISPUTED' => '质量复核中',
-      'QUALITY_REFUNDED' => '已全额退款',
       'REJECTED' => item.isIncoming ? '已拒绝' : '未接受',
       'CANCELLED' => '已撤销',
       'EXPIRED' => '已超时',

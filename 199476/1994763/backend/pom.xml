@@ -11,7 +11,7 @@
     </parent>
     <groupId>com.shixianwen</groupId>
     <artifactId>shixianwen-backend</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <name>shixianwen-backend</name>
     <description>事先问平台后端服务</description>
     <properties>
@@ -80,6 +80,11 @@
             <groupId>com.github.junrar</groupId>
             <artifactId>junrar</artifactId>
             <version>7.5.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mp4parser</groupId>
+            <artifactId>isoparser</artifactId>
+            <version>1.9.56</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

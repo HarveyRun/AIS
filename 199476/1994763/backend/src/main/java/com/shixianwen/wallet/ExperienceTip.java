@@ -44,11 +44,17 @@ public class ExperienceTip {
     @Column(name = "request_no", nullable = false, length = 64)
     private String requestNo;
 
-    @Column(name = "experience_business_type", nullable = false, length = 24)
-    private String experienceBusinessType;
-
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
+
+    @Column(name = "fee_rate", nullable = false, precision = 7, scale = 6)
+    private BigDecimal feeRate = new BigDecimal("0.500000");
+
+    @Column(name = "fee_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal feeAmount = MoneyAmounts.ZERO;
+
+    @Column(name = "receiver_income_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal receiverIncomeAmount = MoneyAmounts.ZERO;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

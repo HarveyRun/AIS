@@ -8,6 +8,8 @@ import {
   MessageSquareWarning,
   Landmark,
   Footprints,
+  PhoneCall,
+  TriangleAlert,
 } from 'lucide-react';
 import '../shared/Page.css';
 import { message } from '../../components/feedback/message.js';
@@ -61,6 +63,29 @@ export default function DashboardPage() {
           <span>
             冻结金额<strong>¥{data?.totalFrozen ?? '0.00'}</strong>
           </span>
+        </div>
+      </section>
+      <section className="fund-overview">
+        <h2>
+          <PhoneCall />
+          运行与业务监控
+        </h2>
+        <div>
+          <span>今日语音接通<strong>{data?.voiceCallsToday ?? '—'}</strong></span>
+          <span>今日连接异常<strong>{data?.voiceConnectionFailuresToday ?? '—'}</strong></span>
+          <span>呼叫中语音<strong>{data?.pendingAudioRequests ?? '—'}</strong></span>
+          <span>24小时内到期询问<strong>{data?.inquiriesExpiringWithin24Hours ?? '—'}</strong></span>
+        </div>
+      </section>
+      <section className="fund-overview">
+        <h2>
+          <TriangleAlert />
+          待关注异常
+        </h2>
+        <div>
+          <span>资料整理失败<strong>{data?.mediaProcessingFailures ?? '—'}</strong></span>
+          <span>投诉超过24小时<strong>{data?.feedbackOver24Hours ?? '—'}</strong></span>
+          <span>风险提现待审核<strong>{data?.riskyWithdrawals ?? '—'}</strong></span>
         </div>
       </section>
     </>

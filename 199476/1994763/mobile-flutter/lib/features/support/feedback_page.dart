@@ -153,10 +153,27 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                                 const SizedBox(height: 4),
                                 Text(
                                   record.content,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
+                                if (record.resolution.isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '处理结果：${record.resolution}',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium,
+                                    ),
+                                  ),
+                                ],
                                 if (record.createdAt != null) ...[
                                   const SizedBox(height: 5),
                                   Text(

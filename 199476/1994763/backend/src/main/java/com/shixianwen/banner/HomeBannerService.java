@@ -31,9 +31,7 @@ public class HomeBannerService {
         "NONE",
         "MY_EXPERIENCES",
         "PLATFORM_INTRODUCTION",
-        "FIRST_EXPERIENCE_REWARD",
-        "INVITE_PUBLIC_EXPERIENCE",
-        "INVITE_MONETIZED_EXPERIENCE"
+        "FIRST_EXPERIENCE_REWARD"
     );
     private static final Set<String> IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;
@@ -94,6 +92,17 @@ public class HomeBannerService {
             null,
             PublicBannerView.from(banner)
         );
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isActionAvailable(String actionType) {
+        LocalDateTime now = LocalDateTime.now();
+        return repository
+            .existsByActionTypeAndDeletedFalseAndEnabledTrueAndStartAtLessThanEqualAndEndAtGreaterThan(
+                actionType,
+                now,
+                now
+            );
     }
 
     public ImageUploadView uploadImage(MultipartFile image) {

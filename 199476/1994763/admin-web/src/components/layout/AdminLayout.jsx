@@ -13,11 +13,11 @@ import {
   LogOut,
   MessageSquareWarning,
   MessagesSquare,
-  Percent,
   RefreshCw,
   ScrollText,
   Settings2,
   ShieldCheck,
+  ShieldAlert,
   ShieldCog,
   Siren,
   Smartphone,
@@ -26,8 +26,8 @@ import {
   WalletCards,
   Scale,
   BadgeCheck,
-  Gavel,
   BadgeDollarSign,
+  MessageSquarePlus,
 } from 'lucide-react';
 import { AdminAccessProvider } from '../../app/AdminAccessContext.jsx';
 import { adminApi, token } from '../../api/adminApi.js';
@@ -37,11 +37,12 @@ const primaryItems = [
   ['/dashboard', '概览', LayoutDashboard, 'DASHBOARD_VIEW'],
   ['/analytics', '运营分析', ChartNoAxesCombined, 'ANALYTICS_VIEW'],
   ['/users', '用户管理', Users, 'USER_VIEW'],
+  ['/curated-chat', '严选直聊', MessageSquarePlus, 'CURATED_CHAT_VIEW'],
   ['/announcements', '通知管理', BellRing, 'ANNOUNCEMENT_VIEW'],
   ['/certifications', '认证审核', ShieldCheck, 'CERTIFICATION_VIEW'],
   ['/inquiries', '询问管理', MessagesSquare, 'INQUIRY_VIEW'],
-  ['/inquiry-disputes', '询问纠纷', Gavel, 'INQUIRY_DISPUTE_VIEW'],
-  ['/answer-quality', '回答质量', BadgeCheck, 'ANSWER_QUALITY_VIEW'],
+  ['/user-risk', '用户风险', ShieldAlert, 'RISK_WATCH_VIEW'],
+  ['/communication-evaluations', '交流评价', BadgeCheck, 'ANSWER_QUALITY_VIEW'],
   ['/withdrawals', '普通提现', WalletCards, 'WITHDRAWAL_VIEW'],
   ['/permanent-ban-payouts', '封禁余额处理', BadgeDollarSign, 'PERMANENT_BAN_PAYOUT_VIEW'],
   ['/finance-reconciliation', '资金对账', Scale, 'FINANCE_RECONCILIATION_VIEW'],
@@ -54,7 +55,12 @@ const secondaryGroups = [
     label: '业务配置',
     icon: Settings2,
     items: [
-      ['/platform-fee', '平台服务费', Percent, 'PLATFORM_FEE_VIEW'],
+      [
+        '/app-settings',
+        'App全局设置',
+        Settings2,
+        ['PLATFORM_FEE_VIEW', 'INQUIRY_CAPACITY_VIEW', 'APP_GLOBAL_SETTING_VIEW'],
+      ],
       ['/banners', '首页轮播', Images, 'BANNER_VIEW'],
     ],
   },
@@ -99,7 +105,11 @@ export default function AdminLayout({ adminData, onLoggedOut, customerServiceUnr
   }, [adminData]);
 
   const permissionSet = useMemo(() => new Set(admin?.permissions || []), [admin]);
-  const can = (code) => permissionSet.has('*') || permissionSet.has(code);
+  const can = (code) => {
+    if (permissionSet.has('*')) return true;
+    if (Array.isArray(code)) return code.some((item) => permissionSet.has(item));
+    return permissionSet.has(code);
+  };
   const visiblePrimary = primaryItems.filter((item) => can(item[3]));
   const visibleGroups = secondaryGroups
     .map((group) => ({ ...group, items: group.items.filter((item) => can(item[3])) }))

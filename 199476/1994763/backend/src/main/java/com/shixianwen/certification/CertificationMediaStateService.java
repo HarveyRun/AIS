@@ -30,7 +30,10 @@ public class CertificationMediaStateService {
         Map<String, Object> material = jdbc.queryForMap(
             "SELECT id,storage_key AS storageKey,original_name AS originalName,content_type AS contentType " +
                 "FROM certification_materials WHERE certification_id=? " +
-                "AND material_kind='PROOF_ARCHIVE' AND deleted_at IS NULL ORDER BY id DESC LIMIT 1",
+                "AND material_kind IN ('PROOF_ARCHIVE','ARCHIVE','REVIEW_ORIGINAL_ARCHIVE') " +
+                "AND deleted_at IS NULL " +
+                "ORDER BY CASE material_kind " +
+                "WHEN 'PROOF_ARCHIVE' THEN 1 WHEN 'ARCHIVE' THEN 2 ELSE 3 END,id DESC LIMIT 1",
             certificationId
         );
         jdbc.update(

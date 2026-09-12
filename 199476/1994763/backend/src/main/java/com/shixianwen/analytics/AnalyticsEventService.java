@@ -35,8 +35,7 @@ public class AnalyticsEventService {
         "home_view", "banner_impression", "banner_click", "home_search_submit",
         "answerer_card_impression", "answerer_card_click", "search_submit", "profile_view",
         "inquiry_start", "inquiry_submit_click", "chat_open", "image_preview",
-        "certification_home_view", "job_certification_start", "job_method_select",
-        "experience_create_start", "recharge_start", "alipay_payment_launch",
+        "experience_list_view", "experience_create_start", "recharge_start", "alipay_payment_launch",
         "alipay_authorization_start", "faq_view",
         "customer_service_open", "update_prompt_view", "update_action_click"
     );

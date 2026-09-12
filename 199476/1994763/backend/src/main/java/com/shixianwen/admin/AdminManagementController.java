@@ -1,5 +1,6 @@
 package com.shixianwen.admin;
 import com.shixianwen.common.ApiResponse;
+import com.shixianwen.config.AppGlobalSettingService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,10 @@ public class AdminManagementController {
     @GetMapping("/dashboard") public ApiResponse<Map<String,Object>> dashboard(){return ApiResponse.ok(service.dashboard());}
     @GetMapping("/platform-fee") public ApiResponse<Map<String,Object>> platformFee(){return ApiResponse.ok(service.platformFeeSetting());}
     @PutMapping("/platform-fee") public ApiResponse<Map<String,Object>> updatePlatformFee(@CurrentAdmin AdminUser a,@RequestBody PlatformFeeRequest r,HttpServletRequest req){return ApiResponse.ok(service.updatePlatformFee(a,r.androidRatePercent(),r.iosRatePercent(),ip(req)));}
+    @GetMapping("/inquiry-capacity") public ApiResponse<Map<String,Object>> inquiryCapacity(){return ApiResponse.ok(service.inquiryCapacitySetting());}
+    @PutMapping("/inquiry-capacity") public ApiResponse<Map<String,Object>> updateInquiryCapacity(@CurrentAdmin AdminUser a,@RequestBody InquiryCapacityRequest r,HttpServletRequest req){return ApiResponse.ok(service.updateInquiryCapacity(a,r.questionerLimit(),r.answererLimit(),ip(req)));}
+    @GetMapping("/app-settings") public ApiResponse<AppGlobalSettingService.Settings> appSettings(){return ApiResponse.ok(service.appGlobalSetting());}
+    @PutMapping("/app-settings") public ApiResponse<AppGlobalSettingService.Settings> updateAppSettings(@CurrentAdmin AdminUser a,@RequestBody AppGlobalSettingService.Settings r,HttpServletRequest req){return ApiResponse.ok(service.updateAppGlobalSetting(a,r,ip(req)));}
     @GetMapping("/users") public ApiResponse<AdminManagementService.PageResult> users(@RequestParam(defaultValue="")String keyword,@RequestParam(defaultValue="")String status,@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="20")int size){return ApiResponse.ok(service.users(keyword,status,safePage(page),safeSize(size)));}
     @PatchMapping("/users/{id}/status")
     public ApiResponse<Void> userStatus(
@@ -39,20 +44,18 @@ public class AdminManagementController {
         @PathVariable String type,
         @RequestParam(defaultValue = "") String status,
         @RequestParam(defaultValue = "") String category,
-        @RequestParam(defaultValue = "") String experienceType,
         @RequestParam(defaultValue = "") String keyword,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
         return ApiResponse.ok(
-            service.table(type, status, category, experienceType, keyword, safePage(page), safeSize(size))
+            service.table(type, status, category, keyword, safePage(page), safeSize(size))
         );
     }
     @GetMapping("/certifications/{id}/materials") public ApiResponse<List<Map<String,Object>>> materials(@PathVariable Long id){return ApiResponse.ok(service.certificationMaterials(id));}
     @PostMapping("/certifications/{id}/review") public ApiResponse<Void> review(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody ReviewRequest r,HttpServletRequest req){service.reviewCertification(a,id,r.approved(),r.reason(),ip(req));return ApiResponse.ok();}
     @PostMapping("/certifications/{id}/media-processing/retry") public ApiResponse<Void> retryCertificationMedia(@CurrentAdmin AdminUser a,@PathVariable Long id,HttpServletRequest req){service.retryCertificationMedia(a,id,ip(req));return ApiResponse.ok();}
     @PatchMapping("/certifications/{id}/enabled") public ApiResponse<Void> certificationEnabled(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody EnabledRequest r,HttpServletRequest req){service.setCertificationEnabled(a,id,r.enabled(),ip(req));return ApiResponse.ok();}
-    @PutMapping("/certifications/{id}") public ApiResponse<Void> editCertification(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody CertificationEditRequest r,HttpServletRequest req){service.editCertification(a,id,r.title(),r.description(),ip(req));return ApiResponse.ok();}
     @DeleteMapping("/certifications/{id}") public ApiResponse<Void> deleteCertification(@CurrentAdmin AdminUser a,@PathVariable Long id,HttpServletRequest req){service.deleteCertification(a,id,ip(req));return ApiResponse.ok();}
     @PatchMapping("/withdrawals/{id}/status") public ApiResponse<Void> withdrawal(@CurrentAdmin AdminUser a,@PathVariable Long id,@RequestBody StatusRequest r,HttpServletRequest req){service.processWithdrawal(a,id,r.status(),ip(req));return ApiResponse.ok();}
     @PostMapping("/withdrawals/export")
@@ -63,7 +66,7 @@ public class AdminManagementController {
     public ResponseEntity<byte[]> downloadWithdrawalBatch(@PathVariable String batchNo){
         return withdrawalExportResponse(withdrawalBatchExportService.downloadBatch(batchNo));
     }
-    @PatchMapping("/{type:feedback|cooperations}/{id}/status") public ApiResponse<Void> record(@CurrentAdmin AdminUser a,@PathVariable String type,@PathVariable Long id,@RequestBody StatusRequest r,HttpServletRequest req){service.updateRecordStatus(a,type,id,r.status(),ip(req));return ApiResponse.ok();}
+    @PatchMapping("/{type:feedback|cooperations}/{id}/status") public ApiResponse<Void> record(@CurrentAdmin AdminUser a,@PathVariable String type,@PathVariable Long id,@RequestBody StatusRequest r,HttpServletRequest req){service.updateRecordStatus(a,type,id,r.status(),r.resolution(),ip(req));return ApiResponse.ok();}
     @GetMapping("/audit-logs") public ApiResponse<AdminManagementService.PageResult> logs(@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="20")int size){return ApiResponse.ok(service.auditLogs(safePage(page),safeSize(size)));}
     @GetMapping("/customer-service/conversations") public ApiResponse<List<Map<String,Object>>> conversations(){return ApiResponse.ok(service.customerServiceConversations());}
     @GetMapping("/customer-service/users/{userId}/messages") public ApiResponse<List<Map<String,Object>>> messages(@PathVariable Long userId){return ApiResponse.ok(service.customerServiceMessages(userId));}
@@ -72,10 +75,11 @@ public class AdminManagementController {
     private String ip(HttpServletRequest r){String f=r.getHeader("X-Forwarded-For");return f==null?r.getRemoteAddr():f.split(",")[0].trim();}
     private int safePage(int page){return Math.max(page,0);}
     private int safeSize(int size){return Math.max(1,Math.min(size,100));}
-    public record StatusRequest(String status){}
+    public record StatusRequest(String status,String resolution){}
     public record PlatformFeeRequest(BigDecimal androidRatePercent, BigDecimal iosRatePercent){}
+    public record InquiryCapacityRequest(Integer questionerLimit, Integer answererLimit){}
     public record UserPenaltyRequest(String status, String duration, String reason){}
-    public record EnabledRequest(boolean enabled){} public record ReviewRequest(boolean approved,String reason){} public record CertificationEditRequest(String title,String description){} public record ReplyRequest(String content){}
+    public record EnabledRequest(boolean enabled){} public record ReviewRequest(boolean approved,String reason){} public record ReplyRequest(String content){}
     private ResponseEntity<byte[]> withdrawalExportResponse(WithdrawalBatchExportService.ExportFile file){
         String filename=java.net.URLEncoder.encode(file.filename(),StandardCharsets.UTF_8).replace("+","%20");
         return ResponseEntity.ok()

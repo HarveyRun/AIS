@@ -56,6 +56,8 @@ public class WebConfig implements WebMvcConfigurer {
                 "/api/recharges/payment-callback",
                 "/api/recharges/mock-cashier",
                 "/api/recharges/mock-payment",
+                "/api/curated-chat/membership/mock-cashier",
+                "/api/curated-chat/membership/mock-payment",
                 "/api/realtime/ws",
                 "/actuator/**",
                 "/uploads/**"

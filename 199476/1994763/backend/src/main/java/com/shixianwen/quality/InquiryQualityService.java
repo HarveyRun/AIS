@@ -7,11 +7,6 @@ import com.shixianwen.common.BusinessException;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.inquiry.Inquiry;
 import com.shixianwen.inquiry.InquiryRepository;
-import com.shixianwen.notification.NotificationService;
-import com.shixianwen.realtime.RealtimePublisher;
-import com.shixianwen.wallet.WalletIncomeHold;
-import com.shixianwen.wallet.WalletIncomeHoldRepository;
-import com.shixianwen.wallet.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,43 +25,22 @@ public class InquiryQualityService {
         "INAPPROPRIATE_LANGUAGE", "OFF_PLATFORM_PAYMENT",
         "ADVERTISEMENT", "OTHER"
     );
-    private static final Set<String> REVIEW_REASONS = Set.of(
-        "NO_EFFECTIVE_ANSWER", "CLEARLY_OFF_TOPIC", "SUSPECTED_FABRICATION",
-        "HARASSMENT", "OFF_PLATFORM_PAYMENT", "OTHER"
-    );
-
     private final InquiryRepository inquiries;
     private final InquiryEvaluationRepository evaluations;
-    private final InquiryQualityReviewRepository reviews;
-    private final WalletIncomeHoldRepository incomeHolds;
-    private final WalletService wallet;
-    private final NotificationService notifications;
     private final SensitiveWordService sensitiveWords;
     private final ObjectMapper objectMapper;
     private final AnalyticsEventService analytics;
-    private final RealtimePublisher realtime;
 
     @Transactional(readOnly = true)
     public QualityOptions options(Long userId, Long inquiryId) {
         Inquiry inquiry = participant(userId, inquiryId);
         boolean questioner = inquiry.getQuestioner().getId().equals(userId);
-        boolean completed = Set.of("COMPLETED", "QUALITY_REFUNDED").contains(inquiry.getStatus());
+        boolean completed = "COMPLETED".equals(inquiry.getStatus());
         boolean evaluated = evaluations.existsByInquiryId(inquiryId);
-        InquiryQualityReview review = reviews.findByInquiryId(inquiryId).orElse(null);
-        WalletIncomeHold hold = incomeHolds.findByInquiryId(inquiryId).orElse(null);
-        boolean reviewAvailable = false;
         boolean evaluationAvailable = questioner && completed && !evaluated
             && inquiry.getEndedAt() != null
             && inquiry.getEndedAt().plusDays(7).isAfter(LocalDateTime.now());
-        return new QualityOptions(
-            evaluationAvailable,
-            evaluated,
-            reviewAvailable,
-            hold == null ? null : hold.getReleaseAt(),
-            review == null ? null : review.getStatus(),
-            review == null ? null : review.getDecision(),
-            review == null ? null : review.getDecisionReason()
-        );
+        return new QualityOptions(evaluationAvailable, evaluated);
     }
 
     @Transactional
@@ -76,7 +50,7 @@ public class InquiryQualityService {
         if (!inquiry.getQuestioner().getId().equals(userId)) {
             throw BusinessException.forbidden("只有提问者可以评价本次交流");
         }
-        if (!Set.of("COMPLETED", "QUALITY_REFUNDED").contains(inquiry.getStatus())
+        if (!"COMPLETED".equals(inquiry.getStatus())
             || inquiry.getEndedAt() == null
             || !inquiry.getEndedAt().plusDays(7).isAfter(LocalDateTime.now())) {
             throw BusinessException.badRequest("当前不能评价本次交流");
@@ -112,11 +86,6 @@ public class InquiryQualityService {
         return EvaluationView.from(item, tags);
     }
 
-    @Transactional
-    public QualityReviewView requestReview(Long userId, Long inquiryId, ReviewCommand command) {
-        throw BusinessException.badRequest("当前不支持申请质量退款");
-    }
-
     private Inquiry participant(Long userId, Long inquiryId) {
         Inquiry inquiry = inquiries.findById(inquiryId)
             .orElseThrow(() -> BusinessException.notFound("询问不存在"));
@@ -139,12 +108,6 @@ public class InquiryQualityService {
             if (NEGATIVE_TAGS.contains(normalized)) result.add(normalized);
         });
         return List.copyOf(result);
-    }
-
-    private String required(String value, int max, String message) {
-        if (value == null || value.isBlank()) throw BusinessException.badRequest(message);
-        String clean = sensitiveWords.mask(value.trim());
-        return clean.substring(0, Math.min(clean.length(), max));
     }
 
     private String optional(String value, int max) {
@@ -173,18 +136,7 @@ public class InquiryQualityService {
     ) {
     }
 
-    public record ReviewCommand(String reasonCode, String description) {
-    }
-
-    public record QualityOptions(
-        boolean canEvaluate,
-        boolean evaluated,
-        boolean canRequestReview,
-        LocalDateTime reviewDeadline,
-        String reviewStatus,
-        String reviewDecision,
-        String reviewDecisionReason
-    ) {
+    public record QualityOptions(boolean canEvaluate, boolean evaluated) {
     }
 
     public record EvaluationView(
@@ -209,22 +161,4 @@ public class InquiryQualityService {
         }
     }
 
-    public record QualityReviewView(
-        Long id,
-        Long inquiryId,
-        String reasonCode,
-        String description,
-        String status,
-        String decision,
-        String decisionReason,
-        LocalDateTime createdAt,
-        LocalDateTime reviewedAt
-    ) {
-        static QualityReviewView from(InquiryQualityReview item) {
-            return new QualityReviewView(
-                item.getId(), item.getInquiry().getId(), item.getReasonCode(), item.getDescription(),
-                item.getStatus(), item.getDecision(), item.getDecisionReason(), item.getCreatedAt(), item.getReviewedAt()
-            );
-        }
-    }
 }

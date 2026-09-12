@@ -98,13 +98,13 @@ public class CertificationMediaProcessor {
     private void extractRar(Path archivePath, ExtractionContext context) throws Exception {
         try (Archive archive = new Archive(archivePath.toFile())) {
             if (archive.isEncrypted() || archive.isPasswordProtected()) {
-                throw new IllegalArgumentException("已处理证明资料不能设置解压密码");
+                throw new IllegalArgumentException("证明资料不能设置解压密码");
             }
             for (FileHeader header : archive.getFileHeaders()) {
                 context.countEntry();
                 if (header.isDirectory()) continue;
                 if (header.isEncrypted()) {
-                    throw new IllegalArgumentException("已处理证明资料不能包含加密文件");
+                    throw new IllegalArgumentException("证明资料不能包含加密文件");
                 }
                 long declaredSize = header.getFullUnpackSize();
                 context.ensureSize(declaredSize);

@@ -206,6 +206,25 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify({ androidRatePercent, iosRatePercent }),
     }),
+  inquiryCapacity: () => request('/inquiry-capacity'),
+  updateInquiryCapacity: (questionerLimit, answererLimit) =>
+    request('/inquiry-capacity', {
+      method: 'PUT',
+      body: JSON.stringify({ questionerLimit, answererLimit }),
+    }),
+  appGlobalSettings: () => request('/app-settings'),
+  updateAppGlobalSettings: (body) =>
+    request('/app-settings', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  curatedApplications: ({ keyword = '', status = '', page = 0, size = 20 } = {}) =>
+    request(`/curated-chat/applications?${new URLSearchParams({ keyword, status, page, size })}`),
+  curatedMaterials: (id) => request(`/curated-chat/applications/${id}/materials`),
+  reviewCuratedJob: (id, body) =>
+    request(`/curated-chat/applications/${id}/job-review`, { method: 'POST', body: JSON.stringify(body) }),
+  setCuratedMemberActive: (userId, active, reason = '') =>
+    request(`/curated-chat/members/${userId}/status`, { method: 'PATCH', body: JSON.stringify({ active, reason }) }),
   appTestAccounts: (page = 0, size = 20) => request(`/app-test-accounts?page=${page}&size=${size}`),
   createAppTestAccount: (body) =>
     request('/app-test-accounts', {
@@ -304,8 +323,6 @@ export const adminApi = {
       method: 'PATCH',
       body: JSON.stringify({ enabled }),
     }),
-  updateCertification: (id, body) =>
-    request(`/certifications/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteCertification: (id) => request(`/certifications/${id}`, { method: 'DELETE' }),
   userStatus: (id, body) =>
     request(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify(body) }),
@@ -341,42 +358,10 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify({ resolution }),
     }),
-  answerQualityReviews: ({ keyword = '', status = '', page = 0, size = 20 } = {}) =>
-    request(
-      `/answer-quality?keyword=${encodeURIComponent(keyword)}&status=${encodeURIComponent(status)}&page=${page}&size=${size}`,
-    ),
   answerQualitySummary: () => request('/answer-quality/summary'),
   answerQualityEvaluations: ({ keyword = '', risk = '', page = 0, size = 20 } = {}) => request(
     `/answer-quality/evaluations?keyword=${encodeURIComponent(keyword)}&risk=${encodeURIComponent(risk)}&page=${page}&size=${size}`,
   ),
-  answerQualityDetail: (id) => request(`/answer-quality/${id}`),
-  answerQualityEvidence: (id) => request(`/answer-quality/${id}/evidence`),
-  resolveAnswerQuality: (id, body) =>
-    request(`/answer-quality/${id}/resolve`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-  inquiryEndDisputes: ({ keyword = '', status = '', page = 0, size = 20 } = {}) =>
-    request(
-      `/inquiry-disputes/end-requests?${new URLSearchParams({ keyword, status, page, size })}`,
-    ),
-  resolveInquiryEndDispute: (id, body) =>
-    request(`/inquiry-disputes/end-requests/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(body),
-    }),
-  inquiryMessageReportCases: ({ keyword = '', status = '', page = 0, size = 20 } = {}) =>
-    request(
-      `/inquiry-disputes/message-reports?${new URLSearchParams({ keyword, status, page, size })}`,
-    ),
-  inquiryMessageReportCase: (id) => request(`/inquiry-disputes/message-reports/${id}`),
-  resolveInquiryMessageReportCase: (id, body) =>
-    request(`/inquiry-disputes/message-reports/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(body),
-    }),
-  inquiryMessageReportOriginal: (id) =>
-    request(`/inquiry-disputes/message-reports/details/${id}/original`),
   inquiryRiskWatch: ({ keyword = '', status = '', page = 0, size = 20 } = {}) =>
     request(
       `/inquiry-disputes/risk-watch?${new URLSearchParams({ keyword, status, page, size })}`,
@@ -386,8 +371,11 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify({ reason }),
     }),
-  recordStatus: (type, id, status) =>
-    request(`/${type}/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  recordStatus: (type, id, status, resolution = '') =>
+    request(`/${type}/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, resolution }),
+    }),
   logs: (query = '') => request(`/audit-logs?${query}`),
   securityEvents: ({ severity = '', status = '', type = '', page = 0, size = 20 }) =>
     request(`/security-events?${new URLSearchParams({ severity, status, type, page, size })}`),

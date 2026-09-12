@@ -5,6 +5,7 @@ import com.shixianwen.auth.AuthSessionRepository;
 import com.shixianwen.auth.AuthService;
 import com.shixianwen.auth.PhoneIdentityHash;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.config.AppGlobalSettingService;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.inquiry.InquiryRepository;
 import com.shixianwen.wallet.WalletAccount;
@@ -19,13 +20,14 @@ import java.util.List;
 import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StorageVisibility;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class UserService {
     private static final DateTimeFormatter ADJUSTMENT_TIME =
         DateTimeFormatter.ofPattern("M月d日 HH:mm");
     private static final List<String> ACTIVE_INQUIRY_STATUSES =
-        List.of("PENDING", "ACTIVE", "AWAITING_CONFIRMATION", "DISPUTED");
+        List.of("PENDING", "ACTIVE", "TEXT_LIMIT_REACHED", "TEXT_ENDED", "PAID_ACTIVE");
 
     private final UserRepository userRepository;
     private final WalletAccountRepository walletAccountRepository;
@@ -35,6 +37,8 @@ public class UserService {
     private final AnswererEligibilityService answererEligibility;
     private final SensitiveWordService sensitiveWords;
     private final AnalyticsEventService analytics;
+    @Autowired(required = false)
+    private AppGlobalSettingService globalSettings;
 
     public UserService(
         UserRepository userRepository,
@@ -84,7 +88,7 @@ public class UserService {
         User current = userRepository.findById(user.getId())
             .orElseThrow(() -> BusinessException.notFound("用户不存在"));
         if (accepting && current.getInquiryPriceUpdatedAt() == null) {
-            throw BusinessException.badRequest("请先设置可接受金额");
+            throw BusinessException.badRequest("请先设置每小时费用");
         }
         if (current.isAcceptingInquiries() == accepting) {
             return AuthService.UserView.from(current);
@@ -106,22 +110,22 @@ public class UserService {
         current.setAcceptingInquiriesUpdatedAt(now);
         analytics.recordBusinessAfterCommit(current, "answerer_setting_saved", java.util.Map.of(
             "accepting_inquiries", accepting,
-            "price_min", current.getInquiryPriceMin(),
-            "price_max", current.getInquiryPriceMax()
+            "hourly_rate", current.getInquiryHourlyRate()
         ));
         return AuthService.UserView.from(userRepository.save(current));
     }
 
     @Transactional
-    public AuthService.UserView setInquiryPriceRange(User user, int minimum, int maximum) {
-        if (minimum < 1 || maximum > 5000 || minimum > maximum) {
-            throw BusinessException.badRequest("最低金额不能高于最高金额，且须在1至5000元之间");
+    public AuthService.UserView setInquiryHourlyRate(User user, int hourlyRate) {
+        AppGlobalSettingService.Settings settings = globalSettings == null ? null : globalSettings.current();
+        int minimum = settings == null ? 1 : settings.hourlyRateMin();
+        int maximum = settings == null ? 5000 : settings.hourlyRateMax();
+        if (hourlyRate < minimum || hourlyRate > maximum) {
+            throw BusinessException.badRequest("每小时费用须在" + minimum + "至" + maximum + "元之间");
         }
         User current = userRepository.findById(user.getId())
             .orElseThrow(() -> BusinessException.notFound("用户不存在"));
-        if (current.getInquiryPriceUpdatedAt() != null &&
-            current.getInquiryPriceMin() == minimum &&
-            current.getInquiryPriceMax() == maximum) {
+        if (current.getInquiryPriceUpdatedAt() != null && current.getInquiryHourlyRate() == hourlyRate) {
             return AuthService.UserView.from(current);
         }
         LocalDateTime now = LocalDateTime.now();
@@ -130,24 +134,17 @@ public class UserService {
             : current.getInquiryPriceUpdatedAt().plusMonths(3);
         if (nextAdjustment != null && nextAdjustment.isAfter(now)) {
             throw BusinessException.badRequest(
-                "可接受金额每3个月可调整一次，下次可在" +
+                "每小时费用每3个月可调整一次，下次可在" +
                     nextAdjustment.format(ADJUSTMENT_TIME) + "调整"
             );
         }
-        current.setInquiryPriceMin(minimum);
-        current.setInquiryPriceMax(maximum);
+        current.setInquiryHourlyRate(hourlyRate);
         current.setInquiryPriceUpdatedAt(now);
         analytics.recordBusinessAfterCommit(current, "answerer_setting_saved", java.util.Map.of(
             "accepting_inquiries", current.isAcceptingInquiries(),
-            "price_min", minimum,
-            "price_max", maximum
+            "hourly_rate", hourlyRate
         ));
         return AuthService.UserView.from(userRepository.save(current));
-    }
-
-    @Transactional(readOnly = true)
-    public AnswererEligibilityService.Eligibility answererEligibility(User user) {
-        return answererEligibility.current(user.getId());
     }
 
     @Transactional

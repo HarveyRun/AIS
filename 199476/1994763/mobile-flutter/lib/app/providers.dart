@@ -73,6 +73,7 @@ final notificationPagePresenceProvider = Provider(
 );
 final inquiryUnreadCountProvider = StateProvider<int>((ref) => 0);
 final customerServiceUnreadProvider = StateProvider<int>((ref) => 0);
+final curatedChatUnreadProvider = StateProvider<int>((ref) => 0);
 
 class NotificationPagePresence {
   bool _visible = false;

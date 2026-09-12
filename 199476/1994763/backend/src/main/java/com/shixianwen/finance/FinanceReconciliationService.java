@@ -130,7 +130,7 @@ public class FinanceReconciliationService {
             List<Map<String, Object>> holdErrors = jdbc.queryForList(
                 "SELECT w.id,w.user_id,w.pending_income_balance,COALESCE(SUM(h.amount),0) hold_amount " +
                     "FROM wallet_accounts w LEFT JOIN wallet_income_holds h ON h.user_id=w.user_id " +
-                    "AND h.status IN ('PENDING','DISPUTED') GROUP BY w.id " +
+                    "AND h.status='PENDING' GROUP BY w.id " +
                     "HAVING w.pending_income_balance<>COALESCE(SUM(h.amount),0)"
             );
             records += number("SELECT COUNT(*) FROM wallet_income_holds");

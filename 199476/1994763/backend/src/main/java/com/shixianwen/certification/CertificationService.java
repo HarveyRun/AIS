@@ -2,6 +2,7 @@ package com.shixianwen.certification;
 
 import com.shixianwen.analytics.AnalyticsEventService;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.config.AppGlobalSettingService;
 import com.shixianwen.content.SensitiveWordService;
 import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StoredFile;
@@ -17,12 +18,17 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class CertificationService {
-    private static final long ONE_GB = 1024L * 1024 * 1024;
     private static final long TWO_GB = 2L * 1024 * 1024 * 1024;
     private static final long MAX_UNAPPROVED_EXPERIENCES = 3;
+    private static final List<String> EXPERIENCE_PROOF_KINDS = List.of(
+        "ARCHIVE",
+        "PROOF_ARCHIVE",
+        "REVIEW_ORIGINAL_ARCHIVE"
+    );
 
     private final CertificationRepository certificationRepository;
     private final UserRepository userRepository;
@@ -33,6 +39,9 @@ public class CertificationService {
 
     @Autowired
     private ApplicationEventPublisher events;
+
+    @Autowired(required = false)
+    private AppGlobalSettingService globalSettings;
 
     public CertificationService(
             CertificationRepository certificationRepository,
@@ -63,39 +72,51 @@ public class CertificationService {
     }
 
     @Transactional
-    public CertificationView submitBasic(
-            User user,
-            List<MultipartFile> files) {
-        String normalizedType = "IDENTITY";
-        if (files.size() != 3 || files.stream().anyMatch(file -> !isImage(file))) {
-            throw BusinessException.badRequest("身份信息认证需要按要求提交3张图片");
+    public CertificationView submitIdentity(User user, List<MultipartFile> files) {
+        user = lockedUser(user);
+        List<MultipartFile> supplied = files == null
+            ? List.of()
+            : files.stream().filter(this::present).toList();
+        if (supplied.size() != 3) {
+            throw BusinessException.badRequest("请拍摄身份证正面、反面和手持身份证照片");
         }
-        Certification existing = certificationRepository
-                .findFirstByUserIdAndCertificationTypeOrderByIdDesc(user.getId(), normalizedType)
-                .orElse(null);
-        if (existing != null && !"REJECTED".equals(existing.getStatus())) {
-            throw BusinessException.badRequest("该基础信息认证已经提交");
+        if (supplied.stream().anyMatch(file -> !"IMAGE".equals(fileTypeDetector.detect(file).kind()))) {
+            throw BusinessException.badRequest("实名认证材料仅支持现场拍摄的图片");
         }
-        Certification certification = existing == null
-                ? baseCertification(
-                        user,
-                        "BASIC",
-                        normalizedType,
-                        "实名认证",
-                        true)
-                : existing;
+
+        Certification certification = certificationRepository
+            .findFirstByUserIdAndCertificationTypeOrderByIdDesc(user.getId(), "IDENTITY")
+            .orElse(null);
+        if (certification != null && !"REJECTED".equals(certification.getStatus())) {
+            throw BusinessException.badRequest(
+                "APPROVED".equals(certification.getStatus())
+                    ? "实名认证已经通过"
+                    : "实名认证正在审核中"
+            );
+        }
+        if (certification == null) {
+            certification = baseCertification(user, "BASIC", "IDENTITY", "实名认证");
+        } else {
+            certification.setStatus("PENDING");
+            certification.setRejectionReason(null);
+            certification.setSubmittedAt(LocalDateTime.now());
+            certification.setReviewedAt(null);
+            LocalDateTime now = LocalDateTime.now();
+            certification.getMaterials().stream()
+                .filter(material -> material.getDeletedAt() == null)
+                .forEach(material -> material.setDeletedAt(now));
+        }
+        certification.setEnabled(true);
         certification.setTitle("实名认证");
-        certification.setStatus("PENDING");
-        certification.setRejectionReason(null);
-        certification.setSubmittedAt(LocalDateTime.now());
-        retireMaterials(certification);
-        attachFiles(certification, files);
+        List<String> kinds = List.of("IDENTITY_FRONT", "IDENTITY_BACK", "IDENTITY_HANDHELD");
+        for (int index = 0; index < supplied.size(); index++) {
+            attachFile(certification, supplied.get(index), kinds.get(index));
+        }
         certification = certificationRepository.save(certification);
         analytics.recordBusinessAfterCommit(user, "identity_submitted", analytics.properties(
-                "certification_id", certification.getId(),
-                "certification_type", normalizedType,
-                "material_count", files.size()
-            ));
+            "certification_id", certification.getId(),
+            "material_count", supplied.size()
+        ));
         return view(certification);
     }
 
@@ -105,105 +126,164 @@ public class CertificationService {
             Long existingId,
             String title,
             String description,
-            boolean privacyConfirmed,
-            String detailMode,
-            MultipartFile signature,
-            MultipartFile reviewOriginal,
+            String experienceLocation,
+            String experienceStartDate,
+            String experienceEndDate,
+            Integer experienceCount,
+            String experienceRole,
+            String experienceAgeRange,
+            String experienceEducation,
+            String experienceJob,
+            boolean removeProofArchive,
+            MultipartFile legacyReviewOriginal,
             MultipartFile proofArchive,
-            MultipartFile detailVideo,
             List<MultipartFile> legacyFiles) {
-        MultipartFile normalizedProof = proofArchive;
-        if ((normalizedProof == null || normalizedProof.isEmpty()) && legacyFiles.size() == 1) {
-            normalizedProof = legacyFiles.get(0);
-        }
-        return submitMonetizedExperience(
-            user, existingId, null, title, description, detailMode,
-            privacyConfirmed, signature, reviewOriginal, normalizedProof, detailVideo
+        return submitExperience(
+            user, existingId, title, description, experienceLocation, experienceStartDate,
+            experienceEndDate, experienceCount, experienceRole, experienceAgeRange,
+            experienceEducation, experienceJob, removeProofArchive, legacyReviewOriginal,
+            proofArchive, legacyFiles, "ANDROID"
         );
     }
 
     @Transactional
-    public CertificationView submitPublicWelfareExperience(
+    public CertificationView submitExperience(
             User user,
             Long existingId,
             String title,
             String description,
-            String detailMode,
+            String experienceLocation,
+            String experienceStartDate,
+            String experienceEndDate,
+            Integer experienceCount,
+            String experienceRole,
+            String experienceAgeRange,
+            String experienceEducation,
+            String experienceJob,
+            boolean removeProofArchive,
+            MultipartFile legacyReviewOriginal,
             MultipartFile proofArchive,
-            MultipartFile detailVideo) {
+            List<MultipartFile> legacyFiles,
+            String clientPlatform) {
         user = lockedUser(user);
-        Certification certification = experienceForSubmission(
-            user, existingId, "PUBLIC_WELFARE", title, null
-        );
-        validateExperienceContent(title, description);
-        String cleanDescription = description == null ? "" : description.trim();
-        validateDetail(cleanDescription, detailMode, detailVideo, certification);
-        if (proofArchive != null && !proofArchive.isEmpty()) {
-            validateArchive(proofArchive, false, "证明资料格式不正确");
+        if (globalSettings != null && !globalSettings.current().experiencePublishEnabled()) {
+            throw BusinessException.badRequest("平台暂时关闭了经历发布");
         }
+        Certification certification = experienceForSubmission(user, existingId, title);
+        validateExperienceContent(title, description);
+        validateAdditionalInformation(
+            experienceLocation,
+            experienceStartDate,
+            experienceEndDate,
+            experienceCount,
+            experienceRole,
+            experienceAgeRange,
+            experienceEducation,
+            experienceJob
+        );
+        String cleanDescription = description.trim();
+        MultipartFile normalizedProof = normalizedProofArchive(
+            proofArchive,
+            legacyReviewOriginal,
+            legacyFiles
+        );
+        if (removeProofArchive && present(normalizedProof)) {
+            throw BusinessException.badRequest("移除和上传证明资料不能同时操作");
+        }
+        validateArchive(normalizedProof);
         prepareResubmission(certification, existingId);
-        applyExperienceContent(certification, title, cleanDescription, detailVideo, proofArchive);
-        certification.setExperienceBusinessType("PUBLIC_WELFARE");
-        certification.setUpgradeSourceId(null);
+        certification.setTitle(sensitiveWords.mask(title.trim()));
+        certification.setDescription(sensitiveWords.mask(cleanDescription));
+        certification.setExperienceLocation(maskOptional(experienceLocation));
+        certification.setExperienceStartDate(maskOptional(experienceStartDate));
+        certification.setExperienceEndDate(maskOptional(experienceEndDate));
+        certification.setExperienceCount(experienceCount);
+        certification.setExperienceRole(maskOptional(experienceRole));
+        certification.setExperienceAgeRange(blankToNull(experienceAgeRange));
+        certification.setExperienceEducation(blankToNull(experienceEducation));
+        certification.setExperienceJob(maskOptional(experienceJob));
+        certification.setSourceClientPlatform(
+            "IOS".equalsIgnoreCase(clientPlatform == null ? "" : clientPlatform.trim())
+                ? "IOS"
+                : "ANDROID"
+        );
+        if (removeProofArchive || present(normalizedProof)) {
+            for (String kind : EXPERIENCE_PROOF_KINDS) {
+                retireMaterialKind(certification, kind);
+            }
+        }
+        if (present(normalizedProof)) {
+            attachFile(certification, normalizedProof, "PROOF_ARCHIVE");
+        }
+        retireMaterialKind(certification, "SIGNATURE");
         certification.setPrivacyConfirmedAt(null);
-        retireMaterialKind(certification, "REVIEW_ORIGINAL_ARCHIVE");
-        retireMaterialKind(certification, "SIGNATURE");
         certification = certificationRepository.save(certification);
-        recordExperienceSubmitted(user, certification, existingId != null, "PUBLIC_WELFARE");
+        recordExperienceSubmitted(user, certification, existingId != null);
         return view(certification);
     }
 
-    @Transactional
-    public CertificationView submitMonetizedExperience(
+    public CertificationView submitExperience(
             User user,
             Long existingId,
-            Long upgradeSourceId,
             String title,
             String description,
-            String detailMode,
-            boolean privacyConfirmed,
-            MultipartFile signature,
-            MultipartFile reviewOriginal,
+            boolean removeProofArchive,
+            MultipartFile legacyReviewOriginal,
             MultipartFile proofArchive,
-            MultipartFile detailVideo) {
-        user = lockedUser(user);
-        requireIdentity(user.getId());
-        Certification upgradeSource = requireUpgradeSource(user.getId(), existingId, upgradeSourceId);
-        Certification certification = experienceForSubmission(
-            user, existingId, "MONETIZED", title, upgradeSourceId
+            List<MultipartFile> legacyFiles) {
+        return submitExperience(
+            user, existingId, title, description,
+            null, null, null, null, null, null, null, null,
+            removeProofArchive, legacyReviewOriginal, proofArchive, legacyFiles
         );
-        if (upgradeSource != null && existingId == null) {
-            copyMaterialIfMissing(upgradeSource, certification, "DETAIL_VIDEO");
-            copyMaterialIfMissing(upgradeSource, certification, "PROOF_ARCHIVE");
-            copyMaterialIfMissing(upgradeSource, certification, "ARCHIVE");
+    }
+
+    private void validateAdditionalInformation(
+        String location,
+        String startDate,
+        String endDate,
+        Integer count,
+        String role,
+        String ageRange,
+        String education,
+        String job
+    ) {
+        validateOptionalLength(location, 20, "发生地点最多20个字");
+        validateOptionalLength(startDate, 20, "开始时间最多20个字");
+        validateOptionalLength(endDate, 20, "结束时间最多20个字");
+        validateOptionalLength(role, 7, "本人当时的身份最多7个字");
+        validateOptionalLength(job, 12, "当时职业最多12个字");
+        if (count != null && (count < 1 || count > 99)) {
+            throw BusinessException.badRequest("已经历的次数只能填写1至99");
         }
-        validateExperienceContent(title, description);
-        String cleanDescription = description == null ? "" : description.trim();
-        validateDetail(cleanDescription, detailMode, detailVideo, certification);
-        validateExperienceArchives(reviewOriginal, proofArchive, List.of(), certification);
-        if (!privacyConfirmed) {
-            throw BusinessException.badRequest("请确认已处理隐私信息");
+        if (!blank(ageRange) && !Set.of(
+            "0～5岁", "6～14岁", "15～23岁", "24～33岁", "34～54岁", "55岁及以上"
+        ).contains(ageRange.trim())) {
+            throw BusinessException.badRequest("当时年龄段不正确");
         }
-        validateSignature(signature);
-        prepareResubmission(certification, existingId);
-        applyExperienceContent(certification, title, cleanDescription, detailVideo, null);
-        if (reviewOriginal != null && !reviewOriginal.isEmpty()) {
-            retireMaterialKind(certification, "REVIEW_ORIGINAL_ARCHIVE");
-            attachFile(certification, reviewOriginal, "REVIEW_ORIGINAL_ARCHIVE");
+        if (!blank(education) && !Set.of(
+            "小学及以下", "初中", "高中/中专", "大专", "本科", "硕士", "博士及以上"
+        ).contains(education.trim())) {
+            throw BusinessException.badRequest("当时学历不正确");
         }
-        if (proofArchive != null && !proofArchive.isEmpty()) {
-            retireMaterialKind(certification, "ARCHIVE");
-            retireMaterialKind(certification, "PROOF_ARCHIVE");
-            attachFile(certification, proofArchive, "PROOF_ARCHIVE");
+    }
+
+    private void validateOptionalLength(String value, int max, String message) {
+        if (!blank(value) && value.trim().codePointCount(0, value.trim().length()) > max) {
+            throw BusinessException.badRequest(message);
         }
-        retireMaterialKind(certification, "SIGNATURE");
-        attachFile(certification, signature, "SIGNATURE");
-        certification.setExperienceBusinessType("MONETIZED");
-        certification.setUpgradeSourceId(upgradeSourceId);
-        certification.setPrivacyConfirmedAt(LocalDateTime.now());
-        certification = certificationRepository.save(certification);
-        recordExperienceSubmitted(user, certification, existingId != null, "MONETIZED");
-        return view(certification);
+    }
+
+    private String maskOptional(String value) {
+        return blank(value) ? null : sensitiveWords.mask(value.trim());
+    }
+
+    private String blankToNull(String value) {
+        return blank(value) ? null : value.trim();
+    }
+
+    private boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 
     private User lockedUser(User user) {
@@ -212,19 +292,10 @@ public class CertificationService {
         return user;
     }
 
-    private void requireIdentity(Long userId) {
-        if (!certificationRepository.existsByUserIdAndCertificationTypeAndStatusAndEnabledTrue(
-            userId, "IDENTITY", "APPROVED")) {
-            throw BusinessException.badRequest("完成实名认证后才能发布干货变现经历");
-        }
-    }
-
     private Certification experienceForSubmission(
         User user,
         Long existingId,
-        String businessType,
-        String title,
-        Long upgradeSourceId
+        String title
     ) {
         Certification certification;
         if (existingId == null) {
@@ -233,7 +304,10 @@ public class CertificationService {
                             user.getId(),
                             "EXPERIENCE",
                             "APPROVED");
-            if (unapprovedExperiences >= MAX_UNAPPROVED_EXPERIENCES) {
+            long maxUnapproved = globalSettings == null
+                ? MAX_UNAPPROVED_EXPERIENCES
+                : globalSettings.current().maxUnapprovedExperiences();
+            if (unapprovedExperiences >= maxUnapproved) {
                 throw BusinessException.badRequest(
                         "添加已达上限，请等待审核完成后再添加");
             }
@@ -241,32 +315,29 @@ public class CertificationService {
                 user,
                 "EXPERIENCE",
                 "EXPERIENCE",
-                title == null ? "" : sensitiveWords.mask(title.trim()),
-                false
+                title == null ? "" : sensitiveWords.mask(title.trim())
             );
         } else {
             certification = certificationRepository.findByIdAndUserId(existingId, user.getId())
                     .filter(item -> "EXPERIENCE".equals(item.getCategory()))
                     .filter(item -> "REJECTED".equals(item.getStatus()))
                     .orElseThrow(() -> BusinessException.badRequest("只有已驳回的经历才能修改"));
-            String existingType = normalizedBusinessType(certification);
-            if (!businessType.equals(existingType)) {
-                throw BusinessException.badRequest("经历发布类型不能变更");
-            }
         }
-        certification.setExperienceBusinessType(businessType);
-        certification.setUpgradeSourceId(upgradeSourceId);
         return certification;
     }
 
     private void validateExperienceContent(String title, String description) {
         if (title == null || title.isBlank())
             throw BusinessException.badRequest("请填写经历标题");
-        if (title.trim().length() > 20)
-            throw BusinessException.badRequest("经历标题最多20个字");
+        int titleLimit = globalSettings == null ? 18 : globalSettings.current().experienceTitleMaxLength();
+        if (title.trim().codePointCount(0, title.trim().length()) > titleLimit)
+            throw BusinessException.badRequest("经历标题最多" + titleLimit + "个字");
         String cleanDescription = description == null ? "" : description.trim();
-        if (cleanDescription.length() > 5000)
-            throw BusinessException.badRequest("经历详述最多5000个字");
+        if (cleanDescription.isEmpty())
+            throw BusinessException.badRequest("请填写文字详述");
+        int descriptionLimit = globalSettings == null ? 400 : globalSettings.current().experienceDescriptionMaxLength();
+        if (cleanDescription.codePointCount(0, cleanDescription.length()) > descriptionLimit)
+            throw BusinessException.badRequest("文字详述最多" + descriptionLimit + "个字");
     }
 
     private void prepareResubmission(Certification certification, Long existingId) {
@@ -277,39 +348,40 @@ public class CertificationService {
         }
     }
 
-    private void applyExperienceContent(
-        Certification certification,
-        String title,
-        String cleanDescription,
-        MultipartFile detailVideo,
-        MultipartFile proofArchive
-    ) {
-        certification.setTitle(sensitiveWords.mask(title.trim()));
-        certification.setDescription(cleanDescription.isBlank() ? null : sensitiveWords.mask(cleanDescription));
-        if (detailVideo != null && !detailVideo.isEmpty()) {
-            retireMaterialKind(certification, "DETAIL_VIDEO");
-            attachFile(certification, detailVideo, "DETAIL_VIDEO");
-        }
-        if (proofArchive != null && !proofArchive.isEmpty()) {
-            retireMaterialKind(certification, "ARCHIVE");
-            retireMaterialKind(certification, "PROOF_ARCHIVE");
-            attachFile(certification, proofArchive, "PROOF_ARCHIVE");
-        }
-    }
-
     private void recordExperienceSubmitted(
         User user,
         Certification certification,
-        boolean resubmitted,
-        String businessType
+        boolean resubmitted
     ) {
         analytics.recordBusinessAfterCommit(user, "experience_submitted", analytics.properties(
             "certification_id", certification.getId(),
             "material_count", certification.getMaterials().stream()
                 .filter(material -> material.getDeletedAt() == null)
                 .count(),
-            "business_type", businessType,
             "resubmitted", resubmitted
+        ));
+    }
+
+    @Transactional
+    public void deleteExperience(User user, Long certificationId) {
+        Certification certification = certificationRepository
+            .findByIdAndUserId(certificationId, user.getId())
+            .filter(item -> "EXPERIENCE".equals(item.getCategory()))
+            .orElseThrow(() -> BusinessException.notFound("经历不存在"));
+        if (!"REJECTED".equals(certification.getStatus())) {
+            throw BusinessException.badRequest("只有已被驳回的经历才能删除");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        certification.setEnabled(false);
+        certification.setDeletedAt(now);
+        certification.getMaterials().stream()
+            .filter(material -> material.getDeletedAt() == null)
+            .forEach(material -> material.setDeletedAt(now));
+        certificationRepository.save(certification);
+        analytics.recordBusinessAfterCommit(user, "experience_deleted", analytics.properties(
+            "certification_id", certification.getId(),
+            "status", certification.getStatus()
         ));
     }
 
@@ -331,18 +403,6 @@ public class CertificationService {
             certification.setMediaProcessedAt(null);
         }
         certification = certificationRepository.save(certification);
-        if (approved
-            && "MONETIZED".equals(normalizedBusinessType(certification))
-            && certification.getUpgradeSourceId() != null) {
-            certificationRepository.findByIdAndUserId(
-                certification.getUpgradeSourceId(), certification.getUser().getId()
-            ).ifPresent(source -> {
-                if ("PUBLIC_WELFARE".equals(normalizedBusinessType(source))) {
-                    source.setEnabled(false);
-                    certificationRepository.save(source);
-                }
-            });
-        }
         refreshAnswererStatus(certification.getUser(), certification.getCertificationType());
         analytics.recordBusinessAfterCommit(
             certification.getUser(),
@@ -364,22 +424,15 @@ public class CertificationService {
         return view(certification);
     }
 
-    private Certification baseCertification(User user, String category, String type, String title, boolean required) {
+    private Certification baseCertification(User user, String category, String type, String title) {
         Certification certification = new Certification();
         certification.setUser(user);
         certification.setCategory(category);
         certification.setCertificationType(type);
         certification.setTitle(title);
-        certification.setRequiredItem(required);
         certification.setStatus("PENDING");
         certification.setSubmittedAt(LocalDateTime.now());
         return certification;
-    }
-
-    private void attachFiles(Certification certification, List<MultipartFile> files) {
-        for (MultipartFile file : files) {
-            attachFile(certification, file, kindOf(file));
-        }
     }
 
     private void attachFile(
@@ -423,11 +476,6 @@ public class CertificationService {
         return result == null ? LocalDateTime.MIN : result;
     }
 
-    private void retireMaterials(Certification certification) {
-        LocalDateTime now = LocalDateTime.now();
-        certification.getMaterials().forEach(material -> material.setDeletedAt(now));
-    }
-
     private void retireMaterialKind(Certification certification, String kind) {
         LocalDateTime now = LocalDateTime.now();
         certification.getMaterials().stream()
@@ -436,108 +484,41 @@ public class CertificationService {
             .forEach(material -> material.setDeletedAt(now));
     }
 
-    private void validateDetail(
-        String description,
-        String detailMode,
-        MultipartFile detailVideo,
-        Certification certification
-    ) {
-        String normalizedMode = detailMode == null ? "" : detailMode.trim().toUpperCase();
-        if (!List.of("TEXT", "VIDEO", "BOTH").contains(normalizedMode)) {
-            throw BusinessException.badRequest("请选择文字详述或录像详述");
-        }
-        boolean hasText = !description.isBlank();
-        boolean hasNewVideo = detailVideo != null && !detailVideo.isEmpty();
-        boolean hasExistingVideo = certification.getMaterials().stream()
-            .anyMatch(material -> material.getDeletedAt() == null
-                && "DETAIL_VIDEO".equals(material.getMaterialKind()));
-        boolean hasVideo = hasNewVideo || hasExistingVideo;
-        if (!hasText && !hasVideo) {
-            throw BusinessException.badRequest("请填写文字详述或选择详述录像");
-        }
-        if ("TEXT".equals(normalizedMode) && !hasText) {
-            throw BusinessException.badRequest("请填写文字详述");
-        }
-        if ("VIDEO".equals(normalizedMode) && !hasVideo) {
-            throw BusinessException.badRequest("请选择详述录像");
-        }
-        if ("BOTH".equals(normalizedMode) && (!hasText || !hasVideo)) {
-            throw BusinessException.badRequest("请同时填写文字详述并选择详述录像");
-        }
-        if (hasNewVideo) {
-            if (!isVideo(detailVideo)) {
-                throw BusinessException.badRequest("详述录像格式不正确");
-            }
-            if (detailVideo.getSize() > ONE_GB) {
-                throw BusinessException.badRequest("详述录像不能超过1GB");
-            }
-        }
-    }
-
-    private void validateExperienceArchives(
-        MultipartFile reviewOriginal,
+    private MultipartFile normalizedProofArchive(
         MultipartFile proofArchive,
-        List<MultipartFile> legacyFiles,
-        Certification certification
+        MultipartFile legacyReviewOriginal,
+        List<MultipartFile> legacyFiles
     ) {
-        boolean hasExistingReviewOriginal = certification.getMaterials().stream()
-            .anyMatch(material -> material.getDeletedAt() == null
-                && "REVIEW_ORIGINAL_ARCHIVE".equals(material.getMaterialKind()));
-        boolean hasExistingProofArchive = certification.getMaterials().stream()
-            .anyMatch(material -> material.getDeletedAt() == null
-                && List.of("ARCHIVE", "PROOF_ARCHIVE").contains(material.getMaterialKind()));
-        MultipartFile normalizedProofArchive = proofArchive;
-        if ((normalizedProofArchive == null || normalizedProofArchive.isEmpty())
-            && legacyFiles.size() == 1) {
-            normalizedProofArchive = legacyFiles.get(0);
+        List<MultipartFile> candidates = new java.util.ArrayList<>();
+        if (present(proofArchive)) candidates.add(proofArchive);
+        if (present(legacyReviewOriginal)) candidates.add(legacyReviewOriginal);
+        if (legacyFiles != null) {
+            candidates.addAll(legacyFiles.stream().filter(this::present).toList());
         }
-        if (legacyFiles.size() > 1) {
-            throw BusinessException.badRequest("已处理证明资料只能上传一个压缩包");
+        if (candidates.size() > 1) {
+            throw BusinessException.badRequest("证明资料只能上传一个压缩包");
         }
-        validateArchive(
-            reviewOriginal,
-            hasExistingReviewOriginal,
-            "请上传未处理证明资料压缩包"
-        );
-        validateArchive(
-            normalizedProofArchive,
-            hasExistingProofArchive,
-            "请上传已处理证明资料压缩包"
-        );
+        return candidates.isEmpty() ? null : candidates.get(0);
     }
 
-    private void validateArchive(
-        MultipartFile archive,
-        boolean hasExisting,
-        String missingMessage
-    ) {
-        if ((archive == null || archive.isEmpty()) && !hasExisting) {
-            throw BusinessException.badRequest(missingMessage);
-        }
-        if (archive == null || archive.isEmpty()) return;
+    private boolean present(MultipartFile file) {
+        return file != null && !file.isEmpty();
+    }
+
+    private void validateArchive(MultipartFile archive) {
+        if (!present(archive)) return;
         fileTypeDetector.requireArchive(archive);
-        if (archive.getSize() > TWO_GB) {
-            throw BusinessException.badRequest("每个压缩包不能超过2GB");
+        long maxBytes = globalSettings == null ? TWO_GB : globalSettings.current().proofArchiveMaxBytes();
+        if (archive.getSize() > maxBytes) {
+            throw BusinessException.badRequest("证明资料不能超过" + readableSize(maxBytes));
         }
     }
 
-    private Certification requireUpgradeSource(Long userId, Long existingId, Long upgradeSourceId) {
-        if (upgradeSourceId == null) return null;
-        if (existingId != null) {
-            Certification existing = certificationRepository.findByIdAndUserId(existingId, userId)
-                .orElseThrow(() -> BusinessException.notFound("经历不存在"));
-            if (!upgradeSourceId.equals(existing.getUpgradeSourceId())) {
-                throw BusinessException.badRequest("升级来源不能变更");
-            }
-        } else if (certificationRepository.existsByUpgradeSourceIdAndDeletedAtIsNull(upgradeSourceId)) {
-            throw BusinessException.badRequest("该公益分享已经申请升级");
-        }
-        return certificationRepository.findByIdAndUserId(upgradeSourceId, userId)
-            .filter(item -> "EXPERIENCE".equals(item.getCategory()))
-            .filter(item -> "PUBLIC_WELFARE".equals(normalizedBusinessType(item)))
-            .filter(item -> "APPROVED".equals(item.getStatus()))
-            .filter(Certification::isEnabled)
-            .orElseThrow(() -> BusinessException.badRequest("只有已通过的公益分享才能升级"));
+    private String readableSize(long bytes) {
+        long megabytes = Math.max(1, bytes / (1024 * 1024));
+        return megabytes >= 1024 && megabytes % 1024 == 0
+            ? (megabytes / 1024) + "GB"
+            : megabytes + "MB";
     }
 
     private boolean hasMaterial(Certification certification, String kind) {
@@ -546,54 +527,14 @@ public class CertificationService {
                 && kind.equals(material.getMaterialKind()));
     }
 
-    private void copyMaterialIfMissing(
-        Certification source,
-        Certification target,
-        String kind
-    ) {
-        if (hasMaterial(target, kind)) return;
-        source.getMaterials().stream()
-            .filter(material -> material.getDeletedAt() == null)
-            .filter(material -> kind.equals(material.getMaterialKind()))
-            .findFirst()
-            .ifPresent(material -> {
-                CertificationMaterial copy = new CertificationMaterial();
-                copy.setCertification(target);
-                copy.setMaterialKind(material.getMaterialKind());
-                copy.setOriginalName(material.getOriginalName());
-                copy.setStorageKey(material.getStorageKey());
-                copy.setPublicUrl(material.getPublicUrl());
-                copy.setContentType(material.getContentType());
-                copy.setFileSize(material.getFileSize());
-                target.getMaterials().add(copy);
-            });
-    }
-
-    private String normalizedBusinessType(Certification certification) {
-        String type = certification.getExperienceBusinessType();
-        return type == null || type.isBlank() ? "MONETIZED" : type;
-    }
-
-    private void validateSignature(MultipartFile signature) {
-        if (signature == null || signature.isEmpty()) {
-            throw BusinessException.badRequest("请完成本人手写签字");
-        }
-        fileTypeDetector.requireImage(signature);
-        if (signature.getSize() > 5L * 1024 * 1024) {
-            throw BusinessException.badRequest("签字图片不能超过5MB");
-        }
-    }
-
     private void refreshAnswererStatus(User user, String reviewedCertificationType) {
         List<Certification> certifications = certificationRepository
                 .findByUserIdAndStatusAndEnabledTrueOrderByIdAsc(user.getId(), "APPROVED");
-        boolean identity = certifications.stream().anyMatch(item -> "IDENTITY".equals(item.getCertificationType()));
         boolean experience = certifications.stream().anyMatch(item ->
             "EXPERIENCE".equals(item.getCategory())
-                && "MONETIZED".equals(normalizedBusinessType(item))
         );
-        boolean answererQualified = identity && experience;
-        boolean reviewedQualification = List.of("IDENTITY", "EXPERIENCE").contains(reviewedCertificationType);
+        boolean answererQualified = experience;
+        boolean reviewedQualification = "EXPERIENCE".equals(reviewedCertificationType);
 
         user.setAnswererStatus(answererQualified ? "APPROVED" : "PENDING");
         if (!answererQualified || !"ACTIVE".equals(user.getAccountStatus())) {
@@ -604,25 +545,26 @@ public class CertificationService {
         userRepository.save(user);
     }
 
-    private boolean isImage(MultipartFile file) {
-        return "IMAGE".equals(fileTypeDetector.detect(file).kind());
-    }
-
-    private boolean isVideo(MultipartFile file) {
-        return "VIDEO".equals(fileTypeDetector.detect(file).kind());
-    }
-
-    private String kindOf(MultipartFile file) {
-        return fileTypeDetector.detect(file).kind();
+    private static List<CertificationMaterial> visibleMaterials(Certification certification) {
+        List<CertificationMaterial> active = certification.getMaterials().stream()
+            .filter(material -> material.getDeletedAt() == null)
+            .toList();
+        CertificationMaterial proof = active.stream()
+            .filter(material -> List.of("ARCHIVE", "PROOF_ARCHIVE")
+                .contains(material.getMaterialKind()))
+            .reduce((first, second) -> second)
+            .orElseGet(() -> active.stream()
+                .filter(material -> "REVIEW_ORIGINAL_ARCHIVE".equals(material.getMaterialKind()))
+                .reduce((first, second) -> second)
+                .orElse(null));
+        return active.stream()
+            .filter(material -> !"DETAIL_VIDEO".equals(material.getMaterialKind()))
+            .filter(material -> !EXPERIENCE_PROOF_KINDS.contains(material.getMaterialKind())
+                || material == proof)
+            .toList();
     }
 
     public record MaterialView(Long id, String kind, String name, String url, long size, String contentType) {
-        private static final List<String> EXPERIENCE_PROOF_KINDS = List.of(
-            "ARCHIVE",
-            "PROOF_ARCHIVE",
-            "REVIEW_ORIGINAL_ARCHIVE"
-        );
-
         static MaterialView from(
             CertificationMaterial material,
             FileStorage fileStorage,
@@ -637,7 +579,11 @@ public class CertificationService {
                     : legacyUrl
                 : "";
             return new MaterialView(
-                    material.getId(), material.getMaterialKind(), material.getOriginalName(),
+                    material.getId(),
+                    EXPERIENCE_PROOF_KINDS.contains(material.getMaterialKind())
+                        ? "PROOF_ARCHIVE"
+                        : material.getMaterialKind(),
+                    material.getOriginalName(),
                     url,
                     material.getFileSize(), material.getContentType());
         }
@@ -649,12 +595,17 @@ public class CertificationService {
             String type,
             String title,
             String description,
-            boolean required,
+            String experienceLocation,
+            String experienceStartDate,
+            String experienceEndDate,
+            Integer experienceCount,
+            String experienceRole,
+            String experienceAgeRange,
+            String experienceEducation,
+            String experienceJob,
             String status,
             boolean enabled,
             String rejectionReason,
-            String experienceBusinessType,
-            Long upgradeSourceId,
             String mediaProcessingStatus,
             String mediaProcessingError,
             LocalDateTime lastOperatedAt,
@@ -663,18 +614,20 @@ public class CertificationService {
             return new CertificationView(
                     certification.getId(), certification.getCategory(), certification.getCertificationType(),
                     certification.getTitle(), certification.getDescription(),
-                    certification.isRequiredItem(), certification.getStatus(), certification.isEnabled(),
+                    certification.getExperienceLocation(),
+                    certification.getExperienceStartDate(),
+                    certification.getExperienceEndDate(),
+                    certification.getExperienceCount(),
+                    certification.getExperienceRole(),
+                    certification.getExperienceAgeRange(),
+                    certification.getExperienceEducation(),
+                    certification.getExperienceJob(),
+                    certification.getStatus(), certification.isEnabled(),
                     certification.getRejectionReason(),
-                    certification.getCategory().equals("EXPERIENCE")
-                        ? certification.getExperienceBusinessType() == null
-                            ? "MONETIZED"
-                            : certification.getExperienceBusinessType()
-                        : null,
-                    certification.getUpgradeSourceId(),
                     certification.getMediaProcessingStatus(),
                     certification.getMediaProcessingError(),
                     resolveLastOperatedAt(certification),
-                    certification.getMaterials().stream().filter(material -> material.getDeletedAt() == null)
+                    visibleMaterials(certification).stream()
                             .map(material -> MaterialView.from(
                                 material,
                                 fileStorage,

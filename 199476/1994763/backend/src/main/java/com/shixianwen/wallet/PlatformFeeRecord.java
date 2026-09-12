@@ -8,7 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,9 +28,15 @@ public class PlatformFeeRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "inquiry_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "inquiry_id", nullable = false)
     private Inquiry inquiry;
+
+    @Column(name = "reference_type", nullable = false, length = 40)
+    private String referenceType = "INQUIRY";
+
+    @Column(name = "reference_id", nullable = false)
+    private Long referenceId;
 
     @Column(name = "client_platform", nullable = false, length = 20)
     private String clientPlatform;

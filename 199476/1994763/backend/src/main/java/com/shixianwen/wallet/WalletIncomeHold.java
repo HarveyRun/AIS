@@ -10,7 +10,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,9 +31,13 @@ public class WalletIncomeHold {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "inquiry_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inquiry_id")
     private Inquiry inquiry;
+    @Column(name = "reference_type", nullable = false, length = 40)
+    private String referenceType = "INQUIRY";
+    @Column(name = "reference_id", nullable = false)
+    private Long referenceId;
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
     @Column(nullable = false, length = 20)

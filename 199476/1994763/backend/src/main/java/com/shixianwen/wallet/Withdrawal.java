@@ -33,6 +33,10 @@ public class Withdrawal {
     private BigDecimal fee;
     @Column(name = "arrival_amount", nullable = false, precision = 14, scale = 2)
     private BigDecimal arrivalAmount;
+    @Column(name = "risk_level", nullable = false, length = 20)
+    private String riskLevel = "LOW";
+    @Column(name = "risk_reasons", length = 1000)
+    private String riskReasons;
     @Column(name = "payee_name_snapshot", length = 80)
     private String payeeNameSnapshot;
 

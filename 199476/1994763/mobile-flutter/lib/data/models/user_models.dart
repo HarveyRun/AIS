@@ -8,8 +8,7 @@ class AppUser {
     required this.jobTitle,
     required this.acceptingInquiries,
     required this.acceptingInquiriesUpdatedAt,
-    required this.inquiryPriceMin,
-    required this.inquiryPriceMax,
+    required this.inquiryHourlyRate,
     required this.inquiryPriceUpdatedAt,
     required this.answererStatus,
     required this.platformIntroductionRequired,
@@ -27,8 +26,7 @@ class AppUser {
       acceptingInquiriesUpdatedAt: _dateTime(
         json['acceptingInquiriesUpdatedAt'],
       ),
-      inquiryPriceMin: _boundedInt(json['inquiryPriceMin'], 1),
-      inquiryPriceMax: _boundedInt(json['inquiryPriceMax'], 5000),
+      inquiryHourlyRate: _boundedInt(json['inquiryHourlyRate'], 60),
       inquiryPriceUpdatedAt: _dateTime(json['inquiryPriceUpdatedAt']),
       answererStatus: json['answererStatus']?.toString() ?? '',
       platformIntroductionRequired:
@@ -44,8 +42,7 @@ class AppUser {
   final String jobTitle;
   final bool acceptingInquiries;
   final DateTime? acceptingInquiriesUpdatedAt;
-  final int inquiryPriceMin;
-  final int inquiryPriceMax;
+  final int inquiryHourlyRate;
   final DateTime? inquiryPriceUpdatedAt;
   final String answererStatus;
   final bool platformIntroductionRequired;
@@ -58,8 +55,7 @@ class AppUser {
     String? jobTitle,
     bool? acceptingInquiries,
     DateTime? acceptingInquiriesUpdatedAt,
-    int? inquiryPriceMin,
-    int? inquiryPriceMax,
+    int? inquiryHourlyRate,
     DateTime? inquiryPriceUpdatedAt,
     String? answererStatus,
     bool? platformIntroductionRequired,
@@ -74,8 +70,7 @@ class AppUser {
       acceptingInquiries: acceptingInquiries ?? this.acceptingInquiries,
       acceptingInquiriesUpdatedAt:
           acceptingInquiriesUpdatedAt ?? this.acceptingInquiriesUpdatedAt,
-      inquiryPriceMin: inquiryPriceMin ?? this.inquiryPriceMin,
-      inquiryPriceMax: inquiryPriceMax ?? this.inquiryPriceMax,
+      inquiryHourlyRate: inquiryHourlyRate ?? this.inquiryHourlyRate,
       inquiryPriceUpdatedAt:
           inquiryPriceUpdatedAt ?? this.inquiryPriceUpdatedAt,
       answererStatus: answererStatus ?? this.answererStatus,

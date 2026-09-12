@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import com.shixianwen.user.User;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 import com.shixianwen.network.ClientNetworkService;
@@ -30,7 +29,7 @@ public class InquiryController {
         return ApiResponse.ok(service.create(
             user.getId(),
             new InquiryService.CreateCommand(
-                body.answererId(), body.sourceExperienceCertificationId(), body.amount(), clientPlatform
+                body.answererId(), body.sourceExperienceCertificationId(), body.question(), clientPlatform
             ),
             clientNetworkService.resolve(request)
         ));
@@ -51,11 +50,17 @@ public class InquiryController {
     ) {
         return ApiResponse.ok(service.sendImage(user.getId(), id, image));
     }
-    @PostMapping("/{id}/request-end") public ApiResponse<InquiryService.InquiryView> requestEnd(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.requestEnd(u.getId(), id)); }
-    @PostMapping("/{id}/disagree-end") public ApiResponse<InquiryService.InquiryView> disagreeEnd(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.disagreeEnd(u.getId(), id)); }
-    @PostMapping("/{id}/confirm-end") public ApiResponse<InquiryService.InquiryView> confirmEnd(@CurrentUser User u, @PathVariable Long id) { return ApiResponse.ok(service.confirmEnd(u.getId(), id)); }
-
-    public record CreateRequest(@NotNull Long answererId, @NotNull Long sourceExperienceCertificationId,
-                                @NotNull @DecimalMin("1") @DecimalMax("5000") @Digits(integer=4, fraction=0) BigDecimal amount) {}
-    public record MessageRequest(@NotBlank @Size(max=500) String content) {}
+    @PostMapping("/{id}/end")
+    public ApiResponse<InquiryService.InquiryView> end(
+        @CurrentUser User user,
+        @PathVariable Long id
+    ) {
+        return ApiResponse.ok(service.endInquiry(user.getId(), id));
+    }
+    public record CreateRequest(
+        @NotNull Long answererId,
+        @NotNull Long sourceExperienceCertificationId,
+        @NotBlank @Size(max=200) String question
+    ) {}
+    public record MessageRequest(@NotBlank String content) {}
 }

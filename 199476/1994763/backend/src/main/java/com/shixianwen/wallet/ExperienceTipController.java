@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Pattern;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
@@ -29,19 +30,21 @@ public class ExperienceTipController {
     @PostMapping
     public ApiResponse<WalletService.ExperienceTipView> create(
         @CurrentUser User user,
+        @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform,
         @Valid @RequestBody Request body
     ) {
         return ApiResponse.ok(walletService.tipExperience(
             user.getId(),
             body.certificationId(),
             body.amount(),
-            body.requestId()
+            body.requestId(),
+            clientPlatform
         ));
     }
 
     public record Request(
         @NotNull Long certificationId,
-        @NotNull @DecimalMin("1") @DecimalMax("5000") @Digits(integer = 4, fraction = 0) BigDecimal amount,
+        @NotNull @DecimalMin("1") @Digits(integer = 4, fraction = 0) BigDecimal amount,
         @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{12,64}") String requestId
     ) {
     }

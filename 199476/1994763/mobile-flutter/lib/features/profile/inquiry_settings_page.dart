@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../app/providers.dart';
 import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/app_message.dart';
+import '../../data/models/app_global_settings.dart';
 
 class InquirySettingsPage extends ConsumerStatefulWidget {
   const InquirySettingsPage({super.key});
@@ -16,6 +17,7 @@ class InquirySettingsPage extends ConsumerStatefulWidget {
 
 class _InquirySettingsPageState extends ConsumerState<InquirySettingsPage> {
   bool _loading = true;
+  AppGlobalSettings? _settings;
 
   @override
   void initState() {
@@ -26,7 +28,11 @@ class _InquirySettingsPageState extends ConsumerState<InquirySettingsPage> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      await ref.read(authControllerProvider).refreshUser();
+      final values = await Future.wait([
+        ref.read(authControllerProvider).refreshUser(),
+        ref.read(repositoryProvider).appGlobalSettings(),
+      ]);
+      _settings = values[1] as AppGlobalSettings;
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     } finally {
@@ -34,24 +40,26 @@ class _InquirySettingsPageState extends ConsumerState<InquirySettingsPage> {
     }
   }
 
-  Future<bool> _editPriceRange({bool showSaved = true}) async {
+  Future<bool> _editHourlyRate({bool showSaved = true}) async {
     final user = ref.read(authControllerProvider).user;
     if (user == null) return false;
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _InquiryPriceRangeSheet(
-        minimum: user.inquiryPriceMin,
-        maximum: user.inquiryPriceMax,
-      ),
+      builder: (context) =>
+          _HourlyRateSheet(
+            hourlyRate: user.inquiryHourlyRate,
+            minimum: _settings?.hourlyRateMin ?? 1,
+            maximum: _settings?.hourlyRateMax ?? 5000,
+          ),
     );
     if (saved == true && mounted && showSaved) {
-      AppMessage.show(context, '可接受金额已保存');
+      AppMessage.show(context, '每小时费用已保存');
     }
     return saved == true;
   }
 
-  Future<void> _handlePriceRangeTap() async {
+  Future<void> _handleHourlyRateTap() async {
     try {
       final latest = await ref.read(authControllerProvider).refreshUser();
       if (!mounted) return;
@@ -66,7 +74,7 @@ class _InquirySettingsPageState extends ConsumerState<InquirySettingsPage> {
           return;
         }
       }
-      await _editPriceRange();
+      await _editHourlyRate();
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     }
@@ -77,16 +85,14 @@ class _InquirySettingsPageState extends ConsumerState<InquirySettingsPage> {
       final latest = await ref.read(authControllerProvider).refreshUser();
       if (!mounted) return;
       if (value && latest.inquiryPriceUpdatedAt == null) {
-        final saved = await _editPriceRange(showSaved: false);
+        final saved = await _editHourlyRate(showSaved: false);
         if (!saved || !mounted) return;
       }
       final updated = await ref
           .read(repositoryProvider)
           .setAcceptingInquiries(value);
       ref.read(authControllerProvider).replaceUser(updated);
-      if (mounted) {
-        AppMessage.show(context, value ? '已开始接受新询问' : '已暂停接受新询问');
-      }
+      if (mounted) AppMessage.show(context, value ? '已开始接受新询问' : '已暂停接受新询问');
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
     }
@@ -105,8 +111,6 @@ class _InquirySettingsPageState extends ConsumerState<InquirySettingsPage> {
       source.hour,
       source.minute,
       source.second,
-      source.millisecond,
-      source.microsecond,
     );
   }
 
@@ -135,14 +139,14 @@ class _InquirySettingsPageState extends ConsumerState<InquirySettingsPage> {
                             vertical: 8,
                           ),
                           leading: const Icon(Icons.payments_outlined),
-                          title: const Text('可接受金额'),
+                          title: const Text('每小时费用'),
                           subtitle: Text(
                             user.inquiryPriceUpdatedAt == null
                                 ? '尚未设置 · 每3个月可调整一次'
-                                : '¥${user.inquiryPriceMin}—¥${user.inquiryPriceMax} · 每3个月可调整一次',
+                                : '¥${user.inquiryHourlyRate}/小时 · 每3个月可调整一次',
                           ),
                           trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: _handlePriceRangeTap,
+                          onTap: _handleHourlyRateTap,
                         ),
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
@@ -155,8 +159,8 @@ class _InquirySettingsPageState extends ConsumerState<InquirySettingsPage> {
                           title: const Text('接受新询问'),
                           subtitle: Text(
                             user.acceptingInquiries
-                                ? '其他用户可以向你发起付费询问'
-                                : '暂停后不会收到新的付费询问',
+                                ? '其他用户可以向你发起询问'
+                                : '暂停后不会收到新的询问',
                           ),
                           value: user.acceptingInquiries,
                           onChanged: _toggleAccepting,
@@ -168,7 +172,7 @@ class _InquirySettingsPageState extends ConsumerState<InquirySettingsPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Text(
-                      '金额每3个月可调整一次；接受状态每6小时可切换一次。',
+                      '语音通话接通后按实际通话时间计费。接受状态每6小时可切换一次。',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
@@ -179,53 +183,44 @@ class _InquirySettingsPageState extends ConsumerState<InquirySettingsPage> {
   }
 }
 
-class _InquiryPriceRangeSheet extends ConsumerStatefulWidget {
-  const _InquiryPriceRangeSheet({required this.minimum, required this.maximum});
+class _HourlyRateSheet extends ConsumerStatefulWidget {
+  const _HourlyRateSheet({required this.hourlyRate,required this.minimum,required this.maximum});
 
+  final int hourlyRate;
   final int minimum;
   final int maximum;
 
   @override
-  ConsumerState<_InquiryPriceRangeSheet> createState() =>
-      _InquiryPriceRangeSheetState();
+  ConsumerState<_HourlyRateSheet> createState() => _HourlyRateSheetState();
 }
 
-class _InquiryPriceRangeSheetState
-    extends ConsumerState<_InquiryPriceRangeSheet> {
-  late final TextEditingController _minimum;
-  late final TextEditingController _maximum;
+class _HourlyRateSheetState extends ConsumerState<_HourlyRateSheet> {
+  late final TextEditingController _rate;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _minimum = TextEditingController(text: '${widget.minimum}');
-    _maximum = TextEditingController(text: '${widget.maximum}');
+    _rate = TextEditingController(text: '${widget.hourlyRate}');
   }
 
   @override
   void dispose() {
-    _minimum.dispose();
-    _maximum.dispose();
+    _rate.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    final minimum = int.tryParse(_minimum.text);
-    final maximum = int.tryParse(_maximum.text);
-    if (minimum == null || maximum == null) {
-      AppMessage.show(context, '请填写最低和最高金额');
-      return;
-    }
-    if (minimum < 1 || maximum > 5000 || minimum > maximum) {
-      AppMessage.show(context, '最低金额不能高于最高金额，且须在1—5000元之间');
+    final hourlyRate = int.tryParse(_rate.text);
+    if (hourlyRate == null || hourlyRate < widget.minimum || hourlyRate > widget.maximum) {
+      AppMessage.show(context, '每小时费用须在${widget.minimum}—${widget.maximum}元之间');
       return;
     }
     setState(() => _saving = true);
     try {
       final updated = await ref
           .read(repositoryProvider)
-          .setInquiryPriceRange(minimum: minimum, maximum: maximum);
+          .setInquiryHourlyRate(hourlyRate);
       ref.read(authControllerProvider).replaceUser(updated);
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
@@ -236,83 +231,60 @@ class _InquiryPriceRangeSheetState
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    child: Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.viewInsetsOf(context).bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '设置可接受金额',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '其他用户发起询问时，可在这个范围内填写金额。',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 18),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _minimum,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: AppInputFormatters.positiveInteger(
-                    max: 5000,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: '最低金额',
-                    prefixText: '¥ ',
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          MediaQuery.viewInsetsOf(context).bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '设置每小时费用',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
-              ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(12, 17, 12, 0),
-                child: Text('至'),
-              ),
-              Expanded(
-                child: TextField(
-                  controller: _maximum,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: AppInputFormatters.positiveInteger(
-                    max: 5000,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: '最高金额',
-                    prefixText: '¥ ',
-                  ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _saving ? null : _save,
-              child: const Text('保存'),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              '此费用用于计算语音通话的实际费用。',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 18),
+            TextField(
+              controller: _rate,
+              keyboardType: TextInputType.number,
+              inputFormatters: AppInputFormatters.positiveInteger(max: widget.maximum),
+              decoration: InputDecoration(
+                prefixText: '¥ ',
+                suffixText: '/小时',
+                hintText: '${widget.minimum}—${widget.maximum}',
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _saving ? null : _save,
+                child: const Text('保存'),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

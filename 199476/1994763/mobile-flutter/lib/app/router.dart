@@ -2,15 +2,18 @@ import 'package:go_router/go_router.dart';
 
 import '../features/answerer/answerer_detail_page.dart';
 import '../features/auth/login_page.dart';
-import '../features/certification/basic_certification_page.dart';
-import '../features/certification/basic_certification_apply_page.dart';
 import '../features/certification/experience_certification_page.dart';
+import '../features/certification/experience_additional_info_page.dart';
 import '../features/certification/experience_form_page.dart';
-import '../features/certification/public_welfare_experience_form_page.dart';
-import '../features/certification/monetized_experience_form_page.dart';
+import '../features/certification/identity_certification_page.dart';
+import '../features/curated/curated_chat_page.dart';
+import '../features/curated/curated_chats_page.dart';
+import '../features/curated/curated_membership_page.dart';
+import '../features/curated/curated_voice_call_page.dart';
 import '../features/home/home_page.dart';
 import '../features/inquiry/chat_page.dart';
 import '../features/inquiry/inquiries_page.dart';
+import '../features/inquiry/voice_call_page.dart';
 import '../features/notifications/notifications_page.dart';
 import '../features/profile/account_settings_page.dart';
 import '../features/profile/inquiry_settings_page.dart';
@@ -89,70 +92,29 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
             builder: (context, state) => const InquirySettingsPage(),
           ),
           GoRoute(
-            name: 'wallet',
-            path: '/profile/wallet',
-            builder: (context, state) => const WalletPage(),
-          ),
-          GoRoute(
-            name: 'basicCertification',
-            path: '/profile/certifications/basic',
-            builder: (context, state) => const BasicCertificationPage(),
-          ),
-          GoRoute(
-            name: 'basicCertificationApply',
-            path: '/profile/certifications/basic/IDENTITY/apply',
-            builder: (context, state) => BasicCertificationApplyPage(
-              record: state.extra as CertificationRecord?,
-            ),
-          ),
-          GoRoute(
             name: 'experienceCertifications',
             path: '/profile/certifications/experiences',
             builder: (context, state) => const ExperienceCertificationPage(),
           ),
           GoRoute(
-            name: 'publicWelfareExperienceCreate',
-            path: '/profile/certifications/experiences/public-welfare/new',
-            builder: (context, state) =>
-                const PublicWelfareExperienceFormPage(),
-          ),
-          GoRoute(
-            name: 'publicWelfareExperienceDetail',
-            path: '/profile/certifications/experiences/public-welfare/:id',
-            builder: (context, state) => PublicWelfareExperienceFormPage(
-              id: int.parse(state.pathParameters['id']!),
-            ),
-          ),
-          GoRoute(
-            name: 'monetizedExperienceCreate',
-            path: '/profile/certifications/experiences/monetized/new',
-            builder: (context, state) => MonetizedExperienceFormPage(
-              upgradeSourceId: int.tryParse(
-                state.uri.queryParameters['upgradeSourceId'] ?? '',
-              ),
-            ),
-          ),
-          GoRoute(
-            name: 'monetizedExperienceDetail',
-            path: '/profile/certifications/experiences/monetized/:id',
-            builder: (context, state) => MonetizedExperienceFormPage(
-              id: int.parse(state.pathParameters['id']!),
-            ),
-          ),
-          GoRoute(
             name: 'experienceCreateLegacy',
             path: '/profile/certifications/experiences/new',
-            builder: (context, state) => const ExperienceFormPage(
-              businessType: ExperienceBusinessType.monetized,
+            builder: (context, state) => const ExperienceFormPage(),
+          ),
+          GoRoute(
+            name: 'experienceAdditionalInfo',
+            path: '/profile/certifications/experiences/additional-info',
+            builder: (context, state) => ExperienceAdditionalInfoPage(
+              initialValue:
+                  state.extra as ExperienceAdditionalInfo? ??
+                  const ExperienceAdditionalInfo(),
             ),
           ),
           GoRoute(
             name: 'experienceDetailLegacy',
             path: '/profile/certifications/experiences/:id',
-            builder: (context, state) => ExperienceFormPage(
-              id: int.parse(state.pathParameters['id']!),
-              businessType: ExperienceBusinessType.monetized,
-            ),
+            builder: (context, state) =>
+                ExperienceFormPage(id: int.parse(state.pathParameters['id']!)),
           ),
           GoRoute(
             name: 'feedback',
@@ -172,10 +134,58 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
         ],
       ),
       GoRoute(
+        name: 'identityCertification',
+        path: '/profile/identity',
+        builder: (context, state) => const IdentityCertificationPage(),
+      ),
+      GoRoute(
+        name: 'wallet',
+        path: '/profile/wallet',
+        builder: (context, state) => const WalletPage(),
+      ),
+      GoRoute(
         name: 'chat',
         path: '/chat/:id',
         builder: (context, state) =>
             ChatPage(id: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        name: 'curatedMembership',
+        path: '/curated',
+        builder: (context, state) => const CuratedMembershipPage(),
+      ),
+      GoRoute(
+        name: 'curatedApplication',
+        path: '/curated/apply',
+        builder: (context, state) => const CuratedApplicationPage(),
+      ),
+      GoRoute(
+        name: 'curatedChats',
+        path: '/curated/chats',
+        builder: (context, state) => const CuratedChatsPage(),
+      ),
+      GoRoute(
+        name: 'curatedChat',
+        path: '/curated/chat/:id',
+        builder: (context, state) =>
+            CuratedChatPage(id: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        name: 'curatedVoiceCall',
+        path: '/curated/voice/:callId',
+        builder: (context, state) => CuratedVoiceCallPage(
+          callId: int.parse(state.pathParameters['callId']!),
+          initiator: state.uri.queryParameters['initiator'] == '1',
+        ),
+      ),
+      GoRoute(
+        name: 'voiceCall',
+        path: '/voice-call/:inquiryId/:appointmentId',
+        builder: (context, state) => VoiceCallPage(
+          inquiryId: int.parse(state.pathParameters['inquiryId']!),
+          appointmentId: int.parse(state.pathParameters['appointmentId']!),
+          initiator: state.uri.queryParameters['initiator'] == '1',
+        ),
       ),
       GoRoute(
         name: 'customerService',

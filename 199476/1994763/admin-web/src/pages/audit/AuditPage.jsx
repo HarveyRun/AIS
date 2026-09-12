@@ -95,10 +95,6 @@ const ACTION_LABELS = {
   CREATE_APP_TEST_ACCOUNT: '新增测试账号',
   DELETE_APP_TEST_ACCOUNT: '删除测试账号',
   UPDATE_PLATFORM_SERVICE_FEE: '调整平台服务费率',
-  ENABLE_INVITATION_CAMPAIGN: '上架邀请答主活动',
-  DISABLE_INVITATION_CAMPAIGN: '下架邀请答主活动',
-  APPROVE_USER_INVITATION: '通过邀请审核',
-  REJECT_USER_INVITATION: '驳回邀请审核',
   EXPORT_WITHDRAWAL_BATCH: '导出普通提现批次',
   RESET_ADMIN_PASSWORD: '重置后台账号密码',
   CREATE_ADMIN_USER: '新增后台账号',
@@ -126,8 +122,6 @@ const TARGET_LABELS = {
   DISCOVERY_EXPERIENCE: '经历',
   APP_TEST_ACCOUNT: '测试账号',
   PLATFORM_FEE_SETTING: '平台服务费配置',
-  INVITATION_CAMPAIGN: '邀请答主活动',
-  USER_INVITATION: '邀请记录',
   WITHDRAWAL_BATCH: '普通提现批次',
   ADMIN_USER: '后台账号',
   ADMIN_ROLE: '角色',
@@ -147,10 +141,7 @@ const DETAIL_LABELS = {
   RESOLVED: '已解决',
   CLOSED: '已关闭',
   SOFT_DELETE: '逻辑删除',
-  BASIC: '基础信息',
   EXPERIENCE: '亲身经历',
-  IDENTITY: '实名认证',
-  MAIN_JOB: '岗位认证',
 };
 
 function auditActionLabel(value) {

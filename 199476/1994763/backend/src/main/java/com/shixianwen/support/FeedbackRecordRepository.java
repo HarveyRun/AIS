@@ -6,4 +6,9 @@ import java.util.List;
 
 public interface FeedbackRecordRepository extends JpaRepository<FeedbackRecord, Long> {
     List<FeedbackRecord> findByUserIdOrderByCreatedAtDesc(Long userId);
+    boolean existsByUserIdAndInquiryIdAndFeedbackType(
+        Long userId,
+        Long inquiryId,
+        String feedbackType
+    );
 }
