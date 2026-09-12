@@ -36,6 +36,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
   bool _loading = true;
   bool _submitting = false;
   bool _authorizingAlipay = false;
+  bool _identityApproved = false;
   String? _rechargeRequestId;
   String? _withdrawalRequestId;
 
@@ -60,6 +61,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
         ref.read(repositoryProvider).withdrawals(),
         ref.read(repositoryProvider).alipayAccount(),
         ref.read(repositoryProvider).appGlobalSettings(),
+        ref.read(repositoryProvider).certifications(),
       ]);
       if (!mounted) return;
       setState(() {
@@ -68,6 +70,9 @@ class _WalletPageState extends ConsumerState<WalletPage> {
         _withdrawals = results[2] as List<WithdrawalRecord>;
         _alipayAccount = results[3] as AlipayAccountInfo?;
         _settings = results[4] as AppGlobalSettings;
+        _identityApproved = (results[5] as List).any(
+          (item) => item.type == 'IDENTITY' && item.approved && item.enabled,
+        );
       });
     } catch (error) {
       if (mounted) AppMessage.show(context, '$error');
@@ -78,6 +83,10 @@ class _WalletPageState extends ConsumerState<WalletPage> {
 
   Future<void> _authorizeAlipay() async {
     if (_authorizingAlipay) return;
+    if (!_identityApproved) {
+      AppMessage.show(context, '请先完成实名认证');
+      return;
+    }
     if (!await tobias.Tobias().isAliPayInstalled) {
       if (mounted) AppMessage.show(context, '请先安装支付宝');
       return;
@@ -215,6 +224,11 @@ class _WalletPageState extends ConsumerState<WalletPage> {
     AppMessage.show(context, '完成实名认证后才能提现');
     await context.pushNamed('identityCertification');
     return false;
+  }
+
+  Future<void> _openIdentityCertification() async {
+    await context.pushNamed('identityCertification');
+    if (mounted) await _load();
   }
 
   Future<bool> _confirmWithdrawal(int amount) async {
@@ -425,36 +439,47 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                         ),
                       ),
                     if (_tab == WalletTab.withdraw) ...[
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceContainer,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
+                      if (!_identityApproved)
+                        _WithdrawalRequirementCard(
+                          icon: Icons.verified_user_outlined,
+                          title: '完成实名认证',
+                          subtitle: '实名认证通过后，才可授权支付宝并申请提现',
+                          action: '去认证',
+                          onTap: _openIdentityCertification,
+                        )
+                      else
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                          leading: const FaIcon(FontAwesomeIcons.alipay),
-                          title: const Text('支付宝收款账户'),
-                          subtitle: Text(
-                            _alipayAccount == null
-                                ? '授权后用于接收提现'
-                                : '${_alipayAccount!.displayName} · ${_alipayAccount!.accountMasked}',
-                          ),
-                          trailing: TextButton(
-                            onPressed: _authorizingAlipay
-                                ? null
-                                : _authorizeAlipay,
-                            child: Text(
-                              _authorizingAlipay
-                                  ? '授权中'
-                                  : _alipayAccount == null
-                                  ? '去授权'
-                                  : '重新授权',
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                            ),
+                            leading: const FaIcon(FontAwesomeIcons.alipay),
+                            title: const Text('支付宝收款账户'),
+                            subtitle: Text(
+                              _alipayAccount == null
+                                  ? '授权后用于接收提现'
+                                  : '${_alipayAccount!.displayName} · ${_alipayAccount!.accountMasked}',
+                            ),
+                            trailing: TextButton(
+                              onPressed: _authorizingAlipay
+                                  ? null
+                                  : _authorizeAlipay,
+                              child: Text(
+                                _authorizingAlipay
+                                    ? '授权中'
+                                    : _alipayAccount == null
+                                    ? '去授权'
+                                    : '重新授权',
+                              ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                     const SizedBox(height: 16),
                     FilledButton(
@@ -463,7 +488,9 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                               !_submitting &&
                               (_tab == WalletTab.recharge
                                   ? (_settings?.rechargeEnabled ?? true)
-                                  : (_settings?.withdrawalEnabled ?? true))
+                                  : (_settings?.withdrawalEnabled ?? true) &&
+                                        _identityApproved &&
+                                        _alipayAccount != null)
                           ? _submit
                           : null,
                       child: Text(
@@ -535,6 +562,40 @@ class _WalletPageState extends ConsumerState<WalletPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _WithdrawalRequirementCard extends StatelessWidget {
+  const _WithdrawalRequirementCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.action,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String action;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        leading: Icon(icon, color: colors.primary),
+        title: Text(title),
+        subtitle: Text(subtitle),
+        trailing: TextButton(onPressed: onTap, child: Text(action)),
       ),
     );
   }
@@ -891,7 +952,11 @@ class _TransactionList extends StatelessWidget {
               '$amountPrefix¥${formatMoney(item.amount)}',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: income ? const Color(0xFF26865C) : null,
+                color: income
+                    ? const Color(0xFF26865C)
+                    : expense
+                    ? Theme.of(context).colorScheme.error
+                    : null,
               ),
             ),
           ),

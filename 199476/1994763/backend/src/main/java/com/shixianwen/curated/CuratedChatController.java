@@ -5,6 +5,8 @@ import com.shixianwen.common.ApiResponse;
 import com.shixianwen.user.User;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -47,7 +50,17 @@ public class CuratedChatController {
         @CurrentUser User user,
         @Valid @RequestBody PaymentRequest request
     ) {
-        return ApiResponse.ok(service.createPayment(user.getId(), request.requestId()));
+        return ApiResponse.ok(service.createPayment(
+            user.getId(),
+            request.requestId(),
+            request.durationMonths(),
+            request.price()
+        ));
+    }
+
+    @GetMapping("/membership/quote")
+    public ApiResponse<CuratedChatService.MembershipQuoteView> membershipQuote(@CurrentUser User user) {
+        return ApiResponse.ok(service.membershipQuote(user.getId()));
     }
 
     @GetMapping("/membership/orders/{orderNo}")
@@ -135,7 +148,11 @@ public class CuratedChatController {
     @PostMapping("/voice-calls/{id}/signals") public ApiResponse<CuratedChatService.SignalView> signal(@CurrentUser User user,@PathVariable Long id,@Valid @RequestBody SignalRequest request){return ApiResponse.ok(service.signal(user.getId(),id,request.type(),request.payload()));}
     @GetMapping("/voice-calls/{id}/signals") public ApiResponse<List<CuratedChatService.SignalView>> signals(@CurrentUser User user,@PathVariable Long id,@RequestParam(defaultValue="0") long afterId){return ApiResponse.ok(service.signals(user.getId(),id,afterId));}
 
-    public record PaymentRequest(@NotBlank @Pattern(regexp="[A-Za-z0-9_-]{12,64}") String requestId) {}
+    public record PaymentRequest(
+        @NotBlank @Pattern(regexp="[A-Za-z0-9_-]{12,64}") String requestId,
+        @Min(1) @Max(1200) Integer durationMonths,
+        BigDecimal price
+    ) {}
     public record ConversationRequest(Long otherUserId) {}
     public record MessageRequest(@NotBlank String content) {}
     public record SignalRequest(@NotBlank String type,@NotBlank String payload) {}

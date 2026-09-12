@@ -17,12 +17,12 @@ class VoiceCallPage extends ConsumerStatefulWidget {
   const VoiceCallPage({
     super.key,
     required this.inquiryId,
-    required this.appointmentId,
+    required this.voiceCallId,
     required this.initiator,
   });
 
   final int inquiryId;
-  final int appointmentId;
+  final int voiceCallId;
   final bool initiator;
 
   @override
@@ -36,7 +36,7 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
   StreamSubscription<RealtimeEvent>? _realtimeSubscription;
   Timer? _clock;
   InquirySummary? _inquiry;
-  AudioAppointment? _appointment;
+  VoiceCall? _voiceCall;
   VoiceIceConfig? _iceConfig;
   final List<VoiceSignal> _earlySignals = [];
   final List<RTCIceCandidate> _pendingCandidates = [];
@@ -68,27 +68,28 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
       final repository = ref.read(repositoryProvider);
       final values = await Future.wait<Object>([
         repository.inquiry(widget.inquiryId, showLoading: false),
-        repository.latestAudioAppointment(widget.inquiryId),
-        repository.voiceIceConfig(widget.inquiryId, widget.appointmentId),
+        repository.latestVoiceCall(widget.inquiryId),
+        repository.voiceIceConfig(widget.inquiryId, widget.voiceCallId),
       ]);
       final detail = values[0] as InquiryDetail;
-      final appointment = values[1] as AudioAppointment;
+      final voiceCall = values[1] as VoiceCall;
       final iceConfig = values[2] as VoiceIceConfig;
-      if (appointment.id != widget.appointmentId ||
+      if (voiceCall.id != widget.voiceCallId ||
           !const {
             'CONNECTING',
             'ACTIVE',
-          }.contains(appointment.status.toUpperCase())) {
+          }.contains(voiceCall.status.toUpperCase())) {
         throw Exception('本次语音通话已不可用');
       }
       if (!mounted) return;
       setState(() {
         _inquiry = detail.inquiry;
-        _appointment = appointment;
+        _voiceCall = voiceCall;
         _iceConfig = iceConfig;
-        _incomingAwaitingAnswer = !widget.initiator &&
-            appointment.status.toUpperCase() == 'CONNECTING' &&
-            appointment.acceptedAt == null;
+        _incomingAwaitingAnswer =
+            !widget.initiator &&
+            voiceCall.status.toUpperCase() == 'CONNECTING' &&
+            voiceCall.acceptedAt == null;
         _stateText = _incomingAwaitingAnswer ? '语音来电' : _stateText;
       });
       if (_incomingAwaitingAnswer) return;
@@ -131,7 +132,7 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
         'video': false,
       });
       await _startForegroundCall();
-      await repository.joinAudioCall(widget.inquiryId, widget.appointmentId);
+      await repository.joinVoiceCall(widget.inquiryId, widget.voiceCallId);
       for (final track in _localStream!.getAudioTracks()) {
         await _peerConnection!.addTrack(track, _localStream!);
       }
@@ -184,7 +185,7 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
       }
       final pending = await repository.voiceSignals(
         widget.inquiryId,
-        widget.appointmentId,
+        widget.voiceCallId,
       );
       for (final signal in pending) {
         await _handleSignal(signal);
@@ -192,7 +193,7 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
       if (widget.initiator) await _createOffer();
       _clock = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!mounted) return;
-        final endAt = _appointment?.scheduledEndAt;
+        final endAt = _voiceCall?.maxEndAt;
         if (endAt != null && !DateTime.now().isBefore(endAt)) {
           unawaited(_finishAtTimeLimit());
         } else {
@@ -203,9 +204,9 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
       try {
         await ref
             .read(repositoryProvider)
-            .markAudioCallDisconnected(
+            .markVoiceCallDisconnected(
               widget.inquiryId,
-              widget.appointmentId,
+              widget.voiceCallId,
               'INITIALIZE_FAILED:${_cleanError(error)}',
             );
       } catch (_) {}
@@ -226,10 +227,10 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
     try {
       final answered = await ref
           .read(repositoryProvider)
-          .answerAudioCall(widget.inquiryId, widget.appointmentId);
+          .answerVoiceCall(widget.inquiryId, widget.voiceCallId);
       if (!mounted) return;
       setState(() {
-        _appointment = answered;
+        _voiceCall = answered;
         _incomingAwaitingAnswer = false;
         _mediaInitializing = false;
       });
@@ -249,7 +250,7 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
     try {
       await ref
           .read(repositoryProvider)
-          .rejectAudioAppointment(widget.inquiryId, widget.appointmentId);
+          .rejectVoiceCall(widget.inquiryId, widget.voiceCallId);
     } catch (_) {
       // 对方已取消或呼叫已超时，直接关闭来电页。
     }
@@ -258,10 +259,8 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
 
   void _handleRealtimeEvent(RealtimeEvent event) {
     if (event.type == 'VOICE_CALL_ENDED') {
-      final appointmentId = int.tryParse(
-        '${event.payload['appointmentId'] ?? ''}',
-      );
-      if (appointmentId == widget.appointmentId) {
+      final voiceCallId = int.tryParse('${event.payload['voiceCallId'] ?? ''}');
+      if (voiceCallId == widget.voiceCallId) {
         unawaited(_finish(remote: true));
       }
       return;
@@ -269,7 +268,7 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
     if (event.type != 'VOICE_SIGNAL') return;
     final signal = VoiceSignal.fromJson(event.payload);
     if (signal.inquiryId != widget.inquiryId ||
-        signal.appointmentId != widget.appointmentId) {
+        signal.voiceCallId != widget.voiceCallId) {
       return;
     }
     if (!_peerReady) {
@@ -297,10 +296,10 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
     try {
       final updated = await ref
           .read(repositoryProvider)
-          .markAudioCallConnected(widget.inquiryId, widget.appointmentId);
+          .markVoiceCallConnected(widget.inquiryId, widget.voiceCallId);
       if (!mounted) return;
       setState(() {
-        _appointment = updated;
+        _voiceCall = updated;
         _stateText = updated.status.toUpperCase() == 'ACTIVE'
             ? '通话中'
             : '正在确认双方连接';
@@ -316,9 +315,9 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
     try {
       await ref
           .read(repositoryProvider)
-          .markAudioCallDisconnected(
+          .markVoiceCallDisconnected(
             widget.inquiryId,
-            widget.appointmentId,
+            widget.voiceCallId,
             reason,
           );
     } catch (_) {
@@ -415,7 +414,7 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
           .read(repositoryProvider)
           .sendVoiceSignal(
             inquiryId: widget.inquiryId,
-            appointmentId: widget.appointmentId,
+            voiceCallId: widget.voiceCallId,
             signalType: type,
             payload: payload,
           );
@@ -498,7 +497,7 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
     try {
       await ref
           .read(repositoryProvider)
-          .finishAudioCall(widget.inquiryId, widget.appointmentId);
+          .finishVoiceCall(widget.inquiryId, widget.voiceCallId);
     } catch (_) {
       // 对端已经结束或计时任务已完成时，直接关闭本地通话页。
     }
@@ -510,7 +509,7 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
     try {
       await ref
           .read(repositoryProvider)
-          .finishAudioCall(widget.inquiryId, widget.appointmentId);
+          .finishVoiceCall(widget.inquiryId, widget.voiceCallId);
     } catch (_) {
       // 服务端定时任务可能已经先一步完成通话。
     }
@@ -534,7 +533,7 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
   }
 
   String get _elapsedText {
-    final connectedAt = _appointment?.connectedAt;
+    final connectedAt = _voiceCall?.connectedAt;
     if (connectedAt == null) return '00:00';
     final seconds = DateTime.now()
         .difference(connectedAt)
@@ -630,9 +629,7 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> {
                         icon: Icons.call_rounded,
                         label: '接听',
                         color: const Color(0xFF28A745),
-                        onTap: _mediaInitializing
-                            ? () {}
-                            : _answerIncoming,
+                        onTap: _mediaInitializing ? () {} : _answerIncoming,
                       ),
                     ],
                   )

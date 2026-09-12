@@ -143,18 +143,6 @@ public class Inquiry {
     @Column(name = "hourly_rate_snapshot", nullable = false)
     private int hourlyRateSnapshot;
 
-    @Column(name = "session_type", length = 20)
-    private String sessionType;
-
-    @Column(name = "purchased_minutes", nullable = false)
-    private int purchasedMinutes;
-
-    @Column(name = "paid_session_started_at")
-    private LocalDateTime paidSessionStartedAt;
-
-    @Column(name = "paid_session_ends_at")
-    private LocalDateTime paidSessionEndsAt;
-
     @Column(name = "questioner_text_limit", nullable = false)
     private int questionerTextLimit = 50;
 

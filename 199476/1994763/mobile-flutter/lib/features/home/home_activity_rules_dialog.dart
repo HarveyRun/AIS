@@ -140,12 +140,11 @@ class _ActivityRuleContent {
   factory _ActivityRuleContent.fromActionType(String actionType) {
     return switch (actionType) {
       'FIRST_EXPERIENCE_REWARD' => const _ActivityRuleContent(
-        title: '首次发布经历',
+        title: '活动规则',
         rules: [
-          '首次发布且审核通过的经历可获奖励。',
-          '每账号仅限一次，以最先审核通过的经历为准。',
-          '后续发布经历，不重复奖励。',
-          '活动奖励按平台当前劳动报酬服务费率结算，扣费后计入可提现收入。',
+          '本活动每账号仅限参与一次。',
+          '首次发布且经平台审核通过后，即可获得奖励。',
+          '严禁恶意刷量等作弊行为。一经发现，平台有权取消参与资格、追回已发放奖励，并保留追究法律责任的权利。',
         ],
         actionLabel: '去发布',
       ),

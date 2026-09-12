@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/inquiries/{inquiryId}/audio-appointments/{appointmentId}/voice")
+@RequestMapping("/api/inquiries/{inquiryId}/voice-calls/{voiceCallId}/voice")
 @RequiredArgsConstructor
 public class InquiryVoiceSignalController {
     private final InquiryVoiceSignalService service;
@@ -26,30 +26,30 @@ public class InquiryVoiceSignalController {
     public ApiResponse<InquiryVoiceSignalService.IceConfig> iceConfig(
         @CurrentUser User user,
         @PathVariable Long inquiryId,
-        @PathVariable Long appointmentId
+        @PathVariable Long voiceCallId
     ) {
-        return ApiResponse.ok(service.iceConfig(user.getId(), inquiryId, appointmentId));
+        return ApiResponse.ok(service.iceConfig(user.getId(), inquiryId, voiceCallId));
     }
 
     @GetMapping("/signals")
     public ApiResponse<List<InquiryVoiceSignalService.SignalView>> signals(
         @CurrentUser User user,
         @PathVariable Long inquiryId,
-        @PathVariable Long appointmentId,
+        @PathVariable Long voiceCallId,
         @RequestParam(defaultValue = "0") long afterId
     ) {
-        return ApiResponse.ok(service.pending(user.getId(), inquiryId, appointmentId, afterId));
+        return ApiResponse.ok(service.pending(user.getId(), inquiryId, voiceCallId, afterId));
     }
 
     @PostMapping("/signals")
     public ApiResponse<InquiryVoiceSignalService.SignalView> signal(
         @CurrentUser User user,
         @PathVariable Long inquiryId,
-        @PathVariable Long appointmentId,
+        @PathVariable Long voiceCallId,
         @Valid @RequestBody SignalRequest request
     ) {
         return ApiResponse.ok(service.send(
-            user.getId(), inquiryId, appointmentId, request.signalType(), request.payload()
+            user.getId(), inquiryId, voiceCallId, request.signalType(), request.payload()
         ));
     }
 

@@ -49,6 +49,8 @@ public class AppGlobalSettingService {
                 rs.getInt("experience_description_max_length"),
                 rs.getLong("proof_archive_max_bytes"),
                 rs.getInt("home_page_size"),
+                rs.getInt("curated_membership_months"),
+                rs.getBigDecimal("curated_membership_price"),
                 rs.getBoolean("experience_publish_enabled"),
                 rs.getBoolean("inquiry_enabled"),
                 rs.getBoolean("voice_call_enabled"),
@@ -74,7 +76,7 @@ public class AppGlobalSettingService {
                 "voice_reward_messages=?,voice_ring_timeout_seconds=?,voice_reconnect_timeout_seconds=?," +
                 "inquiry_response_timeout_hours=?,inquiry_max_duration_days=?,hourly_rate_min=?," +
                 "hourly_rate_max=?,max_unapproved_experiences=?,experience_title_max_length=?," +
-                "experience_description_max_length=?,proof_archive_max_bytes=?,home_page_size=?," +
+                "experience_description_max_length=?,proof_archive_max_bytes=?,home_page_size=?,curated_membership_months=?,curated_membership_price=?," +
                 "experience_publish_enabled=?,inquiry_enabled=?,voice_call_enabled=?," +
                 "experience_tip_enabled=?,recharge_enabled=?,withdrawal_enabled=?,updated_by_admin_id=? WHERE id=1",
             value.firstExperienceRewardEnabled(), value.firstExperienceRewardAmount(),
@@ -86,7 +88,7 @@ public class AppGlobalSettingService {
             value.voiceRewardMessages(), value.voiceRingTimeoutSeconds(), value.voiceReconnectTimeoutSeconds(),
             value.inquiryResponseTimeoutHours(), value.inquiryMaxDurationDays(), value.hourlyRateMin(),
             value.hourlyRateMax(), value.maxUnapprovedExperiences(), value.experienceTitleMaxLength(),
-            value.experienceDescriptionMaxLength(), value.proofArchiveMaxBytes(), value.homePageSize(),
+            value.experienceDescriptionMaxLength(), value.proofArchiveMaxBytes(), value.homePageSize(), value.curatedMembershipMonths(), value.curatedMembershipPrice(),
             value.experiencePublishEnabled(), value.inquiryEnabled(), value.voiceCallEnabled(),
             value.experienceTipEnabled(), value.rechargeEnabled(), value.withdrawalEnabled(), adminId
         );
@@ -135,6 +137,8 @@ public class AppGlobalSettingService {
             throw BusinessException.badRequest("证明资料上限须在1MB至2GB之间");
         }
         integer(s.homePageSize(), 5, 50, "首页每页数量");
+        integer(s.curatedMembershipMonths(), 1, 1200, "严选直聊购买期限");
+        money(s.curatedMembershipPrice(), BigDecimal.ONE, new BigDecimal("9999"), "严选直聊开通金额");
     }
 
     private void money(BigDecimal value, BigDecimal min, BigDecimal max, String label) {
@@ -186,6 +190,8 @@ public class AppGlobalSettingService {
         int experienceDescriptionMaxLength,
         long proofArchiveMaxBytes,
         int homePageSize,
+        int curatedMembershipMonths,
+        BigDecimal curatedMembershipPrice,
         boolean experiencePublishEnabled,
         boolean inquiryEnabled,
         boolean voiceCallEnabled,

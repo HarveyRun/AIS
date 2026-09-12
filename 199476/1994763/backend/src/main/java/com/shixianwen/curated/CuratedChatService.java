@@ -5,6 +5,7 @@ import com.shixianwen.admin.AdminAuditLog;
 import com.shixianwen.admin.AdminAuditLogRepository;
 import com.shixianwen.admin.AdminUser;
 import com.shixianwen.common.BusinessException;
+import com.shixianwen.config.AppGlobalSettingService;
 import com.shixianwen.certification.Certification;
 import com.shixianwen.certification.CertificationRepository;
 import com.shixianwen.content.SensitiveContentCipher;
@@ -40,12 +41,12 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class CuratedChatService {
-    private static final BigDecimal MEMBERSHIP_PRICE = new BigDecimal("99.00");
     private static final int RING_SECONDS = 60;
     private static final String SAFETY_NOTICE = "安全提醒：请勿发送身份证号、银行卡号、家庭住址等敏感个人信息，也不要提供或引导交换手机号、微信等站外联系方式。平台外沟通无法获得平台记录与安全保障；经核实存在交换或引导交换站外联系方式的行为，将按1级违规处理。";
     private static final String GLOBAL_IDENTITY_STATUS_SQL = "COALESCE((SELECT c.status FROM certifications c WHERE c.user_id=a.user_id AND c.certification_type='IDENTITY' AND c.deleted_at IS NULL ORDER BY c.id DESC LIMIT 1),'NOT_APPLIED')";
@@ -63,6 +64,7 @@ public class CuratedChatService {
     private final AdminAuditLogRepository audits;
     private final ObjectMapper objectMapper;
     private final CertificationRepository certifications;
+    private final AppGlobalSettingService globalSettings;
     @Value("${app.voice.ice-urls:stun:stun.l.google.com:19302}") private String iceUrls;
     @Value("${app.voice.turn-username:}") private String turnUsername;
     @Value("${app.voice.turn-credential:}") private String turnCredential;
@@ -71,11 +73,43 @@ public class CuratedChatService {
         Map<String,Object> application = one("SELECT a.*,m.id membership_id,m.status membership_status,m.started_at,m.expires_at FROM curated_membership_applications a LEFT JOIN curated_memberships m ON m.user_id=a.user_id WHERE a.user_id=?", userId);
         if (application == null) {
             IdentitySnapshot identity = globalIdentity(userId);
-            return MembershipView.empty(identity.status(), identity.reason());
+            AppGlobalSettingService.Settings settings = globalSettings.current();
+            return MembershipView.empty(
+                identity.status(),
+                identity.reason(),
+                settings.curatedMembershipMonths(),
+                settings.curatedMembershipPrice()
+            );
         }
         expireIfNeeded(userId);
         application = one("SELECT a.*,m.id membership_id,m.status membership_status,m.started_at,m.expires_at FROM curated_membership_applications a LEFT JOIN curated_memberships m ON m.user_id=a.user_id WHERE a.user_id=?", userId);
         return membershipView(application);
+    }
+
+    @Transactional(readOnly = true)
+    public MembershipQuoteView membershipQuote(Long userId) {
+        requireGlobalIdentityApproved(userId);
+        Map<String,Object> application = one(
+            "SELECT a.job_status FROM curated_membership_applications a WHERE a.user_id=?",
+            userId
+        );
+        if (application == null || !"APPROVED".equals(text(application.get("job_status")))) {
+            throw BusinessException.badRequest("岗位认证通过后才可以开通");
+        }
+        AppGlobalSettingService.Settings settings = globalSettings.current();
+        int months = settings.curatedMembershipMonths();
+        BigDecimal price = settings.curatedMembershipPrice();
+        LocalDateTime startsAt = LocalDateTime.now();
+        LocalDateTime expiresAt = membershipExpiresAt(startsAt, months);
+        return new MembershipQuoteView(
+            price,
+            months,
+            membershipPriceText(price, months),
+            startsAt,
+            expiresAt,
+            months == 1200,
+            membershipValidityText(startsAt, expiresAt, months)
+        );
     }
 
     @Transactional
@@ -112,9 +146,23 @@ public class CuratedChatService {
     }
 
     @Transactional
-    public PaymentView createPayment(Long userId, String requestId) {
+    public PaymentView createPayment(
+        Long userId,
+        String requestId,
+        Integer quotedDurationMonths,
+        BigDecimal quotedPrice
+    ) {
         requireRequestId(requestId);
         requireGlobalIdentityApproved(userId);
+        AppGlobalSettingService.Settings settings = globalSettings.current();
+        int durationMonths = settings.curatedMembershipMonths();
+        BigDecimal price = settings.curatedMembershipPrice();
+        if (quotedDurationMonths != null && quotedDurationMonths != durationMonths) {
+            throw BusinessException.badRequest("开通期限已更新，请重新确认");
+        }
+        if (quotedPrice != null && quotedPrice.compareTo(price) != 0) {
+            throw BusinessException.badRequest("开通金额已更新，请重新确认");
+        }
         Map<String,Object> application = one("SELECT a.id application_id,m.id membership_id,m.status,m.expires_at FROM curated_membership_applications a LEFT JOIN curated_memberships m ON m.user_id=a.user_id WHERE a.user_id=? AND a.job_status='APPROVED' FOR UPDATE", userId);
         if (application == null) throw BusinessException.badRequest("岗位认证通过后才可以开通");
         Long membershipId = number(application.get("membership_id"));
@@ -131,22 +179,22 @@ public class CuratedChatService {
             if ("PAID".equals(text(existing.get("status")))) recordMembershipPayment(existing);
             return paymentView(existing, existingPaymentPayload(existing));
         }
-        Map<String,Object> pending=one("SELECT * FROM curated_membership_orders WHERE user_id=? AND status='PENDING' ORDER BY id DESC LIMIT 1",userId);
+        Map<String,Object> pending=one("SELECT * FROM curated_membership_orders WHERE user_id=? AND status='PENDING' AND duration_months=? AND amount=? ORDER BY id DESC LIMIT 1",userId,durationMonths,price);
         if(pending!=null) return paymentView(pending,existingPaymentPayload(pending));
         User user = activeUser(userId);
         boolean test = "TEST".equals(user.getAccountType());
         String orderNo = "RXL" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
         String status = test ? "PAID" : "PENDING";
-        jdbc.update("INSERT INTO curated_membership_orders(user_id,membership_id,request_no,order_no,channel,amount,status,paid_at) VALUES(?,?,?,?,?,?,?,?)",
-            userId, membershipId, requestId, orderNo, test ? "TEST" : "ALIPAY", MEMBERSHIP_PRICE, status, test ? Timestamp.valueOf(LocalDateTime.now()) : null);
+        jdbc.update("INSERT INTO curated_membership_orders(user_id,membership_id,request_no,order_no,channel,amount,duration_months,status,paid_at) VALUES(?,?,?,?,?,?,?,?,?)",
+            userId, membershipId, requestId, orderNo, test ? "TEST" : "ALIPAY", price, durationMonths, status, test ? Timestamp.valueOf(LocalDateTime.now()) : null);
         if (test) {
             Map<String,Object> paidOrder = one("SELECT * FROM curated_membership_orders WHERE order_no=?", orderNo);
             recordMembershipPayment(paidOrder);
-            activateMembership(membershipId, LocalDateTime.now());
+            activateMembership(membershipId, LocalDateTime.now(), durationMonths);
             return paymentView(paidOrder, null);
         }
         if (!paymentGateway.capability().available()) throw BusinessException.serviceUnavailable(paymentGateway.capability().message());
-        PaymentGateway.PaymentOrder order = paymentGateway.createOrder(orderNo, MEMBERSHIP_PRICE, "严选直聊一个月使用权");
+        PaymentGateway.PaymentOrder order = paymentGateway.createOrder(orderNo, price, membershipPaymentSubject(durationMonths));
         return paymentView(one("SELECT * FROM curated_membership_orders WHERE order_no=?", orderNo), order.paymentPayload());
     }
 
@@ -172,7 +220,9 @@ public class CuratedChatService {
     @Transactional
     public void completeMockPayment(String orderNo) {
         ensureMockPayment();
-        applyPaid(orderNo, null, MEMBERSHIP_PRICE, LocalDateTime.now());
+        Map<String,Object> order = one("SELECT amount FROM curated_membership_orders WHERE order_no=?", orderNo);
+        if (order == null) throw BusinessException.notFound("开通订单不存在");
+        applyPaid(orderNo, null, new BigDecimal(text(order.get("amount"))), LocalDateTime.now());
     }
 
     public PaymentView mockOrder(String orderNo) {
@@ -327,12 +377,17 @@ public class CuratedChatService {
     @Transactional
     public void suspendMembership(AdminUser admin,Long userId,boolean active,String reason,String ip){Map<String,Object> m=one("SELECT * FROM curated_memberships WHERE user_id=? FOR UPDATE",userId);if(m==null)throw BusinessException.notFound("严选直聊会员不存在");if(active){if(date(m.get("expires_at"))==null||!date(m.get("expires_at")).isAfter(LocalDateTime.now()))throw BusinessException.badRequest("会员已经到期，不能直接恢复");jdbc.update("UPDATE curated_memberships SET status='ACTIVE' WHERE user_id=?",userId);}else jdbc.update("UPDATE curated_memberships SET status='SUSPENDED' WHERE user_id=?",userId);audit(admin,active?"CURATED_MEMBER_RESTORE":"CURATED_MEMBER_SUSPEND",userId,reason,ip);realtime.afterCommit(userId,"CURATED_MEMBERSHIP_UPDATED",Map.of());}
 
-    private void applyPaid(String orderNo,String tradeNo,BigDecimal paidAmount,LocalDateTime paidAt){Map<String,Object> order=one("SELECT * FROM curated_membership_orders WHERE order_no=? FOR UPDATE",orderNo);if(order==null)throw BusinessException.notFound("开通订单不存在");if("PAID".equals(text(order.get("status")))){recordMembershipPayment(order);return;}if(paidAmount==null||paidAmount.compareTo(MEMBERSHIP_PRICE)!=0)throw BusinessException.badRequest("支付金额与开通订单不一致");if(tradeNo!=null&&!tradeNo.isBlank()){Map<String,Object> duplicate=one("SELECT id FROM curated_membership_orders WHERE provider_trade_no=? AND order_no<>?",tradeNo,orderNo);if(duplicate!=null)throw BusinessException.badRequest("支付宝交易号已被其他订单使用");}LocalDateTime effectivePaid=paidAt==null?LocalDateTime.now():paidAt;jdbc.update("UPDATE curated_membership_orders SET status='PAID',provider_trade_no=?,paid_at=? WHERE id=?",tradeNo,Timestamp.valueOf(effectivePaid),number(order.get("id")));recordMembershipPayment(order);activateMembership(number(order.get("membership_id")),effectivePaid);}
+    private void applyPaid(String orderNo,String tradeNo,BigDecimal paidAmount,LocalDateTime paidAt){Map<String,Object> order=one("SELECT * FROM curated_membership_orders WHERE order_no=? FOR UPDATE",orderNo);if(order==null)throw BusinessException.notFound("开通订单不存在");if("PAID".equals(text(order.get("status")))){recordMembershipPayment(order);return;}if(!"PENDING".equals(text(order.get("status"))))throw BusinessException.badRequest("开通订单当前不可支付");BigDecimal orderAmount=new BigDecimal(text(order.get("amount")));if(paidAmount==null||paidAmount.compareTo(orderAmount)!=0)throw BusinessException.badRequest("支付金额与开通订单不一致");if(tradeNo!=null&&!tradeNo.isBlank()){Map<String,Object> duplicate=one("SELECT id FROM curated_membership_orders WHERE provider_trade_no=? AND order_no<>?",tradeNo,orderNo);if(duplicate!=null)throw BusinessException.badRequest("支付宝交易号已被其他订单使用");}LocalDateTime effectivePaid=paidAt==null?LocalDateTime.now():paidAt;jdbc.update("UPDATE curated_membership_orders SET status='PAID',provider_trade_no=?,paid_at=? WHERE id=?",tradeNo,Timestamp.valueOf(effectivePaid),number(order.get("id")));recordMembershipPayment(order);activateMembership(number(order.get("membership_id")),effectivePaid,integer(order.get("duration_months")));}
     private void recordMembershipPayment(Map<String,Object> order){walletService.recordCuratedMembershipPurchase(number(order.get("user_id")),number(order.get("id")),new BigDecimal(text(order.get("amount"))),"TEST".equals(text(order.get("channel"))));}
-    private void activateMembership(Long membershipId,LocalDateTime paidAt){Map<String,Object> m=one("SELECT * FROM curated_memberships WHERE id=? FOR UPDATE",membershipId);LocalDateTime existing=date(m.get("expires_at"));LocalDateTime start=existing!=null&&existing.isAfter(paidAt)?existing:paidAt;LocalDateTime end=start.plusMonths(1);jdbc.update("UPDATE curated_memberships SET status='ACTIVE',started_at=?,expires_at=? WHERE id=?",Timestamp.valueOf(start),Timestamp.valueOf(end),membershipId);Long userId=number(m.get("user_id"));realtime.afterCommit(userId,"CURATED_MEMBERSHIP_UPDATED",Map.of("expiresAt",end.toString()));}
-    private String existingPaymentPayload(Map<String,Object> existing){if("PAID".equals(text(existing.get("status"))))return null;return paymentGateway.createOrder(text(existing.get("order_no")),MEMBERSHIP_PRICE,"严选直聊一个月使用权").paymentPayload();}
-    private PaymentView paymentView(Map<String,Object> row,String payload){return new PaymentView(number(row.get("id")),text(row.get("order_no")),new BigDecimal(text(row.get("amount"))),text(row.get("status")),text(row.get("channel")),payload,date(row.get("paid_at")),date(row.get("created_at")));}
-    private MembershipView membershipView(Map<String,Object> row){IdentitySnapshot identity=globalIdentity(number(row.get("user_id")));String job=text(row.get("job_status")),membership=text(row.get("membership_status"));LocalDateTime expires=date(row.get("expires_at"));String overall;if("ACTIVE".equals(membership)&&expires!=null&&expires.isAfter(LocalDateTime.now()))overall="ACTIVE";else if("SUSPENDED".equals(membership))overall="SUSPENDED";else if("APPROVED".equals(identity.status())&&"APPROVED".equals(job))overall="READY_TO_PAY";else if("REJECTED".equals(identity.status())||"REJECTED".equals(job))overall="REJECTED";else overall="UNDER_REVIEW";return new MembershipView(true,overall,identity.status(),job,identity.reason(),text(row.get("job_rejection_reason")),text(row.get("job_title")),integer(row.get("job_years")),date(row.get("started_at")),expires,MEMBERSHIP_PRICE);}
+    private void activateMembership(Long membershipId,LocalDateTime paidAt,int durationMonths){Map<String,Object> m=one("SELECT * FROM curated_memberships WHERE id=? FOR UPDATE",membershipId);LocalDateTime existing=date(m.get("expires_at"));LocalDateTime start=existing!=null&&existing.isAfter(paidAt)?existing:paidAt;LocalDateTime end=membershipExpiresAt(start,durationMonths);jdbc.update("UPDATE curated_memberships SET status='ACTIVE',started_at=?,expires_at=?,duration_months=? WHERE id=?",Timestamp.valueOf(start),Timestamp.valueOf(end),durationMonths,membershipId);Long userId=number(m.get("user_id"));realtime.afterCommit(userId,"CURATED_MEMBERSHIP_UPDATED",Map.of("expiresAt",end.toString(),"durationMonths",durationMonths));}
+    private String existingPaymentPayload(Map<String,Object> existing){if("PAID".equals(text(existing.get("status"))))return null;int months=integer(existing.get("duration_months"));return paymentGateway.createOrder(text(existing.get("order_no")),new BigDecimal(text(existing.get("amount"))),membershipPaymentSubject(months)).paymentPayload();}
+    private PaymentView paymentView(Map<String,Object> row,String payload){int months=integer(row.get("duration_months"));BigDecimal price=new BigDecimal(text(row.get("amount")));return new PaymentView(number(row.get("id")),text(row.get("order_no")),price,months,membershipPriceText(price,months),text(row.get("status")),text(row.get("channel")),payload,date(row.get("paid_at")),date(row.get("created_at")));}
+    private MembershipView membershipView(Map<String,Object> row){IdentitySnapshot identity=globalIdentity(number(row.get("user_id")));String job=text(row.get("job_status")),membership=text(row.get("membership_status"));LocalDateTime expires=date(row.get("expires_at"));String overall;if("ACTIVE".equals(membership)&&expires!=null&&expires.isAfter(LocalDateTime.now()))overall="ACTIVE";else if("SUSPENDED".equals(membership))overall="SUSPENDED";else if("APPROVED".equals(identity.status())&&"APPROVED".equals(job))overall="READY_TO_PAY";else if("REJECTED".equals(identity.status())||"REJECTED".equals(job))overall="REJECTED";else overall="UNDER_REVIEW";AppGlobalSettingService.Settings settings=globalSettings.current();int months=settings.curatedMembershipMonths();BigDecimal price=settings.curatedMembershipPrice();return new MembershipView(true,overall,identity.status(),job,identity.reason(),text(row.get("job_rejection_reason")),text(row.get("job_title")),integer(row.get("job_years")),date(row.get("started_at")),expires,price,months,membershipPriceText(price,months));}
+    static LocalDateTime membershipExpiresAt(LocalDateTime startsAt,int months){if(months==1200||startsAt.getYear()>=9999)return LocalDateTime.of(9999,12,31,23,59,59);return startsAt.plusMonths(months);}
+    static String membershipTermLabel(int months){return switch(months){case 1->"月";case 6->"半年";case 12->"年";case 1200->"永久";default->months+"个月";};}
+    static String membershipPriceText(BigDecimal price,int months){return price.stripTrailingZeros().toPlainString()+"元/"+membershipTermLabel(months);}
+    static String membershipPaymentSubject(int months){return "严选直聊"+membershipTermLabel(months)+"使用权";}
+    static String membershipValidityText(LocalDateTime startsAt,LocalDateTime expiresAt,int months){DateTimeFormatter formatter=DateTimeFormatter.ofPattern("yyyy.M.d HH:mm");return months==1200?startsAt.format(formatter)+" 起，永久有效":startsAt.format(formatter)+"\n至 "+expiresAt.format(formatter);}
     private void expireIfNeeded(Long userId){jdbc.update("UPDATE curated_memberships SET status='EXPIRED' WHERE user_id=? AND status='ACTIVE' AND expires_at<=NOW(6)",userId);}
     private boolean isMembershipActive(Long userId){expireIfNeeded(userId);Integer count=jdbc.queryForObject("SELECT COUNT(*) FROM curated_memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=? AND m.status='ACTIVE' AND m.expires_at>NOW(6) AND u.account_status='ACTIVE'",Integer.class,userId);return count!=null&&count>0;}
     private void requireActiveMembership(Long userId){if(!isMembershipActive(userId))throw BusinessException.forbidden("严选直聊当前未开通或已到期");}
@@ -408,9 +463,10 @@ public class CuratedChatService {
     private Integer integer(Object v){return v instanceof Number n?n.intValue():v==null?null:Integer.valueOf(String.valueOf(v));}
     private LocalDateTime date(Object v){if(v instanceof Timestamp t)return t.toLocalDateTime();if(v instanceof LocalDateTime d)return d;return null;}
 
-    public record MembershipView(boolean applied,String status,String identityStatus,String jobStatus,String identityRejectionReason,String jobRejectionReason,String jobTitle,Integer jobYears,LocalDateTime startedAt,LocalDateTime expiresAt,BigDecimal price){static MembershipView empty(String identityStatus,String identityReason){String overall="REJECTED".equals(identityStatus)?"REJECTED":"NOT_APPLIED";return new MembershipView(false,overall,identityStatus,"NOT_APPLIED",identityReason,null,null,null,null,null,MEMBERSHIP_PRICE);}}
+    public record MembershipView(boolean applied,String status,String identityStatus,String jobStatus,String identityRejectionReason,String jobRejectionReason,String jobTitle,Integer jobYears,LocalDateTime startedAt,LocalDateTime expiresAt,BigDecimal price,int durationMonths,String priceText){static MembershipView empty(String identityStatus,String identityReason,int durationMonths,BigDecimal price){String overall="REJECTED".equals(identityStatus)?"REJECTED":"NOT_APPLIED";return new MembershipView(false,overall,identityStatus,"NOT_APPLIED",identityReason,null,null,null,null,null,price,durationMonths,membershipPriceText(price,durationMonths));}}
+    public record MembershipQuoteView(BigDecimal price,int durationMonths,String priceText,LocalDateTime startsAt,LocalDateTime expiresAt,boolean permanent,String validityText){}
     public record MaterialView(Long id,String materialType,String mediaType,String originalName,String url,Long fileSize,LocalDateTime createdAt){}
-    public record PaymentView(Long id,String orderNo,BigDecimal amount,String status,String channel,String paymentPayload,LocalDateTime paidAt,LocalDateTime createdAt){}
+    public record PaymentView(Long id,String orderNo,BigDecimal amount,int durationMonths,String priceText,String status,String channel,String paymentPayload,LocalDateTime paidAt,LocalDateTime createdAt){}
     public record MemberView(Long id,String uid,String nickname,String avatarUrl,String jobTitle,Integer jobYears,boolean online){}
     private record IdentitySnapshot(String status,String reason){}
     public record PageView<T>(List<T> content,long totalElements,int page,int size,boolean hasNext){}

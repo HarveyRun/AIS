@@ -60,7 +60,7 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
 
     if (!_privacyAccepted!) {
       return MaterialApp(
-        title: '事先问',
+        title: '光忆',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         locale: const Locale('zh', 'CN'),
@@ -103,7 +103,7 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
 
     _router ??= createAppRouter(auth, ref.read(analyticsProvider));
     return MaterialApp.router(
-      title: '事先问',
+      title: '光忆',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

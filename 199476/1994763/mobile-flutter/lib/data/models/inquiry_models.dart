@@ -27,10 +27,6 @@ class InquirySummary {
     required this.firstAnswererReplyAt,
     required this.flowVersion,
     required this.hourlyRateSnapshot,
-    required this.sessionType,
-    required this.purchasedMinutes,
-    required this.paidSessionStartedAt,
-    required this.paidSessionEndsAt,
     required this.questionerTextCount,
     required this.answererTextCount,
     required this.textMessageLimit,
@@ -68,10 +64,6 @@ class InquirySummary {
       firstAnswererReplyAt: _date(json['firstAnswererReplyAt']),
       flowVersion: _int(json['flowVersion']),
       hourlyRateSnapshot: _int(json['hourlyRateSnapshot']),
-      sessionType: json['sessionType']?.toString() ?? '',
-      purchasedMinutes: _int(json['purchasedMinutes']),
-      paidSessionStartedAt: _date(json['paidSessionStartedAt']),
-      paidSessionEndsAt: _date(json['paidSessionEndsAt']),
       questionerTextCount: _int(json['questionerTextCount']),
       answererTextCount: _int(json['answererTextCount']),
       textMessageLimit: _int(json['textMessageLimit']) == 0
@@ -108,10 +100,6 @@ class InquirySummary {
   final DateTime? firstAnswererReplyAt;
   final int flowVersion;
   final int hourlyRateSnapshot;
-  final String sessionType;
-  final int purchasedMinutes;
-  final DateTime? paidSessionStartedAt;
-  final DateTime? paidSessionEndsAt;
   final int questionerTextCount;
   final int answererTextCount;
   final int textMessageLimit;
@@ -119,19 +107,12 @@ class InquirySummary {
 
   bool get isIncoming => role.toUpperCase() == 'ANSWERER';
   bool get isCurrentFlow => flowVersion >= 2;
-  bool get isPaidSession => status.toUpperCase() == 'PAID_ACTIVE';
-  bool get canChat =>
-      !communicationBlocked &&
-      const {'ACTIVE', 'PAID_ACTIVE'}.contains(status.toUpperCase());
-  bool get canCreateAudioAppointment =>
+  bool get canChat => !communicationBlocked && status.toUpperCase() == 'ACTIVE';
+  bool get canCreateVoiceCall =>
       isCurrentFlow &&
       !communicationBlocked &&
       !isIncoming &&
-      const {
-        'ACTIVE',
-        'TEXT_LIMIT_REACHED',
-        'TEXT_ENDED',
-      }.contains(status.toUpperCase());
+      const {'ACTIVE', 'TEXT_LIMIT_REACHED'}.contains(status.toUpperCase());
   int get ownTextCount => isIncoming ? answererTextCount : questionerTextCount;
   int get remainingTextCount =>
       (textMessageLimit - ownTextCount).clamp(0, textMessageLimit);
@@ -139,65 +120,43 @@ class InquirySummary {
       isIncoming ? answererIncomeAmount : settleableAmount;
 }
 
-class AudioAppointment {
-  const AudioAppointment({
+class VoiceCall {
+  const VoiceCall({
     required this.id,
     required this.inquiryId,
     required this.role,
     required this.status,
-    required this.appointmentType,
-    required this.scheduledStartAt,
-    required this.scheduledEndAt,
-    required this.durationMinutes,
+    required this.maxEndAt,
     required this.actualDurationSeconds,
     required this.hourlyRateSnapshot,
-    required this.amount,
+    required this.reservedAmount,
     required this.actualAmount,
     required this.answererIncomeAmount,
-    required this.responseDeadline,
     required this.acceptedAt,
     required this.connectDeadline,
     required this.connectedAt,
     required this.reconnectDeadline,
-    required this.noShowParty,
     required this.endReason,
-    required this.attemptNumber,
-    required this.remainingAttempts,
-    required this.remainingScheduledAttempts,
-    required this.remainingImmediateAttempts,
     required this.createdAt,
   });
 
-  factory AudioAppointment.fromJson(Map<String, dynamic> json) {
-    return AudioAppointment(
+  factory VoiceCall.fromJson(Map<String, dynamic> json) {
+    return VoiceCall(
       id: _int(json['id']),
       inquiryId: _int(json['inquiryId']),
       role: json['role']?.toString() ?? '',
       status: json['status']?.toString() ?? 'NONE',
-      appointmentType: json['appointmentType']?.toString() ?? 'BASIC',
-      scheduledStartAt: _date(json['scheduledStartAt']),
-      scheduledEndAt: _date(json['scheduledEndAt']),
-      durationMinutes: _int(json['durationMinutes']),
+      maxEndAt: _date(json['maxEndAt']),
       actualDurationSeconds: _int(json['actualDurationSeconds']),
       hourlyRateSnapshot: _int(json['hourlyRateSnapshot']),
-      amount: _double(json['amount']),
+      reservedAmount: _double(json['reservedAmount']),
       actualAmount: _double(json['actualAmount']),
       answererIncomeAmount: _double(json['answererIncomeAmount']),
-      responseDeadline: _date(json['responseDeadline']),
       acceptedAt: _date(json['acceptedAt']),
       connectDeadline: _date(json['connectDeadline']),
       connectedAt: _date(json['connectedAt']),
       reconnectDeadline: _date(json['reconnectDeadline']),
-      noShowParty: json['noShowParty']?.toString() ?? '',
       endReason: json['endReason']?.toString() ?? '',
-      attemptNumber: _int(json['attemptNumber']),
-      remainingAttempts: _int(json['remainingAttempts']),
-      remainingScheduledAttempts: json.containsKey('remainingScheduledAttempts')
-          ? _int(json['remainingScheduledAttempts'])
-          : _int(json['remainingAttempts']),
-      remainingImmediateAttempts: json.containsKey('remainingImmediateAttempts')
-          ? _int(json['remainingImmediateAttempts'])
-          : 3,
       createdAt: _date(json['createdAt']),
     );
   }
@@ -206,34 +165,23 @@ class AudioAppointment {
   final int inquiryId;
   final String role;
   final String status;
-  final String appointmentType;
-  final DateTime? scheduledStartAt;
-  final DateTime? scheduledEndAt;
-  final int durationMinutes;
+  final DateTime? maxEndAt;
   final int actualDurationSeconds;
   final int hourlyRateSnapshot;
-  final double amount;
+  final double reservedAmount;
   final double actualAmount;
   final double answererIncomeAmount;
-  final DateTime? responseDeadline;
   final DateTime? acceptedAt;
   final DateTime? connectDeadline;
   final DateTime? connectedAt;
   final DateTime? reconnectDeadline;
-  final String noShowParty;
   final String endReason;
-  final int attemptNumber;
-  final int remainingAttempts;
-  final int remainingScheduledAttempts;
-  final int remainingImmediateAttempts;
   final DateTime? createdAt;
 
   bool get exists => id > 0;
   bool get isIncoming => role.toUpperCase() == 'ANSWERER';
-  bool get isOpen => const {
-    'CONNECTING',
-    'ACTIVE',
-  }.contains(status.toUpperCase());
+  bool get isOpen =>
+      const {'CONNECTING', 'ACTIVE'}.contains(status.toUpperCase());
 }
 
 class VoiceIceConfig {
@@ -263,7 +211,7 @@ class VoiceSignal {
   const VoiceSignal({
     required this.id,
     required this.inquiryId,
-    required this.appointmentId,
+    required this.voiceCallId,
     required this.senderId,
     required this.signalType,
     required this.payload,
@@ -274,7 +222,7 @@ class VoiceSignal {
     return VoiceSignal(
       id: _int(json['id']),
       inquiryId: _int(json['inquiryId']),
-      appointmentId: _int(json['appointmentId']),
+      voiceCallId: _int(json['voiceCallId']),
       senderId: _int(json['senderId']),
       signalType: json['signalType']?.toString() ?? '',
       payload: json['payload']?.toString() ?? '',
@@ -284,7 +232,7 @@ class VoiceSignal {
 
   final int id;
   final int inquiryId;
-  final int appointmentId;
+  final int voiceCallId;
   final int senderId;
   final String signalType;
   final String payload;

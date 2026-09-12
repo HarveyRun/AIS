@@ -39,10 +39,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class InquiryService {
     private static final Set<String> OPEN = Set.of(
-        "PENDING", "ACTIVE", "TEXT_LIMIT_REACHED", "TEXT_ENDED", "PAID_ACTIVE"
+        "PENDING", "ACTIVE", "TEXT_LIMIT_REACHED"
     );
     private static final Set<String> CAPACITY_OCCUPYING = Set.of(
-        "ACTIVE", "TEXT_LIMIT_REACHED", "TEXT_ENDED", "PAID_ACTIVE"
+        "ACTIVE", "TEXT_LIMIT_REACHED"
     );
     private static final int CURRENT_FLOW_VERSION = 2;
     private static final int INITIAL_TEXT_MESSAGE_LIMIT = 50;
@@ -63,6 +63,9 @@ public class InquiryService {
     private final AnalyticsEventService analytics;
     private final JdbcTemplate jdbc;
     private final UserCommunicationBlockService communicationBlocks;
+
+    @Autowired
+    private InquiryVoiceCallRepository voiceCalls;
 
     @Autowired(required = false)
     private AppGlobalSettingService globalSettings;
@@ -303,7 +306,7 @@ public class InquiryService {
         else item.setAnswererUnreadCount(0);
         InquiryMessage message = new InquiryMessage();
         message.setInquiry(item); message.setSender(user(userId));
-        message.setCountsTowardFreeLimit(!"PAID_ACTIVE".equals(item.getStatus()));
+        message.setCountsTowardFreeLimit(true);
         int messageLimit = item.getFlowVersion() >= CURRENT_FLOW_VERSION
             ? settings() == null ? 100 : settings().textMessageMaxLength()
             : 500;
@@ -342,14 +345,11 @@ public class InquiryService {
     public MessageView sendImage(Long userId, Long inquiryId, MultipartFile image) {
         Inquiry item = lockedAccessible(userId, inquiryId);
         requireCommunicationAllowed(item);
-        requireMessagingStatus(item, userId);
-        if (!"PAID_ACTIVE".equals(item.getStatus())) {
-            throw BusinessException.badRequest("语音通话中才能发送图片");
+        if (!Set.of("ACTIVE", "TEXT_LIMIT_REACHED").contains(item.getStatus())) {
+            throw BusinessException.badRequest("当前状态不能发送图片");
         }
-        if (item.getFlowVersion() < CURRENT_FLOW_VERSION) {
-            requireConsecutiveMessageCapacity(item, userId);
-        } else {
-            requireTextMessageCapacity(item, userId);
+        if (!voiceCalls.existsByInquiryIdAndStatusIn(inquiryId, Set.of("ACTIVE"))) {
+            throw BusinessException.badRequest("语音通话中才能发送图片");
         }
         chatAbuseGuard.requireImageAllowed(inquiryId, userId);
         validateChatImage(image);
@@ -409,13 +409,13 @@ public class InquiryService {
         if (!Set.of("ACTIVE", "TEXT_LIMIT_REACHED").contains(item.getStatus())) {
             throw BusinessException.badRequest("当前状态不能结束交流");
         }
-        Long openAppointmentCount = jdbc.queryForObject(
-            "SELECT COUNT(*) FROM inquiry_audio_appointments " +
+        Long openVoiceCallCount = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM inquiry_voice_calls " +
                 "WHERE inquiry_id=? AND status IN ('CONNECTING','ACTIVE')",
             Long.class,
             inquiryId
         );
-        if (openAppointmentCount != null && openAppointmentCount > 0) {
+        if (openVoiceCallCount != null && openVoiceCallCount > 0) {
             throw BusinessException.badRequest("请先结束当前语音通话");
         }
         closeWithoutFunds(item, "COMPLETED", "提问者已结束本次询问。");
@@ -465,25 +465,12 @@ public class InquiryService {
                 processReplyTimeout(item);
             }
         });
-        inquiries.findByStatusAndPaidSessionEndsAtBefore("PAID_ACTIVE", now).forEach(candidate -> {
-            Inquiry item = inquiries.findWithLockById(candidate.getId()).orElse(null);
-            if (item != null && "PAID_ACTIVE".equals(item.getStatus()) &&
-                !"AUDIO_APPOINTMENT".equals(item.getSessionType()) &&
-                item.getPaidSessionEndsAt() != null && !item.getPaidSessionEndsAt().isAfter(LocalDateTime.now())) {
-                settle(item);
-                createSystemMessage(item, "SYSTEM", "购买的交流时长已结束，本次询问已自动完成结算。");
-                increaseUnread(item, item.getQuestioner().getId());
-                increaseUnread(item, item.getAnswerer().getId());
-                publishInquiryChanged(item.getQuestioner().getId(), item);
-                publishInquiryChanged(item.getAnswerer().getId(), item);
-            }
-        });
         jdbc.queryForList(
             "SELECT i.id FROM inquiries i WHERE i.flow_version>=? " +
-                "AND i.status IN ('ACTIVE','TEXT_LIMIT_REACHED','TEXT_ENDED') " +
+                "AND i.status IN ('ACTIVE','TEXT_LIMIT_REACHED') " +
                 "AND i.conversation_expires_at IS NOT NULL AND i.conversation_expires_at<=? " +
-                "AND NOT EXISTS (SELECT 1 FROM inquiry_audio_appointments a " +
-                "WHERE a.inquiry_id=i.id AND a.status IN ('PENDING','ACCEPTED','CONNECTING','ACTIVE')) " +
+                "AND NOT EXISTS (SELECT 1 FROM inquiry_voice_calls a " +
+                "WHERE a.inquiry_id=i.id AND a.status IN ('CONNECTING','ACTIVE')) " +
                 "ORDER BY i.conversation_expires_at ASC LIMIT 100",
             Long.class,
             CURRENT_FLOW_VERSION,
@@ -492,7 +479,7 @@ public class InquiryService {
             Inquiry item = inquiries.findWithLockById(id).orElse(null);
             if (item == null || item.getConversationExpiresAt() == null
                 || item.getConversationExpiresAt().isAfter(LocalDateTime.now())
-                || !Set.of("ACTIVE", "TEXT_LIMIT_REACHED", "TEXT_ENDED").contains(item.getStatus())) {
+                || !Set.of("ACTIVE", "TEXT_LIMIT_REACHED").contains(item.getStatus())) {
                 return;
             }
             closeWithoutFunds(item, "COMPLETED", "本次询问已达到20天期限，系统已自动结束。");
@@ -629,7 +616,6 @@ public class InquiryService {
     }
 
     private void requireTextMessageCapacity(Inquiry item, Long senderId) {
-        if ("PAID_ACTIVE".equals(item.getStatus())) return;
         long used = messages.countByInquiryIdAndSenderIdAndCountsTowardFreeLimitTrueAndMessageTypeIn(
             item.getId(), senderId, FREE_MESSAGE_TYPES
         );
@@ -640,7 +626,6 @@ public class InquiryService {
     }
 
     private void closeWhenTextLimitReached(Inquiry item, Long senderId) {
-        if ("PAID_ACTIVE".equals(item.getStatus())) return;
         long used = messages.countByInquiryIdAndSenderIdAndCountsTowardFreeLimitTrueAndMessageTypeIn(
             item.getId(), senderId, FREE_MESSAGE_TYPES
         );
@@ -668,10 +653,6 @@ public class InquiryService {
 
     private void requireMessagingStatus(Inquiry item, Long senderId) {
         if ("ACTIVE".equals(item.getStatus())) return;
-        if ("PAID_ACTIVE".equals(item.getStatus())) {
-            if (item.getPaidSessionEndsAt() == null || item.getPaidSessionEndsAt().isAfter(LocalDateTime.now())) return;
-            throw BusinessException.badRequest("购买的交流时长已结束");
-        }
         throw BusinessException.badRequest("当前状态不能发送消息");
     }
 
@@ -940,7 +921,6 @@ public class InquiryService {
                 unreadFor(i, me), i.getResponseDeadline(), i.getConversationExpiresAt(), i.getCreatedAt(),
                 i.getLastMessageAt(), i.getFirstAnswererReplyAt(),
                 i.getFlowVersion(), i.getHourlyRateSnapshot(),
-                i.getSessionType(), i.getPurchasedMinutes(), i.getPaidSessionStartedAt(), i.getPaidSessionEndsAt(),
                 questionerTextCount, answererTextCount,
                 i.getQuestioner().getId().equals(me) ? i.getQuestionerTextLimit() : i.getAnswererTextLimit(),
                 communicationBlocked);
@@ -999,8 +979,6 @@ public class InquiryService {
                               LocalDateTime createdAt, LocalDateTime lastMessageAt,
                               LocalDateTime firstAnswererReplyAt,
                               int flowVersion, int hourlyRateSnapshot,
-                              String sessionType, int purchasedMinutes,
-                              LocalDateTime paidSessionStartedAt, LocalDateTime paidSessionEndsAt,
                               int questionerTextCount, int answererTextCount, int textMessageLimit,
                               boolean communicationBlocked) {}
     public record MessageView(Long id, Long senderId, String senderName, String senderAvatar, String type, String content,

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:tobias/tobias.dart' as tobias;
 import 'package:url_launcher/url_launcher.dart';
 import '../../app/providers.dart';
@@ -22,7 +21,8 @@ class CuratedMembershipPage extends ConsumerStatefulWidget {
   ConsumerState<CuratedMembershipPage> createState() => _State();
 }
 
-class _State extends ConsumerState<CuratedMembershipPage> {
+class _State extends ConsumerState<CuratedMembershipPage>
+    with WidgetsBindingObserver {
   CuratedMembership? value;
   List<CuratedCertificationMaterial> materials = const [];
   String? error;
@@ -30,17 +30,27 @@ class _State extends ConsumerState<CuratedMembershipPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
     subscription = ref.read(realtimeProvider).events.listen((event) {
       if (event.type == 'CURATED_APPLICATION_UPDATED' ||
-          event.type == 'CURATED_MEMBERSHIP_UPDATED') {
+          event.type == 'CURATED_MEMBERSHIP_UPDATED' ||
+          event.type == 'APP_GLOBAL_SETTINGS_UPDATED') {
         _load(silent: true);
       }
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _load(silent: true);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     subscription?.cancel();
     super.dispose();
   }
@@ -105,9 +115,12 @@ class _State extends ConsumerState<CuratedMembershipPage> {
                   const SizedBox(height: 12),
                 FilledButton(
                   onPressed: v.readyToPay ? _pay : null,
-                  child: const Text(
-                    '99元/月',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  child: Text(
+                    v.priceText,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -116,7 +129,14 @@ class _State extends ConsumerState<CuratedMembershipPage> {
   }
 
   Future<void> _pay() async {
-    final now = DateTime.now(), end = _plusOneMonth(now);
+    late final CuratedMembershipQuote quote;
+    try {
+      quote = await ref.read(repositoryProvider).curatedMembershipQuote();
+    } catch (e) {
+      if (mounted) AppMessage.show(context, '$e');
+      return;
+    }
+    if (!mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => Dialog(
@@ -146,13 +166,9 @@ class _State extends ConsumerState<CuratedMembershipPage> {
                 ],
               ),
               const SizedBox(height: 18),
-              _PayInfoRow(label: '开通费用', value: '¥99'),
+              _PayInfoRow(label: '开通方案', value: quote.priceText),
               const SizedBox(height: 14),
-              _PayInfoRow(
-                label: '有效期',
-                value:
-                    '${DateFormat('yyyy.M.d HH:mm').format(now)}\n至 ${DateFormat('yyyy.M.d HH:mm').format(end)}',
-              ),
+              _PayInfoRow(label: '有效期', value: quote.validityText),
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: () => Navigator.pop(c, true),
@@ -167,7 +183,13 @@ class _State extends ConsumerState<CuratedMembershipPage> {
     try {
       final id =
           'curated_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999999)}';
-      final order = await ref.read(repositoryProvider).createCuratedPayment(id);
+      final order = await ref
+          .read(repositoryProvider)
+          .createCuratedPayment(
+            id,
+            durationMonths: quote.durationMonths,
+            price: quote.price,
+          );
       if (order.status == 'PAID') {
         if (!mounted) return;
         AppMessage.show(context, '严选直聊已开通');
@@ -230,19 +252,6 @@ class _PayInfoRow extends StatelessWidget {
         ),
       ),
     ],
-  );
-}
-
-DateTime _plusOneMonth(DateTime value) {
-  final targetMonth = value.month == 12 ? 1 : value.month + 1;
-  final targetYear = value.month == 12 ? value.year + 1 : value.year;
-  final lastDay = DateTime(targetYear, targetMonth + 1, 0).day;
-  return DateTime(
-    targetYear,
-    targetMonth,
-    value.day > lastDay ? lastDay : value.day,
-    value.hour,
-    value.minute,
   );
 }
 

@@ -24,7 +24,7 @@ class VoiceCallRealtimeGate extends ConsumerStatefulWidget {
 
 class _VoiceCallRealtimeGateState extends ConsumerState<VoiceCallRealtimeGate> {
   StreamSubscription<RealtimeEvent>? _subscription;
-  int? _openingAppointmentId;
+  int? _openingVoiceCallId;
 
   @override
   void initState() {
@@ -38,24 +38,22 @@ class _VoiceCallRealtimeGateState extends ConsumerState<VoiceCallRealtimeGate> {
       return;
     }
     final inquiryId = int.tryParse('${event.payload['inquiryId'] ?? ''}');
-    final appointmentId = int.tryParse(
-      '${event.payload['appointmentId'] ?? ''}',
-    );
-    if (inquiryId == null || appointmentId == null) return;
-    if (_openingAppointmentId == appointmentId) return;
+    final voiceCallId = int.tryParse('${event.payload['voiceCallId'] ?? ''}');
+    if (inquiryId == null || voiceCallId == null) return;
+    if (_openingVoiceCallId == voiceCallId) return;
 
-    final path = '/voice-call/$inquiryId/$appointmentId';
+    final path = '/voice-call/$inquiryId/$voiceCallId';
     if (widget.router.routerDelegate.currentConfiguration.uri.path == path) {
       return;
     }
-    _openingAppointmentId = appointmentId;
+    _openingVoiceCallId = voiceCallId;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       try {
         await widget.router.push('$path?initiator=0');
       } finally {
-        if (mounted && _openingAppointmentId == appointmentId) {
-          _openingAppointmentId = null;
+        if (mounted && _openingVoiceCallId == voiceCallId) {
+          _openingVoiceCallId = null;
         }
       }
     });

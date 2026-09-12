@@ -19,6 +19,10 @@ const groups = [
   { key: 'experience', title: '经历与首页', description: '控制经历提交规格和首页每次读取数量。修改字数限制只影响之后的提交，不会截断历史内容。', example: '首页每页设为20，App 首次只请求20条经历，继续下拉时再请求下一页，避免一次传输大量用户未查看的数据。', fields: [
     ['maxUnapprovedExperiences','未通过经历数量上限','审核中或被退回的经历达到该数量后，需要先处理现有内容。','number','条'],['experienceTitleMaxLength','经历标题上限','发布经历时主标题允许的最大字数。','number','字'],['experienceDescriptionMaxLength','经历叙述上限','发布经历时文字叙述允许的最大字数。','number','字'],['proofArchiveMaxBytes','证明压缩包上限','单个证明资料压缩包允许的最大容量。','megabytes','MB'],['homePageSize','首页每页数量','首页每次分页请求的经历卡片数量。','number','条'],
   ]},
+  { key: 'curated', title: '严选直聊', description: '设置严选直聊的开通金额和使用期限。保存后只影响新创建的订单，已有订单和已开通用户不会改变。', example: '金额填写99、期限填写6时，App显示“99元/半年”；期限填写1200时按永久使用权展示。', fields: [
+    ['curatedMembershipPrice','开通金额','用户每次开通严选直聊需要支付的金额，允许1至9999元，最多两位小数。','money','元'],
+    ['curatedMembershipMonths','购买期限','允许填写1至1200个月；1、6、12、1200会分别显示为月、半年、年、永久。','number','个月'],
+  ]},
 ];
 
 export default function AppSettingsPage() {

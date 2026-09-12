@@ -130,7 +130,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           const SizedBox(height: 110),
                           Center(
                             child: Text(
-                              '事先问',
+                              '光忆',
                               style: Theme.of(context).textTheme.headlineLarge
                                   ?.copyWith(
                                     color: Theme.of(

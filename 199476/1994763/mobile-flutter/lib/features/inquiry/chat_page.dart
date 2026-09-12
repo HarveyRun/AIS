@@ -35,7 +35,7 @@ class _ChatPageState extends ConsumerState<ChatPage>
   final _picker = ImagePicker();
   StreamSubscription<RealtimeEvent>? _subscription;
   InquiryDetail? _detail;
-  AudioAppointment? _audioAppointment;
+  VoiceCall? _voiceCall;
   bool _loading = true;
   bool _emojiOpen = false;
   bool _moreOpen = false;
@@ -212,14 +212,14 @@ class _ChatPageState extends ConsumerState<ChatPage>
     if (!silent) setState(() => _loading = true);
     try {
       InquiryDetail? detail;
-      AudioAppointment? audioAppointment;
+      VoiceCall? voiceCall;
       InquiryQualityOptions? quality;
 
       Future<void> fetchDetail() async {
         final repository = ref.read(repositoryProvider);
         _settings ??= await repository.appGlobalSettings();
         detail = await repository.inquiry(widget.id, showLoading: false);
-        audioAppointment = await repository.latestAudioAppointment(widget.id);
+        voiceCall = await repository.latestVoiceCall(widget.id);
         if (!detail!.inquiry.isIncoming &&
             detail!.inquiry.status.toUpperCase() == 'COMPLETED') {
           quality = await repository.inquiryQualityOptions(
@@ -237,7 +237,7 @@ class _ChatPageState extends ConsumerState<ChatPage>
       if (!mounted) return;
       setState(() {
         _detail = detail;
-        _audioAppointment = audioAppointment;
+        _voiceCall = voiceCall;
         _quality = quality;
       });
       _scheduleScrollToEnd(animate: false);
@@ -333,7 +333,7 @@ class _ChatPageState extends ConsumerState<ChatPage>
     }
   }
 
-  Future<void> _createAudioCall() async {
+  Future<void> _createVoiceCall() async {
     final inquiry = _detail?.inquiry;
     if (inquiry == null) return;
     final confirmed = await showModalBottomSheet<bool>(
@@ -379,7 +379,7 @@ class _ChatPageState extends ConsumerState<ChatPage>
     try {
       final call = await ref
           .read(repositoryProvider)
-          .createAudioCall(inquiryId: widget.id);
+          .createVoiceCall(inquiryId: widget.id);
       if (!mounted) return;
       await context.push('/voice-call/${widget.id}/${call.id}?initiator=1');
       if (mounted) await _load(silent: true);
@@ -388,11 +388,11 @@ class _ChatPageState extends ConsumerState<ChatPage>
     }
   }
 
-  Future<void> _enterAudioCall() async {
-    final appointment = _audioAppointment;
-    if (appointment == null || !appointment.exists) return;
+  Future<void> _enterVoiceCall() async {
+    final voiceCall = _voiceCall;
+    if (voiceCall == null || !voiceCall.exists) return;
     await context.push(
-      '/voice-call/${widget.id}/${appointment.id}?initiator=${appointment.isIncoming ? 0 : 1}',
+      '/voice-call/${widget.id}/${voiceCall.id}?initiator=${voiceCall.isIncoming ? 0 : 1}',
     );
     if (mounted) await _load(silent: true);
   }
@@ -480,19 +480,19 @@ class _ChatPageState extends ConsumerState<ChatPage>
     final inquiry = detail?.inquiry;
     final status = inquiry?.status.toUpperCase();
     final canChat = inquiry?.canChat == true;
-    final appointment = _audioAppointment;
-    final appointmentOpen = appointment?.isOpen == true;
-    final allowImages = status == 'PAID_ACTIVE';
+    final voiceCall = _voiceCall;
+    final voiceCallOpen = voiceCall?.isOpen == true;
+    final allowImages = voiceCall?.status.toUpperCase() == 'ACTIVE';
     final canEnd =
         inquiry != null &&
         !inquiry.isIncoming &&
-        status == 'ACTIVE' &&
-        !appointmentOpen;
-    final canCreateAudioCall =
-        inquiry?.canCreateAudioAppointment == true &&
-        (appointment == null || !appointment.isOpen);
+        const {'ACTIVE', 'TEXT_LIMIT_REACHED'}.contains(status) &&
+        !voiceCallOpen;
+    final canCreateVoiceCall =
+        inquiry?.canCreateVoiceCall == true &&
+        (voiceCall == null || !voiceCall.isOpen);
     final hasMoreActions =
-        inquiry != null && (allowImages || canEnd || canCreateAudioCall);
+        inquiry != null && (allowImages || canEnd || canCreateVoiceCall);
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -517,11 +517,11 @@ class _ChatPageState extends ConsumerState<ChatPage>
                   padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
                   child: _ChatStatus(
                     inquiry: inquiry!,
-                    audioAppointment: appointment,
+                    voiceCall: voiceCall,
                     quality: _quality,
                     onAction: _action,
                     onEvaluate: _evaluate,
-                    onEnterAudioCall: _enterAudioCall,
+                    onEnterVoiceCall: _enterVoiceCall,
                   ),
                 ),
                 Expanded(
@@ -597,10 +597,10 @@ class _ChatPageState extends ConsumerState<ChatPage>
                     allowImages: allowImages,
                     onPhoto: () => _sendPhoto(ImageSource.gallery),
                     onCamera: () => _sendPhoto(ImageSource.camera),
-                    onAudioCall: canCreateAudioCall
+                    onVoiceCall: canCreateVoiceCall
                         ? () {
                             setState(() => _moreOpen = false);
-                            _createAudioCall();
+                            _createVoiceCall();
                           }
                         : null,
                     onEnd: canEnd
@@ -661,18 +661,18 @@ class _ChatPageState extends ConsumerState<ChatPage>
 class _ChatStatus extends ConsumerWidget {
   const _ChatStatus({
     required this.inquiry,
-    required this.audioAppointment,
+    required this.voiceCall,
     required this.quality,
     required this.onAction,
     required this.onEvaluate,
-    required this.onEnterAudioCall,
+    required this.onEnterVoiceCall,
   });
   final InquirySummary inquiry;
-  final AudioAppointment? audioAppointment;
+  final VoiceCall? voiceCall;
   final InquiryQualityOptions? quality;
   final void Function(Future<void> Function(int), String) onAction;
   final VoidCallback onEvaluate;
-  final VoidCallback onEnterAudioCall;
+  final VoidCallback onEnterVoiceCall;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -685,8 +685,6 @@ class _ChatStatus extends ConsumerWidget {
       'PENDING' => inquiry.isIncoming ? '等待你的决定' : '等待对方接受',
       'ACTIVE' => '交流进行中',
       'TEXT_LIMIT_REACHED' => '文字交流额度已用完',
-      'TEXT_ENDED' => '文字交流已经结束',
-      'PAID_ACTIVE' => '语音通话进行中',
       'COMPLETED' || 'ENDED' => '本次交流已经结束',
       'TIMEOUT_REFUNDED' => '本次询问已因超时全额退款',
       'REJECTED' => '本次询问未接受',
@@ -814,20 +812,14 @@ class _ChatStatus extends ConsumerWidget {
                   'PENDING',
                   'ACTIVE',
                   'TEXT_LIMIT_REACHED',
-                  'TEXT_ENDED',
                 }.contains(status)) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
                     child: Text(
-                      const {
-                            'TEXT_LIMIT_REACHED',
-                            'TEXT_ENDED',
-                          }.contains(status)
-                          ? (status == 'TEXT_LIMIT_REACHED'
-                                ? '免费消息额度已用完'
-                                : '文字交流已主动结束')
+                      status == 'TEXT_LIMIT_REACHED'
+                          ? '免费消息额度已用完'
                           : '免费消息剩余 ${inquiry.remainingTextCount}/${inquiry.textMessageLimit}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
@@ -835,24 +827,9 @@ class _ChatStatus extends ConsumerWidget {
                 ],
               ),
             ],
-            if (audioAppointment?.exists == true) ...[
+            if (voiceCall?.exists == true) ...[
               const SizedBox(height: 10),
-              _AudioAppointmentCard(
-                appointment: audioAppointment!,
-                onEnter: onEnterAudioCall,
-              ),
-            ],
-            if (inquiry.isCurrentFlow &&
-                status == 'PAID_ACTIVE' &&
-                audioAppointment?.exists != true) ...[
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '${inquiry.purchasedMinutes}分钟 · 文字消息不限量${inquiry.paidSessionEndsAt == null ? '' : ' · ${DateFormat('HH:mm').format(inquiry.paidSessionEndsAt!)}结束'}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
+              _VoiceCallCard(voiceCall: voiceCall!, onEnter: onEnterVoiceCall),
             ],
             if (!inquiry.isIncoming && quality?.canEvaluate == true) ...[
               const SizedBox(height: 10),
@@ -1150,20 +1127,17 @@ class _ChatImageViewer extends StatelessWidget {
   }
 }
 
-class _AudioAppointmentCard extends StatelessWidget {
-  const _AudioAppointmentCard({
-    required this.appointment,
-    required this.onEnter,
-  });
+class _VoiceCallCard extends StatelessWidget {
+  const _VoiceCallCard({required this.voiceCall, required this.onEnter});
 
-  final AudioAppointment appointment;
+  final VoiceCall voiceCall;
   final VoidCallback onEnter;
 
   @override
   Widget build(BuildContext context) {
-    final status = appointment.status.toUpperCase();
+    final status = voiceCall.status.toUpperCase();
     final title = switch (status) {
-      'CONNECTING' => appointment.isIncoming ? '语音来电' : '正在呼叫',
+      'CONNECTING' => voiceCall.isIncoming ? '语音来电' : '正在呼叫',
       'ACTIVE' => '语音通话中',
       'REJECTED' => '对方未接听',
       'CANCELLED' => '已取消呼叫',
@@ -1199,8 +1173,8 @@ class _AudioAppointmentCard extends StatelessWidget {
               ),
               Text(
                 status == 'COMPLETED'
-                    ? '实付 ¥${formatMoney(appointment.actualAmount)}'
-                    : '¥${appointment.hourlyRateSnapshot}/小时',
+                    ? '实付 ¥${formatMoney(voiceCall.actualAmount)}'
+                    : '¥${voiceCall.hourlyRateSnapshot}/小时',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w700,
@@ -1211,7 +1185,7 @@ class _AudioAppointmentCard extends StatelessWidget {
           const SizedBox(height: 7),
           Text(
             status == 'COMPLETED'
-                ? '实际通话 ${_formatSeconds(appointment.actualDurationSeconds)}'
+                ? '实际通话 ${_formatSeconds(voiceCall.actualDurationSeconds)}'
                 : status == 'ACTIVE'
                 ? '通话已接通'
                 : '等待接听',
@@ -1225,7 +1199,7 @@ class _AudioAppointmentCard extends StatelessWidget {
                 onPressed: onEnter,
                 icon: const Icon(Icons.call_rounded),
                 label: Text(
-                  status == 'CONNECTING' && appointment.isIncoming
+                  status == 'CONNECTING' && voiceCall.isIncoming
                       ? '查看来电'
                       : '进入通话',
                 ),
@@ -1349,13 +1323,13 @@ class _MorePanel extends StatelessWidget {
   const _MorePanel({
     required this.onPhoto,
     required this.onCamera,
-    required this.onAudioCall,
+    required this.onVoiceCall,
     required this.onEnd,
     required this.allowImages,
   });
   final VoidCallback onPhoto;
   final VoidCallback onCamera;
-  final VoidCallback? onAudioCall;
+  final VoidCallback? onVoiceCall;
   final VoidCallback? onEnd;
   final bool allowImages;
 
@@ -1370,11 +1344,11 @@ class _MorePanel extends StatelessWidget {
         ),
       if (allowImages)
         _MoreItem(icon: Icons.photo_outlined, label: '相册', onTap: onPhoto),
-      if (onAudioCall != null)
+      if (onVoiceCall != null)
         _MoreItem(
           icon: Icons.phone_in_talk_outlined,
           label: '语音通话',
-          onTap: onAudioCall!,
+          onTap: onVoiceCall!,
         ),
       if (onEnd != null)
         _MoreItem(

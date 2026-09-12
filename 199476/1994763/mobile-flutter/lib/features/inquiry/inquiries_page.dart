@@ -412,8 +412,6 @@ class _StatusChip extends StatelessWidget {
       'PENDING' => item.isIncoming ? '待你处理' : '等待接受',
       'ACTIVE' => '交流中',
       'TEXT_LIMIT_REACHED' => '文字已结束',
-      'TEXT_ENDED' => '文字已结束',
-      'PAID_ACTIVE' => '语音通话中',
       'COMPLETED' || 'ENDED' => '已结束',
       'REJECTED' => item.isIncoming ? '已拒绝' : '未接受',
       'CANCELLED' => '已撤销',

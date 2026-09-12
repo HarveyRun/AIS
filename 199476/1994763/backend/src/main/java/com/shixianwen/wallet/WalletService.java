@@ -485,15 +485,15 @@ public class WalletService {
     }
 
     @Transactional
-    public FrozenAllocation freezeAudioAppointment(Long userId, BigDecimal amount, Long appointmentId) {
+    public FrozenAllocation freezeVoiceCall(Long userId, BigDecimal amount, Long voiceCallId) {
         WalletAccount wallet = lock(userId);
         ensureSources(wallet);
         amount = MoneyAmounts.requirePositive(amount);
         if (alreadyRecorded(
             wallet,
-            "AUDIO_APPOINTMENT_FREEZE",
-            "AUDIO_APPOINTMENT",
-            appointmentId,
+            "VOICE_CALL_FREEZE",
+            "VOICE_CALL",
+            voiceCallId,
             amount
         )) {
             throw BusinessException.badRequest("该语音通话金额已经冻结");
@@ -510,16 +510,16 @@ public class WalletService {
         syncTotals(wallet);
         record(
             wallet,
-            "AUDIO_APPOINTMENT_FREEZE",
+            "VOICE_CALL_FREEZE",
             "FREEZE",
             amount,
-            "AUDIO_APPOINTMENT",
-            appointmentId,
+            "VOICE_CALL",
+            voiceCallId,
             "语音通话金额冻结"
         );
         ledger.record(
-            "AUDIO_APPOINTMENT",
-            appointmentId,
+            "VOICE_CALL",
+            voiceCallId,
             "FREEZE",
             "语音通话金额冻结",
             List.of(
@@ -532,14 +532,14 @@ public class WalletService {
     }
 
     @Transactional
-    public FrozenAllocation reserveMeteredAudio(Long userId, Long appointmentId) {
+    public FrozenAllocation reserveVoiceCall(Long userId, Long voiceCallId) {
         WalletAccount account = lock(userId);
         ensureSources(account);
         BigDecimal amount = MoneyAmounts.normalize(account.getAvailableBalance());
         if (amount.compareTo(new BigDecimal("0.01")) < 0) {
             throw BusinessException.badRequest("余额不足，请先充值");
         }
-        return freezeAudioAppointment(userId, amount, appointmentId);
+        return freezeVoiceCall(userId, amount, voiceCallId);
     }
 
     @Transactional
@@ -647,11 +647,11 @@ public class WalletService {
     }
 
     @Transactional
-    public void refundAudioAppointment(
+    public void refundVoiceCall(
         Long userId,
         BigDecimal rechargeAmount,
         BigDecimal incomeAmount,
-        Long appointmentId
+        Long voiceCallId
     ) {
         WalletAccount wallet = lock(userId);
         ensureSources(wallet);
@@ -659,9 +659,9 @@ public class WalletService {
         if (total.compareTo(BigDecimal.ZERO) <= 0) return;
         if (alreadyRecorded(
             wallet,
-            "AUDIO_APPOINTMENT_REFUND",
-            "AUDIO_APPOINTMENT",
-            appointmentId,
+            "VOICE_CALL_REFUND",
+            "VOICE_CALL",
+            voiceCallId,
             total
         )) return;
         ensureSourceFrozen(wallet, rechargeAmount, incomeAmount);
@@ -672,16 +672,16 @@ public class WalletService {
         syncTotals(wallet);
         record(
             wallet,
-            "AUDIO_APPOINTMENT_REFUND",
+            "VOICE_CALL_REFUND",
             "IN",
             total,
-            "AUDIO_APPOINTMENT",
-            appointmentId,
+            "VOICE_CALL",
+            voiceCallId,
             "语音通话金额退回"
         );
         ledger.record(
-            "AUDIO_APPOINTMENT",
-            appointmentId,
+            "VOICE_CALL",
+            voiceCallId,
             "REFUND",
             "语音通话金额退回",
             List.of(
@@ -756,34 +756,14 @@ public class WalletService {
     }
 
     @Transactional
-    public void settleAudioAppointment(
-        Long questionerId,
-        Long answererId,
-        BigDecimal rechargeAmount,
-        BigDecimal incomeAmount,
-        Inquiry inquiry,
-        Long appointmentId
-    ) {
-        settleWithReference(
-            questionerId,
-            answererId,
-            rechargeAmount,
-            incomeAmount,
-            inquiry,
-            "AUDIO_APPOINTMENT",
-            appointmentId
-        );
-    }
-
-    @Transactional
-    public void settleMeteredAudio(
+    public void settleVoiceCall(
         Long questionerId,
         Long answererId,
         BigDecimal reservedRecharge,
         BigDecimal reservedIncome,
         BigDecimal actualAmount,
         Inquiry inquiry,
-        Long appointmentId
+        Long voiceCallId
     ) {
         actualAmount = MoneyAmounts.normalize(actualAmount);
         BigDecimal reservedTotal = MoneyAmounts.add(reservedRecharge, reservedIncome);
@@ -795,12 +775,12 @@ public class WalletService {
         BigDecimal refundRecharge = MoneyAmounts.subtract(reservedRecharge, chargedRecharge);
         BigDecimal refundIncome = MoneyAmounts.subtract(reservedIncome, chargedIncome);
         if (MoneyAmounts.add(refundRecharge, refundIncome).compareTo(BigDecimal.ZERO) > 0) {
-            refundAudioAppointment(questionerId, refundRecharge, refundIncome, appointmentId);
+            refundVoiceCall(questionerId, refundRecharge, refundIncome, voiceCallId);
         }
         if (actualAmount.compareTo(BigDecimal.ZERO) == 0) return;
         settleWithReference(
             questionerId, answererId, chargedRecharge, chargedIncome,
-            inquiry, "AUDIO_APPOINTMENT", appointmentId
+            inquiry, "VOICE_CALL", voiceCallId
         );
     }
 
@@ -828,7 +808,7 @@ public class WalletService {
             throw BusinessException.forbidden("测试资金与真实资金不能互相结算");
         }
         recordTransferRisk(payer.getUser(), receiver.getUser(), referenceType, referenceId);
-        boolean audioCall = "AUDIO_APPOINTMENT".equals(referenceType);
+        boolean audioCall = "VOICE_CALL".equals(referenceType);
         String payerTransactionType = audioCall ? "AUDIO_CALL_PAYMENT" : "INQUIRY_PAYMENT";
         String receiverTransactionType = isTest(receiver.getUser())
             ? (audioCall ? "TEST_AUDIO_CALL_INCOME" : "TEST_INQUIRY_INCOME")
@@ -1060,7 +1040,7 @@ public class WalletService {
         syncTotals(wallet);
         hold.setStatus("RELEASED");
         hold.setReleasedAt(LocalDateTime.now());
-        boolean audio = "AUDIO_APPOINTMENT".equals(hold.getReferenceType());
+        boolean audio = "VOICE_CALL".equals(hold.getReferenceType());
         boolean tip = "EXPERIENCE_TIP".equals(hold.getReferenceType());
         record(
             wallet,

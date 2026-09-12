@@ -112,7 +112,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
           minLines: 5,
           maxLines: 9,
           decoration: InputDecoration(
-            hintText: _type == 'PRODUCT' ? '说说你希望事先问改进什么' : '请说明发生的时间、经过和诉求',
+            hintText: _type == 'PRODUCT' ? '说说你希望光忆改进什么' : '请说明发生的时间、经过和诉求',
           ),
         ),
         const SizedBox(height: 12),

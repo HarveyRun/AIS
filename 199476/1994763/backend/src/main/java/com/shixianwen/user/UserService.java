@@ -27,7 +27,7 @@ public class UserService {
     private static final DateTimeFormatter ADJUSTMENT_TIME =
         DateTimeFormatter.ofPattern("M月d日 HH:mm");
     private static final List<String> ACTIVE_INQUIRY_STATUSES =
-        List.of("PENDING", "ACTIVE", "TEXT_LIMIT_REACHED", "TEXT_ENDED", "PAID_ACTIVE");
+        List.of("PENDING", "ACTIVE", "TEXT_LIMIT_REACHED");
 
     private final UserRepository userRepository;
     private final WalletAccountRepository walletAccountRepository;

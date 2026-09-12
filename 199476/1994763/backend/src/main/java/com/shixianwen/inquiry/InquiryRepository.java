@@ -19,7 +19,6 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
     Optional<Inquiry> findById(Long id);
     List<Inquiry> findByStatusAndResponseDeadlineBefore(String status, LocalDateTime now);
     List<Inquiry> findByStatusAndReplyDeadlineBefore(String status, LocalDateTime now);
-    List<Inquiry> findByStatusAndPaidSessionEndsAtBefore(String status, LocalDateTime now);
     boolean existsByQuestionerIdAndStatusIn(Long userId, Collection<String> statuses);
     boolean existsByAnswererIdAndStatusIn(Long userId, Collection<String> statuses);
     long countByQuestionerIdAndStatusIn(Long userId, Collection<String> statuses);

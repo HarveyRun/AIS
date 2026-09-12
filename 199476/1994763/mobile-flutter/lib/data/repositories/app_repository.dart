@@ -83,13 +83,25 @@ class AppRepository {
           })
           .toList(growable: false);
 
-  Future<CuratedPayment> createCuratedPayment(String requestId) async =>
-      CuratedPayment.fromJson(
-        await _api.post<Map<String, dynamic>>(
-          '/curated-chat/membership/orders',
-          data: {'requestId': requestId},
-        ),
+  Future<CuratedMembershipQuote> curatedMembershipQuote() async =>
+      CuratedMembershipQuote.fromJson(
+        await _api.get<Map<String, dynamic>>('/curated-chat/membership/quote'),
       );
+
+  Future<CuratedPayment> createCuratedPayment(
+    String requestId, {
+    required int durationMonths,
+    required double price,
+  }) async => CuratedPayment.fromJson(
+    await _api.post<Map<String, dynamic>>(
+      '/curated-chat/membership/orders',
+      data: {
+        'requestId': requestId,
+        'durationMonths': durationMonths,
+        'price': price,
+      },
+    ),
+  );
   Future<CuratedPayment> curatedPayment(String orderNo) async =>
       CuratedPayment.fromJson(
         await _api.get<Map<String, dynamic>>(
@@ -431,93 +443,78 @@ class AppRepository {
   Future<void> cancelInquiry(int id) =>
       _api.post<Object?>('/inquiries/$id/cancel');
   Future<void> endInquiry(int id) => _api.post<Object?>('/inquiries/$id/end');
-  Future<AudioAppointment> latestAudioAppointment(int inquiryId) async {
+  Future<VoiceCall> latestVoiceCall(int inquiryId) async {
     final data = await _api.get<Map<String, dynamic>>(
-      '/inquiries/$inquiryId/audio-appointments/latest',
+      '/inquiries/$inquiryId/voice-calls/latest',
       showLoading: false,
     );
-    return AudioAppointment.fromJson(data);
+    return VoiceCall.fromJson(data);
   }
 
-  Future<AudioAppointment> createAudioCall({required int inquiryId}) async {
+  Future<VoiceCall> createVoiceCall({required int inquiryId}) async {
     final data = await _api.post<Map<String, dynamic>>(
-      '/inquiries/$inquiryId/audio-appointments',
+      '/inquiries/$inquiryId/voice-calls',
     );
-    return AudioAppointment.fromJson(data);
+    return VoiceCall.fromJson(data);
   }
 
-  Future<AudioAppointment> answerAudioCall(
-    int inquiryId,
-    int appointmentId,
-  ) async {
+  Future<VoiceCall> answerVoiceCall(int inquiryId, int voiceCallId) async {
     final data = await _api.post<Map<String, dynamic>>(
-      '/inquiries/$inquiryId/audio-appointments/$appointmentId/answer',
+      '/inquiries/$inquiryId/voice-calls/$voiceCallId/answer',
     );
-    return AudioAppointment.fromJson(data);
+    return VoiceCall.fromJson(data);
   }
 
-  Future<AudioAppointment> rejectAudioAppointment(
-    int inquiryId,
-    int appointmentId,
-  ) async {
+  Future<VoiceCall> rejectVoiceCall(int inquiryId, int voiceCallId) async {
     final data = await _api.post<Map<String, dynamic>>(
-      '/inquiries/$inquiryId/audio-appointments/$appointmentId/reject',
+      '/inquiries/$inquiryId/voice-calls/$voiceCallId/reject',
     );
-    return AudioAppointment.fromJson(data);
+    return VoiceCall.fromJson(data);
   }
 
-  Future<AudioAppointment> joinAudioCall(
-    int inquiryId,
-    int appointmentId,
-  ) async {
+  Future<VoiceCall> joinVoiceCall(int inquiryId, int voiceCallId) async {
     final data = await _api.post<Map<String, dynamic>>(
-      '/inquiries/$inquiryId/audio-appointments/$appointmentId/join',
+      '/inquiries/$inquiryId/voice-calls/$voiceCallId/join',
       showLoading: false,
     );
-    return AudioAppointment.fromJson(data);
+    return VoiceCall.fromJson(data);
   }
 
-  Future<AudioAppointment> markAudioCallConnected(
+  Future<VoiceCall> markVoiceCallConnected(
     int inquiryId,
-    int appointmentId,
+    int voiceCallId,
   ) async {
     final data = await _api.post<Map<String, dynamic>>(
-      '/inquiries/$inquiryId/audio-appointments/$appointmentId/connected',
+      '/inquiries/$inquiryId/voice-calls/$voiceCallId/connected',
       showLoading: false,
     );
-    return AudioAppointment.fromJson(data);
+    return VoiceCall.fromJson(data);
   }
 
-  Future<AudioAppointment> markAudioCallDisconnected(
+  Future<VoiceCall> markVoiceCallDisconnected(
     int inquiryId,
-    int appointmentId,
+    int voiceCallId,
     String reason,
   ) async {
     final data = await _api.post<Map<String, dynamic>>(
-      '/inquiries/$inquiryId/audio-appointments/$appointmentId/disconnected',
+      '/inquiries/$inquiryId/voice-calls/$voiceCallId/disconnected',
       data: {'reason': reason},
       showLoading: false,
     );
-    return AudioAppointment.fromJson(data);
+    return VoiceCall.fromJson(data);
   }
 
-  Future<AudioAppointment> finishAudioCall(
-    int inquiryId,
-    int appointmentId,
-  ) async {
+  Future<VoiceCall> finishVoiceCall(int inquiryId, int voiceCallId) async {
     final data = await _api.post<Map<String, dynamic>>(
-      '/inquiries/$inquiryId/audio-appointments/$appointmentId/finish',
+      '/inquiries/$inquiryId/voice-calls/$voiceCallId/finish',
       showLoading: false,
     );
-    return AudioAppointment.fromJson(data);
+    return VoiceCall.fromJson(data);
   }
 
-  Future<VoiceIceConfig> voiceIceConfig(
-    int inquiryId,
-    int appointmentId,
-  ) async {
+  Future<VoiceIceConfig> voiceIceConfig(int inquiryId, int voiceCallId) async {
     final data = await _api.get<Map<String, dynamic>>(
-      '/inquiries/$inquiryId/audio-appointments/$appointmentId/voice/ice-config',
+      '/inquiries/$inquiryId/voice-calls/$voiceCallId/voice/ice-config',
       showLoading: false,
     );
     return VoiceIceConfig.fromJson(data);
@@ -525,11 +522,11 @@ class AppRepository {
 
   Future<List<VoiceSignal>> voiceSignals(
     int inquiryId,
-    int appointmentId, {
+    int voiceCallId, {
     int afterId = 0,
   }) async {
     final data = await _api.get<List<dynamic>>(
-      '/inquiries/$inquiryId/audio-appointments/$appointmentId/voice/signals',
+      '/inquiries/$inquiryId/voice-calls/$voiceCallId/voice/signals',
       query: {'afterId': afterId},
       showLoading: false,
     );
@@ -541,12 +538,12 @@ class AppRepository {
 
   Future<VoiceSignal> sendVoiceSignal({
     required int inquiryId,
-    required int appointmentId,
+    required int voiceCallId,
     required String signalType,
     required String payload,
   }) async {
     final data = await _api.post<Map<String, dynamic>>(
-      '/inquiries/$inquiryId/audio-appointments/$appointmentId/voice/signals',
+      '/inquiries/$inquiryId/voice-calls/$voiceCallId/voice/signals',
       data: {'signalType': signalType, 'payload': payload},
       showLoading: false,
     );

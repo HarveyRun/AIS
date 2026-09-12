@@ -21,7 +21,7 @@ public class InquiryVoiceSignalService {
     private static final Set<String> SIGNAL_TYPES = Set.of("OFFER", "ANSWER", "ICE", "HANGUP");
     private static final int MAX_SIGNAL_LENGTH = 100_000;
 
-    private final InquiryAudioAppointmentRepository appointments;
+    private final InquiryVoiceCallRepository voiceCalls;
     private final JdbcTemplate jdbc;
     private final RealtimePublisher realtime;
 
@@ -35,8 +35,8 @@ public class InquiryVoiceSignalService {
     private String turnCredential;
 
     @Transactional(readOnly = true)
-    public IceConfig iceConfig(Long userId, Long inquiryId, Long appointmentId) {
-        requireActiveParticipant(userId, inquiryId, appointmentId);
+    public IceConfig iceConfig(Long userId, Long inquiryId, Long voiceCallId) {
+        requireActiveParticipant(userId, inquiryId, voiceCallId);
         List<String> urls = Arrays.stream(iceUrls.split(","))
             .map(String::trim)
             .filter(value -> !value.isBlank())
@@ -49,11 +49,11 @@ public class InquiryVoiceSignalService {
     public SignalView send(
         Long userId,
         Long inquiryId,
-        Long appointmentId,
+        Long voiceCallId,
         String signalType,
         String payload
     ) {
-        InquiryAudioAppointment appointment = requireActiveParticipant(userId, inquiryId, appointmentId);
+        InquiryVoiceCall voiceCall = requireActiveParticipant(userId, inquiryId, voiceCallId);
         String type = signalType == null ? "" : signalType.trim().toUpperCase();
         if (!SIGNAL_TYPES.contains(type)) {
             throw BusinessException.badRequest("语音通话信令不正确");
@@ -62,15 +62,15 @@ public class InquiryVoiceSignalService {
         if (content.isBlank() || content.length() > MAX_SIGNAL_LENGTH) {
             throw BusinessException.badRequest("语音通话信令内容不正确");
         }
-        Long recipientId = appointment.getQuestioner().getId().equals(userId)
-            ? appointment.getAnswerer().getId()
-            : appointment.getQuestioner().getId();
+        Long recipientId = voiceCall.getQuestioner().getId().equals(userId)
+            ? voiceCall.getAnswerer().getId()
+            : voiceCall.getQuestioner().getId();
         jdbc.update(
             "INSERT INTO inquiry_voice_signals(" +
-                "inquiry_id,appointment_id,sender_id,recipient_id,signal_type,payload" +
+                "inquiry_id,voice_call_id,sender_id,recipient_id,signal_type,payload" +
                 ") VALUES(?,?,?,?,?,?)",
             inquiryId,
-            appointmentId,
+            voiceCallId,
             userId,
             recipientId,
             type,
@@ -80,7 +80,7 @@ public class InquiryVoiceSignalService {
         SignalView signal = new SignalView(
             id == null ? 0L : id,
             inquiryId,
-            appointmentId,
+            voiceCallId,
             userId,
             type,
             content,
@@ -91,50 +91,48 @@ public class InquiryVoiceSignalService {
     }
 
     @Transactional(readOnly = true)
-    public List<SignalView> pending(Long userId, Long inquiryId, Long appointmentId, long afterId) {
-        InquiryAudioAppointment appointment = requireActiveParticipant(userId, inquiryId, appointmentId);
-        LocalDateTime startedAt = appointment.getStartedAt();
+    public List<SignalView> pending(Long userId, Long inquiryId, Long voiceCallId, long afterId) {
+        InquiryVoiceCall voiceCall = requireActiveParticipant(userId, inquiryId, voiceCallId);
+        LocalDateTime startedAt = voiceCall.getConnectedAt();
         return jdbc.query(
-            "SELECT id,inquiry_id,appointment_id,sender_id,signal_type,payload,created_at " +
-                "FROM inquiry_voice_signals WHERE appointment_id=? AND recipient_id=? " +
+            "SELECT id,inquiry_id,voice_call_id,sender_id,signal_type,payload,created_at " +
+                "FROM inquiry_voice_signals WHERE voice_call_id=? AND recipient_id=? " +
                 "AND id>? AND created_at>=? ORDER BY id ASC LIMIT 500",
             (resultSet, rowNumber) -> new SignalView(
                 resultSet.getLong("id"),
                 resultSet.getLong("inquiry_id"),
-                resultSet.getLong("appointment_id"),
+                resultSet.getLong("voice_call_id"),
                 resultSet.getLong("sender_id"),
                 resultSet.getString("signal_type"),
                 resultSet.getString("payload"),
                 resultSet.getObject("created_at", LocalDateTime.class)
             ),
-            appointmentId,
+            voiceCallId,
             userId,
             Math.max(0L, afterId),
             startedAt == null ? LocalDateTime.now().minusMinutes(5) : startedAt.minusSeconds(2)
         );
     }
 
-    private InquiryAudioAppointment requireActiveParticipant(
+    private InquiryVoiceCall requireActiveParticipant(
         Long userId,
         Long inquiryId,
-        Long appointmentId
+        Long voiceCallId
     ) {
-        InquiryAudioAppointment appointment = appointments.findDetailById(appointmentId)
+        InquiryVoiceCall voiceCall = voiceCalls.findDetailById(voiceCallId)
             .orElseThrow(() -> BusinessException.notFound("语音通话不存在"));
-        if (!appointment.getInquiry().getId().equals(inquiryId)) {
+        if (!voiceCall.getInquiry().getId().equals(inquiryId)) {
             throw BusinessException.notFound("语音通话不存在");
         }
-        boolean participant = appointment.getQuestioner().getId().equals(userId)
-            || appointment.getAnswerer().getId().equals(userId);
+        boolean participant = voiceCall.getQuestioner().getId().equals(userId)
+            || voiceCall.getAnswerer().getId().equals(userId);
         if (!participant) throw BusinessException.forbidden("无权进入该语音通话");
-        if (!Set.of("CONNECTING", "ACTIVE").contains(appointment.getStatus())
-            || ("ACTIVE".equals(appointment.getStatus())
-                && !"PAID_ACTIVE".equals(appointment.getInquiry().getStatus()))
-            || appointment.getScheduledEndAt() == null
-            || !appointment.getScheduledEndAt().isAfter(LocalDateTime.now())) {
+        if (!Set.of("CONNECTING", "ACTIVE").contains(voiceCall.getStatus())
+            || voiceCall.getMaxEndAt() == null
+            || !voiceCall.getMaxEndAt().isAfter(LocalDateTime.now())) {
             throw BusinessException.badRequest("本次语音通话已不可用");
         }
-        return appointment;
+        return voiceCall;
     }
 
     @Scheduled(fixedDelayString = "${app.voice.signal-cleanup-ms:3600000}")
@@ -150,7 +148,7 @@ public class InquiryVoiceSignalService {
     public record SignalView(
         Long id,
         Long inquiryId,
-        Long appointmentId,
+        Long voiceCallId,
         Long senderId,
         String signalType,
         String payload,

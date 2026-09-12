@@ -61,7 +61,7 @@ public class AdminManagementService {
             Long.class
         ));
         result.put("activeInquiries", jdbc.queryForObject(
-            "SELECT COUNT(*) FROM inquiries i JOIN users u ON u.id=i.questioner_id WHERE i.status IN ('PENDING','ACTIVE','TEXT_LIMIT_REACHED','TEXT_ENDED','PAID_ACTIVE') AND u.account_type='NORMAL'",
+            "SELECT COUNT(*) FROM inquiries i JOIN users u ON u.id=i.questioner_id WHERE i.status IN ('PENDING','ACTIVE','TEXT_LIMIT_REACHED') AND u.account_type='NORMAL'",
             Long.class
         ));
         result.put("pendingWithdrawals", jdbc.queryForObject(
@@ -81,16 +81,16 @@ public class AdminManagementService {
             java.math.BigDecimal.class
         ));
         result.put("pendingAudioRequests", count(
-            "inquiry_audio_appointments",
+            "inquiry_voice_calls",
             "status='CONNECTING'"
         ));
         result.put("inquiriesExpiringWithin24Hours", jdbc.queryForObject(
-            "SELECT COUNT(*) FROM inquiries WHERE status IN ('ACTIVE','TEXT_LIMIT_REACHED','TEXT_ENDED','PAID_ACTIVE') " +
+            "SELECT COUNT(*) FROM inquiries WHERE status IN ('ACTIVE','TEXT_LIMIT_REACHED') " +
                 "AND conversation_expires_at>NOW(6) AND conversation_expires_at<=DATE_ADD(NOW(6),INTERVAL 24 HOUR)",
             Long.class
         ));
         result.put("voiceCallsToday", jdbc.queryForObject(
-            "SELECT COUNT(DISTINCT appointment_id) FROM voice_call_events WHERE event_type='PEER_CONNECTED' AND created_at>=CURRENT_DATE()",
+            "SELECT COUNT(DISTINCT voice_call_id) FROM voice_call_events WHERE event_type='PEER_CONNECTED' AND created_at>=CURRENT_DATE()",
             Long.class
         ));
         result.put("voiceConnectionFailuresToday", jdbc.queryForObject(
@@ -191,6 +191,10 @@ public class AdminManagementService {
             "1",
             "修改App全局业务规则",
             ip
+        );
+        realtime.afterCommitToAllUsers(
+            "APP_GLOBAL_SETTINGS_UPDATED",
+            Map.of("updatedAt", result.updatedAt().toString())
         );
         return result;
     }

@@ -56,7 +56,10 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
       final person = result[0] as Answerer;
       final settings = result[1] as AppGlobalSettings;
       if (mounted) {
-        setState(() { _answerer = person; _settings = settings; });
+        setState(() {
+          _answerer = person;
+          _settings = settings;
+        });
         unawaited(
           ref
               .read(analyticsProvider)
@@ -112,8 +115,6 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
               'PENDING',
               'ACTIVE',
               'TEXT_LIMIT_REACHED',
-              'TEXT_ENDED',
-              'PAID_ACTIVE',
             ].contains(inquiry.status.toUpperCase())) {
           if (mounted) context.push('/chat/${inquiry.id}');
           return;
@@ -178,7 +179,8 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
                 children: [
                   _FlowRule(
                     title: '先文字交流',
-                    content: '对方接受后，双方各有$initialMessages条免费文字消息，每条最多$messageLength字；每完成一次不少于$rewardMinutes分钟的正常语音通话，双方各增加$rewardMessages条。',
+                    content:
+                        '对方接受后，双方各有$initialMessages条免费文字消息，每条最多$messageLength字；每完成一次不少于$rewardMinutes分钟的正常语音通话，双方各增加$rewardMessages条。',
                   ),
                   _FlowRule(
                     title: '语音通话',
@@ -186,8 +188,7 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
                   ),
                   const _FlowRule(
                     title: '退款与结算',
-                    content:
-                        '对方未接听或通话未接通，冻结金额退回余额；通话接通后，按实际通话时间结算。',
+                    content: '对方未接听或通话未接通，冻结金额退回余额；通话接通后，按实际通话时间结算。',
                   ),
                   _FlowRule(
                     title: '最长交流期限',
@@ -274,7 +275,11 @@ class _FlowRule extends StatelessWidget {
 }
 
 class _InquiryInfoSheet extends StatefulWidget {
-  const _InquiryInfoSheet({required this.depositRequired,required this.freePendingLimit,required this.depositAmount});
+  const _InquiryInfoSheet({
+    required this.depositRequired,
+    required this.freePendingLimit,
+    required this.depositAmount,
+  });
 
   final bool depositRequired;
   final int freePendingLimit;

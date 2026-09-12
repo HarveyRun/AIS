@@ -11,6 +11,8 @@ class CuratedMembership {
     required this.startedAt,
     required this.expiresAt,
     required this.price,
+    required this.durationMonths,
+    required this.priceText,
   });
   factory CuratedMembership.fromJson(Map<String, dynamic> j) =>
       CuratedMembership(
@@ -25,6 +27,8 @@ class CuratedMembership {
         startedAt: _date(j['startedAt']),
         expiresAt: _date(j['expiresAt']),
         price: _double(j['price']),
+        durationMonths: _int(j['durationMonths']),
+        priceText: '${j['priceText'] ?? ''}',
       );
   final bool applied;
   final String status;
@@ -37,14 +41,49 @@ class CuratedMembership {
   final DateTime? startedAt;
   final DateTime? expiresAt;
   final double price;
+  final int durationMonths;
+  final String priceText;
   bool get active => status == 'ACTIVE';
   bool get readyToPay => status == 'READY_TO_PAY';
+}
+
+class CuratedMembershipQuote {
+  const CuratedMembershipQuote({
+    required this.price,
+    required this.durationMonths,
+    required this.priceText,
+    required this.startsAt,
+    required this.expiresAt,
+    required this.permanent,
+    required this.validityText,
+  });
+
+  factory CuratedMembershipQuote.fromJson(Map<String, dynamic> j) =>
+      CuratedMembershipQuote(
+        price: _double(j['price']),
+        durationMonths: _int(j['durationMonths']),
+        priceText: '${j['priceText'] ?? ''}',
+        startsAt: _date(j['startsAt']),
+        expiresAt: _date(j['expiresAt']),
+        permanent: j['permanent'] == true,
+        validityText: '${j['validityText'] ?? ''}',
+      );
+
+  final double price;
+  final int durationMonths;
+  final String priceText;
+  final DateTime? startsAt;
+  final DateTime? expiresAt;
+  final bool permanent;
+  final String validityText;
 }
 
 class CuratedPayment {
   const CuratedPayment({
     required this.orderNo,
     required this.amount,
+    required this.durationMonths,
+    required this.priceText,
     required this.status,
     required this.channel,
     required this.paymentPayload,
@@ -53,6 +92,8 @@ class CuratedPayment {
   factory CuratedPayment.fromJson(Map<String, dynamic> j) => CuratedPayment(
     orderNo: '${j['orderNo'] ?? ''}',
     amount: _double(j['amount']),
+    durationMonths: _int(j['durationMonths']),
+    priceText: '${j['priceText'] ?? ''}',
     status: '${j['status'] ?? ''}',
     channel: '${j['channel'] ?? ''}',
     paymentPayload: j['paymentPayload']?.toString() ?? '',
@@ -60,6 +101,8 @@ class CuratedPayment {
   );
   final String orderNo;
   final double amount;
+  final int durationMonths;
+  final String priceText;
   final String status;
   final String channel;
   final String paymentPayload;

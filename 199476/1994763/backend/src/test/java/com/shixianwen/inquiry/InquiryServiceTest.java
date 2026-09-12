@@ -304,7 +304,7 @@ class InquiryServiceTest {
     }
 
     @Test
-    void textSentDuringAudioDoesNotConsumeTheFreeMessageQuota() {
+    void textSentDuringVoiceCallStillConsumesTheFreeMessageQuota() {
         InquiryRepository inquiries = mock(InquiryRepository.class);
         InquiryMessageRepository messages = mock(InquiryMessageRepository.class);
         UserRepository users = mock(UserRepository.class);
@@ -317,9 +317,8 @@ class InquiryServiceTest {
         inquiry.setId(96L);
         inquiry.setQuestioner(questioner);
         inquiry.setAnswerer(answerer);
-        inquiry.setStatus("PAID_ACTIVE");
+        inquiry.setStatus("ACTIVE");
         inquiry.setFlowVersion(2);
-        inquiry.setPaidSessionEndsAt(LocalDateTime.now().plusMinutes(10));
         when(inquiries.findWithLockById(96L)).thenReturn(Optional.of(inquiry));
         when(users.findById(1L)).thenReturn(Optional.of(questioner));
         when(sensitiveWords.mask("语音期间补充文字")).thenReturn("语音期间补充文字");
@@ -345,7 +344,7 @@ class InquiryServiceTest {
         org.mockito.ArgumentCaptor<InquiryMessage> messageCaptor =
             org.mockito.ArgumentCaptor.forClass(InquiryMessage.class);
         verify(messages).saveAndFlush(messageCaptor.capture());
-        assertEquals(false, messageCaptor.getValue().isCountsTowardFreeLimit());
+        assertEquals(true, messageCaptor.getValue().isCountsTowardFreeLimit());
     }
 
     @Test

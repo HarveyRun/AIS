@@ -180,10 +180,10 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
       ),
       GoRoute(
         name: 'voiceCall',
-        path: '/voice-call/:inquiryId/:appointmentId',
+        path: '/voice-call/:inquiryId/:voiceCallId',
         builder: (context, state) => VoiceCallPage(
           inquiryId: int.parse(state.pathParameters['inquiryId']!),
-          appointmentId: int.parse(state.pathParameters['appointmentId']!),
+          voiceCallId: int.parse(state.pathParameters['voiceCallId']!),
           initiator: state.uri.queryParameters['initiator'] == '1',
         ),
       ),

@@ -23,19 +23,19 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-public class InquiryAudioAppointmentService {
+public class InquiryVoiceCallService {
     private static final Set<String> CALLABLE_INQUIRY_STATUSES = Set.of(
-        "ACTIVE", "TEXT_LIMIT_REACHED", "TEXT_ENDED"
+        "ACTIVE", "TEXT_LIMIT_REACHED"
     );
     private static final Set<String> OPEN_CALL_STATUSES = Set.of(
-        "PENDING", "ACCEPTED", "CONNECTING", "ACTIVE"
+        "CONNECTING", "ACTIVE"
     );
     private static final int CONNECT_TIMEOUT_SECONDS = 60;
     private static final int RECONNECT_TIMEOUT_SECONDS = 60;
     private static final int REWARD_TEXT_SECONDS = 5 * 60;
     private static final int REWARD_TEXT_MESSAGES = 50;
 
-    private final InquiryAudioAppointmentRepository appointments;
+    private final InquiryVoiceCallRepository voiceCalls;
     private final InquiryRepository inquiries;
     private final InquiryMessageRepository messages;
     private final UserRepository users;
@@ -48,15 +48,15 @@ public class InquiryAudioAppointmentService {
     private AppGlobalSettingService globalSettings;
 
     @Transactional(readOnly = true)
-    public AppointmentView latest(Long userId, Long inquiryId) {
+    public VoiceCallView latest(Long userId, Long inquiryId) {
         Inquiry inquiry = accessibleInquiry(userId, inquiryId);
-        return appointments.findTopByInquiryIdOrderByIdDesc(inquiry.getId())
+        return voiceCalls.findTopByInquiryIdOrderByIdDesc(inquiry.getId())
             .map(item -> view(item, userId))
-            .orElseGet(() -> AppointmentView.empty(inquiry.getId()));
+            .orElseGet(() -> VoiceCallView.empty(inquiry.getId()));
     }
 
     @Transactional
-    public AppointmentView create(Long userId, Long inquiryId) {
+    public VoiceCallView create(Long userId, Long inquiryId) {
         AppGlobalSettingService.Settings settings = settings();
         if (settings != null && !settings.voiceCallEnabled()) {
             throw BusinessException.serviceUnavailable("语音通话暂时不可用");
@@ -67,7 +67,7 @@ public class InquiryAudioAppointmentService {
         if (inquiry.getFlowVersion() < 2 || !CALLABLE_INQUIRY_STATUSES.contains(inquiry.getStatus())) {
             throw BusinessException.badRequest("当前状态不能发起语音通话");
         }
-        if (appointments.existsByInquiryIdAndStatusIn(inquiryId, OPEN_CALL_STATUSES)) {
+        if (voiceCalls.existsByInquiryIdAndStatusIn(inquiryId, OPEN_CALL_STATUSES)) {
             throw BusinessException.badRequest("当前已有一条待处理或进行中的语音通话");
         }
         int hourlyRate = inquiry.getHourlyRateSnapshot();
@@ -81,32 +81,27 @@ public class InquiryAudioAppointmentService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        InquiryAudioAppointment call = new InquiryAudioAppointment();
+        InquiryVoiceCall call = new InquiryVoiceCall();
         call.setInquiry(inquiry);
         call.setQuestioner(inquiry.getQuestioner());
         call.setAnswerer(inquiry.getAnswerer());
-        call.setAppointmentType("BASIC");
-        call.setScheduledStartAt(now);
-        call.setScheduledEndAt(inquiryDeadline(inquiry, now.plusDays(settings == null ? 20 : settings.inquiryMaxDurationDays())));
-        call.setDurationMinutes(0);
+        call.setMaxEndAt(inquiryDeadline(inquiry, now.plusDays(settings == null ? 20 : settings.inquiryMaxDurationDays())));
         call.setHourlyRateSnapshot(hourlyRate);
-        call.setAmount(MoneyAmounts.ZERO);
+        call.setReservedAmount(MoneyAmounts.ZERO);
         call.setActualAmount(MoneyAmounts.ZERO);
         call.setStatus("CONNECTING");
         int ringSeconds = settings == null ? CONNECT_TIMEOUT_SECONDS : settings.voiceRingTimeoutSeconds();
-        call.setResponseDeadline(now.plusSeconds(ringSeconds));
         call.setConnectDeadline(now.plusSeconds(ringSeconds));
         call.setQuestionerJoinedAt(now);
-        call.setAttemptNumber(1);
-        call = appointments.saveAndFlush(call);
+        call = voiceCalls.saveAndFlush(call);
 
-        WalletService.FrozenAllocation allocation = wallet.reserveMeteredAudio(userId, call.getId());
+        WalletService.FrozenAllocation allocation = wallet.reserveVoiceCall(userId, call.getId());
         BigDecimal reserve = MoneyAmounts.add(allocation.rechargeAmount(), allocation.incomeAmount());
-        call.setAmount(reserve);
+        call.setReservedAmount(reserve);
         call.setFrozenRechargeAmount(allocation.rechargeAmount());
         call.setFrozenIncomeAmount(allocation.incomeAmount());
         call.setServiceFeeRate(wallet.quoteInquirySettlement(reserve, inquiry.getClientPlatform()).serviceFeeRate());
-        call.setScheduledEndAt(inquiryDeadline(inquiry, now.plusSeconds(maxBillableSeconds(reserve, hourlyRate))));
+        call.setMaxEndAt(inquiryDeadline(inquiry, now.plusSeconds(maxBillableSeconds(reserve, hourlyRate))));
 
         recordVoiceEvent(call, userId, "CALL_STARTED", null);
         notifications.send(
@@ -114,15 +109,15 @@ public class InquiryAudioAppointmentService {
             "/inquiries/" + inquiry.getId()
         );
         realtime.afterCommit(call.getAnswerer().getId(), "VOICE_CALL_STARTED", java.util.Map.of(
-            "inquiryId", inquiryId, "appointmentId", call.getId(),
+            "inquiryId", inquiryId, "voiceCallId", call.getId(),
             "questionerId", call.getQuestioner().getId()
         ));
         return view(call, userId);
     }
 
     @Transactional
-    public AppointmentView answer(Long userId, Long inquiryId, Long appointmentId) {
-        InquiryAudioAppointment call = lockedAppointment(inquiryId, appointmentId);
+    public VoiceCallView answer(Long userId, Long inquiryId, Long voiceCallId) {
+        InquiryVoiceCall call = lockedVoiceCall(inquiryId, voiceCallId);
         requireAnswerer(call, userId);
         requireCommunicationAllowed(call.getInquiry());
         requireStatus(call, "CONNECTING");
@@ -139,14 +134,14 @@ public class InquiryAudioAppointmentService {
         call.setConnectDeadline(now.plusSeconds(settings == null ? CONNECT_TIMEOUT_SECONDS : settings.voiceRingTimeoutSeconds()));
         recordVoiceEvent(call, userId, "CALL_ANSWERED", null);
         realtime.afterCommit(call.getQuestioner().getId(), "VOICE_CALL_ANSWERED", java.util.Map.of(
-            "inquiryId", inquiryId, "appointmentId", appointmentId
+            "inquiryId", inquiryId, "voiceCallId", voiceCallId
         ));
         return view(call, userId);
     }
 
     @Transactional
-    public AppointmentView reject(Long userId, Long inquiryId, Long appointmentId) {
-        InquiryAudioAppointment call = lockedAppointment(inquiryId, appointmentId);
+    public VoiceCallView reject(Long userId, Long inquiryId, Long voiceCallId) {
+        InquiryVoiceCall call = lockedVoiceCall(inquiryId, voiceCallId);
         requireAnswerer(call, userId);
         requireStatus(call, "CONNECTING");
         if (call.getAcceptedAt() != null) {
@@ -161,8 +156,8 @@ public class InquiryAudioAppointmentService {
     }
 
     @Transactional
-    public AppointmentView joinCall(Long userId, Long inquiryId, Long appointmentId) {
-        InquiryAudioAppointment call = lockedAppointment(inquiryId, appointmentId);
+    public VoiceCallView joinCall(Long userId, Long inquiryId, Long voiceCallId) {
+        InquiryVoiceCall call = lockedVoiceCall(inquiryId, voiceCallId);
         requireParticipant(call, userId);
         requireOpenConnection(call);
         if (call.getAnswerer().getId().equals(userId) && call.getAcceptedAt() == null) {
@@ -176,8 +171,8 @@ public class InquiryAudioAppointmentService {
     }
 
     @Transactional
-    public AppointmentView connected(Long userId, Long inquiryId, Long appointmentId) {
-        InquiryAudioAppointment call = lockedAppointment(inquiryId, appointmentId);
+    public VoiceCallView connected(Long userId, Long inquiryId, Long voiceCallId) {
+        InquiryVoiceCall call = lockedVoiceCall(inquiryId, voiceCallId);
         requireParticipant(call, userId);
         requireOpenConnection(call);
         if (call.getAnswerer().getId().equals(userId) && call.getAcceptedAt() == null) {
@@ -193,10 +188,9 @@ public class InquiryAudioAppointmentService {
             && call.getAnswererConnectedAt() != null) {
             call.setConnectedAt(now);
             call.setActiveSegmentStartedAt(now);
-            call.setScheduledStartAt(now);
-            call.setScheduledEndAt(inquiryDeadline(
+            call.setMaxEndAt(inquiryDeadline(
                 call.getInquiry(),
-                now.plusSeconds(maxBillableSeconds(call.getAmount(), call.getHourlyRateSnapshot()))
+                now.plusSeconds(maxBillableSeconds(call.getReservedAmount(), call.getHourlyRateSnapshot()))
             ));
             activate(call, now);
             publishVoiceEvent(call, "VOICE_CALL_CONNECTED");
@@ -211,8 +205,8 @@ public class InquiryAudioAppointmentService {
     }
 
     @Transactional
-    public AppointmentView disconnected(Long userId, Long inquiryId, Long appointmentId, String reason) {
-        InquiryAudioAppointment call = lockedAppointment(inquiryId, appointmentId);
+    public VoiceCallView disconnected(Long userId, Long inquiryId, Long voiceCallId, String reason) {
+        InquiryVoiceCall call = lockedVoiceCall(inquiryId, voiceCallId);
         requireParticipant(call, userId);
         if (!Set.of("CONNECTING", "ACTIVE").contains(call.getStatus())) return view(call, userId);
         LocalDateTime now = LocalDateTime.now();
@@ -227,8 +221,8 @@ public class InquiryAudioAppointmentService {
     }
 
     @Transactional
-    public AppointmentView finishCall(Long userId, Long inquiryId, Long appointmentId) {
-        InquiryAudioAppointment call = lockedAppointment(inquiryId, appointmentId);
+    public VoiceCallView finishCall(Long userId, Long inquiryId, Long voiceCallId) {
+        InquiryVoiceCall call = lockedVoiceCall(inquiryId, voiceCallId);
         requireParticipant(call, userId);
         if ("COMPLETED".equals(call.getStatus())) return view(call, userId);
         if ("CONNECTING".equals(call.getStatus())) {
@@ -246,13 +240,13 @@ public class InquiryAudioAppointmentService {
         return view(call, userId);
     }
 
-    @Scheduled(fixedDelayString = "${app.inquiry.audio-appointment-scan-ms:30000}")
+    @Scheduled(fixedDelayString = "${app.inquiry.voice-call-scan-ms:30000}")
     @Transactional
-    public void processAppointments() {
+    public void processVoiceCalls() {
         LocalDateTime now = LocalDateTime.now();
         jdbc.queryForList(
             "SELECT id FROM inquiries WHERE flow_version>=2 " +
-                "AND status IN ('ACTIVE','TEXT_LIMIT_REACHED','TEXT_ENDED','PAID_ACTIVE') " +
+                "AND status IN ('ACTIVE','TEXT_LIMIT_REACHED') " +
                 "AND conversation_expires_at IS NOT NULL AND conversation_expires_at<=? " +
                 "ORDER BY conversation_expires_at ASC LIMIT 100",
             Long.class, now
@@ -261,73 +255,57 @@ public class InquiryAudioAppointmentService {
                 forceEndExpiredInquiry(inquiry, now);
             }
         }));
-        expireLegacyCalls(now, "PENDING");
-        expireLegacyCalls(now, "ACCEPTED");
-        appointments.findTop100ByStatusAndConnectDeadlineBeforeOrderByConnectDeadlineAsc("CONNECTING", now)
-            .forEach(candidate -> appointments.findWithLockById(candidate.getId()).ifPresent(call -> {
+        voiceCalls.findTop100ByStatusAndConnectDeadlineBeforeOrderByConnectDeadlineAsc("CONNECTING", now)
+            .forEach(candidate -> voiceCalls.findWithLockById(candidate.getId()).ifPresent(call -> {
                 if ("CONNECTING".equals(call.getStatus()) && call.getConnectDeadline() != null
                     && !call.getConnectDeadline().isAfter(now)) expireConnection(call);
             }));
-        appointments.findTop100ByStatusAndReconnectDeadlineBeforeOrderByReconnectDeadlineAsc("ACTIVE", now)
-            .forEach(candidate -> appointments.findWithLockById(candidate.getId()).ifPresent(call -> {
+        voiceCalls.findTop100ByStatusAndReconnectDeadlineBeforeOrderByReconnectDeadlineAsc("ACTIVE", now)
+            .forEach(candidate -> voiceCalls.findWithLockById(candidate.getId()).ifPresent(call -> {
                 if ("ACTIVE".equals(call.getStatus()) && call.getReconnectDeadline() != null
                     && !call.getReconnectDeadline().isAfter(now)) {
                     call.setEndReason("RECONNECT_TIMEOUT");
                     complete(call, now);
                 }
             }));
-        appointments.findTop100ByStatusAndScheduledEndAtBeforeOrderByScheduledEndAtAsc("ACTIVE", now)
-            .forEach(candidate -> appointments.findWithLockById(candidate.getId()).ifPresent(call -> {
-                if ("ACTIVE".equals(call.getStatus()) && !call.getScheduledEndAt().isAfter(now)) {
+        voiceCalls.findTop100ByStatusAndMaxEndAtBeforeOrderByMaxEndAtAsc("ACTIVE", now)
+            .forEach(candidate -> voiceCalls.findWithLockById(candidate.getId()).ifPresent(call -> {
+                if ("ACTIVE".equals(call.getStatus()) && !call.getMaxEndAt().isAfter(now)) {
                     call.setEndReason("BALANCE_OR_INQUIRY_LIMIT");
                     complete(call, now);
                 }
             }));
     }
 
-    private void activate(InquiryAudioAppointment call, LocalDateTime now) {
+    private void activate(InquiryVoiceCall call, LocalDateTime now) {
         Inquiry inquiry = call.getInquiry();
         if (!CALLABLE_INQUIRY_STATUSES.contains(inquiry.getStatus())) {
             refund(call, "CANCELLED");
             return;
         }
         refundInquiryDeposit(inquiry);
-        call.setPreviousInquiryStatus(inquiry.getStatus());
         call.setStatus("ACTIVE");
-        call.setStartedAt(now);
         call.setConnectDeadline(null);
         call.setReconnectDeadline(null);
-        inquiry.setStatus("PAID_ACTIVE");
-        inquiry.setFundsStatus("FROZEN");
-        // While the call is active, amount represents the maximum reserved charge.
-        // It is replaced with the actual per-second charge when the call ends.
-        inquiry.setAmount(call.getAmount());
-        inquiry.setSessionType("AUDIO_CALL");
-        inquiry.setPurchasedMinutes(0);
-        inquiry.setPaidSessionStartedAt(now);
-        inquiry.setPaidSessionEndsAt(call.getScheduledEndAt());
-        inquiry.setFrozenRechargeAmount(call.getFrozenRechargeAmount());
-        inquiry.setFrozenIncomeAmount(call.getFrozenIncomeAmount());
         createSystemMessage(inquiry, "语音通话已接通，按实际通话时间计费。");
         increaseUnread(inquiry, inquiry.getQuestioner().getId());
         increaseUnread(inquiry, inquiry.getAnswerer().getId());
         publishChanged(inquiry);
     }
 
-    private void complete(InquiryAudioAppointment call, LocalDateTime now) {
+    private void complete(InquiryVoiceCall call, LocalDateTime now) {
         if (!"ACTIVE".equals(call.getStatus())) return;
         Inquiry inquiry = call.getInquiry();
         closeActiveSegment(call, now);
         long seconds = call.getBillableSeconds();
-        seconds = Math.min(seconds, maxBillableSeconds(call.getAmount(), call.getHourlyRateSnapshot()));
+        seconds = Math.min(seconds, maxBillableSeconds(call.getReservedAmount(), call.getHourlyRateSnapshot()));
         BigDecimal actualAmount = calculateAmount(call.getHourlyRateSnapshot(), seconds);
-        if (actualAmount.compareTo(call.getAmount()) > 0) actualAmount = call.getAmount();
+        if (actualAmount.compareTo(call.getReservedAmount()) > 0) actualAmount = call.getReservedAmount();
         BigDecimal serviceFee = MoneyAmounts.normalize(actualAmount.multiply(call.getServiceFeeRate()));
         BigDecimal answererIncome = MoneyAmounts.subtract(actualAmount, serviceFee);
 
         call.setActualDurationSeconds(Math.toIntExact(Math.min(seconds, Integer.MAX_VALUE)));
         call.setActualAmount(actualAmount);
-        call.setDurationMinutes((int) (seconds / 60));
         call.setServiceFeeAmount(serviceFee);
         call.setAnswererIncomeAmount(answererIncome);
         inquiry.setAmount(actualAmount);
@@ -341,7 +319,7 @@ public class InquiryAudioAppointmentService {
         inquiry.setFrozenRechargeAmount(MoneyAmounts.ZERO);
         inquiry.setFrozenIncomeAmount(MoneyAmounts.ZERO);
 
-        wallet.settleMeteredAudio(
+        wallet.settleVoiceCall(
             inquiry.getQuestioner().getId(), inquiry.getAnswerer().getId(),
             call.getFrozenRechargeAmount(), call.getFrozenIncomeAmount(), actualAmount,
             inquiry, call.getId()
@@ -360,10 +338,6 @@ public class InquiryAudioAppointmentService {
         inquiry.setStatus(questionerUsed >= inquiry.getQuestionerTextLimit()
             || answererUsed >= inquiry.getAnswererTextLimit() ? "TEXT_LIMIT_REACHED" : "ACTIVE");
         inquiry.setFundsStatus(actualAmount.compareTo(BigDecimal.ZERO) > 0 ? "SETTLED" : "REFUNDED");
-        inquiry.setSessionType(null);
-        inquiry.setPurchasedMinutes(0);
-        inquiry.setPaidSessionStartedAt(null);
-        inquiry.setPaidSessionEndsAt(null);
         call.setStatus("COMPLETED");
         call.setEndedAt(now);
 
@@ -384,7 +358,7 @@ public class InquiryAudioAppointmentService {
         publishVoiceEvent(call, "VOICE_CALL_ENDED");
     }
 
-    private void expireConnection(InquiryAudioAppointment call) {
+    private void expireConnection(InquiryVoiceCall call) {
         call.setEndReason("CONNECT_TIMEOUT");
         recordVoiceEvent(call, null, "CONNECT_TIMEOUT", null);
         refund(call, "CONNECTION_FAILED");
@@ -395,18 +369,8 @@ public class InquiryAudioAppointmentService {
         publishVoiceEvent(call, "VOICE_CALL_ENDED");
     }
 
-    private void expireLegacyCalls(LocalDateTime now, String status) {
-        appointments.findTop100ByStatusAndResponseDeadlineBeforeOrderByResponseDeadlineAsc(status, now)
-            .forEach(candidate -> appointments.findWithLockById(candidate.getId()).ifPresent(call -> {
-                if (status.equals(call.getStatus()) && !call.getResponseDeadline().isAfter(now)) {
-                    refund(call, "EXPIRED");
-                    publishVoiceEvent(call, "VOICE_CALL_ENDED");
-                }
-            }));
-    }
-
-    private void refund(InquiryAudioAppointment call, String status) {
-        wallet.refundAudioAppointment(
+    private void refund(InquiryVoiceCall call, String status) {
+        wallet.refundVoiceCall(
             call.getQuestioner().getId(), call.getFrozenRechargeAmount(),
             call.getFrozenIncomeAmount(), call.getId()
         );
@@ -426,15 +390,15 @@ public class InquiryAudioAppointmentService {
     }
 
     private void forceEndExpiredInquiry(Inquiry inquiry, LocalDateTime now) {
-        appointments.findTopByInquiryIdOrderByIdDesc(inquiry.getId()).ifPresent(call -> {
-            if (Set.of("PENDING", "ACCEPTED", "CONNECTING").contains(call.getStatus())) {
+        voiceCalls.findTopByInquiryIdOrderByIdDesc(inquiry.getId()).ifPresent(call -> {
+            if ("CONNECTING".equals(call.getStatus())) {
                 refund(call, "EXPIRED");
             } else if ("ACTIVE".equals(call.getStatus())) {
                 call.setEndReason("INQUIRY_EXPIRED");
                 complete(call, now);
             }
         });
-        if (!Set.of("ACTIVE", "TEXT_LIMIT_REACHED", "TEXT_ENDED").contains(inquiry.getStatus())) return;
+        if (!Set.of("ACTIVE", "TEXT_LIMIT_REACHED").contains(inquiry.getStatus())) return;
         refundInquiryDeposit(inquiry);
         inquiry.setStatus("COMPLETED");
         inquiry.setEndedAt(now);
@@ -468,7 +432,7 @@ public class InquiryAudioAppointmentService {
         );
     }
 
-    private void closeActiveSegment(InquiryAudioAppointment call, LocalDateTime now) {
+    private void closeActiveSegment(InquiryVoiceCall call, LocalDateTime now) {
         LocalDateTime startedAt = call.getActiveSegmentStartedAt();
         if (startedAt == null) return;
         long seconds = Math.max(0, Duration.between(startedAt, now).getSeconds());
@@ -477,8 +441,8 @@ public class InquiryAudioAppointmentService {
         call.setActiveSegmentStartedAt(null);
     }
 
-    private InquiryAudioAppointment lockedAppointment(Long inquiryId, Long appointmentId) {
-        InquiryAudioAppointment call = appointments.findWithLockById(appointmentId)
+    private InquiryVoiceCall lockedVoiceCall(Long inquiryId, Long voiceCallId) {
+        InquiryVoiceCall call = voiceCalls.findWithLockById(voiceCallId)
             .orElseThrow(() -> BusinessException.notFound("语音通话不存在"));
         if (!call.getInquiry().getId().equals(inquiryId)) {
             throw BusinessException.notFound("语音通话不存在");
@@ -507,26 +471,26 @@ public class InquiryAudioAppointmentService {
         }
     }
 
-    private void requireAnswerer(InquiryAudioAppointment call, Long userId) {
+    private void requireAnswerer(InquiryVoiceCall call, Long userId) {
         if (!call.getAnswerer().getId().equals(userId)) {
             throw BusinessException.forbidden("只有回答者可以处理语音通话");
         }
     }
 
-    private void requireParticipant(InquiryAudioAppointment call, Long userId) {
+    private void requireParticipant(InquiryVoiceCall call, Long userId) {
         if (!call.getQuestioner().getId().equals(userId)
             && !call.getAnswerer().getId().equals(userId)) {
             throw BusinessException.forbidden("无权进入该语音通话");
         }
     }
 
-    private void requireStatus(InquiryAudioAppointment call, String expected) {
+    private void requireStatus(InquiryVoiceCall call, String expected) {
         if (!expected.equals(call.getStatus())) {
             throw BusinessException.badRequest("当前语音通话状态不能执行该操作");
         }
     }
 
-    private void requireOpenConnection(InquiryAudioAppointment call) {
+    private void requireOpenConnection(InquiryVoiceCall call) {
         if (!Set.of("CONNECTING", "ACTIVE").contains(call.getStatus())) {
             throw BusinessException.badRequest("本次语音通话已不可用");
         }
@@ -555,16 +519,16 @@ public class InquiryAudioAppointmentService {
             .orElseThrow(() -> BusinessException.notFound("用户不存在"));
     }
 
-    private void recordVoiceEvent(InquiryAudioAppointment call, Long userId, String type, String detail) {
+    private void recordVoiceEvent(InquiryVoiceCall call, Long userId, String type, String detail) {
         jdbc.update(
-            "INSERT INTO voice_call_events(inquiry_id,appointment_id,user_id,event_type,detail) VALUES(?,?,?,?,?)",
+            "INSERT INTO voice_call_events(inquiry_id,voice_call_id,user_id,event_type,detail) VALUES(?,?,?,?,?)",
             call.getInquiry().getId(), call.getId(), userId, type, detail
         );
     }
 
-    private void publishVoiceEvent(InquiryAudioAppointment call, String type) {
+    private void publishVoiceEvent(InquiryVoiceCall call, String type) {
         var payload = java.util.Map.of(
-            "inquiryId", call.getInquiry().getId(), "appointmentId", call.getId()
+            "inquiryId", call.getInquiry().getId(), "voiceCallId", call.getId()
         );
         realtime.afterCommit(call.getQuestioner().getId(), type, payload);
         realtime.afterCommit(call.getAnswerer().getId(), type, payload);
@@ -616,38 +580,34 @@ public class InquiryAudioAppointmentService {
         return globalSettings == null ? null : globalSettings.current();
     }
 
-    private AppointmentView view(InquiryAudioAppointment call, Long userId) {
-        return AppointmentView.of(call, userId);
+    private VoiceCallView view(InquiryVoiceCall call, Long userId) {
+        return VoiceCallView.of(call, userId);
     }
 
-    public record AppointmentView(
-        Long id, Long inquiryId, String role, String status, String appointmentType,
-        LocalDateTime scheduledStartAt, LocalDateTime scheduledEndAt,
-        int durationMinutes, int actualDurationSeconds, int hourlyRateSnapshot,
-        BigDecimal amount, BigDecimal actualAmount, BigDecimal answererIncomeAmount,
-        LocalDateTime responseDeadline, LocalDateTime acceptedAt, LocalDateTime connectDeadline,
+    public record VoiceCallView(
+        Long id, Long inquiryId, String role, String status,
+        LocalDateTime maxEndAt, int actualDurationSeconds, int hourlyRateSnapshot,
+        BigDecimal reservedAmount, BigDecimal actualAmount, BigDecimal answererIncomeAmount,
+        LocalDateTime acceptedAt, LocalDateTime connectDeadline,
         LocalDateTime connectedAt, LocalDateTime reconnectDeadline,
-        String noShowParty, String endReason, int attemptNumber, int remainingAttempts,
-        int remainingScheduledAttempts, int remainingImmediateAttempts, LocalDateTime createdAt
+        String endReason, LocalDateTime createdAt
     ) {
-        static AppointmentView of(InquiryAudioAppointment call, Long userId) {
-            return new AppointmentView(
+        static VoiceCallView of(InquiryVoiceCall call, Long userId) {
+            return new VoiceCallView(
                 call.getId(), call.getInquiry().getId(),
                 call.getAnswerer().getId().equals(userId) ? "ANSWERER" : "QUESTIONER",
-                call.getStatus(), "BASIC", call.getScheduledStartAt(), call.getScheduledEndAt(),
-                call.getDurationMinutes(), call.getActualDurationSeconds(), call.getHourlyRateSnapshot(),
-                call.getAmount(), call.getActualAmount(), call.getAnswererIncomeAmount(),
-                call.getResponseDeadline(), call.getAcceptedAt(), call.getConnectDeadline(), call.getConnectedAt(),
-                call.getReconnectDeadline(), call.getNoShowParty(), call.getEndReason(),
-                1, 0, 0, 0, call.getCreatedAt()
+                call.getStatus(), call.getMaxEndAt(), call.getActualDurationSeconds(),
+                call.getHourlyRateSnapshot(), call.getReservedAmount(), call.getActualAmount(),
+                call.getAnswererIncomeAmount(), call.getAcceptedAt(), call.getConnectDeadline(),
+                call.getConnectedAt(), call.getReconnectDeadline(), call.getEndReason(), call.getCreatedAt()
             );
         }
 
-        static AppointmentView empty(Long inquiryId) {
-            return new AppointmentView(
-                null, inquiryId, "", "NONE", "BASIC", null, null, 0, 0, 0,
+        static VoiceCallView empty(Long inquiryId) {
+            return new VoiceCallView(
+                null, inquiryId, "", "NONE", null, 0, 0,
                 MoneyAmounts.ZERO, MoneyAmounts.ZERO, MoneyAmounts.ZERO,
-                null, null, null, null, null, null, null, 0, 0, 0, 0, null
+                null, null, null, null, null, null
             );
         }
     }

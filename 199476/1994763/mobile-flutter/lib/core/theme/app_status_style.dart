@@ -13,10 +13,8 @@ AppStatusStyle appStatusStyle(BuildContext context, String rawStatus) {
   if ({
     'APPROVED',
     'ACTIVE',
-    'PAID_ACTIVE',
     'COMPLETED',
     'ENDED',
-    'TEXT_ENDED',
     'RESOLVED',
     '已认证',
     '已通过',
