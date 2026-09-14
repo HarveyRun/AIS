@@ -1,10 +1,14 @@
 package com.shixianwen.common;
 
 import com.shixianwen.auth.AccountPenaltyException;
+import com.shixianwen.auth.AuthService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,6 +30,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 public class GlobalExceptionHandler {
     private final SecurityEventService securityEvents;
     private final ClientIpExtractor clientIpExtractor;
+    private final AuthService authService;
     @ExceptionHandler(AccountPenaltyException.class)
     public ResponseEntity<ApiResponse<AccountPenaltyView>> handleAccountPenalty(
         AccountPenaltyException exception
@@ -80,6 +85,31 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.error("请求数据格式不正确"));
     }
 
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<?> handleUnsupportedMediaType(
+        HttpMediaTypeNotSupportedException exception,
+        HttpServletRequest request
+    ) {
+        ResponseEntity<?> authenticationError = authenticateBeforeHandlerMapping(request);
+        if (authenticationError != null) return authenticationError;
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+            .body(ApiResponse.error("请求数据类型不支持"));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingParameter(
+        MissingServletRequestParameterException exception
+    ) {
+        return ResponseEntity.badRequest().body(ApiResponse.error("缺少请求参数：" + exception.getParameterName()));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleArgumentTypeMismatch(
+        MethodArgumentTypeMismatchException exception
+    ) {
+        return ResponseEntity.badRequest().body(ApiResponse.error("请求参数格式不正确：" + exception.getName()));
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleMissingResource(NoResourceFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("内容不存在"));
@@ -89,6 +119,35 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleUnknown(Exception exception) {
         log.error("Unhandled request error", exception);
         return ResponseEntity.internalServerError().body(ApiResponse.error("服务暂时不可用，请稍后重试"));
+    }
+
+    private ResponseEntity<?> authenticateBeforeHandlerMapping(HttpServletRequest request) {
+        if (!requiresUserAuthentication(request.getRequestURI())) return null;
+        String authorization = request.getHeader("Authorization");
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("请先登录"));
+        }
+        try {
+            authService.authenticate(authorization.substring(7));
+            return null;
+        } catch (AccountPenaltyException exception) {
+            return handleAccountPenalty(exception);
+        } catch (BusinessException exception) {
+            return ResponseEntity.status(exception.getStatus()).body(ApiResponse.error(exception.getMessage()));
+        }
+    }
+
+    private boolean requiresUserAuthentication(String path) {
+        if (path == null || !path.startsWith("/api/")) return false;
+        if (path.startsWith("/api/auth/") || path.startsWith("/api/admin/") || path.startsWith("/api/public/")) {
+            return false;
+        }
+        return !path.equals("/api/recharges/payment-callback")
+            && !path.equals("/api/recharges/mock-cashier")
+            && !path.equals("/api/recharges/mock-payment")
+            && !path.equals("/api/curated-chat/membership/mock-cashier")
+            && !path.equals("/api/curated-chat/membership/mock-payment")
+            && !path.equals("/api/realtime/ws");
     }
 
     public record AccountPenaltyView(

@@ -1,12 +1,14 @@
 package com.shixianwen.auth;
 
 import com.shixianwen.common.ApiResponse;
+import com.shixianwen.common.BusinessException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.servlet.http.HttpServletRequest;
 import com.shixianwen.network.ClientNetworkService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 import java.util.Map;
 
@@ -62,8 +64,15 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ApiResponse<Void> logout(@RequestHeader("Authorization") String authorization) {
-        authService.logout(authorization.replaceFirst("^Bearer\\s+", ""));
+    public ApiResponse<Void> logout(
+        @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "请先登录");
+        }
+        String token = authorization.substring(7);
+        authService.authenticate(token);
+        authService.logout(token);
         return ApiResponse.ok();
     }
 

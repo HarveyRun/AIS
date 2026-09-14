@@ -856,7 +856,16 @@ public class InquiryService {
     }
     private record LockedParticipants(User questioner, User answerer) {}
     private void requireStatus(Inquiry i, String status) { if (!status.equals(i.getStatus())) throw BusinessException.badRequest("当前状态不能执行该操作"); }
-    private String required(String s, String message, int max) { if (s == null || s.isBlank()) throw BusinessException.badRequest(message); return clean(s, max); }
+    static String required(String s, String message, int max) {
+        if (s == null || s.isBlank()) throw BusinessException.badRequest(message);
+        String value = s.trim();
+        if (value.length() > max) {
+            throw BusinessException.badRequest(message.equals("消息不能为空")
+                ? "每条消息最多" + max + "字"
+                : "最多输入" + max + "字");
+        }
+        return value;
+    }
     private String clean(String s, int max) { if (s == null) return null; String v = s.trim(); return v.length() <= max ? v : v.substring(0, max); }
     private void validateChatImage(MultipartFile image) {
         if (image == null || image.isEmpty()) throw BusinessException.badRequest("请选择照片");

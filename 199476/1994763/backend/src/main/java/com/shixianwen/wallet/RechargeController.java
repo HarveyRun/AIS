@@ -4,10 +4,6 @@ import com.shixianwen.auth.CurrentUser;
 import com.shixianwen.common.ApiResponse;
 import com.shixianwen.user.User;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +28,7 @@ public class RechargeController {
     public ApiResponse<PaymentGateway.PaymentCapability> capability(@CurrentUser User user) {
         return ApiResponse.ok(service.capability(user.getId()));
     }
-    @PostMapping public ApiResponse<RechargeService.RechargeView> create(@CurrentUser User user, @Valid @RequestBody Request request) { return ApiResponse.ok(service.create(user.getId(), request.amount(), request.requestId())); }
+    @PostMapping public ApiResponse<RechargeService.RechargeView> create(@CurrentUser User user, @Valid @RequestBody Request request) { return ApiResponse.ok(service.create(user.getId(), new BigDecimal(request.amount()), request.requestId())); }
     @GetMapping public ApiResponse<List<RechargeService.RechargeView>> list(@CurrentUser User user) { return ApiResponse.ok(service.list(user.getId())); }
     @GetMapping("/{orderNo}") public ApiResponse<RechargeService.RechargeView> find(@CurrentUser User user, @PathVariable String orderNo) { return ApiResponse.ok(service.find(user.getId(), orderNo)); }
     @PostMapping("/payment-callback")
@@ -59,7 +55,9 @@ public class RechargeController {
             .build();
     }
     public record Request(
-        @NotNull @DecimalMin("1") @DecimalMax("9999") @Digits(integer=4, fraction=0) BigDecimal amount,
+        @NotBlank(message = "请输入充值金额")
+        @Pattern(regexp = "^[1-9]\\d{0,3}$", message = "充值金额只能是1至9999的正整数")
+        String amount,
         @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{12,64}") String requestId
     ) {}
 }

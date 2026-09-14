@@ -28,6 +28,16 @@ import static org.mockito.Mockito.when;
 
 class InquiryServiceTest {
     @Test
+    void textLongerThanConfiguredLimitIsRejectedInsteadOfTruncated() {
+        BusinessException error = assertThrows(
+            BusinessException.class,
+            () -> InquiryService.required("测".repeat(101), "消息不能为空", 100)
+        );
+
+        assertEquals("每条消息最多100字", error.getMessage());
+    }
+
+    @Test
     void thirdInquiryStillCreatesFreeTextInquiryWithoutFreezingFunds() {
         InquiryRepository inquiries = mock(InquiryRepository.class);
         InquiryMessageRepository messages = mock(InquiryMessageRepository.class);
