@@ -28,8 +28,11 @@ class AnswererDetailPage extends ConsumerStatefulWidget {
 }
 
 class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
+  static const bool _showInquiryFlowBeforeQuestion = false;
+
   Answerer? _answerer;
   bool _loading = true;
+  bool _likeSubmitting = false;
   AppGlobalSettings? _settings;
 
   AnswererExperience? get _selectedExperience {
@@ -135,8 +138,10 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
     }
     final experience = _selectedExperience;
     if (!mounted || experience?.certificationId == null) return;
-    final understood = await _showInquiryFlow(person.inquiryHourlyRate);
-    if (!mounted || !understood) return;
+    if (_showInquiryFlowBeforeQuestion) {
+      final understood = await _showInquiryFlow(person.inquiryHourlyRate);
+      if (!mounted || !understood) return;
+    }
     final question = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -162,49 +167,90 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
     }
   }
 
+  Future<void> _toggleLike() async {
+    final experience = _selectedExperience;
+    final certificationId = experience?.certificationId;
+    if (experience == null || certificationId == null || _likeSubmitting) {
+      return;
+    }
+    setState(() => _likeSubmitting = true);
+    try {
+      final result = await ref
+          .read(repositoryProvider)
+          .setExperienceLike(
+            uid: widget.uid,
+            certificationId: certificationId,
+            liked: !experience.likedByCurrentUser,
+          );
+      if (!mounted) return;
+      final current = _answerer;
+      if (current == null) return;
+      setState(() {
+        _answerer = current.copyWith(
+          experiences: current.experiences
+              .map(
+                (item) => item.certificationId == certificationId
+                    ? item.copyWith(
+                        likeCount: result.likeCount,
+                        likedByCurrentUser: result.liked,
+                      )
+                    : item,
+              )
+              .toList(growable: false),
+        );
+      });
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+    } finally {
+      if (mounted) setState(() => _likeSubmitting = false);
+    }
+  }
+
   Future<bool> _showInquiryFlow(int hourlyRate) async {
     final settings = _settings;
     final initialMessages = settings?.initialTextMessageLimit ?? 50;
-    final messageLength = settings?.textMessageMaxLength ?? 100;
-    final rewardMessages = settings?.voiceRewardMessages ?? 50;
-    final rewardMinutes = ((settings?.voiceRewardSeconds ?? 300) / 60).ceil();
-    final maxDays = settings?.inquiryMaxDurationDays ?? 20;
     return await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: const Text('询问前请确认'),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _FlowRule(
-                    title: '先文字交流',
-                    content:
-                        '对方接受后，双方各有$initialMessages条免费文字消息，每条最多$messageLength字；每完成一次不少于$rewardMinutes分钟的正常语音通话，双方各增加$rewardMessages条。',
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 30,
+              vertical: 24,
+            ),
+            title: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '询问前请确认',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
-                  _FlowRule(
-                    title: '语音通话',
-                    content: '对方当前设置 ¥$hourlyRate/小时，接通后按实际通话时间计费。',
-                  ),
-                  const _FlowRule(
-                    title: '退款与结算',
-                    content: '对方未接听或通话未接通，冻结金额退回余额；通话接通后，按实际通话时间结算。',
-                  ),
-                  _FlowRule(
-                    title: '最长交流期限',
-                    content: '对方接受询问后，整次询问最多保留$maxDays天，到期将自动结束。',
-                  ),
-                ],
+                ),
+                IconButton(
+                  tooltip: '关闭',
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _FlowRule(
+                      title: '文字交流',
+                      content: '$initialMessages条免费文字消息。',
+                    ),
+                    const SizedBox(height: 10),
+                    _FlowRule(title: '语音通话', content: '支持语音通话，按时长计费。'),
+                  ],
+                ),
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('暂不询问'),
-              ),
               FilledButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('已了解，继续'),
+                child: const Text('开始询问'),
               ),
             ],
           ),
@@ -229,6 +275,8 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
                     answerer: _answerer!,
                     preferredExperienceCertificationId:
                         widget.experienceCertificationId,
+                    likeSubmitting: _likeSubmitting,
+                    onToggleLike: _toggleLike,
                   ),
                 ],
               ),
@@ -522,10 +570,14 @@ class _AnswererOverview extends StatelessWidget {
 class _WebAnswererOverview extends StatelessWidget {
   const _WebAnswererOverview({
     required this.answerer,
+    required this.likeSubmitting,
+    required this.onToggleLike,
     this.preferredExperienceCertificationId,
   });
 
   final Answerer answerer;
+  final bool likeSubmitting;
+  final VoidCallback onToggleLike;
   final int? preferredExperienceCertificationId;
 
   @override
@@ -593,6 +645,23 @@ class _WebAnswererOverview extends StatelessWidget {
         const SizedBox(height: 12),
         _ProfileFactBox(
           title: experience?.title ?? '暂无经历',
+          metadata: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: _ReferenceIndexIndicator(
+                  value: experience?.referenceIndex,
+                ),
+              ),
+              if (experience != null)
+                _ExperienceLikeButton(
+                  liked: experience.likedByCurrentUser,
+                  count: experience.likeCount,
+                  loading: likeSubmitting,
+                  onTap: onToggleLike,
+                ),
+            ],
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -620,6 +689,285 @@ class _WebAnswererOverview extends StatelessWidget {
         ],
       ],
     );
+  }
+}
+
+class _ExperienceLikeButton extends StatelessWidget {
+  const _ExperienceLikeButton({
+    required this.liked,
+    required this.count,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final bool liked;
+  final int count;
+  final bool loading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final activeColor = theme.colorScheme.primary;
+    final idleColor = theme.colorScheme.onSurfaceVariant;
+    return Semantics(
+      button: true,
+      selected: liked,
+      label: liked ? '取消点赞，当前$count次点赞' : '点赞，当前$count次点赞',
+      child: Tooltip(
+        message: liked ? '取消点赞' : '点赞',
+        child: InkResponse(
+          onTap: loading ? null : onTap,
+          radius: 25,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 160),
+            opacity: loading ? 0.45 : 1,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder: (child, animation) =>
+                        ScaleTransition(scale: animation, child: child),
+                    child: Icon(
+                      liked
+                          ? Icons.thumb_up_alt_rounded
+                          : Icons.thumb_up_alt_outlined,
+                      key: ValueKey(liked),
+                      size: 22,
+                      color: liked ? activeColor : idleColor,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    '$count',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: liked ? activeColor : idleColor,
+                      fontWeight: liked ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReferenceIndexIndicator extends StatelessWidget {
+  const _ReferenceIndexIndicator({required this.value});
+
+  final int? value;
+
+  Future<void> _showExplanation(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
+        titlePadding: const EdgeInsets.fromLTRB(22, 18, 10, 0),
+        contentPadding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                '参考指数说明',
+                style: Theme.of(
+                  dialogContext,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            IconButton(
+              tooltip: '关闭',
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ],
+        ),
+        content: const SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '参考指数系平台在审核经历时，基于多维度综合评估计算得出。\n\n'
+                '分值越高，表示这段经历当前可参考的信息越充分。',
+                style: TextStyle(height: 1.65),
+              ),
+              SizedBox(height: 18),
+              Text(
+                '该指数仅用于辅助了解内容，不代表平台对实际结果作出保证。',
+                style: TextStyle(
+                  color: Color(0xFFD13B32),
+                  fontWeight: FontWeight.w700,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _levelText(int? normalized) {
+    if (normalized == null) return '暂未评分';
+    if (normalized < 40) return '信息较少';
+    if (normalized < 70) return '信息一般';
+    return '信息较充分';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final normalized = value?.clamp(0, 100);
+    return Semantics(
+      label: normalized == null ? '暂未评分' : '参考指数 $normalized',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _ReferenceScoreCircle(value: normalized),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '参考指数',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Tooltip(
+                    message: '查看指数说明',
+                    child: InkResponse(
+                      onTap: () => _showExplanation(context),
+                      radius: 11,
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: Icon(
+                          Icons.help_outline_rounded,
+                          size: 16,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                _levelText(normalized),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReferenceScoreCircle extends StatelessWidget {
+  const _ReferenceScoreCircle({required this.value});
+
+  final int? value;
+
+  Color _scoreColor(Color fallback) {
+    final score = value;
+    if (score == null) return fallback;
+    const red = Color(0xFFD84A43);
+    const yellow = Color(0xFFD39420);
+    const green = Color(0xFF2E9461);
+    if (score <= 50) {
+      return Color.lerp(red, yellow, score / 50)!;
+    }
+    return Color.lerp(yellow, green, (score - 50) / 50)!;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scoreColor = _scoreColor(theme.colorScheme.outline);
+    return SizedBox.square(
+      dimension: 40,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: const Size.square(40),
+            painter: _ReferenceRingPainter(enabled: value != null),
+          ),
+          Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: theme.colorScheme.surface,
+            ),
+            child: Text(
+              value?.toString() ?? '—',
+              style: theme.textTheme.labelLarge?.copyWith(
+                height: 1,
+                fontWeight: FontWeight.w800,
+                color: scoreColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReferenceRingPainter extends CustomPainter {
+  const _ReferenceRingPainter({required this.enabled});
+
+  final bool enabled;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bounds = Offset.zero & size;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.5
+      ..isAntiAlias = true
+      ..shader = enabled
+          ? const SweepGradient(
+              colors: [
+                Color(0xFFD84A43),
+                Color(0xFFE3AA32),
+                Color(0xFF2E9461),
+                Color(0xFFD84A43),
+              ],
+              stops: [0, 0.34, 0.67, 1],
+            ).createShader(bounds)
+          : null
+      ..color = enabled ? Colors.white : const Color(0xFFD1CCC8);
+    canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2),
+      size.width / 2 - paint.strokeWidth / 2,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ReferenceRingPainter oldDelegate) {
+    return oldDelegate.enabled != enabled;
   }
 }
 
@@ -709,9 +1057,14 @@ class _PublicMediaEntry extends StatelessWidget {
 }
 
 class _ProfileFactBox extends StatelessWidget {
-  const _ProfileFactBox({required this.title, required this.child});
+  const _ProfileFactBox({
+    required this.title,
+    required this.metadata,
+    required this.child,
+  });
 
   final String title;
+  final Widget metadata;
   final Widget child;
 
   @override
@@ -731,6 +1084,8 @@ class _ProfileFactBox extends StatelessWidget {
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
+          const SizedBox(height: 8),
+          metadata,
           const SizedBox(height: 14),
           child,
         ],

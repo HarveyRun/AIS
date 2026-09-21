@@ -39,6 +39,53 @@ class AnswererServiceTest {
         assertTrue(jdbc.sql.contains("accepting_inquiries=TRUE"));
     }
 
+    @Test
+    void homepageCanSortByReferenceIndexAscending() {
+        CapturingJdbcTemplate jdbc = new CapturingJdbcTemplate();
+        AnswererService service = service(jdbc);
+
+        service.search(1L, "", "REFERENCE_INDEX", "ASC", 0, 20);
+
+        assertTrue(jdbc.sql.contains(
+            "ORDER BY ce.reference_index IS NULL ASC,ce.reference_index ASC,ce.id DESC"
+        ));
+    }
+
+    @Test
+    void homepageCanSortByLikeCountDescending() {
+        CapturingJdbcTemplate jdbc = new CapturingJdbcTemplate();
+        AnswererService service = service(jdbc);
+
+        service.search(1L, "", "LIKE_COUNT", "DESC", 0, 20);
+
+        assertTrue(jdbc.sql.contains("ORDER BY COALESCE(el.like_count,0) DESC,ce.id DESC"));
+    }
+
+    @Test
+    void homepageRejectsUnrecognizedSortExpression() {
+        CapturingJdbcTemplate jdbc = new CapturingJdbcTemplate();
+        AnswererService service = service(jdbc);
+
+        service.search(1L, "", "id DESC; DROP TABLE users", "ASC", 0, 20);
+
+        assertTrue(jdbc.sql.contains("ORDER BY ce.id DESC"));
+        assertFalse(jdbc.sql.contains("DROP TABLE"));
+    }
+
+    private AnswererService service(CapturingJdbcTemplate jdbc) {
+        UserRepository users = mock(UserRepository.class);
+        User currentUser = new User();
+        currentUser.setId(1L);
+        currentUser.setAccountType("NORMAL");
+        when(users.findById(1L)).thenReturn(Optional.of(currentUser));
+        return new AnswererService(
+            users,
+            mock(CertificationRepository.class),
+            jdbc,
+            mock(CertificationPublicMediaService.class)
+        );
+    }
+
     private static final class CapturingJdbcTemplate extends JdbcTemplate {
         private String sql;
 

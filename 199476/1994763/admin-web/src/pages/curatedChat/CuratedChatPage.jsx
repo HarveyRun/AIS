@@ -65,7 +65,7 @@ export default function CuratedChatPage() {
     if (busy) return;
     try {
       setBusy(true);
-      await adminApi.setCuratedMembershipStatus(
+      await adminApi.setCuratedMemberActive(
         selected.user_id, active, active ? '后台恢复严选直聊资格' : '后台暂停严选直聊资格',
       );
       message.success(active ? '会员资格已恢复' : '会员资格已暂停');

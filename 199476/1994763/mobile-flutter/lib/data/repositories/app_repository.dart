@@ -363,10 +363,18 @@ class AppRepository {
     int page = 0,
     int size = 10,
     String keyword = '',
+    String? sortBy,
+    String? sortDirection,
   }) async {
     final data = await _api.get<Map<String, dynamic>>(
       '/answerers',
-      query: {'page': page, 'size': size, 'keyword': keyword},
+      query: {
+        'page': page,
+        'size': size,
+        'keyword': keyword,
+        if (sortBy != null) 'sortBy': sortBy,
+        if (sortDirection != null) 'sortDirection': sortDirection,
+      },
     );
     return AnswererPageData.fromJson(data);
   }
@@ -374,6 +382,19 @@ class AppRepository {
   Future<Answerer> answerer(String uid) async {
     final data = await _api.get<Map<String, dynamic>>('/answerers/$uid');
     return Answerer.fromJson(data);
+  }
+
+  Future<ExperienceLikeState> setExperienceLike({
+    required String uid,
+    required int certificationId,
+    required bool liked,
+  }) async {
+    final data = await _api.put<Map<String, dynamic>>(
+      '/answerers/$uid/experiences/$certificationId/like',
+      data: {'liked': liked},
+      showLoading: false,
+    );
+    return ExperienceLikeState.fromJson(data);
   }
 
   Future<void> tipExperience({

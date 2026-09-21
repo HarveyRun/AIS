@@ -387,6 +387,16 @@ public class CertificationService {
 
     @Transactional
     public CertificationView review(Long id, boolean approved, String reason) {
+        return review(id, approved, reason, null);
+    }
+
+    @Transactional
+    public CertificationView review(
+        Long id,
+        boolean approved,
+        String reason,
+        ExperienceReviewScore reviewScore
+    ) {
         Certification certification = certificationRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("认证不存在"));
         boolean firstApproval = approved && !"APPROVED".equals(certification.getStatus());
@@ -396,6 +406,15 @@ public class CertificationService {
         boolean hasProofArchive = "EXPERIENCE".equals(certification.getCategory())
             && (hasMaterial(certification, "PROOF_ARCHIVE") || hasMaterial(certification, "ARCHIVE"));
         if ("EXPERIENCE".equals(certification.getCategory())) {
+            if (reviewScore != null) {
+                certification.setMaterialSupportScore(reviewScore.materialSupport());
+                certification.setCommonRelevanceScore(reviewScore.commonRelevance());
+                certification.setLearnabilityScore(reviewScore.learnability());
+                certification.setClarityScore(reviewScore.clarity());
+                certification.setLogicConsistencyScore(reviewScore.logicConsistency());
+                certification.setInformationSpecificityScore(reviewScore.informationSpecificity());
+                certification.setReferenceIndex(reviewScore.referenceIndex());
+            }
             certification.setMediaProcessingStatus(
                 approved && hasProofArchive ? "PENDING" : "NOT_REQUIRED"
             );
@@ -609,6 +628,12 @@ public class CertificationService {
             String mediaProcessingStatus,
             String mediaProcessingError,
             LocalDateTime lastOperatedAt,
+            Integer referenceIndex,
+            Integer materialSupportScore,
+            Integer commonRelevanceScore,
+            Integer learnabilityScore,
+            Integer clarityScore,
+            Integer logicConsistencyScore,
             List<MaterialView> materials) {
         static CertificationView from(Certification certification, FileStorage fileStorage) {
             return new CertificationView(
@@ -627,6 +652,12 @@ public class CertificationService {
                     certification.getMediaProcessingStatus(),
                     certification.getMediaProcessingError(),
                     resolveLastOperatedAt(certification),
+                    certification.getReferenceIndex(),
+                    certification.getMaterialSupportScore(),
+                    certification.getCommonRelevanceScore(),
+                    certification.getLearnabilityScore(),
+                    certification.getClarityScore(),
+                    certification.getLogicConsistencyScore(),
                     visibleMaterials(certification).stream()
                             .map(material -> MaterialView.from(
                                 material,

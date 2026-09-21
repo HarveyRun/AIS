@@ -341,6 +341,61 @@ button.primary {
   font-size: 13px;
   text-align: center;
 }
+.material-preview-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(12, 14, 18, 0.78);
+}
+.material-preview-dialog {
+  position: fixed;
+  inset: 5vh 5vw;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #17191d;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+}
+.material-preview-dialog header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 54px;
+  padding: 0 16px;
+  color: #fff;
+  background: #202329;
+}
+.material-preview-dialog header button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  place-items: center;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+.material-preview-dialog header svg {
+  width: 18px;
+  height: 18px;
+}
+.material-preview-body {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 18px;
+  place-items: center;
+}
+.material-preview-body img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
 .detail-modal textarea {
   width: 100%;
   min-height: 90px;
@@ -355,6 +410,10 @@ button.primary {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 18px;
+}
+.detail-modal footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 @media (max-width: 1000px) {
   .stat-grid {
@@ -493,4 +552,178 @@ button.primary {
   color: #68717d;
   font-size: 13px;
   line-height: 1.6;
+}
+
+.review-score-editor,
+.review-score-summary,
+.review-score-decision {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f6f7f8;
+}
+
+.review-score-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.review-score-heading strong {
+  color: #20242a;
+  font-size: 15px;
+}
+
+.review-score-heading p {
+  margin: 5px 0 0;
+  color: #737b86;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.review-score-heading > b {
+  flex: 0 0 auto;
+  color: #d33a2c;
+  font-size: 18px;
+}
+
+.review-score-heading > b.passed {
+  color: #258454;
+}
+
+.review-score-heading > b.rejected {
+  color: #d33a2c;
+}
+
+.review-score-list {
+  display: grid;
+  gap: 14px;
+}
+
+.review-score-item {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.review-score-item-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.review-score-item-heading > span {
+  color: #343941;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.review-score-item-heading > b {
+  color: #d33a2c;
+  font-size: 13px;
+}
+
+.review-score-scale {
+  display: grid;
+  grid-template-columns: repeat(11, minmax(30px, 1fr));
+  gap: 5px;
+}
+
+.review-score-scale button {
+  height: 34px;
+  border: 0;
+  border-radius: 7px;
+  background: #eef0f2;
+  color: #4f5660;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.review-score-scale button:hover:not(:disabled) {
+  background: #e6e8eb;
+}
+
+.review-score-scale button.selected {
+  background: #d33a2c;
+  color: #fff;
+  font-weight: 700;
+}
+
+.review-score-scale button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.review-score-anchor-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 16px;
+}
+
+.review-score-anchor-list > div {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 7px;
+  color: #68717d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.review-score-anchor-list b {
+  color: #3d444d;
+  font-size: 12px;
+}
+
+.review-score-decision {
+  background: #fff6e8;
+}
+
+.review-score-decision.disabled {
+  filter: grayscale(0.35);
+  opacity: 0.75;
+}
+
+.review-score-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.review-score-summary-grid > div {
+  display: grid;
+  gap: 5px;
+  padding: 11px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.review-score-summary-grid span {
+  color: #747c87;
+  font-size: 12px;
+}
+
+.review-score-summary-grid b {
+  color: #282d34;
+  font-size: 14px;
+}
+
+@media (max-width: 800px) {
+  .review-score-scale {
+    grid-template-columns: repeat(6, minmax(30px, 1fr));
+  }
+
+  .review-score-anchor-list {
+    grid-template-columns: 1fr;
+  }
+
+  .review-score-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

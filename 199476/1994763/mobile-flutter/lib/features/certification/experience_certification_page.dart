@@ -174,6 +174,58 @@ class _ExperienceCertificationPageState
     await _load();
   }
 
+  Future<void> _showReviewScores(CertificationRecord item) {
+    final scores = <({String label, int? value})>[
+      (label: '证明材料完整度', value: item.materialSupportScore),
+      (label: '普通人发生概率', value: item.commonRelevanceScore),
+      (label: '普通人可复制性', value: item.learnabilityScore),
+      (label: '表述清晰顺畅', value: item.clarityScore),
+      (label: '表述逻辑自洽', value: item.logicConsistencyScore),
+    ];
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
+        titlePadding: const EdgeInsets.fromLTRB(22, 18, 10, 0),
+        contentPadding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                '参考指数评分',
+                style: Theme.of(
+                  dialogContext,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            IconButton(
+              tooltip: '关闭',
+              onPressed: () => Navigator.pop(dialogContext),
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var index = 0; index < scores.length; index++) ...[
+                _ReviewScoreRow(
+                  label: scores[index].label,
+                  score: scores[index].value == null
+                      ? null
+                      : scores[index].value!.clamp(0, 10) * 10,
+                ),
+                if (index != scores.length - 1) const SizedBox(height: 14),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -264,21 +316,6 @@ class _ExperienceCertificationPageState
                           10,
                           2,
                         ),
-                        leading: Container(
-                          width: 42,
-                          height: 42,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            Icons.route_outlined,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
                         title: Text(item.title),
                         subtitle: Text(
                           item.description,
@@ -292,6 +329,20 @@ class _ExperienceCertificationPageState
                         padding: const EdgeInsets.fromLTRB(16, 0, 10, 8),
                         child: Row(
                           children: [
+                            if (item.status.toUpperCase() == 'APPROVED')
+                              TextButton(
+                                onPressed: () => _showReviewScores(item),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 6,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: const Text('查看评分'),
+                              ),
                             const Spacer(),
                             Text(
                               _status(item),
@@ -344,4 +395,39 @@ class _ExperienceCertificationPageState
         'REJECTED' => '已被驳回',
         _ => item.status,
       };
+}
+
+class _ReviewScoreRow extends StatelessWidget {
+  const _ReviewScoreRow({required this.label, required this.score});
+
+  final String label;
+  final int? score;
+
+  Color _scoreColor(BuildContext context) {
+    final value = score;
+    if (value == null) return Theme.of(context).colorScheme.onSurfaceVariant;
+    if (value < 40) return const Color(0xFFD84A43);
+    if (value < 70) return const Color(0xFFD39420);
+    return const Color(0xFF2E9461);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _scoreColor(context);
+    final value = score;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+        ),
+        Text(
+          value == null ? '暂未评分' : '$value分',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
 }

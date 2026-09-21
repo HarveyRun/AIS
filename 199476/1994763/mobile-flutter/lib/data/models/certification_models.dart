@@ -129,6 +129,12 @@ class CertificationRecord {
     required this.mediaProcessingStatus,
     required this.mediaProcessingError,
     required this.lastOperatedAt,
+    required this.referenceIndex,
+    required this.materialSupportScore,
+    required this.commonRelevanceScore,
+    required this.learnabilityScore,
+    required this.clarityScore,
+    required this.logicConsistencyScore,
     required this.materials,
   });
 
@@ -149,6 +155,12 @@ class CertificationRecord {
       lastOperatedAt: DateTime.tryParse(
         json['lastOperatedAt']?.toString() ?? '',
       ),
+      referenceIndex: _nullableInt(json['referenceIndex']),
+      materialSupportScore: _nullableInt(json['materialSupportScore']),
+      commonRelevanceScore: _nullableInt(json['commonRelevanceScore']),
+      learnabilityScore: _nullableInt(json['learnabilityScore']),
+      clarityScore: _nullableInt(json['clarityScore']),
+      logicConsistencyScore: _nullableInt(json['logicConsistencyScore']),
       materials: (json['materials'] as List<dynamic>? ?? const [])
           .whereType<Map>()
           .map(
@@ -171,6 +183,12 @@ class CertificationRecord {
   final String mediaProcessingStatus;
   final String mediaProcessingError;
   final DateTime? lastOperatedAt;
+  final int? referenceIndex;
+  final int? materialSupportScore;
+  final int? commonRelevanceScore;
+  final int? learnabilityScore;
+  final int? clarityScore;
+  final int? logicConsistencyScore;
   final List<CertificationMaterial> materials;
 
   bool get approved => status.toUpperCase() == 'APPROVED' || status == '已认证';

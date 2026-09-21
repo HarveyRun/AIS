@@ -199,6 +199,9 @@ class ApiClient {
   }
 
   String _networkMessage(DioException error) {
+    if (error.response?.statusCode == 413) {
+      return '上传内容过大，请压缩后重试';
+    }
     return switch (error.type) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.sendTimeout ||

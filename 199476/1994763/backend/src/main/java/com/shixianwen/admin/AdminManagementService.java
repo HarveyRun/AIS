@@ -2,6 +2,7 @@ package com.shixianwen.admin;
 
 import com.shixianwen.certification.CertificationService;
 import com.shixianwen.certification.CertificationPublicMediaService;
+import com.shixianwen.certification.ExperienceReviewScore;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.config.AppGlobalSettingService;
 import com.shixianwen.content.SensitiveWordService;
@@ -316,17 +317,70 @@ public class AdminManagementService {
         );
         return item;
     }
-    @Transactional public void reviewCertification(AdminUser admin,Long id,boolean approved,String reason,String ip) {
-        if(!approved && (reason==null||reason.isBlank())) throw BusinessException.badRequest("驳回时请填写原因");
-        Map<String,Object> certification=jdbc.queryForMap("SELECT user_id AS userId,certification_type AS type,title,status FROM certifications WHERE id=? AND deleted_at IS NULL FOR UPDATE",id);
+    @Transactional
+    public void reviewCertification(
+        AdminUser admin,
+        Long id,
+        boolean approved,
+        String reason,
+        Integer materialSupportScore,
+        Integer commonRelevanceScore,
+        Integer learnabilityScore,
+        Integer clarityScore,
+        Integer logicConsistencyScore,
+        Integer informationSpecificityScore,
+        String ip
+    ) {
+        Map<String,Object> certification=jdbc.queryForMap("SELECT user_id AS userId,category,certification_type AS type,title,status FROM certifications WHERE id=? AND deleted_at IS NULL FOR UPDATE",id);
         if(!"PENDING".equals(certification.get("status"))) throw BusinessException.badRequest("该认证已经处理");
         if (!List.of("EXPERIENCE", "IDENTITY").contains(String.valueOf(certification.get("type")))) {
             throw BusinessException.badRequest("该认证类型已停止使用");
         }
-        certifications.review(id,approved,reason);
+        boolean experience = "EXPERIENCE".equals(certification.get("category"));
+        if (!experience && !approved && (reason == null || reason.isBlank())) {
+            throw BusinessException.badRequest("驳回时请填写原因");
+        }
+        ExperienceReviewScore score = experience
+            ? ExperienceReviewScore.of(
+                materialSupportScore,
+                commonRelevanceScore,
+                learnabilityScore,
+                clarityScore,
+                logicConsistencyScore,
+                informationSpecificityScore
+            )
+            : null;
+        boolean resolvedApproved = score == null ? approved : score.approved();
+        String resolvedReason = score != null && !resolvedApproved
+            ? "信息具体程度评分为" + score.informationSpecificity() + "分，未达到审核通过标准"
+            : reason;
+        certifications.review(id,resolvedApproved,resolvedReason,score);
+        if (score != null) {
+            jdbc.update(
+                "INSERT INTO experience_review_score_history(" +
+                    "certification_id,reviewer_admin_id,material_support_score," +
+                    "common_relevance_score,learnability_score,clarity_score," +
+                    "logic_consistency_score,information_specificity_score,reference_index" +
+                    ") VALUES(?,?,?,?,?,?,?,?,?)",
+                id,
+                admin.getId(),
+                score.materialSupport(),
+                score.commonRelevance(),
+                score.learnability(),
+                score.clarity(),
+                score.logicConsistency(),
+                score.informationSpecificity(),
+                score.referenceIndex()
+            );
+        }
         audit(
             admin,"REVIEW_CERTIFICATION","CERTIFICATION",id,
-            String.valueOf(approved),ip
+            score == null
+                ? String.valueOf(resolvedApproved)
+                : "approved=" + resolvedApproved +
+                    ",informationSpecificity=" + score.informationSpecificity() +
+                    ",referenceIndex=" + score.referenceIndex(),
+            ip
         );
         realtime.afterCommit(
             ((Number) certification.get("userId")).longValue(),
@@ -334,7 +388,7 @@ public class AdminManagementService {
             Map.of(
                 "id", id,
                 "type", certification.get("type"),
-                "status", approved ? "APPROVED" : "REJECTED"
+                "status", resolvedApproved ? "APPROVED" : "REJECTED"
             )
         );
     }
@@ -554,7 +608,7 @@ public class AdminManagementService {
         case "certifications" -> new TableSpec(
             "certifications",
             "certifications t JOIN users u ON u.id=t.user_id",
-            "SELECT t.id,t.category,t.certification_type AS type,t.title,t.description,t.experience_location AS experienceLocation,t.experience_start_date AS experienceStartDate,t.experience_end_date AS experienceEndDate,t.experience_count AS experienceCount,t.experience_role AS experienceRole,t.experience_age_range AS experienceAgeRange,t.experience_education AS experienceEducation,t.experience_job AS experienceJob,t.status,t.enabled,t.rejection_reason AS rejectionReason,t.submitted_at AS submittedAt,t.privacy_confirmed_at AS privacyConfirmedAt,t.media_processing_status AS mediaProcessingStatus,t.media_processing_error AS mediaProcessingError,t.media_processed_at AS mediaProcessedAt,u.uid,u.nickname,(u.account_type='TEST') AS testData FROM certifications t JOIN users u ON u.id=t.user_id",
+            "SELECT t.id,t.category,t.certification_type AS type,t.title,t.description,t.experience_location AS experienceLocation,t.experience_start_date AS experienceStartDate,t.experience_end_date AS experienceEndDate,t.experience_count AS experienceCount,t.experience_role AS experienceRole,t.experience_age_range AS experienceAgeRange,t.experience_education AS experienceEducation,t.experience_job AS experienceJob,t.status,t.enabled,t.rejection_reason AS rejectionReason,t.submitted_at AS submittedAt,t.privacy_confirmed_at AS privacyConfirmedAt,t.media_processing_status AS mediaProcessingStatus,t.media_processing_error AS mediaProcessingError,t.media_processed_at AS mediaProcessedAt,t.material_support_score AS materialSupportScore,t.common_relevance_score AS commonRelevanceScore,t.learnability_score AS learnabilityScore,t.clarity_score AS clarityScore,t.logic_consistency_score AS logicConsistencyScore,t.information_specificity_score AS informationSpecificityScore,t.reference_index AS referenceIndex,u.uid,u.nickname,(u.account_type='TEST') AS testData FROM certifications t JOIN users u ON u.id=t.user_id",
             List.of("u")
         );
         case "inquiries" -> new TableSpec(

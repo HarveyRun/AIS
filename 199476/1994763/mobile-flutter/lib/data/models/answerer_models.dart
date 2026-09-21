@@ -5,6 +5,9 @@ class AnswererExperience {
     required this.certificationId,
     required this.title,
     required this.description,
+    required this.referenceIndex,
+    required this.likeCount,
+    required this.likedByCurrentUser,
     required this.additionalInfo,
     required this.canInquire,
     required this.materials,
@@ -15,6 +18,9 @@ class AnswererExperience {
       certificationId: _nullableInt(json['certificationId']),
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
+      referenceIndex: _nullableInt(json['referenceIndex']),
+      likeCount: _int(json['likeCount']),
+      likedByCurrentUser: json['likedByCurrentUser'] == true,
       additionalInfo: ExperienceAdditionalInfo.fromJson(json),
       canInquire: json['canInquire'] == true,
       materials:
@@ -35,9 +41,26 @@ class AnswererExperience {
   final int? certificationId;
   final String title;
   final String description;
+  final int? referenceIndex;
+  final int likeCount;
+  final bool likedByCurrentUser;
   final ExperienceAdditionalInfo additionalInfo;
   final bool canInquire;
   final List<CertificationMaterial> materials;
+
+  AnswererExperience copyWith({int? likeCount, bool? likedByCurrentUser}) {
+    return AnswererExperience(
+      certificationId: certificationId,
+      title: title,
+      description: description,
+      referenceIndex: referenceIndex,
+      likeCount: likeCount ?? this.likeCount,
+      likedByCurrentUser: likedByCurrentUser ?? this.likedByCurrentUser,
+      additionalInfo: additionalInfo,
+      canInquire: canInquire,
+      materials: materials,
+    );
+  }
 }
 
 class Answerer {
@@ -79,6 +102,33 @@ class Answerer {
   final List<AnswererExperience> experiences;
 
   String get displayName => nickname.trim().isEmpty ? 'UID $uid' : nickname;
+
+  Answerer copyWith({List<AnswererExperience>? experiences}) {
+    return Answerer(
+      id: id,
+      uid: uid,
+      nickname: nickname,
+      avatarUrl: avatarUrl,
+      acceptingInquiries: acceptingInquiries,
+      inquiryHourlyRate: inquiryHourlyRate,
+      mainJob: mainJob,
+      experiences: experiences ?? this.experiences,
+    );
+  }
+}
+
+class ExperienceLikeState {
+  const ExperienceLikeState({required this.likeCount, required this.liked});
+
+  factory ExperienceLikeState.fromJson(Map<String, dynamic> json) {
+    return ExperienceLikeState(
+      likeCount: _int(json['likeCount']),
+      liked: json['liked'] == true,
+    );
+  }
+
+  final int likeCount;
+  final bool liked;
 }
 
 class AnswererPageData {

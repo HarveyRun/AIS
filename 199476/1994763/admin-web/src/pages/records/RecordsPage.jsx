@@ -7,6 +7,15 @@ import Pagination from '../../components/data/Pagination.jsx';
 import ConfirmDialog from '../../components/feedback/ConfirmDialog.jsx';
 import '../shared/Page.css';
 import { message } from '../../components/feedback/message.js';
+
+const EMPTY_REVIEW_SCORES = {
+  materialSupportScore: '',
+  commonRelevanceScore: '',
+  learnabilityScore: '',
+  clarityScore: '',
+  logicConsistencyScore: '',
+};
+
 const meta = {
   certifications: ['认证审核', '审核实名认证和用户发布的经历'],
   inquiries: ['询问管理', '查看询问状态和资金流转'],
@@ -24,7 +33,10 @@ export default function RecordsPage({ type }) {
   const [selected, setSelected] = useState(null);
   const [modalMode, setModalMode] = useState('view');
   const [materials, setMaterials] = useState([]);
+  const [previewMaterial, setPreviewMaterial] = useState(null);
   const [reason, setReason] = useState('');
+  const [reviewScores, setReviewScores] = useState(EMPTY_REVIEW_SCORES);
+  const [informationSpecificityScore, setInformationSpecificityScore] = useState('');
   const [resolution, setResolution] = useState('');
   const [page, setPage] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -86,8 +98,11 @@ export default function RecordsPage({ type }) {
       setSelected(row);
       setModalMode(mode);
       setReason('');
+      setReviewScores(EMPTY_REVIEW_SCORES);
+      setInformationSpecificityScore('');
       setResolution(row.resolution || '');
       setMaterials([]);
+      setPreviewMaterial(null);
       if (type === 'certifications') {
         setMaterials(await adminApi.materials(row.id));
       }
@@ -96,19 +111,43 @@ export default function RecordsPage({ type }) {
       message.error(e.message);
     }
   };
-  const review = async (approved) => {
-    if (!approved && !reason.trim()) {
+  const review = async (approved = true) => {
+    const reviewingExperience = selected.category === 'EXPERIENCE';
+    if (!reviewingExperience && !approved && !reason.trim()) {
       message.warning('驳回时请填写原因');
       return;
     }
+    if (reviewingExperience) {
+      const missing = SCORE_DEFINITIONS.some(({ key }) => reviewScores[key] === '');
+      if (missing) {
+        message.warning('请先完成全部五个参考维度评分');
+        return;
+      }
+      if (informationSpecificityScore === '') {
+        message.warning('请完成信息具体程度评分');
+        return;
+      }
+    }
     try {
+      const resolvedApproved = reviewingExperience
+        ? Number(informationSpecificityScore) > 5
+        : approved;
       await adminApi.review(selected.id, {
-        approved,
+        approved: resolvedApproved,
         reason: reason.trim(),
+        informationSpecificityScore: reviewingExperience
+          ? Number(informationSpecificityScore)
+          : null,
+        ...Object.fromEntries(
+          Object.entries(reviewScores).map(([key, value]) => [
+            key,
+            value === '' ? null : Number(value),
+          ]),
+        ),
       });
       setSelected(null);
       await load();
-      message.success(approved ? '认证已通过' : '认证已驳回');
+      message.success(resolvedApproved ? '认证已通过' : '认证未通过');
     } catch (e) {
       message.error(e.message);
     }
@@ -314,7 +353,8 @@ export default function RecordsPage({ type }) {
                   <div className="review-standard strict">
                     <strong>经历审核标准</strong>
                     <p>
-                      核对内容是否完整、表述是否清楚，并检查是否存在明显矛盾、违规或敏感信息。
+                      先判断内容是否提供了足以理解这段经历的具体信息；达不到基础信息要求时应驳回。
+                      通过基础审核后，再完成下方五项评分。评分仅作为公开参考，不决定审核是否通过。
                     </p>
                   </div>
                 )}
@@ -329,7 +369,16 @@ export default function RecordsPage({ type }) {
                 </h3>
                 <div className="materials">
                   {proofMaterials(materials, selected.category).map((m) => (
-                    <a href={m.url} target="_blank" rel="noreferrer" key={m.id}>
+                    <a
+                      href={m.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      key={m.id}
+                      onClick={isImageMaterial(m) ? (event) => {
+                        event.preventDefault();
+                        setPreviewMaterial(m);
+                      } : undefined}
+                    >
                       <span>{m.name}</span>
                       <ExternalLink />
                     </a>
@@ -342,6 +391,9 @@ export default function RecordsPage({ type }) {
                     </p>
                   )}
                 </div>
+                {selected.category === 'EXPERIENCE' && selected.referenceIndex != null && (
+                  <ReviewScoreSummary record={selected} />
+                )}
                 {selected.category === 'EXPERIENCE' && signatureMaterials(materials).length > 0 && (
                   <>
                     <h3>签字确认</h3>
@@ -358,23 +410,44 @@ export default function RecordsPage({ type }) {
                 {modalMode === 'review' && selected.status === 'PENDING' && (
                   <>
                     {selected.category === 'EXPERIENCE' && (
-                      <p className="review-optional-note">
-                        证明资料为选填项。未提供证明资料时，仍可根据经历内容正常审核。
-                      </p>
+                      <>
+                        <p className="review-optional-note">
+                          证明资料为选填项。未提供证明资料时，材料支撑度可评0分，不影响根据经历内容正常审核。
+                        </p>
+                        <ReviewScoreEditor values={reviewScores} onChange={setReviewScores} />
+                        <InformationSpecificityDecision
+                          value={informationSpecificityScore}
+                          onChange={setInformationSpecificityScore}
+                          enabled={SCORE_DEFINITIONS.every(({ key }) => reviewScores[key] !== '')}
+                        />
+                        <footer>
+                          <button
+                            className="primary"
+                            disabled={informationSpecificityScore === ''}
+                            onClick={() => review()}
+                          >
+                            确认审核结果
+                          </button>
+                        </footer>
+                      </>
                     )}
-                    <textarea
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      placeholder="驳回时必须填写原因"
-                    />
-                    <footer>
-                      <button className="danger" onClick={() => review(false)}>
-                        驳回
-                      </button>
-                      <button className="primary" onClick={() => review(true)}>
-                        通过认证
-                      </button>
-                    </footer>
+                    {selected.category !== 'EXPERIENCE' && (
+                      <>
+                        <textarea
+                          value={reason}
+                          onChange={(e) => setReason(e.target.value)}
+                          placeholder="驳回时必须填写原因"
+                        />
+                        <footer>
+                          <button className="danger" onClick={() => review(false)}>
+                            驳回
+                          </button>
+                          <button className="primary" onClick={() => review(true)}>
+                            通过认证
+                          </button>
+                        </footer>
+                      </>
+                    )}
                   </>
                 )}
               </>
@@ -413,6 +486,22 @@ export default function RecordsPage({ type }) {
                   </footer>
                 </>
               )}
+          </section>
+        </>
+      )}
+      {previewMaterial && (
+        <>
+          <div className="material-preview-mask" onClick={() => setPreviewMaterial(null)} />
+          <section className="material-preview-dialog" role="dialog" aria-modal="true" aria-label="认证照片预览">
+            <header>
+              <strong>{previewMaterial.name || '认证照片'}</strong>
+              <button type="button" aria-label="关闭" onClick={() => setPreviewMaterial(null)}>
+                <X />
+              </button>
+            </header>
+            <div className="material-preview-body">
+              <img src={materialPreviewUrl(previewMaterial.url)} alt={previewMaterial.name || '认证照片'} />
+            </div>
           </section>
         </>
       )}
@@ -505,6 +594,82 @@ const labels = {
   handledBy: '处理人',
   riskLevel: '风险等级',
   riskReasons: '风险说明',
+};
+
+const SCORE_DEFINITIONS = [
+  {
+    key: 'materialSupportScore',
+    label: '证明材料支撑度',
+    anchors: [
+      '未提交任何证明材料',
+      '材料与经历关系较弱',
+      '能够证明部分人物、时间或事项',
+      '多份材料基本支撑主要经过',
+      '材料直接覆盖关键人物、时间和事件',
+      '材料形成完整且相互印证的证据链',
+    ],
+  },
+  {
+    key: 'commonRelevanceScore',
+    label: '普遍相关程度',
+    anchors: [
+      '几乎只发生在极少数特殊人员或环境中',
+      '普通人极少遇到',
+      '特定群体可能遇到',
+      '不少普通人在某个人生阶段可能遇到',
+      '普通个人或家庭较常遇到',
+      '大部分普通人在生活中都有较高概率遇到',
+    ],
+  },
+  {
+    key: 'learnabilityScore',
+    label: '可借鉴程度',
+    anchors: [
+      '只有个人感受，没有可供参考的信息',
+      '只说明结果，基本没有过程',
+      '包含少量处理经过或注意事项',
+      '能够了解大致处理路径和关键选择',
+      '关键步骤、取舍、问题和结果较完整',
+      '能够明显帮助类似处境的人少走弯路',
+    ],
+  },
+  {
+    key: 'clarityScore',
+    label: '表述清晰程度',
+    anchors: [
+      '基本无法理解',
+      '内容严重碎片化，无法确认主要意思',
+      '可以勉强理解，但需要大量猜测',
+      '主要意思能够理解，存在少量跳跃或重复',
+      '表达清楚、重点明确、阅读顺畅',
+      '简洁准确、层次清楚，几乎没有理解成本',
+    ],
+  },
+  {
+    key: 'logicConsistencyScore',
+    label: '逻辑自洽程度',
+    anchors: [
+      '存在无法解释的核心矛盾',
+      '人物、时间或结果存在严重冲突',
+      '多处前后关系不清，影响理解',
+      '没有明显矛盾，但部分过程缺少衔接',
+      '时间、人物、经过和结果基本连贯',
+      '内容完整连贯，各部分能够相互对应',
+    ],
+  },
+];
+
+const INFORMATION_SPECIFICITY_DEFINITION = {
+  key: 'informationSpecificityScore',
+  label: '信息具体程度',
+  anchors: [
+    '无法判断用户经历了什么事情',
+    '只有笼统结论或感受，关键事实基本缺失',
+    '能够识别事情，但重要背景或过程缺失较多',
+    '主要人物、阶段和关键情况足以理解这段经历',
+    '关键背景、经过和结果具体，基本不需要猜测',
+    '事实边界清晰、细节充分，能够完整理解主要经历',
+  ],
 };
 function headers(type) {
   return {
@@ -697,7 +862,131 @@ function shouldShowDetailField(key) {
     'detailVideo',
     'detailVideoUrl',
     'narrativeMode',
+    'materialSupportScore',
+    'commonRelevanceScore',
+    'learnabilityScore',
+    'clarityScore',
+    'logicConsistencyScore',
+    'informationSpecificityScore',
+    'referenceIndex',
   ].includes(key);
+}
+
+function ReviewScoreEditor({ values, onChange }) {
+  const selectedValues = SCORE_DEFINITIONS
+    .map(({ key }) => values[key])
+    .filter((value) => value !== '');
+  const referenceIndex = selectedValues.length === SCORE_DEFINITIONS.length
+    ? selectedValues.reduce((total, value) => total + Number(value), 0) * 2
+    : null;
+
+  return (
+    <section className="review-score-editor">
+      <div className="review-score-heading">
+        <div>
+          <strong>经历参考评分</strong>
+          <p>五项分别按 0—10 分评价，公开指数按五项简单平均计算。</p>
+        </div>
+        <b>{referenceIndex == null ? '待完成' : `${referenceIndex}/100`}</b>
+      </div>
+      <div className="review-score-list">
+        {SCORE_DEFINITIONS.map((definition) => (
+          <div key={definition.key} className="review-score-item">
+            <div className="review-score-item-heading">
+              <span>{definition.label}</span>
+              <b>{values[definition.key] === '' ? '未评分' : `${values[definition.key]} 分`}</b>
+            </div>
+            <ScoreButtons
+              value={values[definition.key]}
+              onChange={(score) => onChange((current) => ({
+                ...current,
+                [definition.key]: score,
+              }))}
+            />
+            <ScoreAnchors definition={definition} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function InformationSpecificityDecision({ value, onChange, enabled }) {
+  const passed = value !== '' && Number(value) > 5;
+  return (
+    <section className={`review-score-decision${enabled ? '' : ' disabled'}`}>
+      <div className="review-score-heading">
+        <div>
+          <strong>审核通过标准：信息具体程度</strong>
+          <p>先完成上方五个参考维度，再评定本项。0—5 分不通过，6—10 分通过。</p>
+        </div>
+        <b className={value === '' ? '' : passed ? 'passed' : 'rejected'}>
+          {value === '' ? '待评定' : passed ? '通过' : '不通过'}
+        </b>
+      </div>
+      <ScoreButtons value={value} onChange={onChange} disabled={!enabled} />
+      <ScoreAnchors definition={INFORMATION_SPECIFICITY_DEFINITION} />
+    </section>
+  );
+}
+
+function ScoreButtons({ value, onChange, disabled = false }) {
+  return (
+    <div className="review-score-scale" aria-label="选择评分">
+      {Array.from({ length: 11 }, (_, score) => (
+        <button
+          key={score}
+          type="button"
+          className={Number(value) === score && value !== '' ? 'selected' : ''}
+          disabled={disabled}
+          onClick={() => onChange(String(score))}
+        >
+          {score}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ScoreAnchors({ definition }) {
+  return (
+    <div className="review-score-anchor-list">
+      {definition.anchors.map((anchor, index) => (
+        <div key={anchor}>
+          <b>{index * 2}分</b>
+          <span>{anchor}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReviewScoreSummary({ record }) {
+  return (
+    <section className="review-score-summary">
+      <div className="review-score-heading">
+        <div>
+          <strong>经历参考评分</strong>
+          <p>公开页面仅展示综合参考指数，不展示各维度明细。</p>
+        </div>
+        <b>{record.referenceIndex}/100</b>
+      </div>
+      <div className="review-score-summary-grid">
+        {SCORE_DEFINITIONS.map((definition) => (
+          <div key={definition.key}>
+            <span>{definition.label}</span>
+            <b>{record[definition.key]} 分</b>
+          </div>
+        ))}
+        {record.informationSpecificityScore != null && (
+          <div>
+            <span>信息具体程度</span>
+            <b>{record.informationSpecificityScore} 分 · {record.informationSpecificityScore > 5 ? '通过' : '不通过'}</b>
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
 
 function detailFieldLabel(key, record) {
@@ -712,6 +1001,17 @@ function proofMaterials(items, category) {
     return items.filter((item) => item.kind !== 'DETAIL_VIDEO');
   }
   return items.filter((item) => ['PROOF_ARCHIVE', 'ARCHIVE'].includes(item.kind));
+}
+
+function isImageMaterial(material) {
+  return String(material?.contentType || '').toLowerCase().startsWith('image/')
+    || String(material?.kind || '').toUpperCase().startsWith('IDENTITY_');
+}
+
+function materialPreviewUrl(url) {
+  if (!url) return '';
+  if (!/^https?:\/\//i.test(url)) return url;
+  return `/api/public/media/image?url=${encodeURIComponent(url)}`;
 }
 
 function signatureMaterials(items) {

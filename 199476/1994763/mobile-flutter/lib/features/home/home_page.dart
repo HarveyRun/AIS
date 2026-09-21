@@ -12,12 +12,25 @@ import '../../app/providers.dart';
 import '../../core/config/app_config.dart';
 import '../../core/input/app_input_formatters.dart';
 import '../../core/widgets/answerer_card.dart';
-import '../../core/widgets/app_avatar.dart';
 import '../../core/widgets/app_message.dart';
 import '../../core/widgets/platform_introduction_gate.dart';
 import '../../data/models/answerer_models.dart';
 import '../../data/models/home_banner_models.dart';
 import 'home_activity_rules_dialog.dart';
+
+enum _ExperienceSort {
+  latest('默认排序', null, null),
+  referenceDesc('由高到低', 'REFERENCE_INDEX', 'DESC'),
+  referenceAsc('由低到高', 'REFERENCE_INDEX', 'ASC'),
+  likeDesc('由高到低', 'LIKE_COUNT', 'DESC'),
+  likeAsc('由低到高', 'LIKE_COUNT', 'ASC');
+
+  const _ExperienceSort(this.label, this.sortBy, this.direction);
+
+  final String label;
+  final String? sortBy;
+  final String? direction;
+}
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -45,6 +58,7 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
   int _listRequestVersion = 0;
   int _banner = 0;
   int _pageSize = 20;
+  _ExperienceSort _experienceSort = _ExperienceSort.latest;
   final Set<int> _seenBanners = {};
   final Set<int> _checkingBanners = {};
   ModalRoute<void>? _route;
@@ -186,7 +200,13 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
     try {
       final result = await ref
           .read(repositoryProvider)
-          .answerers(page: _page, size: _pageSize, keyword: keyword);
+          .answerers(
+            page: _page,
+            size: _pageSize,
+            keyword: keyword,
+            sortBy: _experienceSort.sortBy,
+            sortDirection: _experienceSort.direction,
+          );
       if (!mounted || requestVersion != _listRequestVersion) return;
       setState(() {
         if (reset) _items.clear();
@@ -353,6 +373,113 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
     );
   }
 
+  Future<void> _showExperienceSort() async {
+    _releaseSearchFocus();
+    final selected = await showModalBottomSheet<_ExperienceSort>(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  '筛选经历',
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: '关闭',
+                  onPressed: () => Navigator.pop(sheetContext),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            _SortOption(
+              title: _ExperienceSort.latest.label,
+              selected: _experienceSort == _ExperienceSort.latest,
+              onTap: () => Navigator.pop(sheetContext, _ExperienceSort.latest),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '参考指数',
+              style: Theme.of(sheetContext).textTheme.labelLarge?.copyWith(
+                color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Row(
+              children: [
+                Expanded(
+                  child: _SortOption(
+                    title: _ExperienceSort.referenceDesc.label,
+                    selected: _experienceSort == _ExperienceSort.referenceDesc,
+                    onTap: () => Navigator.pop(
+                      sheetContext,
+                      _ExperienceSort.referenceDesc,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _SortOption(
+                    title: _ExperienceSort.referenceAsc.label,
+                    selected: _experienceSort == _ExperienceSort.referenceAsc,
+                    onTap: () => Navigator.pop(
+                      sheetContext,
+                      _ExperienceSort.referenceAsc,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '点赞数量',
+              style: Theme.of(sheetContext).textTheme.labelLarge?.copyWith(
+                color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Row(
+              children: [
+                Expanded(
+                  child: _SortOption(
+                    title: _ExperienceSort.likeDesc.label,
+                    selected: _experienceSort == _ExperienceSort.likeDesc,
+                    onTap: () =>
+                        Navigator.pop(sheetContext, _ExperienceSort.likeDesc),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _SortOption(
+                    title: _ExperienceSort.likeAsc.label,
+                    selected: _experienceSort == _ExperienceSort.likeAsc,
+                    onTap: () =>
+                        Navigator.pop(sheetContext, _ExperienceSort.likeAsc),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || selected == null || selected == _experienceSort) return;
+    setState(() => _experienceSort = selected);
+    await _load(reset: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).user;
@@ -382,15 +509,16 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                 automaticallyImplyLeading: false,
                 title: Row(
                   children: [
-                    GestureDetector(
-                      onTap: () => context.go('/profile'),
-                      child: AppAvatar(
-                        url: user.avatarUrl,
-                        name: user.displayName,
-                        radius: 19,
+                    IconButton(
+                      tooltip: '通知',
+                      onPressed: () => context.push('/notices'),
+                      icon: Badge(
+                        isLabelVisible: noticeCount > 0,
+                        label: Text(noticeCount > 99 ? '99+' : '$noticeCount'),
+                        child: const Icon(Icons.mail_outline_rounded),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 2),
                     Expanded(
                       child: Container(
                         height: 38,
@@ -475,13 +603,15 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 2),
                     IconButton(
-                      onPressed: () => context.push('/notices'),
+                      tooltip: '筛选经历',
+                      onPressed: _showExperienceSort,
                       icon: Badge(
-                        isLabelVisible: noticeCount > 0,
-                        label: Text(noticeCount > 99 ? '99+' : '$noticeCount'),
-                        child: const Icon(Icons.mail_outline_rounded),
+                        isLabelVisible:
+                            _experienceSort != _ExperienceSort.latest,
+                        smallSize: 7,
+                        child: const Icon(Icons.filter_alt_outlined),
                       ),
                     ),
                   ],
@@ -535,6 +665,61 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                   ),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SortOption extends StatelessWidget {
+  const _SortOption({
+    required this.title,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: selected
+          ? theme.colorScheme.primary
+          : theme.colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(13),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  title,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: selected
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.onSurface,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (selected) ...[
+                const SizedBox(width: 5),
+                Icon(
+                  Icons.check_rounded,
+                  size: 17,
+                  color: theme.colorScheme.onPrimary,
+                ),
+              ],
             ],
           ),
         ),

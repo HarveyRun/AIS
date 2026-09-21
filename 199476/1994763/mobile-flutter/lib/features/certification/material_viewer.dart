@@ -71,6 +71,7 @@ class _PublicMediaGalleryPageState extends State<PublicMediaGalleryPage> {
   int _quarterTurns = 0;
   int _loadGeneration = 0;
   bool _loading = false;
+  bool _useDirectImageUrl = false;
   String? _error;
   VideoPlayerController? _video;
 
@@ -103,6 +104,7 @@ class _PublicMediaGalleryPageState extends State<PublicMediaGalleryPage> {
     setState(() {
       _quarterTurns = 0;
       _loading = _isVideo || _kind == 'AUDIO';
+      _useDirectImageUrl = false;
       _error = null;
     });
 
@@ -255,6 +257,9 @@ class _PublicMediaGalleryPageState extends State<PublicMediaGalleryPage> {
   }
 
   Widget _imagePreview() {
+    final directUrl = AppConfig.resolveResource(_current.url).toString();
+    final proxiedUrl = AppConfig.resolveImage(_current.url).toString();
+    final imageUrl = _useDirectImageUrl ? directUrl : proxiedUrl;
     return Stack(
       children: [
         Positioned.fill(
@@ -266,7 +271,7 @@ class _PublicMediaGalleryPageState extends State<PublicMediaGalleryPage> {
               child: RotatedBox(
                 quarterTurns: _quarterTurns,
                 child: Image.network(
-                  AppConfig.resolveImage(_current.url).toString(),
+                  imageUrl,
                   fit: BoxFit.contain,
                   loadingBuilder: (context, child, progress) {
                     if (progress == null) return child;
@@ -274,10 +279,22 @@ class _PublicMediaGalleryPageState extends State<PublicMediaGalleryPage> {
                       child: CircularProgressIndicator(color: Colors.white),
                     );
                   },
-                  errorBuilder: (_, _, _) => const _MediaError(
-                    icon: Icons.broken_image_outlined,
-                    text: '图片加载失败',
-                  ),
+                  errorBuilder: (_, _, _) {
+                    if (!_useDirectImageUrl && directUrl != proxiedUrl) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted && !_useDirectImageUrl) {
+                          setState(() => _useDirectImageUrl = true);
+                        }
+                      });
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      );
+                    }
+                    return const _MediaError(
+                      icon: Icons.broken_image_outlined,
+                      text: '图片加载失败',
+                    );
+                  },
                 ),
               ),
             ),

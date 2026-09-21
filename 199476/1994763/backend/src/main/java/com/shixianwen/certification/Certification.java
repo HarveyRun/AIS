@@ -6,8 +6,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -93,6 +95,34 @@ public class Certification {
 
     @Column(name = "media_processed_at")
     private LocalDateTime mediaProcessedAt;
+
+    @Column(name = "material_support_score")
+    @JdbcTypeCode(SqlTypes.TINYINT)
+    private Integer materialSupportScore;
+
+    @Column(name = "common_relevance_score")
+    @JdbcTypeCode(SqlTypes.TINYINT)
+    private Integer commonRelevanceScore;
+
+    @Column(name = "learnability_score")
+    @JdbcTypeCode(SqlTypes.TINYINT)
+    private Integer learnabilityScore;
+
+    @Column(name = "clarity_score")
+    @JdbcTypeCode(SqlTypes.TINYINT)
+    private Integer clarityScore;
+
+    @Column(name = "logic_consistency_score")
+    @JdbcTypeCode(SqlTypes.TINYINT)
+    private Integer logicConsistencyScore;
+
+    @Column(name = "information_specificity_score")
+    @JdbcTypeCode(SqlTypes.TINYINT)
+    private Integer informationSpecificityScore;
+
+    @Column(name = "reference_index")
+    @JdbcTypeCode(SqlTypes.TINYINT)
+    private Integer referenceIndex;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;

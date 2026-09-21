@@ -17,6 +17,8 @@ public class AnswererController {
     public ApiResponse<AnswererService.AnswererPage> search(
         @CurrentUser User currentUser,
         @RequestParam(required = false) String keyword,
+        @RequestParam(required = false) String sortBy,
+        @RequestParam(required = false) String sortDirection,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size
     ) {
@@ -24,6 +26,8 @@ public class AnswererController {
             answererService.search(
                 currentUser.getId(),
                 keyword,
+                sortBy,
+                sortDirection,
                 page,
                 size
             )
@@ -37,5 +41,19 @@ public class AnswererController {
     ) {
         return ApiResponse.ok(answererService.detail(currentUser.getId(), uid));
     }
+
+    @PutMapping("/{uid}/experiences/{certificationId}/like")
+    public ApiResponse<AnswererService.ExperienceLikeView> setExperienceLike(
+        @CurrentUser User currentUser,
+        @PathVariable String uid,
+        @PathVariable Long certificationId,
+        @RequestBody ExperienceLikeRequest request
+    ) {
+        return ApiResponse.ok(
+            answererService.setExperienceLike(currentUser.getId(), uid, certificationId, request.liked())
+        );
+    }
+
+    public record ExperienceLikeRequest(boolean liked) {}
 
 }

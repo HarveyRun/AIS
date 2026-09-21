@@ -47,6 +47,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
   bool get _showBottomNavigation =>
       !widget.location.startsWith('/profile/certifications/experiences') &&
       !widget.location.startsWith('/profile/settings') &&
+      !widget.location.startsWith('/profile/inquiry-settings') &&
       !widget.location.startsWith('/answerers/');
 
   @override

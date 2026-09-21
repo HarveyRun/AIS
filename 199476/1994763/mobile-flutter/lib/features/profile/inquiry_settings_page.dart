@@ -260,7 +260,7 @@ class _HourlyRateSheetState extends ConsumerState<_HourlyRateSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              '此费用用于计算语音通话的实际费用。',
+              '此费用用于语音通话的时长计费。',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 18),
