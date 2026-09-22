@@ -1,0 +1,72 @@
+{
+  "slug": "au-vic-nomination",
+  "name": "维州 190/491 州担保提名",
+  "nameEn": "Victoria State Nomination (190/491) via ROI",
+  "country": "australia",
+  "region": "victoria",
+  "type": "skilled",
+  "status": "active",
+  "summary": "墨尔本采用 ROI 登记制择优：看教育背景（STEM/医学）、薪资收入、技能短缺职业与对维州的贡献潜力。",
+  "suitableFor": "在维州工作且收入可观的 STEM/医疗人才、维州毕业生；愿意用「登记-等待邀请」节奏规划的人。",
+  "difficulty": "mid",
+  "highlights": [
+    "评估维度多元，不只看打分",
+    "对高收入、STEM、医学背景明显友好",
+    "医疗、教育、工程职业常年短缺"
+  ],
+  "requirements": [
+    { "title": "递交 ROI（登记意向）", "detail": "在维州政府系统登记职业、薪资、学历与维州连接，等待择优邀请。" },
+    { "title": "190 主要面向在维州工作者", "detail": "通常需在维州从事提名职业、收入达标；维州毕业生有专门通道。" },
+    { "title": "491 面向偏远地区", "detail": "需偏远地区 job offer 或本地毕业生身份。" },
+    { "title": "基础门槛", "detail": "职业评估 + EOI 65 分 + 英语能力要求与联邦一致。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 30000, "max": 90000, "currency": "CNY" },
+    "note": "维州 190 提名需缴纳提名费（数百澳元）；其余费用与联邦签证一致。",
+    "breakdown": [
+      { "item": "签证申请费", "amount": "约 4,765 澳元/主申" },
+      { "item": "维州提名费", "amount": "约 500-800 澳元" },
+      { "item": "职业评估 + 语言考试", "amount": "约 8,000-20,000 元人民币" },
+      { "item": "体检、无犯罪、公证翻译", "amount": "约 5,000-10,000 元人民币" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 12, "max": 30 },
+    "note": "ROI 等待邀请时间不可控（按轮次择优）；获邀后流程与 190/491 一致。",
+    "steps": [
+      { "title": "职业评估与 EOI 入池", "detail": "确认符合维州目标通道基本条件。", "durationHint": "3-9 个月" },
+      { "title": "递交 ROI 登记", "detail": "如实填写薪资、学历与维州连接信息。", "durationHint": "-" },
+      { "title": "获邀递交州提名申请", "detail": "受邀后正式申请提名并缴费。", "durationHint": "4-8 周" },
+      { "title": "递交联邦签证并获批", "detail": "体检背调后登陆墨尔本或偏远地区。", "durationHint": "6-12 个月" }
+    ]
+  },
+  "materials": [
+    "ROI 登记材料",
+    "维州雇佣合同与薪资证明（190）",
+    "职业评估与 EOI 佐证",
+    "英语成绩、学历、经验证明",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    { "label": "Live in Melbourne - 维州移民官方页面", "url": "https://liveinmelbourne.vic.gov.au/migrate" }
+  ],
+  "commonRejections": [
+    "薪资未达通道隐形门槛（190 择优看重收入）",
+    "职业与维州优先领域关联弱",
+    "ROI 信息与实际材料不符"
+  ],
+  "risks": [
+    "ROI 择优标准为内部裁量，获邀不确定性高于打分明示的州",
+    "墨尔本房价生活成本高",
+    "每财年政策调整频繁"
+  ],
+  "eligibility": {
+    "minEducation": 3,
+    "minLanguage": 2,
+    "minBudgetTier": "low",
+    "ageRange": { "min": 22, "max": 42 },
+    "needsJobOffer": true,
+    "note": "190 通道实质要求维州本地高技能就业；海外直申难度大。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}

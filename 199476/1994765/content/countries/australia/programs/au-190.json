@@ -1,0 +1,70 @@
+{
+  "slug": "au-190",
+  "name": "190 州担保技术移民",
+  "nameEn": "Skilled Nominated Visa (Subclass 190)",
+  "country": "australia",
+  "type": "skilled",
+  "status": "active",
+  "summary": "州政府提名 +5 分、一步到位的永居签证；各州挑选标准不同，是分数不够 189 的申请人的主力通道。",
+  "suitableFor": "打分在 80-90 区间、愿意按州的标准就业定居的技术人才；本州毕业生优势明显。",
+  "difficulty": "mid",
+  "highlights": [
+    "州提名加 5 分，一步到位永居",
+    "各州标准不同，可多州同时尝试",
+    "本州毕业生与本地工作者优先级高"
+  ],
+  "requirements": [
+    { "title": "职业评估 + EOI 打分 65 分以上", "detail": "与 189 同源的 SkillSelect 打分；获州提名后总分 +5。" },
+    { "title": "满足目标州的提名标准", "detail": "各州对职业范围、最低分、本州毕业生身份、本地工作时长各有规定——请结合省州页面查看。" },
+    { "title": "获州提名", "detail": "被州政府选中后获提名函，再递交 190 签证申请。" },
+    { "title": "英语与年龄", "detail": "最低能力英语（雅思四个 6）；45 周岁以下。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 30000, "max": 90000, "currency": "CNY" },
+    "note": "部分州收取提名申请费（数百澳元）；整体费用结构与 189 相近。",
+    "breakdown": [
+      { "item": "签证申请费", "amount": "约 4,765 澳元/主申" },
+      { "item": "州提名费", "amount": "0-800 澳元（因州而异）" },
+      { "item": "职业评估 + 语言考试", "amount": "约 8,000-20,000 元人民币" },
+      { "item": "体检、无犯罪、公证翻译", "amount": "约 5,000-10,000 元人民币" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 12, "max": 30 },
+    "note": "含职评与等待提名时间；获提名后签证审理约 6-12 个月。",
+    "steps": [
+      { "title": "职业评估与 EOI 入池", "detail": "锁定提名职业，递交 SkillSelect EOI。", "durationHint": "3-9 个月" },
+      { "title": "研究并投递州提名", "detail": "按各州财年政策递交 ROI/直接申请，多州并行提高概率。", "durationHint": "1-6 个月" },
+      { "title": "获提名并递交签证", "detail": "60 天内递交 190 申请。", "durationHint": "-" },
+      { "title": "审理与获批登陆", "detail": "体检背调后获批；一般需在提名州定居约 2 年。", "durationHint": "6-12 个月" }
+    ]
+  },
+  "materials": [
+    "职业评估结果函",
+    "EOI 与打分佐证材料",
+    "州提名要求的目标州材料（offer、在读/毕业证明、居住证明等）",
+    "英语成绩、学历、经验证明",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    { "label": "内政部 - Subclass 190 官方页面", "url": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/skilled-nominated-190" }
+  ],
+  "commonRejections": [
+    "未满足州的具体要求（职业不在清单、居住/工作时长不足）",
+    "EOI 与州申请材料信息不一致",
+    "提名获批前搬离该州被视为虚假陈述"
+  ],
+  "risks": [
+    "州政策每财年更新，可能突然提高门槛或收窄职业清单",
+    "获批后需遵守在该州定居约 2 年的承诺"
+  ],
+  "eligibility": {
+    "minEducation": 3,
+    "minLanguage": 2,
+    "minBudgetTier": "low",
+    "ageRange": { "min": 22, "max": 43 },
+    "needsJobOffer": false,
+    "note": "竞争强度低于 189；具体按州页面要求核对。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}

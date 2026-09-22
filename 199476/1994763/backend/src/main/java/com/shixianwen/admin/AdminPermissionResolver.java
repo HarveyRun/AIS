@@ -85,6 +85,9 @@ public class AdminPermissionResolver {
             if (path.endsWith("/enabled")) return "BANNER_TOGGLE";
             return resource(method, path, "BANNER");
         }
+        if (path.startsWith("/api/admin/experience-categories")) {
+            return resource(method, path, "EXPERIENCE_CATEGORY");
+        }
         if (path.startsWith("/api/admin/app-versions")) {
             if (path.endsWith("/publish") || path.endsWith("/unpublish")) return "APP_VERSION_PUBLISH";
             return resource(method, path, "APP_VERSION");

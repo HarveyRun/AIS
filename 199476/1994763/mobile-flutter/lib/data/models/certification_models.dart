@@ -59,8 +59,31 @@ class ExperiencePublicMediaView {
   final List<CertificationMaterial> items;
 }
 
+class ExperienceCategoryOption {
+  const ExperienceCategoryOption({required this.id, required this.parentId, required this.name,
+    required this.recommendationGroup, required this.targetCategoryId});
+
+  factory ExperienceCategoryOption.fromJson(Map<String, dynamic> json) => ExperienceCategoryOption(
+    id: _int(json['id']),
+      parentId: _nullableInt(json['parentId']),
+      name: json['name']?.toString() ?? '',
+      recommendationGroup: json['recommendationGroup'] == true,
+      targetCategoryId: _nullableInt(json['targetCategoryId']),
+  );
+
+  final int id;
+  final int? parentId;
+  final String name;
+  final bool recommendationGroup;
+  final int? targetCategoryId;
+}
+
 class ExperienceAdditionalInfo {
   const ExperienceAdditionalInfo({
+    this.categoryId,
+    this.categoryParentId,
+    this.categoryName = '',
+    this.categoryParentName = '',
     this.location = '',
     this.startDate = '',
     this.endDate = '',
@@ -73,6 +96,10 @@ class ExperienceAdditionalInfo {
 
   factory ExperienceAdditionalInfo.fromJson(Map<String, dynamic> json) {
     return ExperienceAdditionalInfo(
+      categoryId: _nullableInt(json['experienceCategoryId']),
+      categoryParentId: _nullableInt(json['experienceCategoryParentId']),
+      categoryName: json['experienceCategoryName']?.toString() ?? '',
+      categoryParentName: json['experienceCategoryParentName']?.toString() ?? '',
       location: json['experienceLocation']?.toString() ?? '',
       startDate: json['experienceStartDate']?.toString() ?? '',
       endDate: json['experienceEndDate']?.toString() ?? '',
@@ -84,6 +111,10 @@ class ExperienceAdditionalInfo {
     );
   }
 
+  final int? categoryId;
+  final int? categoryParentId;
+  final String categoryName;
+  final String categoryParentName;
   final String location;
   final String startDate;
   final String endDate;
@@ -92,6 +123,24 @@ class ExperienceAdditionalInfo {
   final String ageRange;
   final String education;
   final String job;
+
+  ExperienceAdditionalInfo withCategory({
+    required ExperienceCategoryOption parent,
+    required ExperienceCategoryOption child,
+  }) => ExperienceAdditionalInfo(
+    categoryId: child.id,
+    categoryParentId: parent.id,
+    categoryName: child.name,
+    categoryParentName: parent.name,
+    location: location,
+    startDate: startDate,
+    endDate: endDate,
+    count: count,
+    role: role,
+    ageRange: ageRange,
+    education: education,
+    job: job,
+  );
 
   bool get isEmpty =>
       location.isEmpty &&

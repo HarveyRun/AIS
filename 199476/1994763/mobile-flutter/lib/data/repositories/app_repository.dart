@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 import '../models/answerer_models.dart';
 import '../models/app_version_models.dart';
 import '../models/app_global_settings.dart';
@@ -43,6 +46,13 @@ class AppRepository {
   Future<AppGlobalSettings> appGlobalSettings() async {
     final data = await _api.get<Map<String, dynamic>>('/app-settings');
     return AppGlobalSettings.fromJson(data);
+  }
+
+  Future<List<ExperienceCategoryOption>> experienceCategories() async {
+    final data = await _api.get<List<dynamic>>('/experience-categories');
+    return data.whereType<Map>().map((item) => ExperienceCategoryOption.fromJson(
+      Map<String, dynamic>.from(item),
+    )).toList(growable: false);
   }
 
   Future<CuratedMembership> curatedMembership({
@@ -365,6 +375,7 @@ class AppRepository {
     String keyword = '',
     String? sortBy,
     String? sortDirection,
+    int? categoryId,
   }) async {
     final data = await _api.get<Map<String, dynamic>>(
       '/answerers',
@@ -374,6 +385,7 @@ class AppRepository {
         'keyword': keyword,
         if (sortBy != null) 'sortBy': sortBy,
         if (sortDirection != null) 'sortDirection': sortDirection,
+        if (categoryId != null) 'categoryId': categoryId,
       },
     );
     return AnswererPageData.fromJson(data);
@@ -745,39 +757,133 @@ class AppRepository {
     required String description,
     required ExperienceAdditionalInfo additionalInfo,
     UploadFile? proofArchive,
+    String? proofUploadId,
     bool removeProofArchive = false,
   }) async {
+    final fields = <String, dynamic>{
+      if (existingId != null) 'existingId': existingId,
+      'title': title,
+      'description': description,
+      if (additionalInfo.categoryId != null)
+        'experienceCategoryId': additionalInfo.categoryId,
+      if (additionalInfo.location.isNotEmpty)
+        'experienceLocation': additionalInfo.location,
+      if (additionalInfo.startDate.isNotEmpty)
+        'experienceStartDate': additionalInfo.startDate,
+      if (additionalInfo.endDate.isNotEmpty)
+        'experienceEndDate': additionalInfo.endDate,
+      if (additionalInfo.count != null) 'experienceCount': additionalInfo.count,
+      if (additionalInfo.role.isNotEmpty) 'experienceRole': additionalInfo.role,
+      if (additionalInfo.ageRange.isNotEmpty)
+        'experienceAgeRange': additionalInfo.ageRange,
+      if (additionalInfo.education.isNotEmpty)
+        'experienceEducation': additionalInfo.education,
+      if (additionalInfo.job.isNotEmpty) 'experienceJob': additionalInfo.job,
+      'removeProofArchive': removeProofArchive,
+      if (proofUploadId != null) 'proofUploadId': proofUploadId,
+    };
     await _api.post<Object?>(
       '/certifications/experiences',
-      data: FormData.fromMap({
-        if (existingId != null) 'existingId': existingId,
-        'title': title,
-        'description': description,
-        if (additionalInfo.location.isNotEmpty)
-          'experienceLocation': additionalInfo.location,
-        if (additionalInfo.startDate.isNotEmpty)
-          'experienceStartDate': additionalInfo.startDate,
-        if (additionalInfo.endDate.isNotEmpty)
-          'experienceEndDate': additionalInfo.endDate,
-        if (additionalInfo.count != null)
-          'experienceCount': additionalInfo.count,
-        if (additionalInfo.role.isNotEmpty)
-          'experienceRole': additionalInfo.role,
-        if (additionalInfo.ageRange.isNotEmpty)
-          'experienceAgeRange': additionalInfo.ageRange,
-        if (additionalInfo.education.isNotEmpty)
-          'experienceEducation': additionalInfo.education,
-        if (additionalInfo.job.isNotEmpty) 'experienceJob': additionalInfo.job,
-        'removeProofArchive': removeProofArchive,
-        if (proofArchive != null)
-          'proofArchive': await MultipartFile.fromFile(
-            proofArchive.path,
-            filename: proofArchive.name,
-          ),
-      }),
-      sendTimeout: const Duration(hours: 2),
-      receiveTimeout: const Duration(hours: 2),
+      data: proofArchive == null
+          ? fields
+          : FormData.fromMap({
+              ...fields,
+              'proofArchive': await MultipartFile.fromFile(
+                proofArchive.path,
+                filename: proofArchive.name,
+              ),
+            }),
     );
+  }
+
+  Future<String?> uploadExperienceProof(
+    UploadFile file, {
+    void Function(double progress)? onProgress,
+  }) async {
+    final source = File(file.path);
+    final size = await source.length();
+    final capabilities = await _api.get<Map<String, dynamic>>(
+      '/certifications/experience-uploads/capabilities',
+      showLoading: false,
+    );
+    if (capabilities['directUploadAvailable'] != true) {
+      if (size > 500 * 1024 * 1024) {
+        throw const ApiException('本地存储模式下，证明资料不能超过500MB');
+      }
+      return null;
+    }
+    final initiated = await _api.post<Map<String, dynamic>>(
+      '/certifications/experience-uploads',
+      data: {'name': file.name, 'size': size},
+      showLoading: false,
+    );
+    final uploadId = initiated['uploadId'] as String;
+    final partSize = initiated['partSize'] as int;
+    final partCount = initiated['partCount'] as int;
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 15)
+      ..idleTimeout = const Duration(minutes: 3);
+    try {
+      for (var part = 1; part <= partCount; part++) {
+        final offset = (part - 1) * partSize;
+        final end = offset + partSize > size ? size : offset + partSize;
+        var uploaded = false;
+        for (var attempt = 0; attempt < 3 && !uploaded; attempt++) {
+          HttpClientRequest? request;
+          try {
+            final signed = await _api.post<Map<String, dynamic>>(
+              '/certifications/experience-uploads/$uploadId/parts/$part',
+              showLoading: false,
+            );
+            final url = Uri.parse(signed['url'] as String);
+            if (url.scheme != 'https') {
+              throw StateError('文件上传地址不安全');
+            }
+            request = await client.putUrl(url);
+            request.contentLength = end - offset;
+            await request
+                .addStream(source.openRead(offset, end))
+                .timeout(const Duration(minutes: 3));
+            final response = await request.close().timeout(
+              const Duration(minutes: 3),
+            );
+            await response.drain<void>();
+            if (response.statusCode < 200 || response.statusCode >= 300) {
+              throw HttpException('OSS 上传失败（${response.statusCode}）');
+            }
+            uploaded = true;
+          } catch (_) {
+            request?.abort();
+            if (attempt == 2) rethrow;
+            await Future<void>.delayed(Duration(seconds: attempt + 1));
+          }
+        }
+        onProgress?.call(end / size);
+      }
+      for (var attempt = 0; attempt < 3; attempt++) {
+        try {
+          await _api.post<Map<String, dynamic>>(
+            '/certifications/experience-uploads/$uploadId/complete',
+            showLoading: false,
+          );
+          break;
+        } catch (_) {
+          if (attempt == 2) rethrow;
+          await Future<void>.delayed(Duration(seconds: attempt + 1));
+        }
+      }
+      return uploadId;
+    } catch (_) {
+      try {
+        await _api.post<Object?>(
+          '/certifications/experience-uploads/$uploadId/abort',
+          showLoading: false,
+        );
+      } catch (_) {}
+      rethrow;
+    } finally {
+      client.close(force: true);
+    }
   }
 
   Future<void> deleteExperience(int certificationId) async {

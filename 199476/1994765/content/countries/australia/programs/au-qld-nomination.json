@@ -1,0 +1,72 @@
+{
+  "slug": "au-qld-nomination",
+  "name": "昆州 190/491 州担保提名",
+  "nameEn": "Queensland State Nomination (190/491)",
+  "country": "australia",
+  "region": "queensland",
+  "type": "skilled",
+  "status": "active",
+  "summary": "昆州对本地毕业生、本地工作者与偏远地区小企业主设有明确通道，190/491 双轨并行。",
+  "suitableFor": "昆州毕业生、已在布里斯班/黄金海岸工作的申请人，以及愿意在昆州偏远地区创业或就业的人。",
+  "difficulty": "mid",
+  "highlights": [
+    "通道划分清晰，条件可预期",
+    "491 覆盖大片低成本偏远地区",
+    "小企业主通道为生意人提供跳板"
+  ],
+  "requirements": [
+    { "title": "190：昆州连接", "detail": "昆州毕业生（硕博有专门政策）或在昆州从事提名职业满一定时长、有合格 job offer 的工作者。" },
+    { "title": "491：偏远地区就业", "detail": "布里斯班、黄金海岸以外的偏远地区 job offer 或已工作一定时长。" },
+    { "title": "491 小企业主通道", "detail": "在昆州偏远地区购买/建立企业、投资额与营业额达标并经营满一定时间。" },
+    { "title": "基础门槛", "detail": "职业评估 + EOI 打分 + 英语要求与联邦一致；部分职业有州内注册要求（如护理、教师）。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 30000, "max": 90000, "currency": "CNY" },
+    "note": "昆州 190 提名需缴费（约 900 澳元），491 约 600 澳元（以当年公布为准）。",
+    "breakdown": [
+      { "item": "签证申请费", "amount": "约 4,765 澳元/主申" },
+      { "item": "昆州提名费", "amount": "约 600-900 澳元" },
+      { "item": "职业评估 + 语言考试", "amount": "约 8,000-20,000 元人民币" },
+      { "item": "（491 小企业通道）投资经营资金", "amount": "约 10-40 万澳元规模" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 12, "max": 30 },
+    "note": "配额开放后申请集中，先到先得特征明显；获提名后签证审理 6-12 个月。",
+    "steps": [
+      { "title": "职业评估与 EOI 入池", "detail": "确认昆州本财年通道与职业范围。", "durationHint": "3-9 个月" },
+      { "title": "递交昆州提名申请", "detail": "配额开放期间递交；材料包括州内连接证明。", "durationHint": "4-12 周" },
+      { "title": "获提名递交联邦签证", "detail": "60 天内递交 190/491。", "durationHint": "-" },
+      { "title": "获批登陆昆州", "detail": "190 获批后在昆州定居约 2 年；491 按偏远地区要求居住。", "durationHint": "6-12 个月" }
+    ]
+  },
+  "materials": [
+    "职业评估结果函与 EOI 佐证",
+    "昆州居住、工作或就读证明",
+    "（491）偏远地区 offer/经营证明",
+    "英语成绩、学历、经验证明",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    { "label": "Queensland Government - 州担保官方页面", "url": "https://migration.qld.gov.au/" }
+  ],
+  "commonRejections": [
+    "昆州工作/居住时长不达标",
+    "职业不在本财年接受范围",
+    "小企业主通道的经营真实性存疑"
+  ],
+  "risks": [
+    "财年配额开放即紧张，需提前整备材料",
+    "小企业主通道投入大、经营风险自担",
+    "凯恩斯等偏远地区就业机会有限，提前调研行业"
+  ],
+  "eligibility": {
+    "minEducation": 3,
+    "minLanguage": 2,
+    "minBudgetTier": "low",
+    "ageRange": { "min": 22, "max": 43 },
+    "needsJobOffer": false,
+    "note": "本地连接（毕业/工作/经营）是各通道共同主线。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}

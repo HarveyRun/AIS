@@ -1,0 +1,70 @@
+{
+  "slug": "us-niw",
+  "name": "EB-2 NIW 国家利益豁免",
+  "nameEn": "EB-2 National Interest Waiver",
+  "country": "usa",
+  "type": "talent",
+  "status": "active",
+  "summary": "高学历人才可豁免雇主与劳工证的 EB-2 路径：证明你的工作对美国国家利益有实质价值，硕士/博士是主流画像。",
+  "suitableFor": "硕士及以上学历、有论文/项目/落地成果的科研、工程、医疗、AI 等领域人才；比 EB-1A 门槛低、比雇主担保自由。",
+  "difficulty": "high",
+  "highlights": [
+    "无需雇主 offer、无需 PERM 劳工证",
+    "学历门槛友好（高级学位即可，本科+5年经验等同）",
+    " STEM 方向在现行政策下论证更顺"
+  ],
+  "requirements": [
+    { "title": "高级学位或杰出能力", "detail": "硕士以上；或本科 + 5 年递进经验；或证明科学/艺术/商业领域的杰出能力（6 项标准满足 3 项）。" },
+    { "title": "Dhanasar 三要素论证", "detail": "① 工作领域有实质价值与全国性重要意义；② 申请人处于推进该领域的有利位置；③ 豁免劳工证对美利大于弊。" },
+    { "title": "证据重点", "detail": "论文与引用、基金项目、技术落地/产业化证据、推荐信；「计划」部分要能自圆其说。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 60000, "max": 200000, "currency": "CNY" },
+    "note": "结构与 EB-1A 类似：律师费是大头，整体通常略低于 EB-1A。",
+    "breakdown": [
+      { "item": "I-140 申请费", "amount": "约 715 美元" },
+      { "item": "加急费（可选）", "amount": "2,805 美元" },
+      { "item": "绿卡阶段费用", "amount": "约 1,200-1,500 美元/人" },
+      { "item": "律师服务费", "amount": "约 0.8-2.5 万美元不等" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 18, "max": 40 },
+    "note": "I-140 可加急；EB-2 排期长于 EB-1，中国大陆出生申请人需耐心等待。",
+    "steps": [
+      { "title": "定位评估与证据规划", "detail": "判断走高级学位还是杰出能力叙事。", "durationHint": "1-2 个月" },
+      { "title": "准备并递交 I-140（NIW）", "detail": "论证 Dhanasar 三要素。", "durationHint": "2-4 个月" },
+      { "title": "等待排期", "detail": "关注签证公告 EB-2 排期。", "durationHint": "视排期而定" },
+      { "title": "绿卡阶段", "detail": "I-485 或领事程序；获批 10 年绿卡。", "durationHint": "6-14 个月" }
+    ]
+  },
+  "materials": [
+    "学位证书与成绩单",
+    "论文、引用、基金证明",
+    "技术落地/应用证明（专利、产品、项目验收）",
+    "推荐信 3-6 封",
+    "个人陈述与赴美计划",
+    "护照等身份文件"
+  ],
+  "officialSources": [
+    { "label": "USCIS - NIW 政策手册章节", "url": "https://www.uscis.gov/policy-manual/volume-6-part-f-chapter-5" }
+  ],
+  "commonRejections": [
+    "领域「全国重要性」论证空泛（自嗨式陈述）",
+    "证据未能证明「处于有利位置」",
+    "推荐信与个人叙事不匹配"
+  ],
+  "risks": [
+    "EB-2 排期波动大，总周期可能显著拉长",
+    " NIW 案量激增后审理标准趋严",
+    "文科/商科方向论证难度高于 STEM"
+  ],
+  "eligibility": {
+    "minEducation": 4,
+    "minLanguage": 1,
+    "minBudgetTier": "low",
+    "needsJobOffer": false,
+    "note": "本科需搭配 5 年递进经验；STEM 背景通过率显著更高。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}

@@ -93,6 +93,11 @@ async function downloadWithdrawalFile(path) {
 }
 
 export const adminApi = {
+  experienceCategories: () => request('/experience-categories'),
+  createExperienceCategory: (body) => request('/experience-categories', { method: 'POST', body: JSON.stringify(body) }),
+  updateExperienceCategory: (id, body) => request(`/experience-categories/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  setExperienceCategoryEnabled: (id, enabled) => request(`/experience-categories/${id}/enabled`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
+  deleteExperienceCategory: (id) => request(`/experience-categories/${id}`, { method: 'DELETE' }),
   setupStatus: () => request('/auth/setup-status'),
   setup: (body) => request('/auth/setup', { method: 'POST', body: JSON.stringify(body) }),
   login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),

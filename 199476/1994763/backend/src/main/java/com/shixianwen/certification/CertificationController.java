@@ -2,6 +2,7 @@ package com.shixianwen.certification;
 
 import com.shixianwen.auth.CurrentUser;
 import com.shixianwen.common.ApiResponse;
+import com.shixianwen.common.BusinessException;
 import com.shixianwen.user.User;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -50,11 +51,16 @@ public class CertificationController {
         @RequestParam(required = false) String experienceAgeRange,
         @RequestParam(required = false) String experienceEducation,
         @RequestParam(required = false) String experienceJob,
+        @RequestParam(required = false) Long experienceCategoryId,
         @RequestParam(defaultValue = "false") boolean removeProofArchive,
+        @RequestParam(required = false) String proofUploadId,
         @RequestPart(value = "reviewOriginal", required = false) MultipartFile legacyReviewOriginal,
         @RequestPart(value = "proofArchive", required = false) MultipartFile proofArchive,
         @RequestPart(value = "files", required = false) List<MultipartFile> legacyFiles
     ) {
+        if (experienceCategoryId == null) {
+            throw BusinessException.badRequest("请选择经历分类");
+        }
         return ApiResponse.ok(certificationService.submitExperience(
             user,
             existingId,
@@ -72,7 +78,30 @@ public class CertificationController {
             legacyReviewOriginal,
             proofArchive,
             legacyFiles == null ? List.of() : legacyFiles,
-            clientPlatform
+            clientPlatform,
+            proofUploadId,
+            experienceCategoryId
+        ));
+    }
+
+    @PostMapping(value = "/experiences", consumes = "application/json")
+    public ApiResponse<CertificationService.CertificationView> submitExperienceMetadata(
+        @CurrentUser User user,
+        @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform,
+        @RequestBody ExperienceSubmission request
+    ) {
+        if (request.experienceCategoryId() == null) {
+            throw BusinessException.badRequest("请选择经历分类");
+        }
+        return ApiResponse.ok(certificationService.submitExperience(
+            user, request.existingId(), request.title(), request.description(),
+            request.experienceLocation(), request.experienceStartDate(),
+            request.experienceEndDate(), request.experienceCount(),
+            request.experienceRole(), request.experienceAgeRange(),
+            request.experienceEducation(), request.experienceJob(),
+            Boolean.TRUE.equals(request.removeProofArchive()),
+            null, null, List.of(), clientPlatform, request.proofUploadId(),
+            request.experienceCategoryId()
         ));
     }
 
@@ -104,5 +133,22 @@ public class CertificationController {
 
     public record PublicMediaRequest(List<Long> selectedIds) {
     }
+
+    public record ExperienceSubmission(
+        Long existingId,
+        String title,
+        String description,
+        String experienceLocation,
+        String experienceStartDate,
+        String experienceEndDate,
+        Integer experienceCount,
+        String experienceRole,
+        String experienceAgeRange,
+        String experienceEducation,
+        String experienceJob,
+        Long experienceCategoryId,
+        Boolean removeProofArchive,
+        String proofUploadId
+    ) {}
 
 }

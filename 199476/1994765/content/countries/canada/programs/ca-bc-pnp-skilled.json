@@ -1,0 +1,74 @@
+{
+  "slug": "ca-bc-pnp-skilled",
+  "name": "BC 省提名 · 技术移民（含 Tech 类）",
+  "nameEn": "BC PNP Skilled Worker / EEBC",
+  "country": "canada",
+  "region": "british-columbia",
+  "type": "employer",
+  "status": "active",
+  "summary": "持 BC 雇主 offer 经 SIRS 打分获省提名；科技类职业（Tech）单独邀请、频率高，是 IT 从业者登陆加拿大的热门通道。",
+  "suitableFor": "有 BC 雇主 offer 的技术/管理人才，尤其是科技类职业；愿定居温哥华及周边。",
+  "difficulty": "mid",
+  "highlights": [
+    "Tech 类别约每周定向邀请，节奏稳定",
+    "可走 EE 加速（EEBC），联邦阶段更快",
+    "温哥华科技岗位资源丰富"
+  ],
+  "requirements": [
+    { "title": "BC 雇主的全职长期 offer", "detail": "职业 TEER 0-3，雇主需满足经营年限与雇佣记录要求；科技类职业须在指定 Tech 职业清单内。" },
+    { "title": "SIRS 注册打分", "detail": "按职位、薪资、地区、经验、语言、学历打分，择优邀请；科技类单独池。" },
+    { "title": "语言 CLB 4-5 起", "detail": "EEBC 通道需满足联邦 FSW 入池要求（CLB 7 起）；技能移民类（SI）门槛较低但建议 CLB 5+。" },
+    { "title": "相关工作经验", "detail": "通常要求 2 年以上与 offer 职业直接相关的经验。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 300000, "max": 800000, "currency": "CNY" },
+    "note": "若自行求职拿到 offer，费用远低于此（仅政府规费）；上限含雇主资源类市场服务费。",
+    "breakdown": [
+      { "item": "BC 省提名费", "amount": "约 700-2,000 加元（按通道）" },
+      { "item": "联邦 PR 申请费 + 落地费", "amount": "约 1,525 加元/成人" },
+      { "item": "语言考试、ECA、体检、无犯罪", "amount": "约 8,000-15,000 元人民币" },
+      { "item": "（可选）雇主对接服务费", "amount": "市场价差异大", "note": "自行求职可省去" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 20, "max": 36 },
+    "note": "EEBC 联邦阶段约 6-8 个月；SI 通道联邦阶段约 12-18 个月。",
+    "steps": [
+      { "title": "取得 BC 雇主 offer", "detail": "确认雇主资质与职位薪资达标；科技类确认职业在 Tech 清单内。", "durationHint": "视个人情况" },
+      { "title": "SIRS 注册打分", "detail": "提交注册等待邀请；同步准备语言考试。", "durationHint": "2-6 个月" },
+      { "title": "获邀递交省提名", "detail": "30 天内递交完整材料，审核约 2-3 个月。", "durationHint": "3 个月" },
+      { "title": "联邦 PR 阶段", "detail": "EEBC 走 EE 快速通道或普通通道。", "durationHint": "6-18 个月" },
+      { "title": "获批登陆 BC", "detail": "定居温哥华或省内其他城市。", "durationHint": "-" }
+    ]
+  },
+  "materials": [
+    "BC 雇主 offer 与雇主资质材料",
+    "工作经验证明（推荐信 + 社保记录）",
+    "语言成绩单",
+    "学历证明（海外学历建议 ECA）",
+    "无犯罪证明与体检",
+    "资金证明"
+  ],
+  "officialSources": [
+    { "label": "BC 省政府 - BC PNP 官方页面", "url": "https://www.welcomebc.ca/Immigrate-to-B-C-/BC-PNP-Welcome" }
+  ],
+  "commonRejections": [
+    "雇主资质或职位薪资不达标",
+    "工作经验与 offer 职业关联性不足",
+    "语言成绩未达所选通道要求"
+  ],
+  "risks": [
+    "温哥华房价与生活成本全国前列",
+    "Tech 清单与邀请分数动态调整",
+    "省提名有居住意愿要求，获批后短期离开 BC 可能影响后续入籍审查"
+  ],
+  "eligibility": {
+    "minEducation": 3,
+    "minLanguage": 1,
+    "minBudgetTier": "low",
+    "needsJobOffer": true,
+    "ageRange": { "min": 22, "max": 45 },
+    "note": "科技类职业（软件、数据、设计、工程等）走 Tech 池竞争相对缓和。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}

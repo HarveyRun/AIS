@@ -42,6 +42,10 @@ public class Certification {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "experience_category_id")
+    private ExperienceCategory experienceCategory;
+
     @Column(name = "experience_location", length = 100)
     private String experienceLocation;
 

@@ -121,6 +121,11 @@ public class SecurityRateLimitFilter extends OncePerRequestFilter {
             && !"GET".equals(method) && !"HEAD".equals(method)) {
             return new Rule("ADMIN_RBAC_MUTATION", 30, 60_000L);
         }
+        // A 2GB proof archive has up to 256 parts. Signing URLs transfers no file bytes.
+        if (path.matches("/api/certifications/experience-uploads/[^/]+/parts/\\d+")
+            && "POST".equals(method)) {
+            return new Rule("PROOF_PART_SIGN", 1024, 60_000L);
+        }
         if ((path.contains("/images") || path.contains("/materials") || path.contains("/avatar"))
             && "POST".equals(method)) {
             return new Rule("UPLOAD", 20, 60_000);

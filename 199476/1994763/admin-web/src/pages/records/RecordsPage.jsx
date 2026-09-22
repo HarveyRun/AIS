@@ -559,6 +559,8 @@ const labels = {
   title: '标题',
   description: '说明',
   experienceLocation: '发生地点',
+  experienceCategoryParentName: '一级分类',
+  experienceCategoryName: '二级分类',
   experienceStartDate: '开始时间',
   experienceEndDate: '结束时间',
   experienceCount: '已经历的次数',

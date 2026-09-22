@@ -1,0 +1,71 @@
+{
+  "slug": "au-nsw-nomination",
+  "name": "新州 190/491 州担保提名",
+  "nameEn": "NSW State Nomination (190/491)",
+  "country": "australia",
+  "region": "nsw",
+  "type": "skilled",
+  "status": "active",
+  "summary": "新州直接从 SkillSelect 池中择优挑选：不填登记表，拼的就是分数、本地毕业生身份与本地工作经验。",
+  "suitableFor": "高分申请人（裸分 90+）、新州毕业生，或已在悉尼/偏远地区从事提名职业的工作者。",
+  "difficulty": "high",
+  "highlights": [
+    "无需额外登记表，流程简单",
+    "职业范围每财年公布，覆盖主流职业",
+    "悉尼就业市场全澳最大"
+  ],
+  "requirements": [
+    { "title": "职业在新州财年清单内", "detail": "每财年公布可提名职业（ANZSCO 码）；部分职业会注明最低分数与经验要求。" },
+    { "title": "EOI 打分有竞争力", "detail": "择优机制下，本财年获邀者多为 90-95 分；新州毕业生、新州长期工作者优先。" },
+    { "title": "新州连接（加分项）", "detail": "在新州居住、就业或完成学业能显著提高被选概率。" },
+    { "title": "491 面向偏远地区", "detail": "卧龙岗、纽卡斯尔等均属指定地区，要求相对 190 宽松。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 30000, "max": 90000, "currency": "CNY" },
+    "note": "新州提名本身不收费；费用结构与 190/491 签证一致。",
+    "breakdown": [
+      { "item": "签证申请费", "amount": "约 4,765 澳元/主申" },
+      { "item": "职业评估 + 语言考试", "amount": "约 8,000-20,000 元人民币" },
+      { "item": "体检、无犯罪、公证翻译", "amount": "约 5,000-10,000 元人民币" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 12, "max": 30 },
+    "note": "提名轮次贯穿整个财年；获提名后签证审理 6-12 个月。",
+    "steps": [
+      { "title": "职业评估与 EOI 入池", "detail": "确认职业在新州本财年清单内。", "durationHint": "3-9 个月" },
+      { "title": "等待新州择优挑选", "detail": "按分数与州内连接自动筛选，无需主动申请。", "durationHint": "1-9 个月" },
+      { "title": "获提名并递交签证", "detail": "14 天内确认提名，随后递交 190/491。", "durationHint": "-" },
+      { "title": "审理获批登陆悉尼", "detail": "190 获批后需在新州定居约 2 年。", "durationHint": "6-12 个月" }
+    ]
+  },
+  "materials": [
+    "职业评估结果函",
+    "EOI 打分佐证材料",
+    "新州居住/工作/就读证明",
+    "英语成绩、学历与经验证明",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    { "label": "NSW Government - 州担保官方页面", "url": "https://www.nsw.gov.au/immigration-nsw" }
+  ],
+  "commonRejections": [
+    "职业不在本财年清单内",
+    "分数或州内连接不具竞争力",
+    "EOI 信息过期未更新"
+  ],
+  "risks": [
+    "竞争全澳最激烈，纯海外低分申请人获邀概率低",
+    "每财年 7 月政策更新，职业清单与门槛波动大",
+    "悉尼生活成本全澳最高"
+  ],
+  "eligibility": {
+    "minEducation": 3,
+    "minLanguage": 2,
+    "minBudgetTier": "low",
+    "ageRange": { "min": 22, "max": 40 },
+    "needsJobOffer": false,
+    "note": "裸分 90+ 或有新州本地连接（毕业/工作）才有稳定机会。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}

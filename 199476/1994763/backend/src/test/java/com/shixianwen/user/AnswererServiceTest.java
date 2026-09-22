@@ -2,6 +2,7 @@ package com.shixianwen.user;
 
 import com.shixianwen.certification.CertificationPublicMediaService;
 import com.shixianwen.certification.CertificationRepository;
+import com.shixianwen.certification.ExperienceCategoryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -28,7 +29,8 @@ class AnswererServiceTest {
             users,
             mock(CertificationRepository.class),
             jdbc,
-            mock(CertificationPublicMediaService.class)
+            mock(CertificationPublicMediaService.class),
+            mock(ExperienceCategoryService.class)
         );
 
         AnswererService.AnswererPage result = service.search(1L, "", 0, 10);
@@ -72,6 +74,26 @@ class AnswererServiceTest {
         assertFalse(jdbc.sql.contains("DROP TABLE"));
     }
 
+    @Test
+    void categoryFilterUsesResolvedRealLeafIdsAlongsideKeywordAndSort() {
+        CapturingJdbcTemplate jdbc = new CapturingJdbcTemplate();
+        UserRepository users = mock(UserRepository.class);
+        User currentUser = new User();
+        currentUser.setId(1L);
+        currentUser.setAccountType("NORMAL");
+        when(users.findById(1L)).thenReturn(Optional.of(currentUser));
+        ExperienceCategoryService categories = mock(ExperienceCategoryService.class);
+        when(categories.matchingLeafIds(9L)).thenReturn(List.of(31L, 32L));
+        AnswererService service = new AnswererService(users, mock(CertificationRepository.class),
+            jdbc, mock(CertificationPublicMediaService.class), categories);
+
+        service.search(1L, "装修", "LIKE_COUNT", "DESC", 9L, 0, 20);
+
+        assertTrue(jdbc.sql.contains("ce.experience_category_id IN (?,?)"));
+        assertTrue(jdbc.sql.contains("ce.title LIKE"));
+        assertTrue(jdbc.sql.contains("ORDER BY COALESCE(el.like_count,0) DESC"));
+    }
+
     private AnswererService service(CapturingJdbcTemplate jdbc) {
         UserRepository users = mock(UserRepository.class);
         User currentUser = new User();
@@ -82,7 +104,8 @@ class AnswererServiceTest {
             users,
             mock(CertificationRepository.class),
             jdbc,
-            mock(CertificationPublicMediaService.class)
+            mock(CertificationPublicMediaService.class),
+            mock(ExperienceCategoryService.class)
         );
     }
 

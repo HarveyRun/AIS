@@ -1,0 +1,74 @@
+{
+  "slug": "au-189",
+  "name": "189 独立技术移民",
+  "nameEn": "Skilled Independent Visa (Subclass 189)",
+  "country": "australia",
+  "type": "skilled",
+  "status": "active",
+  "summary": "无需任何担保、全凭自身分数获邀的永居签证，是澳洲技术移民的「天花板」通道，但竞争分数水涨船高。",
+  "suitableFor": "年龄 25-33 岁、英语能考出高分（雅思四个 7-8）、职业在 MLTSSL 清单且职业评估通过的顶尖技术人才。",
+  "difficulty": "high",
+  "highlights": [
+    "一步到位永居，无地区限制",
+    "无需雇主、州或亲属担保",
+    "全程分数透明，可自我测算"
+  ],
+  "requirements": [
+    { "title": "职业在 MLTSSL 清单并通过职业评估", "detail": "IT 走 ACS、工程走 EA、会计走 CPA 等，评估机构各不相同，周期 2-4 个月。" },
+    { "title": "打分达到 65 分入池线（实际获邀远高于此）", "detail": "年龄、英语、学历、经验换算分数；近年热门职业获邀常需 85-95 分。" },
+    { "title": "年龄 45 周岁以下", "detail": "以获邀当天计算；25-32 岁年龄段分数最高。" },
+    { "title": "英语要求", "detail": "最低「能力英语」（雅思四个 6），但竞争层面需要「优异英语」（四个 7）甚至「超级英语」（四个 8）。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 25000, "max": 80000, "currency": "CNY" },
+    "note": "单人估算，含多次语言考试与职业评估；全家随行费用增加。",
+    "breakdown": [
+      { "item": "签证申请费", "amount": "约 4,765 澳元/主申" },
+      { "item": "职业评估", "amount": "约 500-1,500 澳元（因机构而异）" },
+      { "item": "语言考试", "amount": "约 2,000-6,000 元人民币（多次）" },
+      { "item": "体检、无犯罪、公证翻译", "amount": "约 5,000-10,000 元人民币" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 12, "max": 30 },
+    "note": "职评+备考 6-12 个月；获邀后审理约 6-12 个月。",
+    "steps": [
+      { "title": "职业评估", "detail": "确定 ANZSCO 职业码，向对应机构提交评估。", "durationHint": "2-4 个月" },
+      { "title": "英语备考与打分测算", "detail": "目标四个 7 起步；测算 65 分入池线与实际竞争力差距。", "durationHint": "3-9 个月" },
+      { "title": "SkillSelect 递交 EOI", "detail": "入池等待邀请，可同步申 190/491 增加机会。", "durationHint": "1-12 个月" },
+      { "title": "获邀递交签证", "detail": "60 天内递交 189 签证申请。", "durationHint": "1-2 周" },
+      { "title": "审理与体检背调", "detail": "补料、体检、无犯罪。", "durationHint": "6-12 个月" },
+      { "title": "获批登陆澳洲", "detail": "首次入境激活永居。", "durationHint": "-" }
+    ]
+  },
+  "materials": [
+    "职业评估结果函",
+    "英语成绩单（PTE/雅思）",
+    "学历学位证书与成绩单公证",
+    "工作经验证明（推荐信、社保记录）",
+    "护照、无犯罪证明、体检"
+  ],
+  "officialSources": [
+    { "label": "内政部 - Subclass 189 官方页面", "url": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/skilled-independent-189" },
+    { "label": "打分表（Points Test）", "url": "https://immi.homeaffairs.gov.au/visas/supporting/Pages/skilled/the-points-test.aspx" }
+  ],
+  "commonRejections": [
+    "职业评估与提名职业职责描述不符",
+    "经验证明材料不足（缺社保/个税佐证）",
+    "EOI 信息与实际材料不一致"
+  ],
+  "risks": [
+    "获邀分数线远高于 65 分入池线，海外申请人若无高分英语很难获邀",
+    "每财年配额与职业清单会调整",
+    "年龄临界（33+）后分数快速衰减"
+  ],
+  "eligibility": {
+    "minEducation": 3,
+    "minLanguage": 2,
+    "minBudgetTier": "low",
+    "ageRange": { "min": 22, "max": 40 },
+    "needsJobOffer": false,
+    "note": "65 分只是入池线；海外申请人建议按 85+ 分做规划。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}

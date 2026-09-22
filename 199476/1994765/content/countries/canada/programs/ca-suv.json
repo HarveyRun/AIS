@@ -1,0 +1,73 @@
+{
+  "slug": "ca-suv",
+  "name": "联邦创业移民（SUV）",
+  "nameEn": "Start-up Visa Program",
+  "country": "canada",
+  "type": "business",
+  "status": "active",
+  "summary": "获得指定机构（孵化器、VC 或天使投资）支持信后，全家一步到位拿 PR 的创业类项目，无年龄和学历硬性要求。",
+  "suitableFor": "有创业想法或愿意参与创新项目的申请人；语言基础尚可（CLB 5）、预算中等偏上、能接受较长审理周期。",
+  "difficulty": "mid",
+  "highlights": [
+    "无年龄、学历硬性要求，语言只需 CLB 5",
+    "一步到位 PR，配偶可工作、子女免费上学",
+    "支持信阶段可先申请工签提前登陆（创新驱动类）"
+  ],
+  "requirements": [
+    { "title": "获得指定机构的支持信", "detail": "孵化器（接受即可）、天使投资（≥7.5 万加元）或风投（≥20 万加元）三选一；实操中孵化器通道最常见。" },
+    { "title": "语言 CLB 5（约雅思 5 分）", "detail": "听、说、读、写四项均不低于 CLB 5。" },
+    { "title": "创业真实性", "detail": "有可落地的商业计划；近年开始核查企业真实运营（bearing、活跃度）。" },
+    { "title": "定居资金证明", "detail": "按家庭人数证明登陆后的生活资金（与联邦技术类标准一致）。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 200000, "max": 800000, "currency": "CNY" },
+    "note": "政府规费占比很小，主要开销是孵化器/服务机构的市场费用，行情差异极大；务必核实服务合同内容与分期方式。",
+    "breakdown": [
+      { "item": "PR 申请费 + 落地费", "amount": "约 1,525 加元/成人" },
+      { "item": "孵化器/服务机构费用", "amount": "市场价 3-15 万加元不等", "note": "差异极大，签约前重点核查" },
+      { "item": "语言考试", "amount": "约 2,000-3,000 元人民币" },
+      { "item": "体检、无犯罪、公证翻译等", "amount": "约 5,000-10,000 元人民币" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 24, "max": 48 },
+    "note": "支持信获取 6-12 个月 + 联邦 PR 审理（近年批次性较长）；创新驱动类可先申请工签提前登陆。",
+    "steps": [
+      { "title": "商业计划打磨与机构匹配", "detail": "准备 BP、路演，与指定孵化器沟通。", "durationHint": "3-6 个月" },
+      { "title": "获得支持信（LOS）", "detail": "孵化器评估通过后出具支持信并提交承诺证书。", "durationHint": "2-6 个月" },
+      { "title": "（可选）申请工签先行登陆", "detail": "创新驱动类别可申请特定工签，提前开展业务。", "durationHint": "3-6 个月" },
+      { "title": "递交全家 PR 申请", "detail": "支持信签发后 6 个月内递交。", "durationHint": "1-2 个月" },
+      { "title": "联邦审理", "detail": "体检、背调；近年审理周期波动较大。", "durationHint": "12-36 个月" },
+      { "title": "获批登陆并真实经营", "detail": "永居身份不因公司后续经营变化被撤销，但建议保持真实运营记录。", "durationHint": "-" }
+    ]
+  },
+  "materials": [
+    "指定机构支持信与承诺证书",
+    "商业计划书及相关证明材料",
+    "语言成绩单（CLB 5+）",
+    "资金证明（按家庭人数）",
+    "无犯罪证明与体检",
+    "护照及家庭关系文件"
+  ],
+  "officialSources": [
+    { "label": "IRCC - Start-up Visa 官方页面", "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/start-visa.html" },
+    { "label": "指定机构名单", "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/start-visa/designated-organizations.html" }
+  ],
+  "commonRejections": [
+    "商业计划缺乏真实性与可行性，被认定包装痕迹明显",
+    "支持信机构资质问题或后续撤回",
+    "资金来源解释不清"
+  ],
+  "risks": [
+    "市场服务费高昂且质量参差，签约前务必尽调",
+    "联邦审理周期近年明显拉长，节奏不可控",
+    " IRCC 对 SUV 全面收紧与类别调整的讨论持续，政策窗口可能变化"
+  ],
+  "eligibility": {
+    "minLanguage": 1,
+    "minBudgetTier": "mid",
+    "needsJobOffer": false,
+    "note": "对年龄学历无硬性要求，核心是拿到真实支持信。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}

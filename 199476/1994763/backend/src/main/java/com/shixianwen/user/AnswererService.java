@@ -2,6 +2,7 @@ package com.shixianwen.user;
 
 import com.shixianwen.certification.Certification;
 import com.shixianwen.certification.CertificationRepository;
+import com.shixianwen.certification.ExperienceCategoryService;
 import com.shixianwen.common.BusinessException;
 import com.shixianwen.certification.CertificationPublicMediaService;
 import org.springframework.stereotype.Service;
@@ -10,6 +11,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.ArrayList;
+import java.util.Collections;
 
 @Service
 public class AnswererService {
@@ -20,17 +23,20 @@ public class AnswererService {
     private final CertificationRepository certificationRepository;
     private final JdbcTemplate jdbc;
     private final CertificationPublicMediaService publicMediaService;
+    private final ExperienceCategoryService experienceCategoryService;
 
     public AnswererService(
         UserRepository userRepository,
         CertificationRepository certificationRepository,
         JdbcTemplate jdbc,
-        CertificationPublicMediaService publicMediaService
+        CertificationPublicMediaService publicMediaService,
+        ExperienceCategoryService experienceCategoryService
     ) {
         this.userRepository = userRepository;
         this.certificationRepository = certificationRepository;
         this.jdbc = jdbc;
         this.publicMediaService = publicMediaService;
+        this.experienceCategoryService = experienceCategoryService;
     }
 
     @Transactional(readOnly = true)
@@ -40,7 +46,7 @@ public class AnswererService {
         int page,
         int size
     ) {
-        return search(currentUserId, keyword, null, null, page, size);
+        return search(currentUserId, keyword, null, null, null, page, size);
     }
 
     @Transactional(readOnly = true)
@@ -52,7 +58,21 @@ public class AnswererService {
         int page,
         int size
     ) {
+        return search(currentUserId, keyword, sortBy, sortDirection, null, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public AnswererPage search(
+        Long currentUserId,
+        String keyword,
+        String sortBy,
+        String sortDirection,
+        Long categoryId,
+        int page,
+        int size
+    ) {
         String accountType = accountType(currentUserId);
+        List<Long> categoryLeafIds = categoryId == null ? List.of() : experienceCategoryService.matchingLeafIds(categoryId);
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
         String normalizedSortBy = normalizeSortBy(sortBy);
         String normalizedDirection = "ASC".equalsIgnoreCase(sortDirection) ? "ASC" : "DESC";
@@ -64,6 +84,17 @@ public class AnswererService {
         };
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, 50));
+        List<Object> queryArgs = new ArrayList<>(List.of(currentUserId, accountType,
+            normalizedKeyword, normalizedKeyword));
+        String categoryCondition = "";
+        if (categoryId != null) {
+            categoryCondition = categoryLeafIds.isEmpty() ? "AND 1=0 " :
+                "AND ce.experience_category_id IN (" +
+                    String.join(",", Collections.nCopies(categoryLeafIds.size(), "?")) + ") ";
+            queryArgs.addAll(categoryLeafIds);
+        }
+        queryArgs.add(safeSize + 1);
+        queryArgs.add(safePage * safeSize);
         List<ExperienceCardRow> rows = jdbc.query(
             "SELECT ce.id AS certification_id,u.id AS user_id FROM certifications ce " +
                 "JOIN users u ON u.id=ce.user_id " +
@@ -72,11 +103,10 @@ public class AnswererService {
                 "WHERE ce.category='EXPERIENCE' AND ce.status='APPROVED' AND ce.enabled=TRUE AND ce.deleted_at IS NULL " +
                 "AND u.id<>? AND u.account_type=? AND u.account_status='ACTIVE' AND u.accepting_inquiries=TRUE " +
                 "AND (?='' OR ce.title LIKE CONCAT('%',?,'%')) " +
+                categoryCondition +
                 "ORDER BY " + orderBy + " LIMIT ? OFFSET ?",
             (rs, rowNum) -> new ExperienceCardRow(rs.getLong("certification_id"), rs.getLong("user_id")),
-            currentUserId, accountType,
-            normalizedKeyword, normalizedKeyword,
-            safeSize + 1, safePage * safeSize
+            queryArgs.toArray()
         );
         boolean hasMore = rows.size() > safeSize;
         List<AnswererView> items = rows.stream().limit(safeSize)
@@ -154,6 +184,10 @@ public class AnswererService {
                     item.getExperienceLocation(), item.getExperienceStartDate(), item.getExperienceEndDate(),
                     item.getExperienceCount(), item.getExperienceRole(), item.getExperienceAgeRange(),
                     item.getExperienceEducation(), item.getExperienceJob(),
+                    item.getExperienceCategory() == null ? null : item.getExperienceCategory().getId(),
+                    item.getExperienceCategory() == null ? null : item.getExperienceCategory().getParent().getId(),
+                    item.getExperienceCategory() == null ? null : item.getExperienceCategory().getName(),
+                    item.getExperienceCategory() == null ? null : item.getExperienceCategory().getParent().getName(),
                     user.isAcceptingInquiries()
                         && currentQualification(user.getId()),
                     List.of(),
@@ -239,6 +273,10 @@ public class AnswererService {
         String experienceAgeRange,
         String experienceEducation,
         String experienceJob,
+        Long experienceCategoryId,
+        Long experienceCategoryParentId,
+        String experienceCategoryName,
+        String experienceCategoryParentName,
         boolean canInquire,
         List<ExperienceMaterialView> materials,
         List<ExperienceMaterialView> publicMedia

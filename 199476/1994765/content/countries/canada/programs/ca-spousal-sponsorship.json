@@ -1,0 +1,63 @@
+{
+  "slug": "ca-spousal-sponsorship",
+  "name": "配偶 / 同居伴侣担保",
+  "nameEn": "Spousal & Common-law Sponsorship",
+  "country": "canada",
+  "type": "family",
+  "status": "active",
+  "summary": "加拿大公民或永久居民担保配偶、同居伴侣及其子女获得永居的家庭团聚类项目，不设打分与学历语言门槛。",
+  "suitableFor": "配偶或同居伴侣已具有加拿大公民/PR 身份的家庭；担保人需满足收入基础要求并有真实关系证明。",
+  "difficulty": "low",
+  "highlights": [
+    "无学历、语言、年龄门槛",
+    "可境内申请，审理期间配偶可申请工签",
+    "审理目标约 12 个月"
+  ],
+  "requirements": [
+    { "title": "担保人资格", "detail": "年满 18 岁的加拿大公民或 PR；PR 须居住在加拿大；有足够收入承诺抚养被担保人（不设最低收入线的多数家庭类案件仍需证明有能力负担）。" },
+    { "title": "真实关系", "detail": "婚姻/同居关系真实且非主要为移民目的；同居伴侣需证明连续同居 12 个月以上。" },
+    { "title": "被担保人通过体检与背景审查", "detail": "无重大不予受理情形（严重犯罪等）。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 10000, "max": 25000, "currency": "CNY" },
+    "note": "单人/两口之家的政府规费与杂费估算；如委托顾问或律师，另计服务费。",
+    "breakdown": [
+      { "item": "担保+PR 申请费、落地费", "amount": "约 1,300-1,600 加元" },
+      { "item": "生物识别", "amount": "约 85 加元/人" },
+      { "item": "体检 + 无犯罪证明", "amount": "约 3,000-6,000 元人民币" },
+      { "item": "关系证明材料整理与翻译公证", "amount": "约 2,000-5,000 元人民币" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 10, "max": 16 },
+    "note": "官方审理目标为 12 个月，境内/境外通道略有差异。",
+    "steps": [
+      { "title": "确认担保人资格与申请通道", "detail": "境内（ spouse 已在加）或境外通道二选一。", "durationHint": "1-2 周" },
+      { "title": "准备关系证明材料", "detail": "共同财产、通讯记录、合照、证人声明等，越充分越好。", "durationHint": "1-2 个月" },
+      { "title": "递交申请", "detail": "担保人与被担保人材料同步递交。", "durationHint": "-" },
+      { "title": "审理与可能的面试", "detail": "部分案件会被要求面试核实关系真实性。", "durationHint": "约 12 个月" },
+      { "title": "获批登陆", "detail": "境内申请人获批后身份直接转为 PR。", "durationHint": "-" }
+    ]
+  },
+  "materials": [
+    "结婚证或同居关系证明（连续 12 个月）",
+    "关系真实性证据（共同账单、租赁合同、照片、聊天记录、机票行程等）",
+    "双方护照与身份文件",
+    "担保人公民/PR 证明",
+    "体检与无犯罪证明",
+    "收入与雇佣证明（担保人）"
+  ],
+  "officialSources": [
+    { "label": "IRCC - 家庭担保官方页面", "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/family-sponsorship/spouse-partner-children.html" }
+  ],
+  "commonRejections": [
+    "关系真实性存疑（证据单薄、时间线矛盾）",
+    "担保人收入证明不足或身份不符",
+    "隐瞒拒签史、婚姻史等重要信息"
+  ],
+  "risks": [
+    "假结婚属刑事犯罪且双方均被严惩，切勿尝试",
+    "关系在审理期间破裂会影响申请，需了解对应处理规则"
+  ],
+  "infoVerifiedAt": "2026-09-22"
+}

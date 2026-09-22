@@ -8,6 +8,7 @@ import com.shixianwen.storage.FileStorage;
 import com.shixianwen.storage.StoredFile;
 import com.shixianwen.storage.StorageVisibility;
 import com.shixianwen.storage.FileTypeDetector;
+import com.shixianwen.storage.OssFileStorage;
 import com.shixianwen.user.User;
 import com.shixianwen.user.UserRepository;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,12 @@ public class CertificationService {
     private final SensitiveWordService sensitiveWords;
     private final FileTypeDetector fileTypeDetector;
     private final AnalyticsEventService analytics;
+
+    @Autowired
+    private ExperienceProofUploadService proofUploads;
+
+    @Autowired
+    private ExperienceCategoryService experienceCategories;
 
     @Autowired
     private ApplicationEventPublisher events;
@@ -165,6 +172,61 @@ public class CertificationService {
             MultipartFile proofArchive,
             List<MultipartFile> legacyFiles,
             String clientPlatform) {
+        return submitExperience(
+            user, existingId, title, description, experienceLocation, experienceStartDate,
+            experienceEndDate, experienceCount, experienceRole, experienceAgeRange,
+            experienceEducation, experienceJob, removeProofArchive, legacyReviewOriginal,
+            proofArchive, legacyFiles, clientPlatform, null
+        );
+    }
+
+    @Transactional
+    public CertificationView submitExperience(
+            User user,
+            Long existingId,
+            String title,
+            String description,
+            String experienceLocation,
+            String experienceStartDate,
+            String experienceEndDate,
+            Integer experienceCount,
+            String experienceRole,
+            String experienceAgeRange,
+            String experienceEducation,
+            String experienceJob,
+            boolean removeProofArchive,
+            MultipartFile legacyReviewOriginal,
+            MultipartFile proofArchive,
+            List<MultipartFile> legacyFiles,
+            String clientPlatform,
+            String proofUploadId) {
+        return submitExperience(user, existingId, title, description, experienceLocation,
+            experienceStartDate, experienceEndDate, experienceCount, experienceRole,
+            experienceAgeRange, experienceEducation, experienceJob, removeProofArchive,
+            legacyReviewOriginal, proofArchive, legacyFiles, clientPlatform, proofUploadId, null);
+    }
+
+    @Transactional
+    public CertificationView submitExperience(
+            User user,
+            Long existingId,
+            String title,
+            String description,
+            String experienceLocation,
+            String experienceStartDate,
+            String experienceEndDate,
+            Integer experienceCount,
+            String experienceRole,
+            String experienceAgeRange,
+            String experienceEducation,
+            String experienceJob,
+            boolean removeProofArchive,
+            MultipartFile legacyReviewOriginal,
+            MultipartFile proofArchive,
+            List<MultipartFile> legacyFiles,
+            String clientPlatform,
+            String proofUploadId,
+            Long experienceCategoryId) {
         user = lockedUser(user);
         if (globalSettings != null && !globalSettings.current().experiencePublishEnabled()) {
             throw BusinessException.badRequest("平台暂时关闭了经历发布");
@@ -187,7 +249,14 @@ public class CertificationService {
             legacyReviewOriginal,
             legacyFiles
         );
-        if (removeProofArchive && present(normalizedProof)) {
+        boolean directProof = proofUploadId != null && !proofUploadId.isBlank();
+        if (directProof && present(normalizedProof)) {
+            throw BusinessException.badRequest("证明资料不能同时使用两种上传方式");
+        }
+        if (present(normalizedProof) && fileStorage instanceof OssFileStorage) {
+            throw BusinessException.badRequest("证明资料请直传 OSS，不要通过应用服务器上传");
+        }
+        if (removeProofArchive && (present(normalizedProof) || directProof)) {
             throw BusinessException.badRequest("移除和上传证明资料不能同时操作");
         }
         validateArchive(normalizedProof);
@@ -202,18 +271,32 @@ public class CertificationService {
         certification.setExperienceAgeRange(blankToNull(experienceAgeRange));
         certification.setExperienceEducation(blankToNull(experienceEducation));
         certification.setExperienceJob(maskOptional(experienceJob));
+        certification.setExperienceCategory(experienceCategoryId == null ? null :
+            experienceCategories.requireSelectableLeaf(experienceCategoryId));
         certification.setSourceClientPlatform(
             "IOS".equalsIgnoreCase(clientPlatform == null ? "" : clientPlatform.trim())
                 ? "IOS"
                 : "ANDROID"
         );
-        if (removeProofArchive || present(normalizedProof)) {
+        if (removeProofArchive || present(normalizedProof) || directProof) {
             for (String kind : EXPERIENCE_PROOF_KINDS) {
                 retireMaterialKind(certification, kind);
             }
         }
         if (present(normalizedProof)) {
             attachFile(certification, normalizedProof, "PROOF_ARCHIVE");
+        }
+        if (directProof) {
+            ExperienceProofUploadService.BoundProof proof = proofUploads.consume(user, proofUploadId);
+            CertificationMaterial material = new CertificationMaterial();
+            material.setCertification(certification);
+            material.setMaterialKind("PROOF_ARCHIVE");
+            material.setOriginalName(proof.originalName());
+            material.setStorageKey(proof.file().storageKey());
+            material.setPublicUrl(null);
+            material.setContentType(proof.file().contentType());
+            material.setFileSize(proof.file().size());
+            certification.getMaterials().add(material);
         }
         retireMaterialKind(certification, "SIGNATURE");
         certification.setPrivacyConfirmedAt(null);
@@ -622,6 +705,10 @@ public class CertificationService {
             String experienceAgeRange,
             String experienceEducation,
             String experienceJob,
+            Long experienceCategoryId,
+            Long experienceCategoryParentId,
+            String experienceCategoryName,
+            String experienceCategoryParentName,
             String status,
             boolean enabled,
             String rejectionReason,
@@ -647,6 +734,10 @@ public class CertificationService {
                     certification.getExperienceAgeRange(),
                     certification.getExperienceEducation(),
                     certification.getExperienceJob(),
+                    certification.getExperienceCategory() == null ? null : certification.getExperienceCategory().getId(),
+                    certification.getExperienceCategory() == null ? null : certification.getExperienceCategory().getParent().getId(),
+                    certification.getExperienceCategory() == null ? null : certification.getExperienceCategory().getName(),
+                    certification.getExperienceCategory() == null ? null : certification.getExperienceCategory().getParent().getName(),
                     certification.getStatus(), certification.isEnabled(),
                     certification.getRejectionReason(),
                     certification.getMediaProcessingStatus(),

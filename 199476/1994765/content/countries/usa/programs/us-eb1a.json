@@ -1,0 +1,73 @@
+{
+  "slug": "us-eb1a",
+  "name": "EB-1A 杰出人才移民",
+  "nameEn": "EB-1A Extraordinary Ability",
+  "country": "usa",
+  "type": "talent",
+  "status": "active",
+  "summary": "美国职业移民第一优先类：无需雇主、无需投资，凭个人成就证明「行业顶尖能力」，可加急审理。",
+  "suitableFor": "有硬核成就证据的科研、艺术、商业、体育、教育领域人才：论文与引用、奖项、评审经历、媒体报道、高薪、原创贡献等。",
+  "difficulty": "high",
+  "highlights": [
+    "无需雇主 offer，自行申请",
+    "第一优先类，排期短于 EB-2/EB-3",
+    "可申请加急（Premium Processing，15 个工作日出审理结果）"
+  ],
+  "requirements": [
+    { "title": "满足 10 项标准中的至少 3 项", "detail": "国际级奖项、协会会员（需杰出性）、媒体报道、评审经历、原创贡献、学术文章、艺术展览、领军/关键角色、高薪酬、商业成功。" },
+    { "title": "或一次性国际顶级成就", "detail": "诺贝尔奖、奥运奖牌等可直接认定（对绝大多数人不适用）。" },
+    { "title": "来美后继续在本领域工作", "detail": "需说明赴美后的工作计划与领域一致性。" },
+    { "title": "证据链质量是核心", "detail": "移民局看的是证据的说服力而非数量；定位报告（Petitioner 支持信与专家信）同样关键。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 80000, "max": 300000, "currency": "CNY" },
+    "note": "政府规费占比小，大头是移民律师/机构服务费，行情差异大；自行申请（pro se）可行但对文书要求极高。",
+    "breakdown": [
+      { "item": "I-140 申请费", "amount": "约 715 美元" },
+      { "item": "加急费（可选）", "amount": "2,805 美元" },
+      { "item": "移民签证/调整身份费", "amount": "约 1,200-1,500 美元/人" },
+      { "item": "律师服务费", "amount": "约 1-4 万美元不等" },
+      { "item": "体检、翻译公证", "amount": "约 3,000-8,000 元人民币" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 12, "max": 30 },
+    "note": "I-140 加急 15 个工作日；排期以国务院签证公告为准（中国大陆出生申请人需等待）。",
+    "steps": [
+      { "title": "背景评估与证据挖掘", "detail": "律师评估 10 项标准的命中情况，规划补强方向（约 3 项即可申请）。", "durationHint": "1-3 个月" },
+      { "title": "准备材料与递交 I-140", "detail": "推荐信、支持信、证据册；可选择加急。", "durationHint": "2-4 个月" },
+      { "title": "等待排期", "detail": "中国大陆出生申请人关注每月签证公告（表A/表B）。", "durationHint": "视排期而定" },
+      { "title": "递交 I-485（美国境内）或 DS-260 面签", "detail": "调整身份或领事程序二选一。", "durationHint": "6-14 个月" },
+      { "title": "获批绿卡", "detail": "首卡 10 年有效，无 conditional 限制。", "durationHint": "-" }
+    ]
+  },
+  "materials": [
+    "获奖证书与奖项证明",
+    "论文、引用记录（Google Scholar 等）",
+    "审稿/评审邀请记录",
+    "媒体报道原文与影响力说明",
+    "高薪证明（个税/银行流水）",
+    "专家推荐信 3-6 封",
+    "护照与个人履历"
+  ],
+  "officialSources": [
+    { "label": "USCIS - EB-1 官方页面", "url": "https://www.uscis.gov/working-in-the-united-states/permanent-workers/employment-based-immigration-first-preference-eb-1" },
+    { "label": "国务院签证公告（排期）", "url": "https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin.html" }
+  ],
+  "commonRejections": [
+    "证据堆砌但缺乏领域顶尖性的论证逻辑",
+    "推荐信模板化、与证据脱节",
+    "RFE（补件要求）回应不充分"
+  ],
+  "risks": [
+    "拒批率高取决于证据质量，需要专业评估而非自我感觉",
+    "中国大陆出生申请人有排期，总周期不可控",
+    "中介市场鱼龙混杂，「包装式申请」风险高"
+  ],
+  "eligibility": {
+    "minBudgetTier": "low",
+    "needsJobOffer": false,
+    "note": "无年龄学历硬门槛；成就是唯一通行证，预算主要为律师费。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}

@@ -13,6 +13,7 @@ import '../../data/repositories/app_repository.dart';
 import '../../data/models/app_global_settings.dart';
 import 'material_viewer.dart';
 import 'experience_additional_info_page.dart';
+import 'experience_category_picker.dart';
 
 class ExperienceFormPage extends ConsumerStatefulWidget {
   const ExperienceFormPage({super.key, this.id});
@@ -27,8 +28,12 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
   final _title = TextEditingController();
   final _description = TextEditingController();
   ExperienceAdditionalInfo _additionalInfo = const ExperienceAdditionalInfo();
+  List<ExperienceCategoryOption> _categories = const [];
+  Future<List<ExperienceCategoryOption>>? _categoryRequest;
   CertificationRecord? _record;
   PlatformFile? _proofArchive;
+  String? _completedProofUploadId;
+  double? _proofUploadProgress;
   bool _removeExistingProofArchive = false;
   bool _loading = false;
   bool _submitting = false;
@@ -66,12 +71,56 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
 
   Future<void> _initialize() async {
     try {
-      final AppGlobalSettings settings = await ref.read(repositoryProvider).appGlobalSettings();
+      final AppGlobalSettings settings = await ref
+          .read(repositoryProvider)
+          .appGlobalSettings();
       _titleMaxLength = settings.experienceTitleMaxLength;
       _descriptionMaxLength = settings.experienceDescriptionMaxLength;
       _maxProofArchiveBytes = settings.proofArchiveMaxBytes;
     } catch (_) {}
+    try { await _fetchCategories(); } catch (_) {}
     if (widget.id != null) await _load();
+  }
+
+  Future<List<ExperienceCategoryOption>> _fetchCategories() async {
+    final request = _categoryRequest ??=
+        ref.read(repositoryProvider).experienceCategories();
+    try {
+      final items = await request;
+      if (mounted) setState(() => _categories = items);
+      return items;
+    } finally {
+      _categoryRequest = null;
+    }
+  }
+
+  Future<void> _openCategoryPicker() async {
+    List<ExperienceCategoryOption> categories = _categories;
+    if (categories.isEmpty) {
+      try {
+        categories = await _fetchCategories();
+      } catch (_) {
+        if (mounted) AppMessage.show(context, '分类加载失败，请重试');
+        return;
+      }
+    }
+    if (!mounted) return;
+    if (categories.isEmpty) {
+      AppMessage.show(context, '暂无可选分类');
+      return;
+    }
+    final selected = await showExperienceCategoryPicker(
+      context,
+      categories: categories,
+      selectedParentId: _additionalInfo.categoryParentId,
+      selectedChildId: _additionalInfo.categoryId,
+    );
+    if (selected != null && mounted) {
+      setState(() => _additionalInfo = _additionalInfo.withCategory(
+        parent: selected.parent,
+        child: selected.child,
+      ));
+    }
   }
 
   @override
@@ -168,6 +217,8 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
     if (file != null && mounted) {
       setState(() {
         _proofArchive = file;
+        _completedProofUploadId = null;
+        _proofUploadProgress = null;
         _removeExistingProofArchive = false;
       });
     }
@@ -176,6 +227,8 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
   void _removeProofArchive() {
     setState(() {
       _proofArchive = null;
+      _completedProofUploadId = null;
+      _proofUploadProgress = null;
       _removeExistingProofArchive = true;
     });
   }
@@ -199,6 +252,10 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
       AppMessage.show(context, '经历标题最多$_titleMaxLength个字');
       return;
     }
+    if (_additionalInfo.categoryId == null) {
+      AppMessage.show(context, '请选择经历分类');
+      return;
+    }
     final description = _description.text.trim();
     if (description.isEmpty) {
       AppMessage.show(context, '请填写经历叙述');
@@ -213,14 +270,23 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
     setState(() => _submitting = true);
     try {
       final repository = ref.read(repositoryProvider);
+      if (_proofArchive != null && _completedProofUploadId == null) {
+        _completedProofUploadId = await repository.uploadExperienceProof(
+          UploadFile(path: _proofArchive!.path!, name: _proofArchive!.name),
+          onProgress: (progress) {
+            if (mounted) setState(() => _proofUploadProgress = progress);
+          },
+        );
+      }
       await repository.submitExperience(
         existingId: widget.id,
         title: _title.text.trim(),
         description: description,
         additionalInfo: _additionalInfo,
-        proofArchive: _proofArchive == null
-            ? null
-            : UploadFile(path: _proofArchive!.path!, name: _proofArchive!.name),
+        proofArchive: _proofArchive != null && _completedProofUploadId == null
+            ? UploadFile(path: _proofArchive!.path!, name: _proofArchive!.name)
+            : null,
+        proofUploadId: _completedProofUploadId,
         removeProofArchive: _removeExistingProofArchive,
       );
       if (!mounted) return;
@@ -263,205 +329,261 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
   );
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(widget.id == null ? '发布经历' : '经历详情')),
-    body: _loading
-        ? const SizedBox.shrink()
-        : ListView(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 110),
-            children: [
-              if (_record != null) ...[
-                _ExperienceStatus(record: _record!),
-                const SizedBox(height: 12),
-              ],
-              if (!_editable &&
-                  _record?.approved == true &&
-                  _hasPublicMediaConfiguration) ...[
-                _PublicMediaSection(
-                  data: _publicMedia,
-                  selectedIds: _selectedPublicMediaIds,
-                  saving: _savingPublicMedia,
-                  onToggle: (id) {
-                    setState(() {
-                      if (!_selectedPublicMediaIds.add(id)) {
-                        _selectedPublicMediaIds.remove(id);
-                      }
-                    });
-                  },
-                  onSave: _savePublicMedia,
-                ),
-                const SizedBox(height: 12),
-              ],
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '经历标题',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 7),
-                    TextField(
-                      controller: _title,
-                      enabled: _editable,
-                      maxLength: _titleMaxLength,
-                      inputFormatters: AppInputFormatters.description(_titleMaxLength),
-                      decoration: const InputDecoration(
-                        hintText: '例如：我的房屋装修经历',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '经历叙述',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ),
-                        if (_editable)
-                          TextButton(
-                            onPressed: _openAdditionalInfo,
-                            child: Text(
-                              _additionalInfo.isEmpty
-                                  ? '补充更多信息'
-                                  : '已填写${_additionalInfo.completedCount}项',
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 7),
-                    TextField(
-                      controller: _description,
-                      enabled: _editable,
-                      maxLength: _descriptionMaxLength,
-                      inputFormatters: AppInputFormatters.description(_descriptionMaxLength),
-                      minLines: 6,
-                      maxLines: 10,
-                      decoration: const InputDecoration(
-                        hintText:
-                            '请叙述您经历了什么、当时是什么身份、亲自做过哪些事，以及最后怎么样。\n\n例如：2023年我第一次装修自己的房子，当时什么都不懂。我自己找了装修公司，选的是半包，主材自己买。中间遇到过报价漏项、工期拖延，也跟着做了水电和完工验收，最后多花了两万多，延期一个月才住进去。',
-                      ),
-                    ),
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_submitting,
+    child: Scaffold(
+      appBar: AppBar(title: Text(widget.id == null ? '发布经历' : '经历详情')),
+      body: AbsorbPointer(
+        absorbing: _submitting,
+        child: _loading
+            ? const SizedBox.shrink()
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 110),
+                children: [
+                  if (_record != null) ...[
+                    _ExperienceStatus(record: _record!),
+                    const SizedBox(height: 12),
                   ],
-                ),
-              ),
-              if (!_editable && !_additionalInfo.isEmpty) ...[
-                const SizedBox(height: 12),
-                ExperienceAdditionalInfoCard(value: _additionalInfo),
-              ],
-              const SizedBox(height: 12),
-              if (_editable || _existingProofArchive != null)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+                  if (!_editable &&
+                      _record?.approved == true &&
+                      _hasPublicMediaConfiguration) ...[
+                    _PublicMediaSection(
+                      data: _publicMedia,
+                      selectedIds: _selectedPublicMediaIds,
+                      saving: _savingPublicMedia,
+                      onToggle: (id) {
+                        setState(() {
+                          if (!_selectedPublicMediaIds.add(id)) {
+                            _selectedPublicMediaIds.remove(id);
+                          }
+                        });
+                      },
+                      onSave: _savePublicMedia,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text(
+                          '经历标题',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 7),
+                        TextField(
+                          controller: _title,
+                          enabled: _editable,
+                          maxLength: _titleMaxLength,
+                          inputFormatters: AppInputFormatters.description(
+                            _titleMaxLength,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: '例如：我的房屋装修经历',
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(children: [
+                          Text('经历分类', style: Theme.of(context).textTheme.titleMedium),
+                          if (_editable) Text(' *', style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                          )),
+                        ]),
+                        const SizedBox(height: 7),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: _editable ? _openCategoryPicker : null,
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                              suffixIcon: _editable ? const Icon(Icons.chevron_right_rounded) : null,
+                            ),
+                            child: Text(
+                              _additionalInfo.categoryName.isEmpty
+                                  ? '请选择分类'
+                                  : '${_additionalInfo.categoryParentName} / ${_additionalInfo.categoryName}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: _additionalInfo.categoryName.isEmpty
+                                    ? Theme.of(context).hintColor : null,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
                         Row(
                           children: [
-                            Text(
-                              '证明资料',
-                              style: Theme.of(context).textTheme.titleLarge,
+                            Expanded(
+                              child: Text(
+                                '经历叙述',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                            ),
+                            if (_editable)
+                              TextButton(
+                                onPressed: _openAdditionalInfo,
+                                child: Text(
+                                  _additionalInfo.isEmpty
+                                      ? '补充更多信息'
+                                      : '已填写${_additionalInfo.completedCount}项',
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 7),
+                        TextField(
+                          controller: _description,
+                          enabled: _editable,
+                          maxLength: _descriptionMaxLength,
+                          inputFormatters: AppInputFormatters.description(
+                            _descriptionMaxLength,
+                          ),
+                          minLines: 6,
+                          maxLines: 10,
+                          decoration: const InputDecoration(
+                            hintText:
+                                '请叙述您经历了什么、当时是什么身份、亲自做过哪些事，以及最后怎么样。\n\n例如：2023年我第一次装修自己的房子，当时什么都不懂。我自己找了装修公司，选的是半包，主材自己买。中间遇到过报价漏项、工期拖延，也跟着做了水电和完工验收，最后多花了两万多，延期一个月才住进去。',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!_editable && !_additionalInfo.isEmpty) ...[
+                    const SizedBox(height: 12),
+                    ExperienceAdditionalInfoCard(value: _additionalInfo, showCategory: false),
+                  ],
+                  const SizedBox(height: 12),
+                  if (_editable || _existingProofArchive != null)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  '证明资料',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                                if (_editable) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 9,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFF0D8),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Text(
+                                      '选填',
+                                      style: TextStyle(
+                                        color: Color(0xFF9A5B0B),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                             if (_editable) ...[
-                              const SizedBox(width: 8),
+                              const SizedBox(height: 9),
                               Container(
+                                width: double.infinity,
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 9,
-                                  vertical: 3,
+                                  horizontal: 12,
+                                  vertical: 10,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF0D8),
-                                  borderRadius: BorderRadius.circular(20),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withValues(alpha: .07),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Text(
-                                  '选填',
-                                  style: TextStyle(
-                                    color: Color(0xFF9A5B0B),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                                child: Text(
+                                  '资料越完整，越能获得信任，收到更多付费询问。',
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(height: 1.45),
                                 ),
+                              ),
+                              const SizedBox(height: 7),
+                              Text(
+                                '支持 ZIP 或 RAR 压缩包，最大 2GB',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                            const SizedBox(height: 12),
+                            if (!_editable && _record != null)
+                              for (final material in _record!.materials.where(
+                                (item) => const [
+                                  'PROOF_ARCHIVE',
+                                  'ARCHIVE',
+                                ].contains(item.kind.toUpperCase()),
+                              ))
+                                _ExistingMaterialRow(material: material)
+                            else ...[
+                              _MaterialRow(
+                                icon: Icons.folder_zip_outlined,
+                                title: '证明资料',
+                                subtitle:
+                                    _proofArchive?.name ??
+                                    (!_removeExistingProofArchive
+                                        ? _existingProofArchive?.name
+                                        : null) ??
+                                    '请先处理其中的个人隐私',
+                                notice: '不知道如何处理？',
+                                onNoticeTap: _showPrivacyInformationDialog,
+                                action: _hasSelectedProofArchive ? '重选' : '上传',
+                                onTap: _pickProofArchive,
+                                onRemove: _hasSelectedProofArchive
+                                    ? _removeProofArchive
+                                    : null,
                               ),
                             ],
                           ],
                         ),
-                        if (_editable) ...[
-                          const SizedBox(height: 9),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: .07),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '资料越完整，越容易获得他人信任，也更有机会收到付费询问。',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(height: 1.45),
-                            ),
-                          ),
-                          const SizedBox(height: 7),
-                          Text(
-                            '支持 ZIP 或 RAR 压缩包，最大 2GB',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        if (!_editable && _record != null)
-                          for (final material in _record!.materials.where(
-                            (item) => const [
-                              'PROOF_ARCHIVE',
-                              'ARCHIVE',
-                            ].contains(item.kind.toUpperCase()),
-                          ))
-                            _ExistingMaterialRow(material: material)
-                        else ...[
-                          _MaterialRow(
-                            icon: Icons.folder_zip_outlined,
-                            title: '证明资料',
-                            subtitle:
-                                _proofArchive?.name ??
-                                (!_removeExistingProofArchive
-                                    ? _existingProofArchive?.name
-                                    : null) ??
-                                '请先处理其中的个人隐私',
-                            notice: '不知道如何处理？',
-                            onNoticeTap: _showPrivacyInformationDialog,
-                            action: _hasSelectedProofArchive ? '重选' : '上传',
-                            onTap: _pickProofArchive,
-                            onRemove: _hasSelectedProofArchive
-                                ? _removeProofArchive
-                                : null,
-                          ),
-                        ],
-                      ],
+                      ),
+                    ),
+                ],
+              ),
+      ),
+      bottomNavigationBar: !_editable
+          ? null
+          : SafeArea(
+              minimum: const EdgeInsets.fromLTRB(10, 8, 10, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_submitting && _proofArchive != null) ...[
+                    LinearProgressIndicator(value: _proofUploadProgress),
+                    const SizedBox(height: 6),
+                    Text(
+                      _proofUploadProgress == null
+                          ? '准备上传证明资料…'
+                          : '上传证明资料 ${(_proofUploadProgress! * 100).round()}%',
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _submitting ? null : _submit,
+                      child: const Text('提交审核'),
                     ),
                   ),
-                ),
-            ],
-          ),
-    bottomNavigationBar: !_editable
-        ? null
-        : SafeArea(
-            minimum: const EdgeInsets.fromLTRB(10, 8, 10, 12),
-            child: FilledButton(
-              onPressed: _submitting ? null : _submit,
-              child: const Text('提交审核'),
+                ],
+              ),
             ),
-          ),
+    ),
   );
 }
 

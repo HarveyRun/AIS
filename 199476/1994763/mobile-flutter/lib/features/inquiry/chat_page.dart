@@ -336,6 +336,15 @@ class _ChatPageState extends ConsumerState<ChatPage>
   Future<void> _createVoiceCall() async {
     final inquiry = _detail?.inquiry;
     if (inquiry == null) return;
+    late final double availableBalance;
+    try {
+      availableBalance =
+          (await ref.read(repositoryProvider).wallet()).availableBalance;
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+      return;
+    }
+    if (!mounted) return;
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -361,12 +370,25 @@ class _ChatPageState extends ConsumerState<ChatPage>
                 ],
               ),
               const SizedBox(height: 10),
-              Text('对方的询问费用为 ¥${inquiry.hourlyRateSnapshot}/小时，接通后开始计费。'),
+              Text('对方的语音费用：¥${inquiry.hourlyRateSnapshot}/小时'),
+              const SizedBox(height: 10),
+              Text(
+                '本次呼叫会暂时冻结可用余额 ¥${formatMoney(availableBalance)}。接通后按实际通话秒数计费，未使用的金额在通话结束后退回余额；未接通不收费。',
+              ),
+              if (availableBalance < 0.01) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '余额不足，请先充值',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: () => Navigator.pop(sheetContext, true),
+                  onPressed: availableBalance < 0.01
+                      ? null
+                      : () => Navigator.pop(sheetContext, true),
                   child: const Text('呼叫'),
                 ),
               ),

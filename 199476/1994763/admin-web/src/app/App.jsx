@@ -14,6 +14,7 @@ import AppTestAccountPage from '../pages/appTestAccount/AppTestAccountPage.jsx';
 import AppVersionPage from '../pages/appVersion/AppVersionPage.jsx';
 import AnnouncementsPage from '../pages/announcements/AnnouncementsPage.jsx';
 import BannersPage from '../pages/banners/BannersPage.jsx';
+import ExperienceCategoriesPage from '../pages/experienceCategories/ExperienceCategoriesPage.jsx';
 import SecurityEventsPage from '../pages/security/SecurityEventsPage.jsx';
 import AppSettingsPage from '../pages/appSettings/AppSettingsPage.jsx';
 import CuratedChatPage from '../pages/curatedChat/CuratedChatPage.jsx';
@@ -159,6 +160,9 @@ export default function App() {
               </Guard>
             }
           />
+          <Route path="/experience-categories" element={
+            <Guard permission="EXPERIENCE_CATEGORY_VIEW"><ExperienceCategoriesPage /></Guard>
+          } />
           <Route
             path="/app-settings"
             element={

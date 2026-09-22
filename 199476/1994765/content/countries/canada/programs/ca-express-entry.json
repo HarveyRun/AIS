@@ -1,0 +1,80 @@
+{
+  "slug": "ca-express-entry",
+  "name": "Express Entry 快速通道",
+  "nameEn": "Express Entry (FSW / CEC / FST)",
+  "country": "canada",
+  "type": "skilled",
+  "status": "active",
+  "summary": "加拿大最主要的技术移民通道：入池打分、按分择优邀请，覆盖联邦技术工人（FSW）、经验类（CEC）与技工类（FST）。",
+  "suitableFor": "学历、语言、工作经验俱佳的年轻技术人才；能拿到省提名加 600 分的申请人几乎稳获邀。",
+  "difficulty": "mid",
+  "highlights": [
+    "联邦阶段审理约 6 个月，全程线上",
+    "省提名 +600 分基本锁定邀请",
+    "定向类别抽取（医疗、STEM、法语等）分数更低"
+  ],
+  "requirements": [
+    { "title": "语言成绩达标", "detail": "FSW 最低 CLB 7（约雅思四个 6.0），但实际获邀分数下，单项 CLB 8-9 更有竞争力；思培/托福家考等认可方式见官网。" },
+    { "title": "一年以上连续技术工作经验", "detail": "TEER 0-3 类职业，近 10 年内累计；海外或加拿大经验均可（FSW / CEC 各有细则）。" },
+    { "title": "学历认证（ECA）", "detail": "海外学历需 WES 等指定机构认证，换算为加拿大等效学历。" },
+    { "title": "CRS 打分入池", "detail": "满分 1200，按年龄、学历、语言、经验等因素打分；定期按类别与分数线择优发放邀请（ITA）。" },
+    { "title": "资金证明", "detail": "FSW 申请人需证明 settlement funds（CEC 无此要求）。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 20000, "max": 60000, "currency": "CNY" },
+    "note": "三口之家联邦阶段估算，含语言考试、认证、体检等；省提名项目可能另有省提名费（如安省约 1,500-3,500 加元）。",
+    "breakdown": [
+      { "item": "PR 申请费 + 落地费", "amount": "约 1,525 加元/成人", "note": "获批前分两笔支付" },
+      { "item": "生物识别", "amount": "约 85 加元/人" },
+      { "item": "语言考试", "amount": "约 2,000-3,000 元人民币", "note": "可能需要多次刷分" },
+      { "item": "学历认证 ECA", "amount": "约 1,500-2,500 元人民币" },
+      { "item": "体检 + 无犯罪证明", "amount": "约 2,000-4,000 元人民币/家庭" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 8, "max": 18 },
+    "note": "从备考到登陆的整体周期；联邦审理阶段官方目标为 6 个月。",
+    "steps": [
+      { "title": "自我评估与语言备考", "detail": "确定走 FSW 还是 CEC，规划语言考试（分数是 CRS 最大变量）。", "durationHint": "3-9 个月" },
+      { "title": "学历认证与材料准备", "detail": "ECA 认证、整理工作证明、社保记录。", "durationHint": "1-3 个月" },
+      { "title": "入池 Express Entry", "detail": "创建 profile，进入候选池等待邀请， CRS 分数决定等待时间。", "durationHint": "即时-12 个月" },
+      { "title": "获邀（ITA）并递交 PR 申请", "detail": "收到邀请后 60 天内递交全套材料。", "durationHint": "2 个月" },
+      { "title": "审理：体检与背景调查", "detail": "补料可能发生，保持关注。", "durationHint": "约 6 个月" },
+      { "title": "获批与登陆", "detail": "收到 COPR，在有效期前完成登陆。", "durationHint": "1-2 个月" }
+    ]
+  },
+  "materials": [
+    "护照（主申与随行家属）",
+    "语言成绩单（雅思 G 类 / 思培）",
+    "ECA 学历认证报告",
+    "工作证明：雇主推荐信（职责、时长、每周工时）+ 社保/个税记录",
+    "无犯罪证明（居住满 6 个月的每个国家/地区）",
+    "资金证明（银行流水/存款证明）",
+    "体检回执（指定医院）",
+    "结婚/子女关系证明（如随行）"
+  ],
+  "officialSources": [
+    { "label": "IRCC - Express Entry 官方页面", "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry.html" },
+    { "label": "CRS 打分计算器", "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry/check-score.html" }
+  ],
+  "commonRejections": [
+    "推荐信中的职责描述与 TEER/NOC 职业定义不符（最常见）",
+    "语言成绩在入池或递交时过期",
+    "资金证明不足或来源解释不清",
+    "工作年限计算错误（兼职/自由职业合并方式不当）"
+  ],
+  "risks": [
+    "CRS 分数线逐年走高，仅凭海外经验入池可能长期无邀请",
+    "定向抽取类别与分数线按轮次公布，存在政策窗口变化",
+    "年龄增长会直接拉低分数，宜早不宜迟"
+  ],
+  "eligibility": {
+    "minEducation": 3,
+    "minLanguage": 2,
+    "minBudgetTier": "low",
+    "ageRange": { "min": 20, "max": 35 },
+    "needsJobOffer": false,
+    "note": "语言与年龄对 CRS 影响最大；有省提名则不再受分数约束。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}

@@ -19,6 +19,7 @@ public class AnswererController {
         @RequestParam(required = false) String keyword,
         @RequestParam(required = false) String sortBy,
         @RequestParam(required = false) String sortDirection,
+        @RequestParam(required = false) Long categoryId,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size
     ) {
@@ -28,6 +29,7 @@ public class AnswererController {
                 keyword,
                 sortBy,
                 sortDirection,
+                categoryId,
                 page,
                 size
             )

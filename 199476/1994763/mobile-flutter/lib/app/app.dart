@@ -10,7 +10,6 @@ import '../core/widgets/account_penalty_gate.dart';
 import '../core/widgets/app_update_gate.dart';
 import '../core/widgets/curated_realtime_gate.dart';
 import '../core/widgets/notification_realtime_gate.dart';
-import '../core/widgets/platform_introduction_gate.dart';
 import '../core/widgets/voice_call_realtime_gate.dart';
 import '../features/auth/pre_privacy_page.dart';
 import 'providers.dart';
@@ -124,9 +123,7 @@ class _ShixianwenAppState extends ConsumerState<ShixianwenApp> {
                   child: VoiceCallRealtimeGate(
                     router: _router!,
                     child: AccountPenaltyGate(
-                      child: PlatformIntroductionGate(
-                        child: child ?? const SizedBox.shrink(),
-                      ),
+                      child: child ?? const SizedBox.shrink(),
                     ),
                   ),
                 ),

@@ -8,6 +8,7 @@ import {
   Handshake,
   Headset,
   Images,
+  ListTree,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -62,6 +63,7 @@ const secondaryGroups = [
         ['PLATFORM_FEE_VIEW', 'INQUIRY_CAPACITY_VIEW', 'APP_GLOBAL_SETTING_VIEW'],
       ],
       ['/banners', '首页轮播', Images, 'BANNER_VIEW'],
+      ['/experience-categories', '经历分类', ListTree, 'EXPERIENCE_CATEGORY_VIEW'],
     ],
   },
   {

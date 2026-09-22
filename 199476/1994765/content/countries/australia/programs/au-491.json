@@ -1,0 +1,72 @@
+{
+  "slug": "au-491",
+  "name": "491 偏远地区技术签证（转 191 永居）",
+  "nameEn": "Skilled Work Regional (Provisional) Visa - Subclass 491",
+  "country": "australia",
+  "type": "skilled",
+  "status": "active",
+  "summary": "州担保 +15 分的 5 年临时签证：在指定偏远地区居住工作 3 年后转 191 永居，是分数有限者的务实跳板。",
+  "suitableFor": "分数中等、愿意在悉尼/墨尔本/布里斯班以外的城市生活数年的申请人；找偏远地区雇主或走州担保均可。",
+  "difficulty": "low",
+  "highlights": [
+    "州担保加 15 分，入池门槛大幅降低",
+    "「偏远地区」定义宽泛，包含珀斯、阿德莱德、卧龙岗等大城市",
+    "3 年后转 191 永居，条件明确"
+  ],
+  "requirements": [
+    { "title": "职业评估 + 打分 65 分（含 491 的 15 分）", "detail": "实际裸分需求比 189 低很多，部分州 65 分即可获邀。" },
+    { "title": "获州/领地提名或亲属担保", "detail": "偏远地区亲属担保或各州 491 提名；各州对职业与本地连接有具体要求。" },
+    { "title": "45 周岁以下 + 能力英语", "detail": "雅思四个 6 为底线。" },
+    { "title": "转 191 条件", "detail": "持 491 期间在指定地区居住并工作 3 年，满足应税收入要求后申请永居。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 30000, "max": 90000, "currency": "CNY" },
+    "note": "含 491 与 191 两个阶段的签证费；偏远地区生活成本较低是隐性优势。",
+    "breakdown": [
+      { "item": "491 签证申请费", "amount": "约 4,765 澳元/主申" },
+      { "item": "191 永居申请费", "amount": "另行收取（数千澳元）" },
+      { "item": "职业评估 + 语言考试", "amount": "约 8,000-20,000 元人民币" },
+      { "item": "体检、无犯罪、公证翻译", "amount": "约 5,000-10,000 元人民币" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 48, "max": 72 },
+    "note": "491 为 5 年签证；最快 3 年后转 191，含审理总周期约 4-6 年。",
+    "steps": [
+      { "title": "职业评估与 EOI", "detail": "与 189/190 同源流程。", "durationHint": "3-9 个月" },
+      { "title": "获州提名/亲属担保", "detail": "按州要求递交申请，多州并行。", "durationHint": "1-6 个月" },
+      { "title": "递交 491 并登陆指定地区", "detail": "获批后登陆，在偏远地区开始工作生活。", "durationHint": "6-12 个月" },
+      { "title": "居住工作满 3 年", "detail": "保留纳税记录与居住证明。", "durationHint": "36 个月" },
+      { "title": "申请 191 永居", "detail": "满足条件后递交，获批转 PR。", "durationHint": "6-12 个月" }
+    ]
+  },
+  "materials": [
+    "职业评估与 EOI 材料",
+    "州提名函或亲属担保文件",
+    "英语成绩、学历、经验证明",
+    "491 期间：居住证明、纳税与雇佣记录（转 191 用）"
+  ],
+  "officialSources": [
+    { "label": "内政部 - Subclass 491 官方页面", "url": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/skilled-work-regional-491" },
+    { "label": "191 永居签证页面", "url": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/permanent-residence-skilled-regional-191" }
+  ],
+  "commonRejections": [
+    "未满足州提名的本地连接要求",
+    "491 期间搬离指定地区导致无法转 191",
+    "应税收入未达 191 要求（留意职业选择）"
+  ],
+  "risks": [
+    "两阶段设计总周期长，中间政策变化风险存在",
+    "必须真实在偏远地区生活工作，违反居住承诺影响转 PR",
+    "部分职业在偏远地区岗位有限，就业选择需提前研究"
+  ],
+  "eligibility": {
+    "minEducation": 3,
+    "minLanguage": 2,
+    "minBudgetTier": "low",
+    "ageRange": { "min": 22, "max": 43 },
+    "needsJobOffer": false,
+    "note": "对分数友好；愿意去偏远地区是核心交换条件。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}

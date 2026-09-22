@@ -78,6 +78,10 @@ class _ExperienceAdditionalInfoPageState
     Navigator.pop(
       context,
       ExperienceAdditionalInfo(
+        categoryId: widget.initialValue.categoryId,
+        categoryParentId: widget.initialValue.categoryParentId,
+        categoryName: widget.initialValue.categoryName,
+        categoryParentName: widget.initialValue.categoryParentName,
         location: _location.text.trim(),
         startDate: _startDate.text.trim(),
         endDate: _endDate.text.trim(),
@@ -341,14 +345,18 @@ class ExperienceAdditionalInfoCard extends StatelessWidget {
     super.key,
     required this.value,
     this.title = '更多信息',
+    this.showCategory = true,
   });
 
   final ExperienceAdditionalInfo value;
   final String title;
+  final bool showCategory;
 
   @override
   Widget build(BuildContext context) {
     final items = <(String, String)>[
+      if (showCategory && value.categoryName.isNotEmpty)
+        ('经历分类', '${value.categoryParentName} / ${value.categoryName}'),
       if (value.location.isNotEmpty) ('发生地点', value.location),
       if (value.startDate.isNotEmpty) ('开始时间', value.startDate),
       if (value.endDate.isNotEmpty) ('结束时间', value.endDate),

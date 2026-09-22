@@ -1,0 +1,20 @@
+[
+  { "term": "PR（永久居民）", "en": "Permanent Resident", "explanation": "获得一国永久居留权的人，可长期居住、工作、享受大部分福利，但国籍不变。俗称加拿大/澳洲的“绿卡”或“枫叶卡”。" },
+  { "term": "EOI（意向表达）", "en": "Expression of Interest", "explanation": "先在线提交个人情况打分进入候选池，政府择优邀请的申请机制。加拿大 EE、澳洲 SkillSelect、部分省提名都采用。" },
+  { "term": "ITA（邀请函）", "en": "Invitation to Apply", "explanation": "在 EOI/候选池中被选中后收到的正式申请邀请，收到后需在限定时间内递交完整材料。" },
+  { "term": "打分制", "en": "Points Test / CRS", "explanation": "用年龄、学历、语言、工作经验等维度给申请人打分并排序的制度。加拿大联邦用 CRS（满分1200），澳洲用 65 分制（实际获邀通常远高于65）。" },
+  { "term": "省提名 / 州担保", "en": "PNP / State Nomination", "explanation": "省/州政府根据本地劳动力需求自行制定标准、提名申请人移民的制度。加拿大除魁北克外各省有 PNP，澳洲 190/491 签证需州担保。" },
+  { "term": "CLB（加拿大语言等级）", "en": "Canadian Language Benchmark", "explanation": "加拿大官方语言等级标准（0-10级）。雅思、思培等成绩会换算成 CLB 使用，如 CLB 7 约等于雅思四个 6 分。" },
+  { "term": "职业清单", "en": "Occupation List (NOC / MLTSSL / CSOL)", "explanation": "各国对可申请移民的职业进行的分类列表。加拿大的职业编码体系为 TEER 类别（旧称 NOC），澳洲为 ANZSCO 下的 MLTSSL/CSOL 清单。" },
+  { "term": "职业评估", "en": "Skill Assessment", "explanation": "澳洲等国的技术移民要求由指定机构（如 ACS 评估 IT、EA 评估工程）认定你的学历与工作经验等同于当地标准。" },
+  { "term": "ECA（学历认证）", "en": "Educational Credential Assessment", "explanation": "加拿大 EE 要求由 WES 等指定机构把海外学历换算为等效的加拿大教育水平。" },
+  { "term": "雇主担保", "en": "Employer Sponsor", "explanation": "由当地雇主出面为你申请工作签证或移民的路径，通常要求雇主证明招不到本地人（如美国的 PERM 劳工证、加拿大的 LMIA）。" },
+  { "term": "LMIA", "en": "Labour Market Impact Assessment", "explanation": "加拿大劳工市场影响评估：雇主需向政府证明雇佣外国人不会损害本地就业。持有 LMIA 工作签证可为 EE 加 50-200 分。" },
+  { "term": "无犯罪证明", "en": "Police Certificate", "explanation": "证明申请人无犯罪记录的官方文件。几乎所有移民申请都要求提供居住满 6 个月以上的每个国家/地区出具的无犯罪证明。" },
+  { "term": "移民体检", "en": "Immigration Medical Exam", "explanation": "由指定医生（Panel Physician）进行的体检，排查重大传染病等。多数国家要求主申和随行家属都完成。" },
+  { "term": "落地登陆", "en": "Landing", "explanation": "获批后首次入境、正式激活永居身份的环节。加拿大部分项目可在入境口岸（COPR 核验）完成登陆。" },
+  { "term": "移民监", "en": "Residency Obligation", "explanation": "维持永居身份所需的最低居住要求。如加拿大 5 年内住满 2 年、澳洲 5 年内住满 2 年、美国需保持永久居留意图。" },
+  { "term": "入籍", "en": "Citizenship", "explanation": "在持有永居并满足居住年限（通常 3-5 年）、语言等条件后申请成为公民、更换国籍。永居≠公民。" },
+  { "term": "排期", "en": "Visa Bulletin / Priority Date", "explanation": "美国对部分国家的移民签证设有年度配额，中国大陆出生的申请人多数类别需排队等待，等待时间以国务院每月签证公告为准。" },
+  { "term": "CSQ", "en": "Certificat de sélection du Québec", "explanation": "魁北克甄选证书。魁北克拥有独立的移民挑选权，先取得 CSQ 再向联邦申请永久居民，是加拿大唯一的“两级审批”省份。" }
+]

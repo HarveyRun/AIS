@@ -1,0 +1,74 @@
+{
+  "slug": "ca-on-oinp-employer",
+  "name": "安省省提名 · 雇主担保（外国工人类）",
+  "nameEn": "OINP Employer Job Offer: Foreign Worker Stream",
+  "country": "canada",
+  "region": "ontario",
+  "type": "employer",
+  "status": "active",
+  "summary": "持安省雇主的长期全职 offer，通过 EOI 打分择优获得省提名，是竞争最激烈的省份级雇主担保通道。",
+  "suitableFor": "能对接安省雇主资源的申请人（多为雇主+中介打包服务）；职业属于 TEER 0-3 且薪资达到省内中位水平。",
+  "difficulty": "mid",
+  "highlights": [
+    "多伦多都市圈就业机会最多",
+    "提名阶段不设硬性语言分数线",
+    "获提名后走联邦 PR，全家随行"
+  ],
+  "requirements": [
+    { "title": "安省雇主的全职长期 offer", "detail": "雇主需在安省经营 3 年以上、无欠薪记录；职位为 TEER 0-3、全职长期，薪资不低于该职位省内工资中位数。" },
+    { "title": "工作经验", "detail": "近 5 年内累计 2 年相关工作经验（或持相关执照的职业要求）。" },
+    { "title": "EOI 打分入池", "detail": "按职位类别（TEER）、薪资、工作地点、经验年限等因素打分，择优发邀请。" },
+    { "title": "联邦阶段语言要求", "detail": "安省提名阶段不强制语言成绩，但联邦 PR 阶段仍建议具备 CLB 5+ 的实际语言能力并准备好资金证明。" }
+  ],
+  "cost": {
+    "totalEstimate": { "min": 400000, "max": 1000000, "currency": "CNY" },
+    "note": "政府规费占比很小，大头是雇主资源+代理服务的市场费用，行情差异极大；务必核查合同、分期与退费条款。",
+    "breakdown": [
+      { "item": "安省提名费", "amount": "约 1,500-3,500 加元（按类别）" },
+      { "item": "联邦 PR 申请费 + 落地费", "amount": "约 1,525 加元/成人" },
+      { "item": "雇主资源与服务费", "amount": "市场价 8-20 万加元不等", "note": "差异极大，签约前重点尽调" },
+      { "item": "体检、无犯罪、公证翻译", "amount": "约 5,000-10,000 元人民币" }
+    ]
+  },
+  "duration": {
+    "totalMonths": { "min": 24, "max": 40 },
+    "note": "EOI 入池到获邀时间不可控（取决于分数线与轮次）；提名后联邦审理约 12-18 个月。",
+    "steps": [
+      { "title": "匹配安省雇主并取得 offer", "detail": "确认雇主资质（经营年限、报税记录）与职位薪资达标。", "durationHint": "视资源而定" },
+      { "title": "EOI 注册入池", "detail": "提交雇主与个人信息，等待择优邀请。", "durationHint": "3-12 个月" },
+      { "title": "获邀后递交省提名", "detail": "在邀请后限期内提交完整申请材料。", "durationHint": "2-4 个月" },
+      { "title": "获省提名确认函", "detail": "6 个月内递交联邦 PR 申请。", "durationHint": "-" },
+      { "title": "联邦审理与登陆", "detail": "体检、背调后获批。", "durationHint": "12-18 个月" }
+    ]
+  },
+  "materials": [
+    "安省雇主 offer 与雇主资质文件（年度报表、T4 总结等）",
+    "工作经验证明（推荐信 + 社保/个税记录）",
+    "学历证明",
+    "护照与身份文件",
+    "无犯罪证明与体检",
+    "（建议）语言成绩单"
+  ],
+  "officialSources": [
+    { "label": "安省政府 - OINP 官方页面", "url": "https://www.ontario.ca/page/ontario-immigrant-nominee-program-oinp" }
+  ],
+  "commonRejections": [
+    "雇主资质不足（经营年限、报税、欠薪记录）",
+    "薪资低于职位中位数或职责与 TEER 定义不符",
+    "EOI 分数长期低于当轮分数线"
+  ],
+  "risks": [
+    "安省提名竞争激烈，EOI 分数水涨船高",
+    "雇主资源类服务费用高、市场鱼龙混杂，纠纷多发",
+    "多伦多等地生活成本高，登陆后过渡期预算要充足"
+  ],
+  "eligibility": {
+    "minEducation": 3,
+    "minLanguage": 1,
+    "minBudgetTier": "mid",
+    "needsJobOffer": true,
+    "ageRange": { "min": 22, "max": 45 },
+    "note": "核心变量是拿到合格雇主 offer；语言虽非提名硬门槛，但影响整体成功率。"
+  },
+  "infoVerifiedAt": "2026-09-22"
+}
