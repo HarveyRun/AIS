@@ -5,38 +5,80 @@
   "country": "canada",
   "type": "family",
   "status": "active",
-  "summary": "加拿大公民或永久居民担保配偶、同居伴侣及其子女获得永居的家庭团聚类项目，不设打分与学历语言门槛。",
+  "summary": "配偶是加拿大公民或永居，就能担保你拿永居。不看学历、语言、年龄，只查两件事：婚姻/同居关系真实、担保人有能力负担生活。",
   "suitableFor": "配偶或同居伴侣已具有加拿大公民/PR 身份的家庭；担保人需满足收入基础要求并有真实关系证明。",
-  "difficulty": "low",
   "highlights": [
     "无学历、语言、年龄门槛",
     "可境内申请，审理期间配偶可申请工签",
     "审理目标约 12 个月"
   ],
   "requirements": [
-    { "title": "担保人资格", "detail": "年满 18 岁的加拿大公民或 PR；PR 须居住在加拿大；有足够收入承诺抚养被担保人（不设最低收入线的多数家庭类案件仍需证明有能力负担）。" },
-    { "title": "真实关系", "detail": "婚姻/同居关系真实且非主要为移民目的；同居伴侣需证明连续同居 12 个月以上。" },
-    { "title": "被担保人通过体检与背景审查", "detail": "无重大不予受理情形（严重犯罪等）。" }
+    {
+      "title": "担保人资格",
+      "detail": "年满 18 岁的加拿大公民或 PR；PR 须居住在加拿大；有足够收入承诺抚养被担保人（不设最低收入线的多数家庭类案件仍需证明有能力负担）。"
+    },
+    {
+      "title": "真实关系",
+      "detail": "婚姻/同居关系真实且非主要为移民目的；同居伴侣需证明连续同居 12 个月以上。"
+    },
+    {
+      "title": "被担保人通过体检与背景审查",
+      "detail": "无重大不予受理情形（严重犯罪等）。"
+    }
   ],
   "cost": {
-    "totalEstimate": { "min": 10000, "max": 25000, "currency": "CNY" },
     "note": "单人/两口之家的政府规费与杂费估算；如委托顾问或律师，另计服务费。",
     "breakdown": [
-      { "item": "担保+PR 申请费、落地费", "amount": "约 1,300-1,600 加元" },
-      { "item": "生物识别", "amount": "约 85 加元/人" },
-      { "item": "体检 + 无犯罪证明", "amount": "约 3,000-6,000 元人民币" },
-      { "item": "关系证明材料整理与翻译公证", "amount": "约 2,000-5,000 元人民币" }
+      {
+        "item": "担保+PR 申请费、落地费",
+        "amount": "约 1,300-1,600 加元"
+      },
+      {
+        "item": "生物识别",
+        "amount": "约 85 加元/人"
+      },
+      {
+        "item": "体检 + 无犯罪证明",
+        "amount": "约 3,000-6,000 元人民币"
+      },
+      {
+        "item": "关系证明材料整理与翻译公证",
+        "amount": "约 2,000-5,000 元人民币"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "由担保人承担"
+      }
     ]
   },
   "duration": {
-    "totalMonths": { "min": 10, "max": 16 },
     "note": "官方审理目标为 12 个月，境内/境外通道略有差异。",
     "steps": [
-      { "title": "确认担保人资格与申请通道", "detail": "境内（ spouse 已在加）或境外通道二选一。", "durationHint": "1-2 周" },
-      { "title": "准备关系证明材料", "detail": "共同财产、通讯记录、合照、证人声明等，越充分越好。", "durationHint": "1-2 个月" },
-      { "title": "递交申请", "detail": "担保人与被担保人材料同步递交。", "durationHint": "-" },
-      { "title": "审理与可能的面试", "detail": "部分案件会被要求面试核实关系真实性。", "durationHint": "约 12 个月" },
-      { "title": "获批登陆", "detail": "境内申请人获批后身份直接转为 PR。", "durationHint": "-" }
+      {
+        "title": "确认担保人资格与申请通道",
+        "detail": "境内（ spouse 已在加）或境外通道二选一。",
+        "durationHint": "1-2 周"
+      },
+      {
+        "title": "准备关系证明材料",
+        "detail": "共同财产、通讯记录、合照、证人声明等，越充分越好。",
+        "durationHint": "1-2 个月"
+      },
+      {
+        "title": "递交申请",
+        "detail": "担保人与被担保人材料同步递交。",
+        "durationHint": "-"
+      },
+      {
+        "title": "审理与可能的面试",
+        "detail": "部分案件会被要求面试核实关系真实性。",
+        "durationHint": "约 12 个月"
+      },
+      {
+        "title": "获批登陆",
+        "detail": "境内申请人获批后身份直接转为 PR。",
+        "durationHint": "-"
+      }
     ]
   },
   "materials": [
@@ -48,16 +90,27 @@
     "收入与雇佣证明（担保人）"
   ],
   "officialSources": [
-    { "label": "IRCC - 家庭担保官方页面", "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/family-sponsorship/spouse-partner-children.html" }
+    {
+      "label": "IRCC - 家庭担保官方页面",
+      "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/family-sponsorship/spouse-partner-children.html"
+    }
   ],
-  "commonRejections": [
-    "关系真实性存疑（证据单薄、时间线矛盾）",
-    "担保人收入证明不足或身份不符",
-    "隐瞒拒签史、婚姻史等重要信息"
+  "infoVerifiedAt": "2026-09-22",
+  "case": {
+    "profile": "小陈与加拿大籍丈夫在国内登记结婚，育有一子。",
+    "steps": [
+      "整理关系证据：共同旅行记录、联名账户、聊天记录、合照。",
+      "丈夫作为担保人，境内通道递交申请，同步拿到工签可以先工作。",
+      "移民官审核关系真实性，中途被抽到面试，补充材料后通过。"
+    ],
+    "outcome": "递交后约 11 个月拿到枫叶卡。"
+  },
+  "pros": [
+    "无学历、语言、年龄门槛",
+    "境内申请期间配偶可拿工签先工作"
   ],
-  "risks": [
-    "假结婚属刑事犯罪且双方均被严惩，切勿尝试",
-    "关系在审理期间破裂会影响申请，需了解对应处理规则"
-  ],
-  "infoVerifiedAt": "2026-09-22"
+  "cons": [
+    "必须证明关系真实，材料要求细",
+    "担保人需承担法律与经济责任"
+  ]
 }

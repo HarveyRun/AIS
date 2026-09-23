@@ -11,33 +11,57 @@ class AnswererCard extends StatelessWidget {
     required this.onTap,
     this.experience,
     this.flat = false,
+    this.footer,
+    this.showDetailsRow = true,
+    this.showOnlineStatus = false,
   });
   final Answerer answerer;
   final AnswererExperience? experience;
   final VoidCallback onTap;
   final bool flat;
+  final Widget? footer;
+  final bool showDetailsRow;
+  final bool showOnlineStatus;
 
   @override
   Widget build(BuildContext context) => Material(
     color: Theme.of(context).colorScheme.surface,
     borderRadius: BorderRadius.circular(18),
     clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-        child: experience == null
-            ? _LegacyContent(answerer: answerer)
-            : _ExperienceContent(answerer: answerer, experience: experience!),
-      ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+            child: experience == null
+                ? _LegacyContent(answerer: answerer)
+                : _ExperienceContent(
+                    answerer: answerer,
+                    experience: experience!,
+                    showDetailsRow: showDetailsRow,
+                    showOnlineStatus: showOnlineStatus,
+                  ),
+          ),
+        ),
+        if (footer != null) footer!,
+      ],
     ),
   );
 }
 
 class _ExperienceContent extends StatelessWidget {
-  const _ExperienceContent({required this.answerer, required this.experience});
+  const _ExperienceContent({
+    required this.answerer,
+    required this.experience,
+    required this.showDetailsRow,
+    required this.showOnlineStatus,
+  });
   final Answerer answerer;
   final AnswererExperience experience;
+  final bool showDetailsRow;
+  final bool showOnlineStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +93,7 @@ class _ExperienceContent extends StatelessWidget {
               url: answerer.avatarUrl,
               name: answerer.displayName,
               radius: 15,
+              online: showOnlineStatus && answerer.online,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -95,32 +120,36 @@ class _ExperienceContent extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            if (locationSummary.isNotEmpty)
-              Expanded(
-                child: Text(
-                  locationSummary,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.58),
+        if (showDetailsRow) ...[
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              if (locationSummary.isNotEmpty)
+                Expanded(
+                  child: Text(
+                    locationSummary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.58,
+                      ),
+                    ),
                   ),
+                )
+              else
+                const Spacer(),
+              const SizedBox(width: 12),
+              Text(
+                '查看详情',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w700,
                 ),
-              )
-            else
-              const Spacer(),
-            const SizedBox(width: 12),
-            Text(
-              '查看详情',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w700,
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ],
     );
   }

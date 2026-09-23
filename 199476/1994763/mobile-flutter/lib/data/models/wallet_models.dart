@@ -30,11 +30,14 @@ class WalletInfo {
 class WalletTransaction {
   const WalletTransaction({
     required this.id,
+    required this.transactionNo,
     required this.type,
     required this.direction,
     required this.amount,
     required this.availableAfter,
     required this.frozenAfter,
+    required this.referenceType,
+    required this.referenceId,
     required this.description,
     required this.createdAt,
   });
@@ -42,22 +45,30 @@ class WalletTransaction {
   factory WalletTransaction.fromJson(Map<String, dynamic> json) {
     return WalletTransaction(
       id: _int(json['id']),
+      transactionNo: json['transactionNo']?.toString() ?? '',
       type: json['type']?.toString() ?? '',
       direction: json['direction']?.toString() ?? '',
       amount: _double(json['amount']),
       availableAfter: _double(json['availableAfter']),
       frozenAfter: _double(json['frozenAfter']),
+      referenceType: json['referenceType']?.toString() ?? '',
+      referenceId: json['referenceId'] == null
+          ? null
+          : _int(json['referenceId']),
       description: json['description']?.toString() ?? '',
       createdAt: _date(json['createdAt']),
     );
   }
 
   final int id;
+  final String transactionNo;
   final String type;
   final String direction;
   final double amount;
   final double availableAfter;
   final double frozenAfter;
+  final String referenceType;
+  final int? referenceId;
   final String description;
   final DateTime? createdAt;
 }

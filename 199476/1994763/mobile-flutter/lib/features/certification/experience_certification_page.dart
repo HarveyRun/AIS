@@ -17,6 +17,7 @@ class ExperienceCertificationPage extends ConsumerStatefulWidget {
 class _ExperienceCertificationPageState
     extends ConsumerState<ExperienceCertificationPage> {
   List<CertificationRecord> _items = const [];
+  List<ExperienceDraftRecord> _drafts = const [];
   bool _loading = true;
 
   bool get _hasApprovedExperience =>
@@ -32,9 +33,13 @@ class _ExperienceCertificationPageState
     setState(() => _loading = true);
     try {
       final repository = ref.read(repositoryProvider);
-      final items = await repository.certifications();
+      final certificationsRequest = repository.certifications();
+      final draftsRequest = repository.experienceDrafts();
+      final items = await certificationsRequest;
+      final drafts = await draftsRequest;
       if (mounted) {
         setState(() {
+          _drafts = drafts;
           _items =
               items
                   .where(
@@ -68,7 +73,16 @@ class _ExperienceCertificationPageState
   Future<void> _add() async {
     try {
       final repository = ref.read(repositoryProvider);
-      final records = await repository.certifications();
+      final certificationsRequest = repository.certifications();
+      final draftsRequest = repository.experienceDrafts();
+      final records = await certificationsRequest;
+      final drafts = await draftsRequest;
+      if (drafts.isNotEmpty) {
+        if (mounted) {
+          AppMessage.show(context, '请先继续填写或删除现有草稿');
+        }
+        return;
+      }
       final unapprovedExperiences = records.where((record) {
         final experience =
             record.category == 'EXPERIENCE' || record.type == 'EXPERIENCE';
@@ -174,6 +188,53 @@ class _ExperienceCertificationPageState
     await _load();
   }
 
+  Future<void> _openDraft(ExperienceDraftRecord draft) async {
+    final experienceId = draft.experienceId;
+    final path = experienceId == null
+        ? '/profile/certifications/experiences/new?resumeDraft=1'
+        : '/profile/certifications/experiences/$experienceId?resumeDraft=1';
+    await context.push(path);
+    await _load();
+  }
+
+  Future<void> _deleteDraft(ExperienceDraftRecord draft) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        titlePadding: const EdgeInsets.fromLTRB(24, 14, 8, 0),
+        title: Row(
+          children: [
+            const Expanded(child: Text('删除草稿？')),
+            IconButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              tooltip: '关闭',
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ],
+        ),
+        content: const Text('删除后无法恢复。'),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('确认删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(repositoryProvider).deleteExperienceDraft(key: draft.key);
+      if (!mounted) return;
+      setState(
+        () => _drafts = _drafts.where((item) => item.key != draft.key).toList(),
+      );
+      AppMessage.show(context, '草稿已删除');
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+    }
+  }
+
   Future<void> _showReviewScores(CertificationRecord item) {
     final scores = <({String label, int? value})>[
       (label: '证明材料完整度', value: item.materialSupportScore),
@@ -262,11 +323,12 @@ class _ExperienceCertificationPageState
     ),
     body: _loading
         ? const SizedBox.shrink()
-        : _buildExperienceList(_items, emptyText: '还没有经历'),
+        : _buildExperienceList(_items, drafts: _drafts, emptyText: '还没有经历'),
   );
 
   Widget _buildExperienceList(
     List<CertificationRecord> items, {
+    required List<ExperienceDraftRecord> drafts,
     required String emptyText,
   }) {
     return RefreshIndicator(
@@ -275,7 +337,7 @@ class _ExperienceCertificationPageState
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 28),
         children: [
-          if (items.isEmpty) ...[
+          if (items.isEmpty && drafts.isEmpty) ...[
             const SizedBox(height: 86),
             const Icon(
               Icons.route_outlined,
@@ -292,7 +354,80 @@ class _ExperienceCertificationPageState
                 label: const Text('添加经历'),
               ),
             ),
-          ] else
+          ] else ...[
+            ...drafts.map(
+              (draft) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Material(
+                  color: Theme.of(context).colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: const EdgeInsets.fromLTRB(
+                          16,
+                          10,
+                          10,
+                          2,
+                        ),
+                        title: Text(
+                          draft.title.trim().isEmpty ? '未命名经历' : draft.title,
+                        ),
+                        subtitle: Text(
+                          draft.description.trim().isEmpty
+                              ? '尚未填写经历叙述'
+                              : draft.description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => _openDraft(draft),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 10, 8),
+                        child: Row(
+                          children: [
+                            Text(
+                              '草稿',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            const Spacer(),
+                            TextButton.icon(
+                              onPressed: () => _deleteDraft(draft),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.error,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 6,
+                                ),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 18,
+                              ),
+                              label: const Text('删除'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             ...items.indexed.map((entry) {
               final index = entry.$1;
               final item = entry.$2;
@@ -383,6 +518,7 @@ class _ExperienceCertificationPageState
                 ),
               );
             }),
+          ],
         ],
       ),
     );

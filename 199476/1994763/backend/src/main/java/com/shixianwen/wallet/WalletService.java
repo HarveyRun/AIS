@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -68,6 +69,14 @@ public class WalletService {
 
     public List<TransactionView> transactions(Long userId) {
         return transactions.findByUserIdOrderByCreatedAtDesc(userId).stream().map(TransactionView::of).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TransactionView transaction(Long userId, Long transactionId) {
+        WalletTransaction item = transactions.findById(transactionId)
+            .filter(transaction -> transaction.getUser().getId().equals(userId))
+            .orElseThrow(() -> BusinessException.notFound("交易记录不存在"));
+        return TransactionView.of(item);
     }
 
     @Transactional
@@ -1281,18 +1290,26 @@ public class WalletService {
 
     public record TransactionView(
         Long id,
+        String transactionNo,
         String type,
         String direction,
         BigDecimal amount,
         BigDecimal availableAfter,
         BigDecimal frozenAfter,
+        String referenceType,
+        Long referenceId,
         String description,
         LocalDateTime createdAt
     ) {
+        private static final DateTimeFormatter NUMBER_TIME = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+
         static TransactionView of(WalletTransaction item) {
+            String time = item.getCreatedAt() == null ? "00000000000000" : item.getCreatedAt().format(NUMBER_TIME);
             return new TransactionView(
-                item.getId(), item.getTransactionType(), item.getDirection(), item.getAmount(),
-                item.getAvailableAfter(), item.getFrozenAfter(), item.getDescription(), item.getCreatedAt()
+                item.getId(), "SXW-TX-" + time + "-" + String.format("%08d", item.getId()),
+                item.getTransactionType(), item.getDirection(), item.getAmount(),
+                item.getAvailableAfter(), item.getFrozenAfter(), item.getReferenceType(), item.getReferenceId(),
+                item.getDescription(), item.getCreatedAt()
             );
         }
     }

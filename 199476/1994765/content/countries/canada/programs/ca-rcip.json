@@ -1,0 +1,108 @@
+{
+  "slug": "ca-rcip",
+  "name": "乡村社区移民试点（RCIP）",
+  "nameEn": "Rural Community Immigration Pilot",
+  "country": "canada",
+  "type": "employer",
+  "status": "active",
+  "summary": "加拿大选定了一批乡村小镇：只有这些小镇里的指定雇主招人、社区组织点头推荐，你就能申请永居。适合能接受小镇生活、从事基础岗位的人。",
+  "suitableFor": "能接受在加拿大乡村小镇工作生活、职业以服务/技工/护理/运输/零售为主的申请人。",
+  "highlights": [
+    "门槛结构类似大西洋计划（AIP），面向乡村社区",
+    "社区推荐机制：先获社区背书再递交",
+    "持工签先行登陆、边工作边等 PR"
+  ],
+  "requirements": [
+    {
+      "title": "指定社区、指定雇主的长期全职 offer",
+      "detail": "雇主须位于 IRCC 公布的指定乡村社区内并取得指定资质；岗位为全职、非季节性。"
+    },
+    {
+      "title": "社区推荐",
+      "detail": "由该社区的经济发展组织按本地标准出具推荐意见。"
+    },
+    {
+      "title": "工作经验或本地毕业生",
+      "detail": "近 5 年内相关工作经验；指定社区院校毕业生可豁免部分要求。"
+    },
+    {
+      "title": "语言与学历",
+      "detail": "按职业 TEER 类别 CLB 4-6；高中以上学历（海外学历需认证）。"
+    }
+  ],
+  "cost": {
+    "note": "试点本身不另收费，费用为联邦申请规费与材料杂费。",
+    "breakdown": [
+      {
+        "item": "PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "语言考试",
+        "amount": "约 2,000-3,000 元人民币"
+      },
+      {
+        "item": "学历认证、体检、无犯罪",
+        "amount": "约 5,000-10,000 元人民币"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 1-1.5 万加元（3-6 个月过渡）"
+      }
+    ]
+  },
+  "duration": {
+    "note": "社区推荐与雇主对接为主要变量；联邦审理约 12 个月以内（以官网为准）。",
+    "steps": [
+      {
+        "title": "在指定社区找到指定雇主",
+        "durationHint": "视求职而定"
+      },
+      {
+        "title": "取得社区推荐",
+        "detail": "社区组织审核 offer、雇主与定居计划。",
+        "durationHint": "数周-数月"
+      },
+      {
+        "title": "递交联邦 PR（可同步申请工签先行工作）",
+        "durationHint": "-"
+      },
+      {
+        "title": "联邦审理并登陆",
+        "durationHint": "约 12 个月"
+      }
+    ]
+  },
+  "materials": [
+    "指定雇主 offer 与社区推荐信",
+    "语言成绩单",
+    "工作经验证明（推荐信 + 社保记录）",
+    "学历证明",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    {
+      "label": "IRCC - Rural Community Immigration Pilot",
+      "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/rural-immigration-pilots.html"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "老周，38 岁，A2 货车司机，雅思折算 CLB 5，开了 10 年货车。",
+    "steps": [
+      "在安省一个指定小镇的运输公司拿到全职 offer（雇主已获 RCIP 资质）。",
+      "向社区经济发展组织提交定居计划，拿到社区推荐。",
+      "递交联邦永居，同步申请工签先去上班。",
+      "约 1 年后永居获批。"
+    ],
+    "outcome": "全家用一份小镇司机工作换到枫叶卡；生活成本低，但选择小镇就是选择它的生活方式。"
+  },
+  "pros": [
+    "语言低至 CLB 4-6，社区推荐制路径清晰",
+    "可工签先行登陆边工作边等 PR"
+  ],
+  "cons": [
+    "岗位限定在指定小镇的指定雇主",
+    "社区推荐名额有限"
+  ]
+}

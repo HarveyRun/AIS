@@ -34,6 +34,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
   List<WithdrawalRecord> _withdrawals = const [];
   final _amount = TextEditingController();
   bool _loading = true;
+  String? _loadError;
   bool _submitting = false;
   bool _authorizingAlipay = false;
   bool _identityApproved = false;
@@ -53,7 +54,10 @@ class _WalletPageState extends ConsumerState<WalletPage> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
     try {
       final results = await Future.wait([
         ref.read(repositoryProvider).wallet(),
@@ -75,7 +79,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
         );
       });
     } catch (error) {
-      if (mounted) AppMessage.show(context, '$error');
+      if (mounted) setState(() => _loadError = '$error');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -317,6 +321,8 @@ class _WalletPageState extends ConsumerState<WalletPage> {
       appBar: AppBar(title: const Text('账户余额')),
       body: _loading
           ? const SizedBox.shrink()
+          : _loadError != null && _wallet == null
+          ? _WalletLoadError(message: _loadError!, onRetry: _load)
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
@@ -391,7 +397,12 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                   ),
                   const SizedBox(height: 16),
                   if (_tab == WalletTab.transactions)
-                    _TransactionList(items: _transactions),
+                    _TransactionList(
+                      items: _transactions,
+                      onTap: (item) => context.push(
+                        '/profile/wallet/transactions/${item.id}',
+                      ),
+                    ),
                   if (_tab == WalletTab.withdrawals)
                     _WithdrawalList(items: _withdrawals),
                   if (_tab == WalletTab.recharge ||
@@ -894,8 +905,9 @@ class _Balance extends StatelessWidget {
 }
 
 class _TransactionList extends StatelessWidget {
-  const _TransactionList({required this.items});
+  const _TransactionList({required this.items, required this.onTap});
   final List<WalletTransaction> items;
+  final ValueChanged<WalletTransaction> onTap;
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
@@ -934,6 +946,7 @@ class _TransactionList extends StatelessWidget {
             borderRadius: BorderRadius.circular(13),
           ),
           child: ListTile(
+            onTap: () => onTap(item),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             leading: CircleAvatar(
               backgroundColor: Theme.of(
@@ -959,11 +972,40 @@ class _TransactionList extends StatelessWidget {
                     : null,
               ),
             ),
+            visualDensity: const VisualDensity(vertical: 1),
           ),
         );
       }).toList(),
     );
   }
+}
+
+class _WalletLoadError extends StatelessWidget {
+  const _WalletLoadError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.cloud_off_rounded,
+            size: 38,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 18),
+          FilledButton.tonal(onPressed: onRetry, child: const Text('重新加载')),
+        ],
+      ),
+    ),
+  );
 }
 
 class _WithdrawalList extends StatelessWidget {

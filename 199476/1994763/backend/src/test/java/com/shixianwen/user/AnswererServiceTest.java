@@ -3,6 +3,7 @@ package com.shixianwen.user;
 import com.shixianwen.certification.CertificationPublicMediaService;
 import com.shixianwen.certification.CertificationRepository;
 import com.shixianwen.certification.ExperienceCategoryService;
+import com.shixianwen.realtime.RealtimePublisher;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -30,7 +31,8 @@ class AnswererServiceTest {
             mock(CertificationRepository.class),
             jdbc,
             mock(CertificationPublicMediaService.class),
-            mock(ExperienceCategoryService.class)
+            mock(ExperienceCategoryService.class),
+            mock(RealtimePublisher.class)
         );
 
         AnswererService.AnswererPage result = service.search(1L, "", 0, 10);
@@ -85,7 +87,7 @@ class AnswererServiceTest {
         ExperienceCategoryService categories = mock(ExperienceCategoryService.class);
         when(categories.matchingLeafIds(9L)).thenReturn(List.of(31L, 32L));
         AnswererService service = new AnswererService(users, mock(CertificationRepository.class),
-            jdbc, mock(CertificationPublicMediaService.class), categories);
+            jdbc, mock(CertificationPublicMediaService.class), categories, mock(RealtimePublisher.class));
 
         service.search(1L, "装修", "LIKE_COUNT", "DESC", 9L, 0, 20);
 
@@ -105,7 +107,8 @@ class AnswererServiceTest {
             mock(CertificationRepository.class),
             jdbc,
             mock(CertificationPublicMediaService.class),
-            mock(ExperienceCategoryService.class)
+            mock(ExperienceCategoryService.class),
+            mock(RealtimePublisher.class)
         );
     }
 

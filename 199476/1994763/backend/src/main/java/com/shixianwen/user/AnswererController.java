@@ -39,9 +39,35 @@ public class AnswererController {
     @GetMapping("/{uid}")
     public ApiResponse<AnswererService.AnswererView> detail(
         @CurrentUser User currentUser,
-        @PathVariable String uid
+        @PathVariable String uid,
+        @RequestParam(required = false) Long experienceId
     ) {
-        return ApiResponse.ok(answererService.detail(currentUser.getId(), uid));
+        return ApiResponse.ok(answererService.detail(currentUser.getId(), uid, experienceId));
+    }
+
+    @GetMapping("/library")
+    public ApiResponse<AnswererService.ExperienceLibraryPage> library(
+        @CurrentUser User currentUser,
+        @RequestParam(defaultValue = "FAVORITES") String type,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size
+    ) {
+        return ApiResponse.ok(answererService.library(currentUser.getId(), type, page, size));
+    }
+
+    @DeleteMapping("/library/recent/{certificationId}")
+    public ApiResponse<Void> deleteRecentView(
+        @CurrentUser User currentUser,
+        @PathVariable Long certificationId
+    ) {
+        answererService.deleteRecentView(currentUser.getId(), certificationId);
+        return ApiResponse.ok();
+    }
+
+    @DeleteMapping("/library/recent")
+    public ApiResponse<Void> clearRecentViews(@CurrentUser User currentUser) {
+        answererService.clearRecentViews(currentUser.getId());
+        return ApiResponse.ok();
     }
 
     @PutMapping("/{uid}/experiences/{certificationId}/like")
@@ -57,5 +83,19 @@ public class AnswererController {
     }
 
     public record ExperienceLikeRequest(boolean liked) {}
+
+    @PutMapping("/{uid}/experiences/{certificationId}/favorite")
+    public ApiResponse<AnswererService.ExperienceFavoriteView> setExperienceFavorite(
+        @CurrentUser User currentUser,
+        @PathVariable String uid,
+        @PathVariable Long certificationId,
+        @RequestBody ExperienceFavoriteRequest request
+    ) {
+        return ApiResponse.ok(answererService.setExperienceFavorite(
+            currentUser.getId(), uid, certificationId, request.favorited()
+        ));
+    }
+
+    public record ExperienceFavoriteRequest(boolean favorited) {}
 
 }

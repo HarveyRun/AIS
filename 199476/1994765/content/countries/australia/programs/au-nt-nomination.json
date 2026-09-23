@@ -1,0 +1,98 @@
+{
+  "slug": "au-nt-nomination",
+  "name": "北领地 190/491 提名（含 DAMA）",
+  "nameEn": "Northern Territory Nomination (190/491 / DAMA)",
+  "country": "australia",
+  "region": "northern-territory",
+  "type": "skilled",
+  "status": "active",
+  "summary": "北领地名额最少，基本只考虑已经在当地生活、工作或毕业的人；特色是 DAMA 协议让更多职业有机会。",
+  "suitableFor": "已有北领地雇主或计划赴达尔文留学工作的申请人；职业不在标准清单者可研究 DAMA 通道。",
+  "highlights": [
+    "DAMA 扩展职业范围（含部分非常规职业）",
+    "竞争人数少",
+    "全境偏远地区（491 +15 分）"
+  ],
+  "requirements": [
+    {
+      "title": "北领地本地连接",
+      "detail": "190 面向在北领地居住工作满一定时长的申请人；491 对本地毕业生与工作者开放。"
+    },
+    {
+      "title": "DAMA 通道（如适用）",
+      "detail": "需北领地雇主具备资质，职业在 DAMA 协议列表内；部分职业可用让步条件（年龄/英语/薪资折算）。"
+    },
+    {
+      "title": "职业评估 + EOI 打分",
+      "detail": "联邦底线要求（DAMA 部分职业走雇主担保而非打分体系）。"
+    }
+  ],
+  "cost": {
+    "note": "费用结构与联邦签证一致；DAMA 雇主侧另有协议费用。",
+    "breakdown": [
+      {
+        "item": "签证申请费",
+        "amount": "按对应签证类别收取"
+      },
+      {
+        "item": "职业评估 + 语言考试",
+        "amount": "约 8,000-20,000 元人民币"
+      },
+      {
+        "item": "体检、无犯罪、公证翻译",
+        "amount": "约 5,000-10,000 元人民币"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 0.8-1.2 万澳元"
+      }
+    ]
+  },
+  "duration": {
+    "note": "审理节奏与联邦一致，名额少导致的排队较少。",
+    "steps": [
+      {
+        "title": "建立北领地连接（雇主/就读）",
+        "durationHint": "视个人情况"
+      },
+      {
+        "title": "递交北领地提名申请",
+        "durationHint": "4-12 周"
+      },
+      {
+        "title": "获提名递交联邦签证并获批",
+        "durationHint": "6-12 个月"
+      }
+    ]
+  },
+  "materials": [
+    "北领地居住/工作/就读证明",
+    "雇主资质与 offer（雇主类/DAMA）",
+    "职业评估与 EOI（技术类）",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    {
+      "label": "Northern Territory Migration 官方页面",
+      "url": "https://theterritory.com.au/migrate"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "老沈，38 岁，厨师，在达尔文餐厅持 DAMA 框架工签工作 3 年。",
+    "steps": [
+      "满足北领地 491 提名的本地居住与工作时长要求。",
+      "雇主继续支持，递交北领地提名。",
+      "获批后递交 491 签证。",
+      "3 年后按偏远地区要求转 191 永居。"
+    ],
+    "outcome": "先在达尔文踏实干 3 年，再拿身份；北领地给的是「留下来」的机会。"
+  },
+  "pros": [
+    "DAMA 放宽职业与条件"
+  ],
+  "cons": [
+    "名额最小，只考虑已在当地的人",
+    "地处偏远"
+  ]
+}

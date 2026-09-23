@@ -5,38 +5,79 @@
   "country": "australia",
   "type": "employer",
   "status": "active",
-  "summary": "先持 482 雇主担保签证赴澳工作，再由雇主转担保 186 永居；不需要拼分，职业范围比技术移民更宽。",
+  "summary": "澳洲雇主雇佣你：先发 482 工作签证（2-4 年），为同一个雇主干满 2 年后转 186 永居。不参与打分，找到合格雇主就成功一半。",
   "suitableFor": "能拿到澳洲雇主 offer 的专业人士与技工；英语中等、不想走打分赛道的申请人。",
-  "difficulty": "mid",
   "highlights": [
     "不参与打分竞争，offer 是硬通货",
     "职业清单（CSOL）覆盖面广，含大量技工与管理岗",
     "配偶可全额工作，子女可本地就读"
   ],
   "requirements": [
-    { "title": "澳洲雇主担保 + 职业在 CSOL 清单", "detail": "雇主需有担保资质（SBS），提名职位真实且薪资达到市场标准（AMSR）。" },
-    { "title": "相关工作经验约 1-2 年", "detail": "2024 年起 482 经验要求已放宽至 1 年，以官网最新要求为准。" },
-    { "title": "英语要求", "detail": "482 约 IELTS 总分 5（单项不低于 5）；186 直通类要求四个 6。" },
-    { "title": "转 186 永居", "detail": "TRT 通道：为担保雇主工作满 2 年后可申请 186 永居（直通类另有路径）。" }
+    {
+      "title": "澳洲雇主担保 + 职业在 CSOL 清单",
+      "detail": "雇主需有担保资质（SBS），提名职位真实且薪资达到市场标准（AMSR）。"
+    },
+    {
+      "title": "相关工作经验约 1-2 年",
+      "detail": "2024 年起 482 经验要求已放宽至 1 年，以官网最新要求为准。"
+    },
+    {
+      "title": "英语要求",
+      "detail": "482 约 IELTS 总分 5（单项不低于 5）；186 直通类要求四个 6。"
+    },
+    {
+      "title": "转 186 永居",
+      "detail": "TRT 通道：为担保雇主工作满 2 年后可申请 186 永居（直通类另有路径）。"
+    }
   ],
   "cost": {
-    "totalEstimate": { "min": 50000, "max": 150000, "currency": "CNY" },
     "note": "部分担保费与培训基金由雇主承担；自行求职与通过中介的成本差异巨大。",
     "breakdown": [
-      { "item": "482 签证申请费", "amount": "约 3,035 澳元/主申" },
-      { "item": "雇主担保费 + 澳洲技能基金", "amount": "约 1,200-1,800 澳元/年（多由雇主付）" },
-      { "item": "186 永居申请费", "amount": "约 4,770 澳元" },
-      { "item": "语言、体检、无犯罪、公证", "amount": "约 8,000-15,000 元人民币" }
+      {
+        "item": "482 签证申请费",
+        "amount": "约 3,035 澳元/主申"
+      },
+      {
+        "item": "雇主担保费 + 澳洲技能基金",
+        "amount": "约 1,200-1,800 澳元/年（多由雇主付）"
+      },
+      {
+        "item": "186 永居申请费",
+        "amount": "约 4,770 澳元"
+      },
+      {
+        "item": "语言、体检、无犯罪、公证",
+        "amount": "约 8,000-15,000 元人民币"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 1-1.5 万澳元"
+      }
     ]
   },
   "duration": {
-    "totalMonths": { "min": 36, "max": 60 },
     "note": "482 审理数周到数月；为雇主工作 2 年后递交 186。",
     "steps": [
-      { "title": "找到担保雇主", "detail": "确认雇主有 SBS 资质或愿意申请；核对职业在 CSOL。", "durationHint": "视个人情况" },
-      { "title": "雇主提名 + 递交 482", "detail": "提名审批后递交签证。", "durationHint": "1-4 个月" },
-      { "title": "赴澳工作满 2 年", "detail": "TRT 通道要求为担保雇主工作满 2 年。", "durationHint": "24 个月" },
-      { "title": "递交 186 永居", "detail": "雇主继续担保，审理约 6-12 个月。", "durationHint": "6-12 个月" }
+      {
+        "title": "找到担保雇主",
+        "detail": "确认雇主有 SBS 资质或愿意申请；核对职业在 CSOL。",
+        "durationHint": "视个人情况"
+      },
+      {
+        "title": "雇主提名 + 递交 482",
+        "detail": "提名审批后递交签证。",
+        "durationHint": "1-4 个月"
+      },
+      {
+        "title": "赴澳工作满 2 年",
+        "detail": "TRT 通道要求为担保雇主工作满 2 年。",
+        "durationHint": "24 个月"
+      },
+      {
+        "title": "递交 186 永居",
+        "detail": "雇主继续担保，审理约 6-12 个月。",
+        "durationHint": "6-12 个月"
+      }
     ]
   },
   "materials": [
@@ -48,26 +89,33 @@
     "职业评估（部分职业需要）"
   ],
   "officialSources": [
-    { "label": "内政部 - Skills in Demand (482) 官方页面", "url": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/skills-in-demand-482" },
-    { "label": "186 雇主提名永居页面", "url": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/employer-nominated-scheme-186" }
+    {
+      "label": "内政部 - Skills in Demand (482) 官方页面",
+      "url": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/skills-in-demand-482"
+    },
+    {
+      "label": "186 雇主提名永居页面",
+      "url": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/employer-nominated-scheme-186"
+    }
   ],
-  "commonRejections": [
-    "雇主资质或真实岗位性质被质疑",
-    "薪资未达市场标准（AMSR）",
-    "工作经验证明不足"
-  ],
-  "risks": [
-    "身份与雇主强绑定，换雇主需重新担保",
-    "若中介对接 offer，费用高且纠纷多发，务必核实雇主真实性",
-    "482 转永居规则可能调整，签约前确认最新通道"
-  ],
-  "eligibility": {
-    "minEducation": 2,
-    "minLanguage": 1,
-    "minBudgetTier": "low",
-    "needsJobOffer": true,
-    "ageRange": { "min": 22, "max": 45 },
-    "note": "offer 是核心；186 阶段有年龄上限（45 周岁以下）。"
+  "infoVerifiedAt": "2026-09-22",
+  "case": {
+    "profile": "老郑，35 岁，西餐厨师 10 年经验，雅思总分 5.5。",
+    "steps": [
+      "悉尼一家餐厅拿到厨师 offer，雇主有担保资质，职业在清单内。",
+      "递交 482 工作签证，2 个月获批，携全家赴澳。",
+      "为同一雇主工作满 2 年，期间正常纳税。",
+      "递交 186 永居签证，1 年后获批。"
+    ],
+    "outcome": "从入职到永居约 3 年半；身份前两年和雇主绑定，换工作要重新走担保。"
   },
-  "infoVerifiedAt": "2026-09-22"
+  "pros": [
+    "不打分，offer 是唯一核心",
+    "配偶可工作、子女可就读",
+    "职业清单比技术移民宽"
+  ],
+  "cons": [
+    "前 2 年身份与雇主绑定",
+    "雇主资质与岗位真实性是变量"
+  ]
 }

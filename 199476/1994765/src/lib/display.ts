@@ -1,7 +1,7 @@
-import { difficultyLabels, immigrationTypeLabels, statusLabels } from "./schema";
+import { immigrationTypeLabels, statusLabels } from "./schema";
 import type { Program } from "./schema";
 import { getCountry, getRegion } from "./content";
-import { moneyText, monthsText, type ProgramCardData } from "./ui";
+import type { ProgramCardData } from "./ui";
 
 /**
  * 服务端数据组装层：把内容层的 Program 转换为可序列化的展示数据。
@@ -9,7 +9,6 @@ import { moneyText, monthsText, type ProgramCardData } from "./ui";
  * 客户端组件请直接 import @/lib/ui（纯函数）。
  */
 
-export { moneyText, monthsText };
 export type { ProgramCardData };
 
 /** Program → 卡片展示数据（服务端组装，客户端只做渲染） */
@@ -28,14 +27,9 @@ export function toCardData(p: Program): ProgramCardData {
     regionName: region?.name,
     type: p.type,
     typeLabel: immigrationTypeLabels[p.type],
-    difficulty: p.difficulty,
-    difficultyLabel: difficultyLabels[p.difficulty],
     statusLabel: p.status !== "active" ? statusLabels[p.status] : undefined,
-    costText: moneyText(p.cost.totalEstimate),
-    durationText: monthsText(p.duration.totalMonths),
-    costMin: p.cost.totalEstimate.min,
-    durationMinMonths: p.duration.totalMonths.min,
-    budgetTier: p.eligibility?.minBudgetTier ?? "low",
+    scope: p.region ? ("regional" as const) : ("federal" as const),
+    scopeLabel: p.region ? (region ? region.name + "项目" : "省/州项目") : "联邦项目",
     infoVerifiedAt: p.infoVerifiedAt,
   };
 }

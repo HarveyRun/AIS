@@ -6,38 +6,75 @@
   "region": "ontario",
   "type": "study",
   "status": "active",
-  "summary": "安省指定院校硕士毕业后，无需雇主 offer 即可注册 EOI 争取省提名，是「留学转移民」在安省的主流玩法。",
+  "summary": "在安省读一个全日制硕士，毕业后不用找工作，直接进安省毕业生打分池抽省提名。花学费和时间，换一个不需要雇主的移民通道。",
   "suitableFor": "愿意投入 1-2 年时间与学费在安省读硕士、且毕业后计划留在安省的年轻申请人。",
-  "difficulty": "mid",
   "highlights": [
     "无需雇主 offer，毕业即可入池",
     "学历本身就是长期竞争力",
     "毕业生通道分数线通常低于雇主类"
   ],
   "requirements": [
-    { "title": "安省指定院校全职硕士毕业", "detail": "学制至少 1 学年，须为全日制线下项目；毕业后 2 年内申请。" },
-    { "title": "毕业前后居住要求", "detail": "申请前 2 年中在安省合法居住至少 1 年。" },
-    { "title": "语言 CLB 7", "detail": "英语或法语达到 CLB 7（约雅思四个 6.0）。" },
-    { "title": "EOI 打分择优", "detail": "按学历、专业领域（STEM/医疗等加分）、语言、地域等打分择优。" }
+    {
+      "title": "安省指定院校全职硕士毕业",
+      "detail": "学制至少 1 学年，须为全日制线下项目；毕业后 2 年内申请。"
+    },
+    {
+      "title": "毕业前后居住要求",
+      "detail": "申请前 2 年中在安省合法居住至少 1 年。"
+    },
+    {
+      "title": "语言 CLB 7",
+      "detail": "英语或法语达到 CLB 7（约雅思四个 6.0）。"
+    },
+    {
+      "title": "EOI 打分择优",
+      "detail": "按学历、专业领域（STEM/医疗等加分）、语言、地域等打分择优。"
+    }
   ],
   "cost": {
-    "totalEstimate": { "min": 250000, "max": 500000, "currency": "CNY" },
     "note": "以 1-2 年硕士学费 + 生活费估算；国际生学费因专业差异大（商科偏高，理工科相对低）。",
     "breakdown": [
-      { "item": "硕士学费（1-2 年）", "amount": "约 2.5-5.5 万加元/年" },
-      { "item": "生活费（1-2 年）", "amount": "约 1.5-2.5 万加元/年" },
-      { "item": "安省提名费", "amount": "约 1,500-3,500 加元" },
-      { "item": "联邦 PR 申请费 + 落地费", "amount": "约 1,525 加元/成人" }
+      {
+        "item": "硕士学费（1-2 年）",
+        "amount": "约 2.5-5.5 万加元/年"
+      },
+      {
+        "item": "生活费（1-2 年）",
+        "amount": "约 1.5-2.5 万加元/年"
+      },
+      {
+        "item": "安省提名费",
+        "amount": "约 1,500-3,500 加元"
+      },
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      }
     ]
   },
   "duration": {
-    "totalMonths": { "min": 30, "max": 54 },
     "note": "含读书时间；EOI 获邀时间不可控。",
     "steps": [
-      { "title": "申请并就读安省硕士", "detail": "优先选择指定院校且 EOI 打分有利的 STEM/医疗专业。", "durationHint": "12-24 个月" },
-      { "title": "毕业并满足居住要求", "detail": "毕业后 2 年内递交提名申请。", "durationHint": "-" },
-      { "title": "EOI 注册与获邀", "detail": "打分越高获邀越快，可同步申请毕业工签（PGWP）。", "durationHint": "3-12 个月" },
-      { "title": "省提名 → 联邦 PR", "detail": "获提名后递交联邦申请。", "durationHint": "12-18 个月" }
+      {
+        "title": "申请并就读安省硕士",
+        "detail": "优先选择指定院校且 EOI 打分有利的 STEM/医疗专业。",
+        "durationHint": "12-24 个月"
+      },
+      {
+        "title": "毕业并满足居住要求",
+        "detail": "毕业后 2 年内递交提名申请。",
+        "durationHint": "-"
+      },
+      {
+        "title": "EOI 注册与获邀",
+        "detail": "打分越高获邀越快，可同步申请毕业工签（PGWP）。",
+        "durationHint": "3-12 个月"
+      },
+      {
+        "title": "省提名 → 联邦 PR",
+        "detail": "获提名后递交联邦申请。",
+        "durationHint": "12-18 个月"
+      }
     ]
   },
   "materials": [
@@ -48,25 +85,28 @@
     "资金证明"
   ],
   "officialSources": [
-    { "label": "安省政府 - OINP 硕士毕业生类", "url": "https://www.ontario.ca/page/oinp-masters-graduate-stream" }
+    {
+      "label": "安省政府 - OINP 硕士毕业生类",
+      "url": "https://www.ontario.ca/page/oinp-masters-graduate-stream"
+    }
   ],
-  "commonRejections": [
-    "就读项目不符合要求（非全日制、线上、学制不足）",
-    "语言未达 CLB 7",
-    "毕业后超过 2 年才申请或居住时间不足"
-  ],
-  "risks": [
-    "EOI 获邀不确定，存在毕业后长时间等待的可能（PGWP 提供缓冲）",
-    "硕士学费投入不小，若最终未获提名需评估沉没成本",
-    "安省住房与生活成本高"
-  ],
-  "eligibility": {
-    "minEducation": 4,
-    "minLanguage": 2,
-    "minBudgetTier": "mid",
-    "needsJobOffer": false,
-    "ageRange": { "min": 22, "max": 35 },
-    "note": "先决条件是拿到安省指定院校硕士 offer 并完成学业。"
+  "infoVerifiedAt": "2026-09-22",
+  "case": {
+    "profile": "小郑，24 岁，本科毕业生，雅思 6.5，申请到多伦多大学电气与计算机硕士（2 年）。",
+    "steps": [
+      "读书 2 年，期间把雅思刷到总分 7（CLB 9 档，EOI 加分关键）。",
+      "毕业后注册 EOI：硕士学历 + STEM 专业 + 安省居住，分数较高。",
+      "4 个月后获邀，递交省提名，2 个月拿到提名。",
+      "转联邦申请，1 年后全家（此时已婚）拿枫叶卡。"
+    ],
+    "outcome": "从入学到 PR 约 5 年；学费加生活费总投入约 40-60 万人民币，换来的是学历+身份双收。"
   },
-  "infoVerifiedAt": "2026-09-22"
+  "pros": [
+    "毕业不需要 offer 即可入池",
+    "学历与身份双收"
+  ],
+  "cons": [
+    "学费加生活费投入约 40-60 万人民币",
+    "EOI 获邀时间不可控"
+  ]
 }

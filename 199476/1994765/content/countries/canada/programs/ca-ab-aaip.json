@@ -6,38 +6,75 @@
   "region": "alberta",
   "type": "employer",
   "status": "active",
-  "summary": "持阿省雇主合格 offer 并已实际工作后申请省提名，要求相对温和、生活成本低，是务实型雇主担保选择。",
+  "summary": "在阿省（卡尔加里、埃德蒙顿）找到对口雇主并真实工作满一段时间，就能申请省提名转永居。语言学历要求低，路线是先工签干活、后拿身份。",
   "suitableFor": "能在阿省（卡尔加里、埃德蒙顿等）找到雇主并先持工签工作的申请人；预算中等、看重落地成本。",
-  "difficulty": "low",
   "highlights": [
     "语言门槛较低（CLB 4-5 档）",
     "卡尔加里等城市生活成本显著低于多伦多/温哥华",
     "与雇主绑定相对直接，流程透明"
   ],
   "requirements": [
-    { "title": "阿省雇主合格 offer 并已工作", "detail": "全职、长期 offer，职业 TEER 0-3（部分 TEER 4-5 行业通道另行规定）；申请时通常需已为该雇主工作一段时间。" },
-    { "title": "语言 CLB 4-5", "detail": "按职业 TEER 类别区分，多数要求 CLB 4-5；建议 5+ 提高联邦阶段竞争力。" },
-    { "title": "学历高中以上", "detail": "最低高中学历；海外学历需认证（ECA）。" },
-    { "title": "工作与学历/经验匹配", "detail": "offer 职业需与既往学历或工作经验相关。" }
+    {
+      "title": "阿省雇主合格 offer 并已工作",
+      "detail": "全职、长期 offer，职业 TEER 0-3（部分 TEER 4-5 行业通道另行规定）；申请时通常需已为该雇主工作一段时间。"
+    },
+    {
+      "title": "语言 CLB 4-5",
+      "detail": "按职业 TEER 类别区分，多数要求 CLB 4-5；建议 5+ 提高联邦阶段竞争力。"
+    },
+    {
+      "title": "学历高中以上",
+      "detail": "最低高中学历；海外学历需认证（ECA）。"
+    },
+    {
+      "title": "工作与学历/经验匹配",
+      "detail": "offer 职业需与既往学历或工作经验相关。"
+    }
   ],
   "cost": {
-    "totalEstimate": { "min": 200000, "max": 600000, "currency": "CNY" },
     "note": "含工签过渡期的基本生活成本；雇主资源若通过中介对接会产生可观服务费。",
     "breakdown": [
-      { "item": "阿省提名费", "amount": "约 1,500 加元/通道" },
-      { "item": "工签阶段生活成本（6-12 个月）", "amount": "约 1.5-2.5 万加元" },
-      { "item": "联邦 PR 申请费 + 落地费", "amount": "约 1,525 加元/成人" },
-      { "item": "语言、体检、无犯罪、公证", "amount": "约 8,000-15,000 元人民币" }
+      {
+        "item": "阿省提名费",
+        "amount": "约 1,500 加元/通道"
+      },
+      {
+        "item": "工签阶段生活成本（6-12 个月）",
+        "amount": "约 1.5-2.5 万加元"
+      },
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "语言、体检、无犯罪、公证",
+        "amount": "约 8,000-15,000 元人民币"
+      }
     ]
   },
   "duration": {
-    "totalMonths": { "min": 20, "max": 36 },
     "note": "工签工作积累期 6-12 个月 + 提名审理约 3-6 个月 + 联邦阶段。",
     "steps": [
-      { "title": "找到阿省雇主并申请工签", "detail": "确认雇主与职位符合 AOS 要求。", "durationHint": "视资源而定" },
-      { "title": "工作积累期", "detail": "为该雇主持续工作，满足时长要求。", "durationHint": "6-12 个月" },
-      { "title": "递交省提名申请", "detail": "阿省 AAIP 审核。", "durationHint": "3-6 个月" },
-      { "title": "联邦 PR 阶段与登陆", "detail": "获批提名后递交联邦申请。", "durationHint": "12-18 个月" }
+      {
+        "title": "找到阿省雇主并申请工签",
+        "detail": "确认雇主与职位符合 AOS 要求。",
+        "durationHint": "视资源而定"
+      },
+      {
+        "title": "工作积累期",
+        "detail": "为该雇主持续工作，满足时长要求。",
+        "durationHint": "6-12 个月"
+      },
+      {
+        "title": "递交省提名申请",
+        "detail": "阿省 AAIP 审核。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "联邦 PR 阶段与登陆",
+        "detail": "获批提名后递交联邦申请。",
+        "durationHint": "12-18 个月"
+      }
     ]
   },
   "materials": [
@@ -49,25 +86,28 @@
     "无犯罪证明与体检"
   ],
   "officialSources": [
-    { "label": "阿省政府 - AAIP 官方页面", "url": "https://www.alberta.ca/alberta-advantage-immigration-program" }
+    {
+      "label": "阿省政府 - AAIP 官方页面",
+      "url": "https://www.alberta.ca/alberta-advantage-immigration-program"
+    }
   ],
-  "commonRejections": [
-    "offer 职业与既往学历/经验不匹配",
-    "工签类型或工作时长不满足要求",
-    "雇主资质问题（经营状况、欠薪记录）"
-  ],
-  "risks": [
-    "需要先落地工作，前期有真实的时间与生活成本投入",
-    "能源行业波动影响部分岗位；优先选择医疗、科技、物流等稳健行业",
-    "冬季寒冷，定居前建议充分了解生活方式差异"
-  ],
-  "eligibility": {
-    "minEducation": 1,
-    "minLanguage": 1,
-    "minBudgetTier": "low",
-    "needsJobOffer": true,
-    "ageRange": { "min": 20, "max": 45 },
-    "note": "学历语言门槛低，关键在拿到合格雇主 offer 并实际工作。"
+  "infoVerifiedAt": "2026-09-22",
+  "case": {
+    "profile": "老马，33 岁，机械技工 8 年经验，雅思折算 CLB 5。",
+    "steps": [
+      "拿到卡尔加里一家设备公司的技工 offer，办封闭式工签赴阿省。",
+      "为同一雇主连续工作 9 个月，满足机遇类时长要求。",
+      "递交省提名，4 个月获批。",
+      "联邦阶段 1 年后全家枫叶卡。"
+    ],
+    "outcome": "全程约 2 年半；工作积累期有真实工资，经济压力小于纯等待型项目。"
   },
-  "infoVerifiedAt": "2026-09-22"
+  "pros": [
+    "语言学历要求相对温和",
+    "工作期有真实工资，经济压力小"
+  ],
+  "cons": [
+    "需要先持工签赴阿省工作",
+    "能源行业波动影响部分岗位"
+  ]
 }

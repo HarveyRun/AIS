@@ -1,0 +1,16 @@
+{
+  "id": "northern-territory",
+  "country": "australia",
+  "name": "北领地",
+  "nameEn": "Northern Territory",
+  "summary": "提名规模最小，只考虑已在当地生活工作的人；DAMA 协议放宽职业与条件。",
+  "policyOverview": "基本只考虑已在当地居住、工作或毕业的申请人。特色是 DAMA 协议：雇主担保职业范围更宽，年龄英语薪资可放宽。",
+  "officialSite": "https://theterritory.com.au/migrate",
+  "pros": [
+    "DAMA 放宽职业范围与部分条件"
+  ],
+  "cons": [
+    "名额最小，只考虑已在当地的人",
+    "气候与地理偏远"
+  ]
+}

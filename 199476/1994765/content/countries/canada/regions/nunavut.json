@@ -1,0 +1,17 @@
+{
+  "id": "nunavut",
+  "country": "canada",
+  "name": "努纳武特地区",
+  "nameEn": "Nunavut",
+  "summary": "加拿大唯一没有省提名的辖区；定居只能走联邦通道或雇主工签。",
+  "policyOverview": "加拿大唯一没有省提名计划（PNP）的辖区。想定居这里只能走联邦通道（如 Express Entry），或先拿雇主工签过来。",
+  "officialSite": "https://www.gov.nu.ca/",
+  "pros": [
+    "走联邦通道获批后，可在此定居生活"
+  ],
+  "cons": [
+    "没有省提名计划，只能走联邦通道",
+    "食品与住房成本全加最高",
+    "多数社区不通公路"
+  ]
+}

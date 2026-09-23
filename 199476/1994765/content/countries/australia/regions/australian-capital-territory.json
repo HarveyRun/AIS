@@ -1,0 +1,17 @@
+{
+  "id": "australian-capital-territory",
+  "country": "australia",
+  "name": "澳大利亚首都领地",
+  "nameEn": "Australian Capital Territory (ACT)",
+  "summary": "用 Canberra Matrix 打分排队：居住、就业、经营小店计分，定期择优邀请，名额少。",
+  "policyOverview": "用自家的 Canberra Matrix 打分排队：居住时长、本地就业、经营小店都计分，定期择优邀请。名额少，邀请分数随轮次波动。",
+  "officialSite": "https://www.act.gov.au/migration",
+  "pros": [
+    "Matrix 规则透明，居住/工作/经营都计分",
+    "公务员体系岗位稳定"
+  ],
+  "cons": [
+    "名额少，邀请线波动",
+    "通常需要住满 2 年以上才有竞争力"
+  ]
+}

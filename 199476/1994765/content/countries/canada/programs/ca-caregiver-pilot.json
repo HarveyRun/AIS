@@ -1,0 +1,116 @@
+{
+  "slug": "ca-caregiver-pilot",
+  "name": "家庭护理移民试点",
+  "nameEn": "Home Care Worker Immigration Pilots",
+  "country": "canada",
+  "type": "employer",
+  "status": "active",
+  "summary": "给加拿大雇主家庭做老人/残障人士的上门护理，一入境就是永久居民。门槛：高中、英语入门级（CLB 4）、有护理经验或培训。名额少，开放申请就要抢。",
+  "suitableFor": "有护理相关经验或培训背景、语言达 CLB 4 的申请人；愿意从事老人与残障人士家庭护理工作。",
+  "highlights": [
+    "抵达即获永久居民身份，无需先持临时工签等待",
+    "只要求高中以上学历 + CLB 4",
+    "加拿大老龄化背景下为长期存在的职业类别"
+  ],
+  "requirements": [
+    {
+      "title": "全职家庭护理 offer",
+      "detail": "加拿大雇主提供的家庭护理（home care）方向全职工作，非住家模式。"
+    },
+    {
+      "title": "相关经验或培训",
+      "detail": "近年内约 6 个月相关护理经验，或完成相关护理培训/证书。"
+    },
+    {
+      "title": "语言 CLB 4",
+      "detail": "听说读写四项均不低于 CLB 4。"
+    },
+    {
+      "title": "高中学历",
+      "detail": "与加拿大高中等效（海外学历做认证）。"
+    },
+    {
+      "title": "年度名额",
+      "detail": "每期设有名额上限，开放后很快用满，需关注开放窗口。"
+    }
+  ],
+  "cost": {
+    "note": "费用为联邦规费与材料杂费；若经国内培训机构打包，另有培训与服务费（差异大，签约前核实）。",
+    "breakdown": [
+      {
+        "item": "PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "语言考试",
+        "amount": "约 2,000-3,000 元人民币"
+      },
+      {
+        "item": "学历认证、体检、无犯罪",
+        "amount": "约 5,000-10,000 元人民币"
+      },
+      {
+        "item": "护理培训/证书（如需）",
+        "amount": "视机构而定"
+      },
+      {
+        "item": "登陆初期安置生活费",
+        "amount": "约 0.5-1 万加元（入职后有工资）"
+      }
+    ]
+  },
+  "duration": {
+    "note": "名额开放窗口是关键变量；审理阶段以官方公布为准。",
+    "steps": [
+      {
+        "title": "取得护理经验/培训 + 语言成绩",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "找到加拿大雇主并获 offer",
+        "durationHint": "视招聘窗口"
+      },
+      {
+        "title": "在名额开放期递交申请",
+        "detail": "名额先到先得，需在开放时提交完整材料。",
+        "durationHint": "-"
+      },
+      {
+        "title": "审理获批，登陆从事护理工作",
+        "durationHint": "以官方公布为准"
+      }
+    ]
+  },
+  "materials": [
+    "雇主 offer（家庭护理方向）",
+    "护理经验证明或培训证书",
+    "语言成绩单（CLB 4+）",
+    "高中学历认证",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    {
+      "label": "IRCC - Home Care Worker Immigration Pilots",
+      "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/home-care-workers.html"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "孙姐，35 岁，国内三甲医院护士 8 年，雅思折算 CLB 4。",
+    "steps": [
+      "把护士经验对照加拿大家庭护理要求整理成材料，完成学历认证。",
+      "在多伦多找到需要照护老人的家庭雇主，拿到全职 offer。",
+      "名额开放当天递交完整申请（先到先得）。",
+      "审理通过后登陆，直接以永居身份开始工作。"
+    ],
+    "outcome": "省去了先工签后转永居的等待，但名额窗口短，材料必须提前备齐。"
+  },
+  "pros": [
+    "入境即拿永居，无需先工签等待",
+    "高中 + CLB 4 即可，学历语言要求低"
+  ],
+  "cons": [
+    "年度名额少，开放窗口短",
+    "护理工作强度大"
+  ]
+}

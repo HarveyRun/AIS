@@ -1,0 +1,17 @@
+{
+  "id": "nova-scotia",
+  "country": "canada",
+  "name": "新斯科舍省",
+  "nameEn": "Nova Scotia",
+  "summary": "省提名 NSNP：从联邦 EE 池按职业定向抽取，另有本省雇主 offer 通道；同时适用联邦大西洋计划。",
+  "policyOverview": "省提名 NSNP：从联邦 EE 池按职业定向捞人，另有本省雇主 offer 通道。同时适用联邦大西洋移民计划（AIP），指定雇主数量在大西洋四省里最多。需求行业：医疗护理、建筑、餐饮旅游、IT。",
+  "officialSite": "https://novascotiaimmigration.com/",
+  "pros": [
+    "EE 定向抽取不要求本地雇主",
+    "大西洋计划指定雇主多"
+  ],
+  "cons": [
+    "定向抽取按职业轮次，无法主动申请",
+    "本地工资水平低于大城市"
+  ]
+}

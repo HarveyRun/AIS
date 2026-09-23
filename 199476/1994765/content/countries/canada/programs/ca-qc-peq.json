@@ -6,38 +6,75 @@
   "region": "quebec",
   "type": "study",
   "status": "active",
-  "summary": "魁省毕业生或本地工作者，凭法语口语中级偏上（B2）成绩申请 CSQ 的快速通道——愿意学法语的人竞争小得多。",
+  "summary": "魁北克自己的快速通道：在魁省读书或工作一段时间，把法语口语考到 B2，就能申请省里的甄选证书（CSQ），再转联邦永居。拦路虎只有一个——法语。",
   "suitableFor": "计划在魁省（蒙特利尔等）留学或已持工签在魁省工作、且能攻克法语 B2 的申请人。",
-  "difficulty": "mid",
   "highlights": [
     "竞争池远小于英语省份",
     "毕业后即可申请，无需雇主 offer（毕业生通道）",
     "蒙特利尔生活成本低于多伦多、温哥华"
   ],
   "requirements": [
-    { "title": "法语口语 B2（核心门槛）", "detail": "需提供标准化考试成绩（如 TEF/TCF）或完成指定的法语授课学业；听力口语达中级偏上是近年收紧的重点。" },
-    { "title": "魁省指定学业毕业", "detail": "完成魁省指定的大专/职业培训/本科/硕士学业（职业培训类有专业与时长匹配要求）。" },
-    { "title": "或本地工作经验", "detail": "工作通道要求在魁省持有合格工签工作 24 个月（毕业生通道另有 12 个月工作要求的情形，按最新细则核对）。" },
-    { "title": "满足资金与积分条件", "detail": "证明能负担 3 个月生活费；部分情形需满足魁省自评积分。" }
+    {
+      "title": "法语口语 B2（核心门槛）",
+      "detail": "需提供标准化考试成绩（如 TEF/TCF）或完成指定的法语授课学业；听力口语达中级偏上是近年收紧的重点。"
+    },
+    {
+      "title": "魁省指定学业毕业",
+      "detail": "完成魁省指定的大专/职业培训/本科/硕士学业（职业培训类有专业与时长匹配要求）。"
+    },
+    {
+      "title": "或本地工作经验",
+      "detail": "工作通道要求在魁省持有合格工签工作 24 个月（毕业生通道另有 12 个月工作要求的情形，按最新细则核对）。"
+    },
+    {
+      "title": "满足资金与积分条件",
+      "detail": "证明能负担 3 个月生活费；部分情形需满足魁省自评积分。"
+    }
   ],
   "cost": {
-    "totalEstimate": { "min": 180000, "max": 450000, "currency": "CNY" },
     "note": "以 1-2 年魁省学业 + 法语学习费用估算；职业培训类（DEP）学费较低，大学学费较高。",
     "breakdown": [
-      { "item": "魁省学费（1-2 年）", "amount": "约 1.5-4 万加元/年（因项目而异）" },
-      { "item": "生活费", "amount": "约 1.2-2 万加元/年" },
-      { "item": "法语学习与考试", "amount": "约 5,000-20,000 元人民币" },
-      { "item": "CSQ 及联邦申请费用", "amount": "约 2,000-3,000 加元" }
+      {
+        "item": "魁省学费（1-2 年）",
+        "amount": "约 1.5-4 万加元/年（因项目而异）"
+      },
+      {
+        "item": "生活费",
+        "amount": "约 1.2-2 万加元/年"
+      },
+      {
+        "item": "法语学习与考试",
+        "amount": "约 5,000-20,000 元人民币"
+      },
+      {
+        "item": "CSQ 及联邦申请费用",
+        "amount": "约 2,000-3,000 加元"
+      }
     ]
   },
   "duration": {
-    "totalMonths": { "min": 24, "max": 48 },
     "note": "含读书时间；CSQ 审理数月，联邦阶段约 12 个月+。",
     "steps": [
-      { "title": "规划学业与法语学习", "detail": "选择符合 PEQ 要求的魁省项目，同步启动法语学习。", "durationHint": "6-12 个月" },
-      { "title": "赴魁省完成学业", "detail": "毕业时确保法语达标（最关键变量）。", "durationHint": "12-24 个月" },
-      { "title": "递交 CSQ 申请", "detail": "毕业 90 日内可递交；审核期间可能核查法语能力。", "durationHint": "3-6 个月" },
-      { "title": "联邦 PR 阶段", "detail": "持 CSQ 递交联邦申请，完成体检背调。", "durationHint": "12 个月+" }
+      {
+        "title": "规划学业与法语学习",
+        "detail": "选择符合 PEQ 要求的魁省项目，同步启动法语学习。",
+        "durationHint": "6-12 个月"
+      },
+      {
+        "title": "赴魁省完成学业",
+        "detail": "毕业时确保法语达标（最关键变量）。",
+        "durationHint": "12-24 个月"
+      },
+      {
+        "title": "递交 CSQ 申请",
+        "detail": "毕业 90 日内可递交；审核期间可能核查法语能力。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "联邦 PR 阶段",
+        "detail": "持 CSQ 递交联邦申请，完成体检背调。",
+        "durationHint": "12 个月+"
+      }
     ]
   },
   "materials": [
@@ -48,25 +85,28 @@
     "无犯罪证明与体检"
   ],
   "officialSources": [
-    { "label": "魁北克移民局（MIFI）- PEQ 官方页面", "url": "https://www.quebec.ca/immigration/travailler-quebec/permanemment/programme-regulier-travailleurs" }
+    {
+      "label": "魁北克移民局（MIFI）- PEQ 官方页面",
+      "url": "https://www.quebec.ca/immigration/travailler-quebec/permanemment/programme-regulier-travailleurs"
+    }
   ],
-  "commonRejections": [
-    "法语成绩未达标或被面试否决（近年常见）",
-    "就读项目/专业不符合 PEQ 认可范围",
-    "工作经验时长或工签类型不符"
-  ],
-  "risks": [
-    "魁省移民政策近年多次收紧、规则变动频繁，申请前必须核对 MIFI 最新细则",
-    "法语学习周期常被低估，B2 是最大不确定性",
-    "仅在魁省范围内有效——CSQ 后仍需联邦审批"
-  ],
-  "eligibility": {
-    "minEducation": 2,
-    "minLanguage": 1,
-    "minBudgetTier": "mid",
-    "needsJobOffer": false,
-    "ageRange": { "min": 18, "max": 35 },
-    "note": "愿意投入学法语是该路径的先决条件，语言按法语 B2 另算。"
+  "infoVerifiedAt": "2026-09-22",
+  "case": {
+    "profile": "小杨，23 岁，大专毕业，愿意学法语，申请到蒙特利尔的职业培训课程（DEP，1 年半）。",
+    "steps": [
+      "持学签赴蒙特利尔读职业培训，同步报法语班，1 年半后毕业并通过 TEF B2。",
+      "毕业后 90 天内递交 PEQ 申请（CSQ）。",
+      "4 个月拿到 CSQ，转联邦申请永居。",
+      "联邦阶段约 1 年，获批登陆。"
+    ],
+    "outcome": "从落地到枫叶卡约 3 年半；学费便宜（职业培训类），代价是必须真学法语。"
   },
-  "infoVerifiedAt": "2026-09-22"
+  "pros": [
+    "毕业/工作 + 法语即可申请，无需雇主",
+    "竞争范围小于英语省份"
+  ],
+  "cons": [
+    "法语 B2 是硬门槛",
+    "魁省政策调整频繁"
+  ]
 }

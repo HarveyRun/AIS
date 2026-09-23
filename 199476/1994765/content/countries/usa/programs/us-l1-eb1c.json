@@ -5,38 +5,79 @@
   "country": "usa",
   "type": "employer",
   "status": "active",
-  "summary": "企业主或高管的「曲线」路径：先经营/任职海外公司满 1 年，以 L-1A 调赴美国关联公司，再转 EB-1C 绿卡。",
+  "summary": "企业主/高管的路线：把国内生意延伸到美国开分公司，先拿 L1 工签赴美经营，公司做实（有员工、有营收）后转 EB-1C 绿卡。拼的是两地公司的真实运营。",
   "suitableFor": "在国内有实体企业或担任高管、能构建中美关联公司架构的申请人；不拼学历语言，拼企业真实运营。",
-  "difficulty": "high",
   "highlights": [
     "无学历、语言硬门槛，核心理由是「管理层能力」",
     "EB-1C 属第一优先类，排期优于 EB-2/EB-3",
     "配偶可申请工签，子女可就读公立学校"
   ],
   "requirements": [
-    { "title": "海外公司 + 美国公司构成合格关联", "detail": "母子、姊妹或关联公司关系成立；中国公司需真实经营、有组织架构与员工。" },
-    { "title": "申请人资质", "detail": "过去 3 年中在海外公司担任管理/执行岗满 1 年；赴美岗位同样为管理/执行性质。" },
-    { "title": "美国公司运营要求", "detail": "新设公司（new office）L-1A 首批 1 年，续签时美国公司需已实际运营并雇佣员工；EB-1C 要求美国公司持续经营 1 年以上。" },
-    { "title": "真实业务", "detail": "移民局重点审查公司真实性、组织架构与申请人的管理职能。" }
+    {
+      "title": "海外公司 + 美国公司构成合格关联",
+      "detail": "母子、姊妹或关联公司关系成立；中国公司需真实经营、有组织架构与员工。"
+    },
+    {
+      "title": "申请人资质",
+      "detail": "过去 3 年中在海外公司担任管理/执行岗满 1 年；赴美岗位同样为管理/执行性质。"
+    },
+    {
+      "title": "美国公司运营要求",
+      "detail": "新设公司（new office）L-1A 首批 1 年，续签时美国公司需已实际运营并雇佣员工；EB-1C 要求美国公司持续经营 1 年以上。"
+    },
+    {
+      "title": "真实业务",
+      "detail": "移民局重点审查公司真实性、组织架构与申请人的管理职能。"
+    }
   ],
   "cost": {
-    "totalEstimate": { "min": 300000, "max": 1000000, "currency": "CNY" },
     "note": "含维持中美两地公司真实运营的成本（场地、薪资、税务），这是本路径的真实大头。",
     "breakdown": [
-      { "item": "L-1 签证申请费 + 防欺诈费", "amount": "约 760-1,000 美元" },
-      { "item": "加急费（可选）", "amount": "2,805 美元" },
-      { "item": "美国公司设立与运营（12-24 个月）", "amount": "约 10-50 万美元规模（视业务）" },
-      { "item": "律师与移民申请费（L-1 + EB-1C）", "amount": "约 2-6 万美元" }
+      {
+        "item": "L-1 签证申请费 + 防欺诈费",
+        "amount": "约 760-1,000 美元"
+      },
+      {
+        "item": "加急费（可选）",
+        "amount": "2,805 美元"
+      },
+      {
+        "item": "美国公司设立与运营（12-24 个月）",
+        "amount": "约 10-50 万美元规模（视业务）"
+      },
+      {
+        "item": "律师与移民申请费（L-1 + EB-1C）",
+        "amount": "约 2-6 万美元"
+      },
+      {
+        "item": "登陆初期家庭生活费",
+        "amount": "约 2-4 万美元/年"
+      }
     ]
   },
   "duration": {
-    "totalMonths": { "min": 24, "max": 60 },
     "note": "L-1A 最长 7 年；EB-1C 排期短于 EB-2/3，但美国公司需先满足运营要求。",
     "steps": [
-      { "title": "构建关联公司与 L-1 案件", "detail": "梳理中国公司架构，设立美国公司，准备调岗方案。", "durationHint": "3-6 个月" },
-      { "title": "以 L-1A 赴美开展业务", "detail": "新设办公室首签 1 年，续签需展示业务与雇佣。", "durationHint": "12-24 个月" },
-      { "title": "递交 EB-1C 移民申请", "detail": "美国公司运营满 1 年后可递交 I-140。", "durationHint": "6-12 个月" },
-      { "title": "排期与绿卡阶段", "detail": "I-485 或领事程序获批全家绿卡。", "durationHint": "视排期而定" }
+      {
+        "title": "构建关联公司与 L-1 案件",
+        "detail": "梳理中国公司架构，设立美国公司，准备调岗方案。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "以 L-1A 赴美开展业务",
+        "detail": "新设办公室首签 1 年，续签需展示业务与雇佣。",
+        "durationHint": "12-24 个月"
+      },
+      {
+        "title": "递交 EB-1C 移民申请",
+        "detail": "美国公司运营满 1 年后可递交 I-140。",
+        "durationHint": "6-12 个月"
+      },
+      {
+        "title": "排期与绿卡阶段",
+        "detail": "I-485 或领事程序获批全家绿卡。",
+        "durationHint": "视排期而定"
+      }
     ]
   },
   "materials": [
@@ -47,24 +88,32 @@
     "护照、无犯罪、体检"
   ],
   "officialSources": [
-    { "label": "USCIS - L-1 官方页面", "url": "https://www.uscis.gov/working-in-the-united-states/temporary-workers/l-1a-intracompany-transferee-executive-or-manager" },
-    { "label": "USCIS - EB-1C 官方页面", "url": "https://www.uscis.gov/working-in-the-united-states/permanent-workers/employment-based-immigration-first-preference-eb-1" }
+    {
+      "label": "USCIS - L-1 官方页面",
+      "url": "https://www.uscis.gov/working-in-the-united-states/temporary-workers/l-1a-intracompany-transferee-executive-or-manager"
+    },
+    {
+      "label": "USCIS - EB-1C 官方页面",
+      "url": "https://www.uscis.gov/working-in-the-united-states/permanent-workers/employment-based-immigration-first-preference-eb-1"
+    }
   ],
-  "commonRejections": [
-    "中国公司规模/架构不足以支撑管理岗位",
-    "美国公司被认定「壳公司」（无真实业务与雇佣）",
-    "申请人职能被认定偏执行而非管理"
-  ],
-  "risks": [
-    "两地公司运营成本高，业务做不起来则 L-1 续签与 EB-1C 均受阻",
-    "案卷复杂，对律师经验依赖度高",
-    "EB-1C 审理中 RFE 率高，需持续保留运营证据"
-  ],
-  "eligibility": {
-    "minBudgetTier": "mid",
-    "needsJobOffer": true,
-    "ageRange": { "min": 28, "max": 55 },
-    "note": "实为企业主/高管路径：需要既有企业或愿意构建真实跨国业务。"
+  "infoVerifiedAt": "2026-09-22",
+  "case": {
+    "profile": "周总，45 岁，国内制造企业股东兼总经理，公司员工 80 人，赴美开设销售子公司。",
+    "steps": [
+      "在美国注册子公司、租办公室、招 3 名员工，构建母子关联。",
+      "以 L-1A 跨国高管签证赴美管理子公司。",
+      "子公司运营满 1 年、营收与雇佣达标后递交 EB-1C（I-140）。",
+      "I-140 获批 + 排期到后全家拿绿卡。"
+    ],
+    "outcome": "全程约 3-4 年；真实成本是美国公司一年的运营投入，壳公司方案活不过续签。"
   },
-  "infoVerifiedAt": "2026-09-22"
+  "pros": [
+    "不看学历语言，看企业真实运营",
+    "EB-1C 排期优于 EB-2/EB-3"
+  ],
+  "cons": [
+    "两地公司运营成本高",
+    "美国公司必须做实，壳公司不可行"
+  ]
 }

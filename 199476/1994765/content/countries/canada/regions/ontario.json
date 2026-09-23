@@ -3,7 +3,16 @@
   "country": "canada",
   "name": "安大略省",
   "nameEn": "Ontario",
-  "summary": "经济与人口第一大省（多伦多、渥太华所在地），省提名 OINP 名额最多但竞争也最激烈。",
-  "policyOverview": "安大略省通过 OINP（安省省提名计划）运行多个移民通道，采取 EOI（意向表达）打分择优制。对人力的吸引方向包括：雇主担保类（外国工人、国际学生）、人力资本类（安省略有不同，多与联邦 EE 联动的定向抽取）、以及硕博毕业生类（安省指定院校毕业、无需雇主 offer 即可入池）。由于多伦多聚集了最多新移民，OINP 的邀请分数普遍偏高、名额供不应求，通常需要雇主资源或本地学历加持。注意：安省生活成本（尤其房价）为全国前列，规划预算时要充分考虑。",
-  "officialSite": "https://www.ontario.ca/page/ontario-immigrant-nominee-program-oinp"
+  "summary": "省提名 OINP 通道最多：雇主担保、硕士/博士毕业生类都有，EOI 打分择优，获邀分数常年偏高。",
+  "policyOverview": "省提名叫 OINP，用打分排队（EOI），每轮公布获邀分数。有雇主担保、硕士毕业生、博士毕业生等通道；硕士毕业不用找到工作也能入池。热门通道的获邀分数常年偏高，通常需要本地学历或雇主资源。",
+  "officialSite": "https://www.ontario.ca/page/ontario-immigrant-nominee-program-oinp",
+  "pros": [
+    "省提名通道数量全加最多：雇主担保、硕士/博士毕业生类齐全",
+    "硕士毕业不需要工作也能入池省提名",
+    "岗位数量多，科技、金融、医疗都有需求"
+  ],
+  "cons": [
+    "热门通道获邀分数常年偏高",
+    "住房成本全国最高之列"
+  ]
 }

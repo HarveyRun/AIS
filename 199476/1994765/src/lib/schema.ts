@@ -45,17 +45,6 @@ export const immigrationTypeLabels: Record<
   study: "留学转移民",
 };
 
-/** 申请难度 */
-export const difficultySchema = z.enum(["low", "mid", "high"]);
-export const difficultyLabels: Record<
-  z.infer<typeof difficultySchema>,
-  string
-> = {
-  low: "门槛较低",
-  mid: "难度中等",
-  high: "门槛较高",
-};
-
 /** 项目状态 */
 export const statusSchema = z.enum(["active", "paused", "archived"]);
 export const statusLabels: Record<z.infer<typeof statusSchema>, string> = {
@@ -64,55 +53,12 @@ export const statusLabels: Record<z.infer<typeof statusSchema>, string> = {
   archived: "已停办（存档）",
 };
 
-/** 预算档位（用于筛选与评估打分，人民币口径） */
-export const budgetTiers = ["low", "mid", "high"] as const;
-export const budgetTierSchema = z.enum(budgetTiers);
-export const budgetTierLabels: Record<z.infer<typeof budgetTierSchema>, string> =
-  {
-    low: "20 万以内",
-    mid: "20–80 万",
-    high: "80 万以上",
-  };
-
 /* ---------------- 基础结构 ---------------- */
-
-const moneyRangeSchema = z
-  .object({
-    min: z.number().nonnegative(),
-    max: z.number().positive(),
-    /** 币种代码，如 CNY / CAD / AUD / USD */
-    currency: z.string().min(3).max(3),
-  })
-  .strict();
 
 const officialSourceSchema = z
   .object({
     label: z.string().min(1, "官方来源需要名称"),
     url: urlString,
-  })
-  .strict();
-
-/**
- * 机器可读的申请条件摘要，供评估工具打分使用。
- * 与详情页的 requirements 相互独立：这里只保留可量化维度。
- */
-export const eligibilitySchema = z
-  .object({
-    /** 最低学历：1 高中及以下 2 大专 3 本科 4 硕士 5 博士 */
-    minEducation: z.number().int().min(1).max(5).optional(),
-    /** 最低语言水平：0 零基础 1 入门 2 中等(约雅思5.5-6.5) 3 流利(约雅思7+) */
-    minLanguage: z.number().int().min(0).max(3).optional(),
-    /** 预算档位下限 */
-    minBudgetTier: budgetTierSchema.optional(),
-    /** 是否必须先拿到当地雇主 offer */
-    needsJobOffer: z.boolean().optional(),
-    /** 适合年龄区间 */
-    ageRange: z
-      .object({ min: z.number().int(), max: z.number().int() })
-      .strict()
-      .optional(),
-    /** 额外说明，会展示在评估结果里 */
-    note: z.string().optional(),
   })
   .strict();
 
@@ -142,9 +88,13 @@ export const regionSchema = z
     name: z.string().min(1, "省/州需要中文名"),
     nameEn: z.string().min(1),
     summary: z.string().min(1),
-    /** 该省/州移民政策概述与倾向 */
+    /** 该省/州移民政策概述（一段话） */
     policyOverview: z.string().min(1),
-    officialSite: urlString,
+    /** 总体优点（移民相关） */
+    pros: z.array(z.string().min(1)).min(1, "至少一条优点"),
+    /** 总体缺点/注意点（移民相关） */
+    cons: z.array(z.string().min(1)).min(1, "至少一条注意点"),
+    officialSite: urlString.optional(),
   })
   .strict();
 
@@ -162,7 +112,6 @@ export const programSchema = z
     summary: z.string().min(1),
     /** 适合什么样的人 */
     suitableFor: z.string().min(1),
-    difficulty: difficultySchema,
     /** 2-4 个亮点短句 */
     highlights: z.array(z.string().min(1)).min(1).max(6),
     requirements: z
@@ -177,7 +126,6 @@ export const programSchema = z
       .min(1, "至少填写一条申请条件"),
     cost: z
       .object({
-        totalEstimate: moneyRangeSchema,
         /** 费用口径说明，如“以三口之家估算” */
         note: z.string().optional(),
         breakdown: z
@@ -196,9 +144,6 @@ export const programSchema = z
       .strict(),
     duration: z
       .object({
-        totalMonths: z
-          .object({ min: z.number().positive(), max: z.number().positive() })
-          .strict(),
         note: z.string().optional(),
         steps: z
           .array(
@@ -215,9 +160,18 @@ export const programSchema = z
       .strict(),
     materials: z.array(z.string().min(1)).min(1, "至少填写一条材料"),
     officialSources: z.array(officialSourceSchema).min(1, "至少一个官方来源"),
-    commonRejections: z.array(z.string().min(1)).optional(),
-    risks: z.array(z.string().min(1)).optional(),
-    eligibility: eligibilitySchema.optional(),
+    /** 项目优点（移民相关，事实性描述） */
+    pros: z.array(z.string().min(1)).min(1, '至少一条优点'),
+    /** 项目缺点/注意点 */
+    cons: z.array(z.string().min(1)).min(1, '至少一条注意点'),
+    /** 虚构示例案例：用一个具体人物把流程走一遍 */
+    case: z
+      .object({
+        profile: z.string().min(1, "案例人物条件不能为空"),
+        steps: z.array(z.string().min(1)).min(2, "案例至少两步"),
+        outcome: z.string().min(1, "案例结果不能为空"),
+      })
+      .strict(),
     /** 内容最后人工核实的日期，页面会显著展示 */
     infoVerifiedAt: dateString,
   })
@@ -226,17 +180,58 @@ export const programSchema = z
 export type Program = z.infer<typeof programSchema>;
 export type Country = z.infer<typeof countrySchema>;
 export type Region = z.infer<typeof regionSchema>;
-export type Eligibility = z.infer<typeof eligibilitySchema>;
 
 /* ---------------- 站点级内容 ---------------- */
+
+/** 术语分类 */
+export const glossaryCategories = ["general", "business"] as const;
+export const glossaryCategorySchema = z.enum(glossaryCategories);
+export const glossaryCategoryLabels: Record<
+  z.infer<typeof glossaryCategorySchema>,
+  string
+> = {
+  general: "通用术语",
+  business: "业务术语",
+};
+
+/** 术语重要度：排序依据（必知 > 重要 > 了解） */
+export const glossaryImportances = ["must", "important", "optional"] as const;
+export const glossaryImportanceSchema = z.enum(glossaryImportances);
+export const glossaryImportanceLabels: Record<
+  z.infer<typeof glossaryImportanceSchema>,
+  string
+> = {
+  must: "必知",
+  important: "重要",
+  optional: "了解",
+};
 
 export const glossaryItemSchema = z
   .object({
     term: z.string().min(1),
     en: z.string().optional(),
+    /** 行内悬浮解释用的额外匹配关键词（正文里的常见变体写法） */
+    aliases: z.array(z.string().min(1)).optional(),
+    /** 该术语适用的国家 id 列表（通用术语填全部国家） */
+    countries: z.array(slugString).min(1, "至少标注一个适用国家"),
+    category: glossaryCategorySchema,
+    /** 重要度，组内按此排序 */
+    importance: glossaryImportanceSchema,
+    /** 仅地区特有术语需要时标注：该术语专属的省/州 id（如 quebec） */
+    regions: z.array(slugString).optional(),
     explanation: z.string().min(1),
   })
   .strict();
+
+export const faqSchema = z
+  .object({
+    country: slugString,
+    question: z.string().min(1),
+    answer: z.string().min(1),
+  })
+  .strict();
+
+export type FaqItem = z.infer<typeof faqSchema>;
 
 export const siteMetaSchema = z
   .object({

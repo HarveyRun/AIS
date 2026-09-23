@@ -16,6 +16,7 @@ import '../features/inquiry/inquiries_page.dart';
 import '../features/inquiry/voice_call_page.dart';
 import '../features/notifications/notifications_page.dart';
 import '../features/profile/account_settings_page.dart';
+import '../features/profile/experience_library_page.dart';
 import '../features/profile/inquiry_settings_page.dart';
 import '../features/profile/profile_page.dart';
 import '../features/support/business_page.dart';
@@ -23,6 +24,7 @@ import '../features/support/customer_service_page.dart';
 import '../features/support/faq_page.dart';
 import '../features/support/feedback_page.dart';
 import '../features/wallet/wallet_page.dart';
+import '../features/wallet/wallet_transaction_detail_page.dart';
 import '../data/models/certification_models.dart';
 import 'providers.dart';
 import '../core/analytics/analytics_navigator_observer.dart';
@@ -87,6 +89,27 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
             builder: (context, state) => const AccountSettingsPage(),
           ),
           GoRoute(
+            name: 'experienceFavorites',
+            path: '/profile/favorites',
+            builder: (context, state) => const ExperienceLibraryPage(
+              type: ExperienceLibraryType.favorites,
+            ),
+          ),
+          GoRoute(
+            name: 'experienceRecent',
+            path: '/profile/recent',
+            builder: (context, state) =>
+                const ExperienceLibraryPage(type: ExperienceLibraryType.recent),
+          ),
+          GoRoute(
+            name: 'experienceLibraryLegacy',
+            path: '/profile/experience-library',
+            redirect: (context, state) =>
+                state.uri.queryParameters['tab'] == 'recent'
+                ? '/profile/recent'
+                : '/profile/favorites',
+          ),
+          GoRoute(
             name: 'inquirySettings',
             path: '/profile/inquiry-settings',
             builder: (context, state) => const InquirySettingsPage(),
@@ -99,7 +122,9 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
           GoRoute(
             name: 'experienceCreateLegacy',
             path: '/profile/certifications/experiences/new',
-            builder: (context, state) => const ExperienceFormPage(),
+            builder: (context, state) => ExperienceFormPage(
+              resumeDraft: state.uri.queryParameters['resumeDraft'] == '1',
+            ),
           ),
           GoRoute(
             name: 'experienceAdditionalInfo',
@@ -113,8 +138,10 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
           GoRoute(
             name: 'experienceDetailLegacy',
             path: '/profile/certifications/experiences/:id',
-            builder: (context, state) =>
-                ExperienceFormPage(id: int.parse(state.pathParameters['id']!)),
+            builder: (context, state) => ExperienceFormPage(
+              id: int.parse(state.pathParameters['id']!),
+              resumeDraft: state.uri.queryParameters['resumeDraft'] == '1',
+            ),
           ),
           GoRoute(
             name: 'feedback',
@@ -142,6 +169,13 @@ GoRouter createAppRouter(AuthController auth, AnalyticsService analytics) {
         name: 'wallet',
         path: '/profile/wallet',
         builder: (context, state) => const WalletPage(),
+      ),
+      GoRoute(
+        name: 'walletTransactionDetail',
+        path: '/profile/wallet/transactions/:id',
+        builder: (context, state) => WalletTransactionDetailPage(
+          transactionId: int.parse(state.pathParameters['id']!),
+        ),
       ),
       GoRoute(
         name: 'chat',

@@ -3,7 +3,16 @@
   "country": "canada",
   "name": "阿尔伯塔省",
   "nameEn": "Alberta",
-  "summary": "能源大省（卡尔加里、埃德蒙顿），生活成本低、省提名 AAIP 相对务实，对联邦 EE 候选人还有定向抽取。",
-  "policyOverview": "阿省通过 AAIP（阿尔伯塔优势移民计划）运行多个通道。最具代表性的是机遇类（Alberta Opportunity Stream）：持阿省雇主的合格全职 offer、并在该职位工作一段时间后即可申请，对语言和学历的要求相对温和；阿省还会从联邦 Express Entry 池中定向抽取（Alberta Express Entry Stream，无主动申请入口，可通过提升 CRS 与本地关联提高被抽概率）。卡尔加里和埃德蒙顿的生活成本显著低于多伦多、温哥华，是预算敏感型申请人的常见选择。注意能源行业波动对就业市场的影响，选择职业时优先考虑医疗、科技、工程等多元行业。",
-  "officialSite": "https://www.alberta.ca/alberta-advantage-immigration-program"
+  "summary": "省提名 AAIP：机遇类要求本省雇主 offer 并已实际工作；另从联邦 EE 池定向捞人。",
+  "policyOverview": "省提名叫 AAIP。主通道机遇类：本省雇主 offer，并已实际工作满一段时间。还会直接从联邦 EE 池里捞人，无法主动申请，提高 CRS 分数和本地联系能增加被捞概率。另有乡村更新类：指定小镇的雇主岗位，加社区支持信。",
+  "officialSite": "https://www.alberta.ca/alberta-advantage-immigration-program",
+  "pros": [
+    "机遇类语言学历要求相对温和",
+    "有从联邦 EE 池定向捞人的机会",
+    "住房成本低于多伦多、温哥华"
+  ],
+  "cons": [
+    "机遇类需要先持工签实际工作",
+    "能源行业波动影响部分岗位"
+  ]
 }

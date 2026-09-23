@@ -60,16 +60,22 @@ class ExperiencePublicMediaView {
 }
 
 class ExperienceCategoryOption {
-  const ExperienceCategoryOption({required this.id, required this.parentId, required this.name,
-    required this.recommendationGroup, required this.targetCategoryId});
+  const ExperienceCategoryOption({
+    required this.id,
+    required this.parentId,
+    required this.name,
+    required this.recommendationGroup,
+    required this.targetCategoryId,
+  });
 
-  factory ExperienceCategoryOption.fromJson(Map<String, dynamic> json) => ExperienceCategoryOption(
-    id: _int(json['id']),
-      parentId: _nullableInt(json['parentId']),
-      name: json['name']?.toString() ?? '',
-      recommendationGroup: json['recommendationGroup'] == true,
-      targetCategoryId: _nullableInt(json['targetCategoryId']),
-  );
+  factory ExperienceCategoryOption.fromJson(Map<String, dynamic> json) =>
+      ExperienceCategoryOption(
+        id: _int(json['id']),
+        parentId: _nullableInt(json['parentId']),
+        name: json['name']?.toString() ?? '',
+        recommendationGroup: json['recommendationGroup'] == true,
+        targetCategoryId: _nullableInt(json['targetCategoryId']),
+      );
 
   final int id;
   final int? parentId;
@@ -99,7 +105,8 @@ class ExperienceAdditionalInfo {
       categoryId: _nullableInt(json['experienceCategoryId']),
       categoryParentId: _nullableInt(json['experienceCategoryParentId']),
       categoryName: json['experienceCategoryName']?.toString() ?? '',
-      categoryParentName: json['experienceCategoryParentName']?.toString() ?? '',
+      categoryParentName:
+          json['experienceCategoryParentName']?.toString() ?? '',
       location: json['experienceLocation']?.toString() ?? '',
       startDate: json['experienceStartDate']?.toString() ?? '',
       endDate: json['experienceEndDate']?.toString() ?? '',
@@ -110,6 +117,22 @@ class ExperienceAdditionalInfo {
       job: json['experienceJob']?.toString() ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    if (categoryId != null) 'experienceCategoryId': categoryId,
+    if (categoryParentId != null)
+      'experienceCategoryParentId': categoryParentId,
+    'experienceCategoryName': categoryName,
+    'experienceCategoryParentName': categoryParentName,
+    'experienceLocation': location,
+    'experienceStartDate': startDate,
+    'experienceEndDate': endDate,
+    if (count != null) 'experienceCount': count,
+    'experienceRole': role,
+    'experienceAgeRange': ageRange,
+    'experienceEducation': education,
+    'experienceJob': job,
+  };
 
   final int? categoryId;
   final int? categoryParentId;
@@ -242,6 +265,37 @@ class CertificationRecord {
 
   bool get approved => status.toUpperCase() == 'APPROVED' || status == '已认证';
   bool get pending => status.toUpperCase() == 'PENDING' || status == '审核中';
+}
+
+class ExperienceDraftRecord {
+  const ExperienceDraftRecord({
+    required this.key,
+    required this.title,
+    required this.description,
+    required this.updatedAt,
+  });
+
+  factory ExperienceDraftRecord.fromJson(Map<String, dynamic> json) {
+    final content = Map<String, dynamic>.from(
+      json['content'] as Map? ?? const {},
+    );
+    return ExperienceDraftRecord(
+      key: json['key']?.toString() ?? 'CREATE',
+      title: content['title']?.toString() ?? '',
+      description: content['description']?.toString() ?? '',
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
+    );
+  }
+
+  final String key;
+  final String title;
+  final String description;
+  final DateTime? updatedAt;
+
+  int? get experienceId {
+    final match = RegExp(r'^EDIT_(\d+)$').firstMatch(key);
+    return match == null ? null : int.tryParse(match.group(1)!);
+  }
 }
 
 int _int(Object? value) {

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { CountryFlag } from "@/components/country-flag";
 import {
-  difficultyStyles,
   statusStyles,
   typeStyles,
   type ProgramCardData,
@@ -23,10 +22,17 @@ export function ProgramCard({ data }: { data: ProgramCardData }) {
           {data.countryName}
           {data.regionName ? ` · ${data.regionName}` : ""}
         </span>
-        <Badge className={typeStyles[data.type]}>{data.typeLabel}</Badge>
-        <Badge className={difficultyStyles[data.difficulty]}>
-          {data.difficultyLabel}
+        {/* 标签顺序：项目类型（联邦/本省）→ 移民方式 */}
+        <Badge
+          className={
+            data.scope === "federal"
+              ? "bg-blue-50 text-blue-700 ring-blue-600/20"
+              : "bg-orange-50 text-orange-700 ring-orange-600/20"
+          }
+        >
+          {data.scopeLabel}
         </Badge>
+        <Badge className={typeStyles[data.type]}>{data.typeLabel}</Badge>
       </div>
 
       <h3 className="mt-3 font-bold text-slate-900 group-hover:text-teal-700">
@@ -37,17 +43,10 @@ export function ProgramCard({ data }: { data: ProgramCardData }) {
         {data.summary}
       </p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-xs text-slate-500">
-        <span>
-          <span className="text-slate-400">总费用 </span>
-          <span className="font-medium text-slate-700">{data.costText}</span>
-        </span>
-        <span>
-          <span className="text-slate-400">周期 </span>
-          <span className="font-medium text-slate-700">{data.durationText}</span>
-        </span>
-        <span className="ml-auto text-slate-400">
-          核实于 {data.infoVerifiedAt}
+      <div className="mt-4 flex items-center border-t border-slate-100 pt-3 text-xs text-slate-400">
+        <span>更新时间 {data.infoVerifiedAt}</span>
+        <span className="ml-auto text-teal-700 opacity-0 transition group-hover:opacity-100">
+          查看详情 →
         </span>
       </div>
     </Link>

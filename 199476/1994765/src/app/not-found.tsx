@@ -16,10 +16,10 @@ export default function NotFound() {
           回首页
         </Link>
         <Link
-          href="/explore/"
+          href="/basics/"
           className="rounded-xl border border-slate-300 px-5 py-2.5 font-medium text-slate-700 hover:bg-slate-50"
         >
-          浏览项目
+          看移民科普
         </Link>
       </div>
     </div>

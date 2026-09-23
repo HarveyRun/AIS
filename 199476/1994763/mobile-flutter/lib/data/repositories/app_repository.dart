@@ -50,9 +50,14 @@ class AppRepository {
 
   Future<List<ExperienceCategoryOption>> experienceCategories() async {
     final data = await _api.get<List<dynamic>>('/experience-categories');
-    return data.whereType<Map>().map((item) => ExperienceCategoryOption.fromJson(
-      Map<String, dynamic>.from(item),
-    )).toList(growable: false);
+    return data
+        .whereType<Map>()
+        .map(
+          (item) => ExperienceCategoryOption.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+        .toList(growable: false);
   }
 
   Future<CuratedMembership> curatedMembership({
@@ -391,10 +396,34 @@ class AppRepository {
     return AnswererPageData.fromJson(data);
   }
 
-  Future<Answerer> answerer(String uid) async {
-    final data = await _api.get<Map<String, dynamic>>('/answerers/$uid');
+  Future<Answerer> answerer(String uid, {int? experienceId}) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/answerers/$uid',
+      query: {if (experienceId != null) 'experienceId': experienceId},
+    );
     return Answerer.fromJson(data);
   }
+
+  Future<ExperienceLibraryPageData> experienceLibrary({
+    required String type,
+    int page = 0,
+    int size = 20,
+  }) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/answerers/library',
+      query: {'type': type, 'page': page, 'size': size},
+    );
+    return ExperienceLibraryPageData.fromJson(data);
+  }
+
+  Future<void> deleteRecentExperience(int certificationId) =>
+      _api.delete<Object?>(
+        '/answerers/library/recent/$certificationId',
+        showLoading: false,
+      );
+
+  Future<void> clearRecentExperiences() =>
+      _api.delete<Object?>('/answerers/library/recent', showLoading: false);
 
   Future<ExperienceLikeState> setExperienceLike({
     required String uid,
@@ -407,6 +436,19 @@ class AppRepository {
       showLoading: false,
     );
     return ExperienceLikeState.fromJson(data);
+  }
+
+  Future<ExperienceFavoriteState> setExperienceFavorite({
+    required String uid,
+    required int certificationId,
+    required bool favorited,
+  }) async {
+    final data = await _api.put<Map<String, dynamic>>(
+      '/answerers/$uid/experiences/$certificationId/favorite',
+      data: {'favorited': favorited},
+      showLoading: false,
+    );
+    return ExperienceFavoriteState.fromJson(data);
   }
 
   Future<void> tipExperience({
@@ -653,6 +695,13 @@ class AppRepository {
         .toList(growable: false);
   }
 
+  Future<WalletTransaction> walletTransaction(int transactionId) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/wallet/transactions/$transactionId',
+    );
+    return WalletTransaction.fromJson(data);
+  }
+
   Future<AlipayAccountInfo?> alipayAccount() async {
     final data = await _api.get<Object?>('/wallet/alipay-account');
     if (data is! Map) return null;
@@ -737,6 +786,47 @@ class AppRepository {
         )
         .toList(growable: false);
   }
+
+  Future<Map<String, dynamic>?> experienceDraft({String key = 'CREATE'}) async {
+    final data = await _api.get<Map<String, dynamic>>(
+      '/certifications/experiences/draft',
+      query: {'key': key},
+      showLoading: false,
+    );
+    if (data['exists'] != true || data['content'] is! Map) return null;
+    return Map<String, dynamic>.from(data['content'] as Map);
+  }
+
+  Future<List<ExperienceDraftRecord>> experienceDrafts() async {
+    final data = await _api.get<List<dynamic>>(
+      '/certifications/experiences/drafts',
+      showLoading: false,
+    );
+    return data
+        .whereType<Map>()
+        .map(
+          (item) =>
+              ExperienceDraftRecord.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .toList(growable: false);
+  }
+
+  Future<void> saveExperienceDraft(
+    Map<String, dynamic> content, {
+    String key = 'CREATE',
+  }) async {
+    await _api.put<Object?>(
+      '/certifications/experiences/draft?key=$key',
+      data: content,
+      showLoading: false,
+    );
+  }
+
+  Future<void> deleteExperienceDraft({String key = 'CREATE'}) =>
+      _api.delete<Object?>(
+        '/certifications/experiences/draft?key=$key',
+        showLoading: false,
+      );
 
   Future<void> submitIdentityCertification(List<UploadFile> files) async {
     await _api.post<Object?>(

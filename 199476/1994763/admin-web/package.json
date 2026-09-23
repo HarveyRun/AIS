@@ -1,6 +1,6 @@
 {
   "name": "shixianwen-admin-web",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "scripts": { "dev": "vite --host 0.0.0.0 --port 5174", "build": "vite build", "preview": "vite preview --host 0.0.0.0 --port 4174" },

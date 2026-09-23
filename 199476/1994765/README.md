@@ -48,12 +48,11 @@ src/
     display.ts              # 服务端数据组装（Program → 卡片数据）
     assessment.ts           # 评估问卷与打分规则
   app/                      # 页面路由
-    page.tsx                        # 首页
-    explore/                        # 浏览与筛选（客户端筛选）
-    countries/[country]/            # 国家页
-    countries/[country]/[region]/   # 省/州页
+    page.tsx                        # 首页（按国家 / 按 省·州 浏览入口）
+    basics/                         # 移民科普（身份层级、方式逻辑、通用流程）
+    countries/[country]/            # 国家页（联邦项目 + 省/州列表）
+    countries/[country]/[region]/   # 省/州页（当地政策概述 + 该省项目）
     programs/[slug]/                # 项目详情页
-    assessment/                     # 评估工具（4 步问卷 + 打分）
     glossary/ about/                # 术语表 / 关于
     sitemap.ts robots.ts            # SEO
   components/               # UI 组件
@@ -64,13 +63,18 @@ public/flags/               # 国旗 SVG（Windows 不渲染旗帜类 emoji，�
 
 1. **构建期内容校验**：`npm run build` 第一步就是 `content:check`——字段拼写错误（`.strict()` 拒绝未知字段）、缺失必填项、引用不存在的国家/省州、slug 重复、slug 与文件名不一致，全部一次性报告并中断构建。
 2. **运行时兜底**：所有动态路由有 `notFound()` 兜底；`error.tsx` 全局错误边界提示排查方向；国旗图片缺失时回退为 emoji 文本。
-3. **客户端/服务端边界清晰**：客户端组件只允许依赖 `lib/ui.ts` 与 `lib/assessment.ts`（纯函数），文件系统相关逻辑被隔离在 `lib/content.ts` / `lib/display.ts`。
+3. **客户端/服务端边界清晰**：客户端组件只允许依赖 `lib/ui.ts`（纯函数），文件系统相关逻辑被隔离在 `lib/content.ts` / `lib/display.ts`。
+
+## 内容原则
+
+- **信息优先**：本站是纯信息站，不做打分、不做评估、不引导留资；给出事实与官方链接，用户自行判断。
+- **只写可核实的内容**：不提供拍脑袋的「总费用 xx 万 / 周期 x 年」区间；费用只列可核实的官方规费与主要开销项，周期只标在各流程步骤上。
+- **辖区全覆盖**：收录一个国家，就要覆盖其全部省/州/领地；不运作地方提名项目的辖区（如加拿大努纳武特）也要收录并说明实际情况。
 
 ## 可扩展性
 
-- **新增国家/省州/项目 = 新增 JSON 文件**，零代码改动；只要项目填了 `eligibility` 字段，评估工具自动把它纳入推荐。
+- **新增国家/省州/项目 = 新增 JSON 文件**，零代码改动。
 - `schema.ts` 是唯一的数据模型定义；要加新字段（如「多语言」「视频讲解」）先改 schema，校验器会强制所有存量内容补齐。
-- 评估打分是纯规则函数（`assessment.ts`），未来可替换为更复杂的模型而不影响 UI。
 
 ## 部署
 
@@ -84,9 +88,8 @@ NEXT_PUBLIC_SITE_URL=https://your-domain.com npm run build
 
 ## 路线图（第二阶段）
 
-- [ ] 用户账号 +「我的移民计划」（保存评估结果、材料清单勾选进度）
+- [ ] 收藏/进度记录（本地存储，无需账号）
 - [ ] 案例库、资料下载（PDF checklist）
-- [ ] 咨询对接（顾问/持牌律师入驻，主要变现入口）
 - [ ] 内容后台（headless CMS 或本地 admin），支持多人协作维护
 - [ ] 扩充国家（新西兰、英国、欧洲黄金签证、新加坡、日本等）
 

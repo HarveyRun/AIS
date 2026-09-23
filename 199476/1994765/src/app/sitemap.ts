@@ -6,7 +6,7 @@ export const dynamic = "force-static";
 export const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const staticPages = ["", "/explore/", "/assessment/", "/glossary/", "/about/"].map(
+  const staticPages = ["", "/basics/", "/faq/", "/glossary/", "/about/"].map(
     (p) => ({
       url: `${baseUrl}${p}`,
       lastModified: new Date(),

@@ -1,0 +1,106 @@
+{
+  "slug": "ca-fcip",
+  "name": "法语社区移民试点（FCIP）",
+  "nameEn": "Francophone Community Immigration Pilot",
+  "country": "canada",
+  "type": "employer",
+  "status": "active",
+  "summary": "和 RCIP 一样是社区雇主担保，但岗位在指定的法语社区（魁省以外），硬性条件是法语口语。会法语的人走这条路，竞争小很多。",
+  "suitableFor": "有一定法语基础（口语 NCLC 达标）、愿意在魁省以外的法语社区定居的申请人。",
+  "highlights": [
+    "法语社区雇主竞争远小于英语大城市",
+    "结构类似 RCIP：指定雇主 + 社区推荐",
+    "联邦明确以法语社区人口恢复为目标，配额长期存在"
+  ],
+  "requirements": [
+    {
+      "title": "指定法语社区的雇主 offer",
+      "detail": "雇主位于 IRCC 公布的法语社区（魁北克省除外），并取得指定资质。"
+    },
+    {
+      "title": "法语能力",
+      "detail": "听说达到 NCLC 相应档位（按职业类别区分）；以 TEF/TCF 等法语考试成绩为准。"
+    },
+    {
+      "title": "社区推荐",
+      "detail": "由社区指定组织出具推荐意见。"
+    },
+    {
+      "title": "工作经验或本地毕业生",
+      "detail": "近 5 年相关经验；社区院校毕业生另有豁免。"
+    }
+  ],
+  "cost": {
+    "note": "主要为联邦规费、法语考试与材料杂费。",
+    "breakdown": [
+      {
+        "item": "PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "法语考试（TEF/TCF）",
+        "amount": "约 2,000-4,000 元人民币"
+      },
+      {
+        "item": "学历认证、体检、无犯罪",
+        "amount": "约 5,000-10,000 元人民币"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 1-1.5 万加元（3-6 个月过渡）"
+      }
+    ]
+  },
+  "duration": {
+    "note": "节奏与 RCIP 一致：雇主 + 社区推荐 → 联邦审理。",
+    "steps": [
+      {
+        "title": "在指定法语社区找到雇主",
+        "durationHint": "视求职而定"
+      },
+      {
+        "title": "取得社区推荐",
+        "durationHint": "数周-数月"
+      },
+      {
+        "title": "递交联邦 PR（可同步申请工签）",
+        "durationHint": "-"
+      },
+      {
+        "title": "联邦审理并登陆",
+        "durationHint": "约 12 个月"
+      }
+    ]
+  },
+  "materials": [
+    "指定雇主 offer 与社区推荐信",
+    "法语考试成绩单",
+    "工作经验证明",
+    "学历证明",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    {
+      "label": "IRCC - Francophone Community Immigration Pilot",
+      "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/francophone-immigration-pilots.html"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "小赵，26 岁，酒店管理专科，法语 TEF 口语 B2，英语一般。",
+    "steps": [
+      "在新不伦瑞克一个指定法语社区的酒店拿到 offer。",
+      "社区组织审核后出具推荐信。",
+      "递交联邦永居，审理约 1 年。"
+    ],
+    "outcome": "法语从投入变成敲门砖：语言准备 1 年，拿到身份总共约 2 年。"
+  },
+  "pros": [
+    "法语社区竞争范围小",
+    "社区推荐 + 雇主 offer 结构清晰"
+  ],
+  "cons": [
+    "必须具备法语口语能力（NCLC 达标）",
+    "指定社区数量少、岗位有限"
+  ]
+}

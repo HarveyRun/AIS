@@ -3,10 +3,8 @@ import { getSiteMeta } from "@/lib/content";
 
 const navItems = [
   { href: "/", label: "首页" },
-  { href: "/explore/", label: "浏览项目" },
-  { href: "/assessment/", label: "评估工具" },
+  { href: "/faq/", label: "常见问题" },
   { href: "/glossary/", label: "术语表" },
-  { href: "/about/", label: "关于" },
 ];
 
 export function SiteHeader() {
@@ -17,7 +15,7 @@ export function SiteHeader() {
           <span aria-hidden className="grid h-7 w-7 place-items-center rounded-lg bg-teal-600 text-sm text-white">
             移
           </span>
-          <span>移民路线图</span>
+          <span>移民</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="主导航">
@@ -30,12 +28,6 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
-          <Link
-            href="/assessment/"
-            className="ml-2 rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-teal-700"
-          >
-            测测我适合哪条路
-          </Link>
         </nav>
 
         {/* 移动端菜单：无 JS 的 details 折叠 */}
@@ -65,12 +57,11 @@ export function SiteHeader() {
 export function SiteFooter() {
   const site = getSiteMeta();
   return (
-    <footer className="mt-20 border-t border-slate-200 bg-slate-50">
+    <footer className="border-t border-slate-200 bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="flex flex-col gap-6 md:flex-row md:justify-between">
           <div className="max-w-2xl">
-            <p className="font-bold text-slate-900">{site.name}</p>
-            <p className="mt-1 text-sm text-slate-600">{site.tagline}</p>
+            <p className="mt-1 text-sm text-slate-600 font-bold">移民流程指南</p>
             <p className="mt-3 text-xs leading-relaxed text-slate-500">
               ⚠️ {site.disclaimer}
             </p>

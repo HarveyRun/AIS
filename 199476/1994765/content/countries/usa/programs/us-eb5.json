@@ -5,39 +5,84 @@
   "country": "usa",
   "type": "business",
   "status": "active",
-  "summary": "投资 80 万美元（目标就业区）并创造 10 个就业即获绿卡；2022 年新法后乡村与高失业区项目享有无排期预留类别。",
+  "summary": "投资 80 万美元（约 570 万人民币）到美国认可的项目并创造 10 个就业，全家拿绿卡。不看学历年龄语言，只看两件事：钱够、钱来路清楚。项目本身有投资风险。",
   "suitableFor": "能合法解释 80 万美元以上资金来源的高净值家庭；希望快速登陆美国并接受资金风险。",
-  "difficulty": "mid",
   "highlights": [
     "预留签证类别（乡村/高失业区/基建）目前基本无排期",
     "对申请人无年龄、学历、语言、经商背景要求",
     "配偶子女可随行，子女可获得教育规划便利"
   ],
   "requirements": [
-    { "title": "投资额 80 万 / 105 万美元", "detail": "目标就业区（TEA）或基建项目 80 万美元；其他项目 105 万美元。" },
-    { "title": "创造 10 个全职就业", "detail": "区域中心项目可用间接就业计算，直投需直接雇佣。" },
-    { "title": "资金来源合法", "detail": "完整的资金来源链路（Source of Funds）文件是审理核心。" },
-    { "title": "投资「处于风险中」并维持 2 年", "detail": "不得承诺赎回；转正（I-829）时投资须持续。" }
+    {
+      "title": "投资额 80 万 / 105 万美元",
+      "detail": "目标就业区（TEA）或基建项目 80 万美元；其他项目 105 万美元。"
+    },
+    {
+      "title": "创造 10 个全职就业",
+      "detail": "区域中心项目可用间接就业计算，直投需直接雇佣。"
+    },
+    {
+      "title": "资金来源合法",
+      "detail": "完整的资金来源链路（Source of Funds）文件是审理核心。"
+    },
+    {
+      "title": "投资「处于风险中」并维持 2 年",
+      "detail": "不得承诺赎回；转正（I-829）时投资须持续。"
+    }
   ],
   "cost": {
-    "totalEstimate": { "min": 5500000, "max": 8000000, "currency": "CNY" },
     "note": "80 万美元投资（约 570 万人民币）+ 发行费/律师/移民局费用；汇率波动影响总成本。",
     "breakdown": [
-      { "item": "投资款", "amount": "80-105 万美元" },
-      { "item": "区域中心发行费", "amount": "约 6-9 万美元" },
-      { "item": "移民律师费", "amount": "约 1.5-3 万美元" },
-      { "item": "移民局规费（I-526E/I-485/I-829）", "amount": "合计约 1.5-2 万美元/家庭" }
+      {
+        "item": "投资款",
+        "amount": "80-105 万美元"
+      },
+      {
+        "item": "区域中心发行费",
+        "amount": "约 6-9 万美元"
+      },
+      {
+        "item": "移民律师费",
+        "amount": "约 1.5-3 万美元"
+      },
+      {
+        "item": "移民局规费（I-526E/I-485/I-829）",
+        "amount": "合计约 1.5-2 万美元/家庭"
+      },
+      {
+        "item": "登陆初期家庭生活费",
+        "amount": "约 3-6 万美元/年（因城市差异大）"
+      }
     ]
   },
   "duration": {
-    "totalMonths": { "min": 36, "max": 72 },
     "note": "预留类别 I-526E 审理近年明显加快；无排期类别整体 3-5 年可完成两阶段。",
     "steps": [
-      { "title": "选择项目与资金来源梳理", "detail": "尽调区域中心项目，准备 Source of Funds 文件包。", "durationHint": "2-4 个月" },
-      { "title": "递交 I-526E", "detail": "预留类别当前基本无排期；可同步递交 I-485（在美国境内时）。", "durationHint": "12-24 个月" },
-      { "title": "获两年期条件绿卡", "detail": "登陆美国，开始居留生活。", "durationHint": "-" },
-      { "title": "维持投资满 2 年后递交 I-829", "detail": "证明就业创造与投资维持。", "durationHint": "24 个月+" },
-      { "title": "解除条件获 10 年绿卡", "detail": "投资款按项目条款逐步返还。", "durationHint": "12-24 个月" }
+      {
+        "title": "选择项目与资金来源梳理",
+        "detail": "尽调区域中心项目，准备 Source of Funds 文件包。",
+        "durationHint": "2-4 个月"
+      },
+      {
+        "title": "递交 I-526E",
+        "detail": "预留类别当前基本无排期；可同步递交 I-485（在美国境内时）。",
+        "durationHint": "12-24 个月"
+      },
+      {
+        "title": "获两年期条件绿卡",
+        "detail": "登陆美国，开始居留生活。",
+        "durationHint": "-"
+      },
+      {
+        "title": "维持投资满 2 年后递交 I-829",
+        "detail": "证明就业创造与投资维持。",
+        "durationHint": "24 个月+"
+      },
+      {
+        "title": "解除条件获 10 年绿卡",
+        "detail": "投资款按项目条款逐步返还。",
+        "durationHint": "12-24 个月"
+      }
     ]
   },
   "materials": [
@@ -47,23 +92,32 @@
     "无犯罪证明与体检"
   ],
   "officialSources": [
-    { "label": "USCIS - EB-5 官方页面", "url": "https://www.uscis.gov/working-in-the-united-states/permanent-workers/employment-based-immigration-fifth-preference-eb-5" },
-    { "label": "国务院 - 预留签证类别说明", "url": "https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin.html" }
+    {
+      "label": "USCIS - EB-5 官方页面",
+      "url": "https://www.uscis.gov/working-in-the-united-states/permanent-workers/employment-based-immigration-fifth-preference-eb-5"
+    },
+    {
+      "label": "国务院 - 预留签证类别说明",
+      "url": "https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin.html"
+    }
   ],
-  "commonRejections": [
-    "资金来源链路断裂（赠与、房产处置、企业分红文件不全）",
-    "项目就业计算不可靠",
-    "投资款有赎回保证被认定「不处于风险中」"
-  ],
-  "risks": [
-    "投资风险自担，项目暴雷历史案例多发，尽调是重中之重",
-    "资金出境合规是前置课题，务必合法路径操作",
-    "非预留类别排期长，选项目时优先核对类别"
-  ],
-  "eligibility": {
-    "minBudgetTier": "high",
-    "needsJobOffer": false,
-    "note": "无背景门槛，资金量与来源合法性是全部核心。"
+  "infoVerifiedAt": "2026-09-22",
+  "case": {
+    "profile": "林总，48 岁，国内企业主，出售一套房产 + 企业分红合计 100 万美元可解释来源。",
+    "steps": [
+      "选定乡村类区域中心项目（预留签证类别，当前基本无排期）。",
+      "准备资金来源文件包：房产出售合同、完税证明、银行流水链路。",
+      "递交 I-526E，16 个月获批，在美国递交 I-485 拿临时绿卡。",
+      "维持投资满 2 年、就业达标后递交 I-829，解除条件换 10 年绿卡。"
+    ],
+    "outcome": "全程约 4-5 年；80 万美元投资款按项目条款分期返还，选项目是最大风险点。"
   },
-  "infoVerifiedAt": "2026-09-22"
+  "pros": [
+    "无学历语言年龄经商要求",
+    "预留类别当前基本无排期"
+  ],
+  "cons": [
+    "80 万美元起加投资风险自担",
+    "资金来源须完整合法可解释"
+  ]
 }

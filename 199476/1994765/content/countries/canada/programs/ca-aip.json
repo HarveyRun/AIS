@@ -5,40 +5,88 @@
   "country": "canada",
   "type": "employer",
   "status": "active",
-  "summary": "面向大西洋四省（新斯科舍、新不伦瑞克、爱德华王子岛、纽芬兰）的雇主担保项目，语言和学历门槛显著低于联邦通道。",
+  "summary": "大西洋四个小省（NS/NB/PE/NL）的雇主担保项目：先拿到这四省里指定雇主的长期工作，省里背书后全家拿永居。语言只要基础水平，是雇主类项目里门槛最低的一档。",
   "suitableFor": "语言基础一般、能接受在中小城市工作生活的申请人；已有大四省指定雇主 offer 者最稳。",
-  "difficulty": "low",
   "highlights": [
     "语言最低 CLB 4-5，技术类项目中的低门槛",
     "雇主均为省政府指定，无需 LMIA",
     "一步到位拿 PR，全家随行"
   ],
   "requirements": [
-    { "title": "大西洋省份指定雇主的全职 offer", "detail": "雇主必须已获省府指定（designated），职业需为长期全职（非季节性）。" },
-    { "title": "语言 CLB 4-5 起", "detail": "按职业类别 TEER 0-4 不同，最低约 CLB 4；建议 CLB 5 以上提升成功率。" },
-    { "title": "学历与经验达标", "detail": "TEER 0-1 职业要求大专以上；近 5 年内有 1 年以上相关工作经验（部分本地毕业生豁免）。" },
-    { "title": "定居资金证明与安置计划", "detail": "证明登陆后 6 个月的生活资金；雇主需提供 settlement plan。" }
+    {
+      "title": "大西洋省份指定雇主的全职 offer",
+      "detail": "雇主必须已获省府指定（designated），职业需为长期全职（非季节性）。"
+    },
+    {
+      "title": "语言 CLB 4-5 起",
+      "detail": "按职业类别 TEER 0-4 不同，最低约 CLB 4；建议 CLB 5 以上提升成功率。"
+    },
+    {
+      "title": "学历与经验达标",
+      "detail": "TEER 0-1 职业要求大专以上；近 5 年内有 1 年以上相关工作经验（部分本地毕业生豁免）。"
+    },
+    {
+      "title": "定居资金证明与安置计划",
+      "detail": "证明登陆后 6 个月的生活资金；雇主需提供 settlement plan。"
+    }
   ],
   "cost": {
-    "totalEstimate": { "min": 15000, "max": 50000, "currency": "CNY" },
     "note": "以单人申请估算；部分费用（如体检、安置服务）可能由雇主承担，岗位资源若通过中介对接会产生额外服务费。",
     "breakdown": [
-      { "item": "PR 申请费 + 落地费", "amount": "约 1,525 加元/成人" },
-      { "item": "生物识别", "amount": "约 85 加元/人" },
-      { "item": "语言考试", "amount": "约 2,000-3,000 元人民币" },
-      { "item": "学历认证", "amount": "约 1,500-2,500 元人民币" },
-      { "item": "体检 + 无犯罪证明", "amount": "约 2,000-4,000 元人民币" }
+      {
+        "item": "PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "生物识别",
+        "amount": "约 85 加元/人"
+      },
+      {
+        "item": "语言考试",
+        "amount": "约 2,000-3,000 元人民币"
+      },
+      {
+        "item": "学历认证",
+        "amount": "约 1,500-2,500 元人民币"
+      },
+      {
+        "item": "体检 + 无犯罪证明",
+        "amount": "约 2,000-4,000 元人民币"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 1-1.5 万加元（3-6 个月过渡）"
+      }
     ]
   },
   "duration": {
-    "totalMonths": { "min": 12, "max": 24 },
     "note": "从找到雇主到登陆的整体估算；联邦审理阶段官方目标约 12 个月。",
     "steps": [
-      { "title": "寻找指定雇主并获 offer", "detail": "在省府公布的指定雇主名单内求职，或说服雇主申请指定资质。", "durationHint": "视个人情况" },
-      { "title": "省级背书（Endorsement）", "detail": "雇主配合提交安置计划，向省政府申请背书。", "durationHint": "2-4 个月" },
-      { "title": "递交联邦 PR 申请", "detail": "获得背书后 6 个月内向 IRCC 递交。", "durationHint": "1-2 个月" },
-      { "title": "联邦审理", "detail": "体检、背调、补料。", "durationHint": "约 12 个月" },
-      { "title": "获批登陆大西洋省份", "detail": "保持真实定居意愿，雇主与省政府可能跟进定居情况。", "durationHint": "1-2 个月" }
+      {
+        "title": "寻找指定雇主并获 offer",
+        "detail": "在省府公布的指定雇主名单内求职，或说服雇主申请指定资质。",
+        "durationHint": "视个人情况"
+      },
+      {
+        "title": "省级背书（Endorsement）",
+        "detail": "雇主配合提交安置计划，向省政府申请背书。",
+        "durationHint": "2-4 个月"
+      },
+      {
+        "title": "递交联邦 PR 申请",
+        "detail": "获得背书后 6 个月内向 IRCC 递交。",
+        "durationHint": "1-2 个月"
+      },
+      {
+        "title": "联邦审理",
+        "detail": "体检、背调、补料。",
+        "durationHint": "约 12 个月"
+      },
+      {
+        "title": "获批登陆大西洋省份",
+        "detail": "保持真实定居意愿，雇主与省政府可能跟进定居情况。",
+        "durationHint": "1-2 个月"
+      }
     ]
   },
   "materials": [
@@ -51,24 +99,29 @@
     "定居资金证明"
   ],
   "officialSources": [
-    { "label": "IRCC - 大西洋移民计划官方页面", "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/atlantic-immigration.html" }
+    {
+      "label": "IRCC - 大西洋移民计划官方页面",
+      "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/atlantic-immigration.html"
+    }
   ],
-  "commonRejections": [
-    "雇主并非省府指定资质，或 offer 职责与实际岗位不符",
-    "工作经验与 offer 职业关联性弱",
-    "定居资金或安置计划材料不完整"
-  ],
-  "risks": [
-    "大西洋省份就业市场体量小，岗位以服务、护理、运输、食品加工为主",
-    "项目细节随配额调整，雇主指定名单动态变化"
-  ],
-  "eligibility": {
-    "minEducation": 2,
-    "minLanguage": 1,
-    "minBudgetTier": "low",
-    "needsJobOffer": true,
-    "ageRange": { "min": 20, "max": 45 },
-    "note": "雇主 offer 是硬前提；语言门槛为技术类项目中最低档。"
+  "infoVerifiedAt": "2026-09-22",
+  "case": {
+    "profile": "小李，31 岁，厨师，雅思折算 CLB 5，在国内连锁餐厅做了 6 年。",
+    "steps": [
+      "在哈利法克斯一家餐厅拿到全职 offer（雇主有大西洋计划资质）。",
+      "雇主配合提交安置计划，2 个月后拿到省级背书。",
+      "递交联邦永居申请，审理期间不入境等待。",
+      "14 个月后全家获批，登陆哈利法克斯。"
+    ],
+    "outcome": "从拿 offer 到全家枫叶卡约 1 年半，代价是岗位和生活都在小省。"
   },
-  "infoVerifiedAt": "2026-09-22"
+  "pros": [
+    "语言最低 CLB 4-5，雇主类项目中门槛最低的一档",
+    "雇主均为省政府指定，无需 LMIA",
+    "一步到位全家永居"
+  ],
+  "cons": [
+    "必须先拿到大西洋四省指定雇主的 offer",
+    "岗位以服务业、护理、运输、食品加工为主"
+  ]
 }

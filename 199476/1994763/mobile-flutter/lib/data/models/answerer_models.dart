@@ -8,6 +8,7 @@ class AnswererExperience {
     required this.referenceIndex,
     required this.likeCount,
     required this.likedByCurrentUser,
+    required this.favoritedByCurrentUser,
     required this.additionalInfo,
     required this.canInquire,
     required this.materials,
@@ -21,6 +22,7 @@ class AnswererExperience {
       referenceIndex: _nullableInt(json['referenceIndex']),
       likeCount: _int(json['likeCount']),
       likedByCurrentUser: json['likedByCurrentUser'] == true,
+      favoritedByCurrentUser: json['favoritedByCurrentUser'] == true,
       additionalInfo: ExperienceAdditionalInfo.fromJson(json),
       canInquire: json['canInquire'] == true,
       materials:
@@ -44,11 +46,16 @@ class AnswererExperience {
   final int? referenceIndex;
   final int likeCount;
   final bool likedByCurrentUser;
+  final bool favoritedByCurrentUser;
   final ExperienceAdditionalInfo additionalInfo;
   final bool canInquire;
   final List<CertificationMaterial> materials;
 
-  AnswererExperience copyWith({int? likeCount, bool? likedByCurrentUser}) {
+  AnswererExperience copyWith({
+    int? likeCount,
+    bool? likedByCurrentUser,
+    bool? favoritedByCurrentUser,
+  }) {
     return AnswererExperience(
       certificationId: certificationId,
       title: title,
@@ -56,6 +63,8 @@ class AnswererExperience {
       referenceIndex: referenceIndex,
       likeCount: likeCount ?? this.likeCount,
       likedByCurrentUser: likedByCurrentUser ?? this.likedByCurrentUser,
+      favoritedByCurrentUser:
+          favoritedByCurrentUser ?? this.favoritedByCurrentUser,
       additionalInfo: additionalInfo,
       canInquire: canInquire,
       materials: materials,
@@ -72,6 +81,7 @@ class Answerer {
     required this.acceptingInquiries,
     required this.inquiryHourlyRate,
     required this.mainJob,
+    required this.online,
     required this.experiences,
   });
 
@@ -85,6 +95,7 @@ class Answerer {
       acceptingInquiries: json['acceptingInquiries'] == true,
       inquiryHourlyRate: _boundedInt(json['inquiryHourlyRate'], 60),
       mainJob: json['mainJob']?.toString() ?? '-',
+      online: json['online'] == true,
       experiences: experienceData
           .whereType<Map<String, dynamic>>()
           .map(AnswererExperience.fromJson)
@@ -99,6 +110,7 @@ class Answerer {
   final bool acceptingInquiries;
   final int inquiryHourlyRate;
   final String mainJob;
+  final bool online;
   final List<AnswererExperience> experiences;
 
   String get displayName => nickname.trim().isEmpty ? 'UID $uid' : nickname;
@@ -112,6 +124,7 @@ class Answerer {
       acceptingInquiries: acceptingInquiries,
       inquiryHourlyRate: inquiryHourlyRate,
       mainJob: mainJob,
+      online: online,
       experiences: experiences ?? this.experiences,
     );
   }
@@ -129,6 +142,15 @@ class ExperienceLikeState {
 
   final int likeCount;
   final bool liked;
+}
+
+class ExperienceFavoriteState {
+  const ExperienceFavoriteState({required this.favorited});
+
+  factory ExperienceFavoriteState.fromJson(Map<String, dynamic> json) =>
+      ExperienceFavoriteState(favorited: json['favorited'] == true);
+
+  final bool favorited;
 }
 
 class AnswererPageData {
@@ -150,6 +172,50 @@ class AnswererPageData {
   }
 
   final List<Answerer> items;
+  final int page;
+  final bool hasMore;
+}
+
+class ExperienceLibraryItem {
+  const ExperienceLibraryItem({
+    required this.answerer,
+    required this.occurredAt,
+  });
+
+  factory ExperienceLibraryItem.fromJson(Map<String, dynamic> json) =>
+      ExperienceLibraryItem(
+        answerer: Answerer.fromJson(
+          Map<String, dynamic>.from(json['answerer'] as Map? ?? const {}),
+        ),
+        occurredAt: DateTime.tryParse(json['occurredAt']?.toString() ?? ''),
+      );
+
+  final Answerer answerer;
+  final DateTime? occurredAt;
+}
+
+class ExperienceLibraryPageData {
+  const ExperienceLibraryPageData({
+    required this.items,
+    required this.page,
+    required this.hasMore,
+  });
+
+  factory ExperienceLibraryPageData.fromJson(
+    Map<String, dynamic> json,
+  ) => ExperienceLibraryPageData(
+    items: (json['items'] as List<dynamic>? ?? const [])
+        .whereType<Map>()
+        .map(
+          (item) =>
+              ExperienceLibraryItem.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .toList(growable: false),
+    page: _int(json['page']),
+    hasMore: json['hasMore'] == true,
+  );
+
+  final List<ExperienceLibraryItem> items;
   final int page;
   final bool hasMore;
 }

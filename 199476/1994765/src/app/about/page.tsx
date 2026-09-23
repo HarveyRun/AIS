@@ -40,7 +40,7 @@ export default function AboutPage() {
         <SectionHeading title="内容如何维护" />
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm leading-7 text-slate-600">
           <ul className="list-disc space-y-2 pl-5">
-            <li>每个项目页都标注「信息核实日期」，政策类内容定期人工复核。</li>
+            <li>每个项目页都标注「更新时间」，政策类内容定期复核。</li>
             <li>所有关键信息附官方来源链接，请以官方最新发布为准。</li>
             <li>
               当前收录：{countries.length} 个国家/地区、{regions.length} 个省/州、

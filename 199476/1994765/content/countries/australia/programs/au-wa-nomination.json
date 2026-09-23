@@ -1,0 +1,99 @@
+{
+  "slug": "au-wa-nomination",
+  "name": "西澳 190/491 州担保提名",
+  "nameEn": "Western Australia State Nomination (190/491) via WASMOL",
+  "country": "australia",
+  "region": "western-australia",
+  "type": "skilled",
+  "status": "active",
+  "summary": "西澳（珀斯）按职业清单分「本地毕业生」和「普通申请人」两个池排序邀请。矿业主州，技工、医疗、工程类岗位多，珀斯也算偏远地区。",
+  "suitableFor": "医疗/工程/技工类申请人；在珀斯读书或工作的毕业生有独立池，竞争烈度低于东海岸。",
+  "highlights": [
+    "毕业生与普通申请人分池排序",
+    "矿业经济薪资水平高",
+    "珀斯属偏远地区（491 +15 分）"
+  ],
+  "requirements": [
+    {
+      "title": "职业在当年 WASMOL 清单",
+      "detail": "清单分 Schedule 1/2 或按池划分，以当年公布为准。"
+    },
+    {
+      "title": "EOI 打分 + 英语达标",
+      "detail": "西澳对英语与工作经验有州级附加要求（按当年政策）。"
+    },
+    {
+      "title": "毕业生池（如适用）",
+      "detail": "需在西澳完成高等教育学历。"
+    }
+  ],
+  "cost": {
+    "note": "费用结构与 190/491 联邦部分一致。",
+    "breakdown": [
+      {
+        "item": "签证申请费",
+        "amount": "约 4,765 澳元/主申"
+      },
+      {
+        "item": "职业评估 + 语言考试",
+        "amount": "约 8,000-20,000 元人民币"
+      },
+      {
+        "item": "体检、无犯罪、公证翻译",
+        "amount": "约 5,000-10,000 元人民币"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 1-1.5 万澳元"
+      }
+    ]
+  },
+  "duration": {
+    "note": "按轮次邀请；获提名后签证审理约 6-12 个月。",
+    "steps": [
+      {
+        "title": "职业评估与 EOI 入池",
+        "durationHint": "3-9 个月"
+      },
+      {
+        "title": "确认在 WASMOL 对应池并等待邀请",
+        "durationHint": "1-9 个月"
+      },
+      {
+        "title": "获提名递交联邦签证并获批",
+        "durationHint": "6-12 个月"
+      }
+    ]
+  },
+  "materials": [
+    "职业评估结果函",
+    "WASMOL 清单匹配说明",
+    "英语成绩、学历与经验证明",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    {
+      "label": "Western Australia Migration 官方页面",
+      "url": "https://migration.wa.gov.au/"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "小梁，29 岁，土木工程师 6 年经验，雅思 4 个 7，在珀斯矿业公司工作 1 年。",
+    "steps": [
+      "职业在西澳毕业生池清单内（西澳硕士毕业）。",
+      "递交 WASMOL 毕业生池申请，池内竞争小于东海岸。",
+      "获 190 提名后递交签证。",
+      "11 个月后拿永居，继续在珀斯工作。"
+    ],
+    "outcome": "毕业生池 + 偏远加分 + 矿业高薪，是西澳的三重红利。"
+  },
+  "pros": [
+    "毕业生/普通分池，结构清晰",
+    "珀斯偏远加分加矿业薪资高"
+  ],
+  "cons": [
+    "就业随矿业周期波动",
+    "对州外申请人政策有反复"
+  ]
+}

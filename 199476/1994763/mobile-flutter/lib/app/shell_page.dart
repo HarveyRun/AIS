@@ -48,6 +48,12 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
       !widget.location.startsWith('/profile/certifications/experiences') &&
       !widget.location.startsWith('/profile/settings') &&
       !widget.location.startsWith('/profile/inquiry-settings') &&
+      !widget.location.startsWith('/profile/favorites') &&
+      !widget.location.startsWith('/profile/recent') &&
+      !widget.location.startsWith('/profile/experience-library') &&
+      !widget.location.startsWith('/profile/faq') &&
+      !widget.location.startsWith('/profile/feedback') &&
+      !widget.location.startsWith('/profile/business') &&
       !widget.location.startsWith('/answerers/');
 
   @override

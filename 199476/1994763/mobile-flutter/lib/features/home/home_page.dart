@@ -405,17 +405,21 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
     );
     if (!mounted || selected == null) return;
     final sort = _ExperienceSort.values.firstWhere(
-      (item) => item.sortBy == selected.sortBy &&
+      (item) =>
+          item.sortBy == selected.sortBy &&
           item.direction == selected.sortDirection,
       orElse: () => _ExperienceSort.latest,
     );
-    if (selected.categoryId == _selectedCategoryId && sort == _experienceSort) return;
+    if (selected.categoryId == _selectedCategoryId && sort == _experienceSort) {
+      return;
+    }
     setState(() {
       _selectedCategoryId = selected.categoryId;
       _experienceSort = sort;
     });
     await _load(reset: true);
   }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).user;
@@ -545,7 +549,8 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                       onPressed: _showExperienceSort,
                       icon: Badge(
                         isLabelVisible:
-                            _experienceSort != _ExperienceSort.latest || _selectedCategoryId != null,
+                            _experienceSort != _ExperienceSort.latest ||
+                            _selectedCategoryId != null,
                         smallSize: 7,
                         child: const Icon(Icons.filter_alt_outlined),
                       ),
@@ -583,6 +588,7 @@ class _HomePageState extends ConsumerState<HomePage> with RouteAware {
                       answerer: _items[index],
                       experience: _items[index].experiences.first,
                       flat: true,
+                      showOnlineStatus: true,
                       onTap: () => _openAnswerer(_items[index], index + 1),
                     ),
                     separatorBuilder: (_, _) => const SizedBox(height: 12),

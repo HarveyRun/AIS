@@ -1,0 +1,104 @@
+{
+  "slug": "au-dama",
+  "name": "DAMA 指定区域移民协议",
+  "nameEn": "Designated Area Migration Agreement",
+  "country": "australia",
+  "type": "employer",
+  "status": "active",
+  "summary": "北领地等偏远区域和联邦签的特别协议：在这些区域找到雇主，职业清单更宽，年龄、英语、薪资都能放宽。条件差一点的人的澳洲机会。",
+  "suitableFor": "职业不在标准清单、或年龄/英语/薪资有一项差距，但能在 DAMA 覆盖区域找到雇主的申请人。",
+  "highlights": [
+    "职业清单宽于标准雇主担保清单",
+    "年龄、英语、薪资可申请让步（concession）",
+    "多数 DAMA 提供转永居的 pathway"
+  ],
+  "requirements": [
+    {
+      "title": "DAMA 覆盖区域的雇主 offer",
+      "detail": "雇主须位于协议覆盖区域内并具备资质；每个 DAMA 有自己的职业列表与配额。"
+    },
+    {
+      "title": "按各 DAMA 的让步条件",
+      "detail": "常见让步：薪资最多下浮约 10%、英语与年龄上限放宽、部分职业降低经验要求——具体以各协议为准。"
+    },
+    {
+      "title": "基本签证条件",
+      "detail": "持对应雇主担保签证（如 482 或区域签证）在 DAMA 框架下申请；部分 DAMA 工作数年后可转永居。"
+    }
+  ],
+  "cost": {
+    "note": "签证规费与标准雇主担保一致；DAMA 本身不向申请人额外收费。",
+    "breakdown": [
+      {
+        "item": "对应雇主担保签证申请费",
+        "amount": "约 3,000-4,800 澳元（按签证类别）"
+      },
+      {
+        "item": "语言、体检、无犯罪、公证",
+        "amount": "约 8,000-15,000 元人民币"
+      },
+      {
+        "item": "雇主侧资质与培训基金费用",
+        "amount": "多由雇主承担"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 0.8-1.2 万澳元"
+      }
+    ]
+  },
+  "duration": {
+    "note": "审理节奏与对应签证类别一致；转永居按各 DAMA 的 pathway 条款。",
+    "steps": [
+      {
+        "title": "确认目标区域 DAMA 与职业列表",
+        "detail": "核对该协议是否覆盖你的职业与让步条件。",
+        "durationHint": "-"
+      },
+      {
+        "title": "取得覆盖区域内雇主 offer",
+        "durationHint": "视求职而定"
+      },
+      {
+        "title": "递交 DAMA 框架下的签证",
+        "detail": "雇主提名 + 签证申请。",
+        "durationHint": "1-4 个月"
+      },
+      {
+        "title": "工作满协议年限后转永居（如适用）",
+        "durationHint": "按各 DAMA 条款"
+      }
+    ]
+  },
+  "materials": [
+    "DAMA 覆盖区域雇主 offer 与雇主资质",
+    "职业与经验证明",
+    "英语成绩单",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    {
+      "label": "内政部 - DAMA 官方页面",
+      "url": "https://immi.homeaffairs.gov.au/visas/working-in-australia/regional-workforce-agreements"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "老赵，47 岁，挖掘机司机 15 年经验，英语只会基本交流（标准通道年龄超限）。",
+    "steps": [
+      "确认北领地 DAMA 清单包含挖掘机操作员，且年龄有让步条款。",
+      "拿到达尔文建筑公司的 offer，雇主具备 DAMA 资质。",
+      "递交 DAMA 框架下的雇主担保签证，年龄让步获批。",
+      "按协议在北领地工作满约定年限，走转永居通道。"
+    ],
+    "outcome": "标准通道下超龄被卡，DAMA 让年龄、英语让步后走通；代价是锁定在北领地工作。"
+  },
+  "pros": [
+    "职业范围更宽，年龄英语薪资可让步",
+    "部分协议有转永居通道"
+  ],
+  "cons": [
+    "限定在协议覆盖区域",
+    "各区域条款差异大"
+  ]
+}

@@ -33,6 +33,7 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
   Answerer? _answerer;
   bool _loading = true;
   bool _likeSubmitting = false;
+  bool _favoriteSubmitting = false;
   AppGlobalSettings? _settings;
 
   AnswererExperience? get _selectedExperience {
@@ -53,7 +54,12 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
     setState(() => _loading = true);
     try {
       final result = await Future.wait([
-        ref.read(repositoryProvider).answerer(widget.uid),
+        ref
+            .read(repositoryProvider)
+            .answerer(
+              widget.uid,
+              experienceId: widget.experienceCertificationId,
+            ),
         ref.read(repositoryProvider).appGlobalSettings(),
       ]);
       final person = result[0] as Answerer;
@@ -206,6 +212,41 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
     }
   }
 
+  Future<void> _toggleFavorite() async {
+    final experience = _selectedExperience;
+    final certificationId = experience?.certificationId;
+    if (experience == null || certificationId == null || _favoriteSubmitting) {
+      return;
+    }
+    setState(() => _favoriteSubmitting = true);
+    try {
+      final result = await ref
+          .read(repositoryProvider)
+          .setExperienceFavorite(
+            uid: widget.uid,
+            certificationId: certificationId,
+            favorited: !experience.favoritedByCurrentUser,
+          );
+      if (!mounted || _answerer == null) return;
+      setState(() {
+        _answerer = _answerer!.copyWith(
+          experiences: _answerer!.experiences
+              .map(
+                (item) => item.certificationId == certificationId
+                    ? item.copyWith(favoritedByCurrentUser: result.favorited)
+                    : item,
+              )
+              .toList(growable: false),
+        );
+      });
+      AppMessage.show(context, result.favorited ? '已加入收藏' : '已取消收藏');
+    } catch (error) {
+      if (mounted) AppMessage.show(context, '$error');
+    } finally {
+      if (mounted) setState(() => _favoriteSubmitting = false);
+    }
+  }
+
   Future<bool> _showInquiryFlow(int hourlyRate) async {
     final settings = _settings;
     final initialMessages = settings?.initialTextMessageLimit ?? 50;
@@ -277,6 +318,8 @@ class _AnswererDetailPageState extends ConsumerState<AnswererDetailPage> {
                         widget.experienceCertificationId,
                     likeSubmitting: _likeSubmitting,
                     onToggleLike: _toggleLike,
+                    favoriteSubmitting: _favoriteSubmitting,
+                    onToggleFavorite: _toggleFavorite,
                   ),
                 ],
               ),
@@ -572,12 +615,16 @@ class _WebAnswererOverview extends StatelessWidget {
     required this.answerer,
     required this.likeSubmitting,
     required this.onToggleLike,
+    required this.favoriteSubmitting,
+    required this.onToggleFavorite,
     this.preferredExperienceCertificationId,
   });
 
   final Answerer answerer;
   final bool likeSubmitting;
   final VoidCallback onToggleLike;
+  final bool favoriteSubmitting;
+  final VoidCallback onToggleFavorite;
   final int? preferredExperienceCertificationId;
 
   @override
@@ -659,6 +706,19 @@ class _WebAnswererOverview extends StatelessWidget {
                   count: experience.likeCount,
                   loading: likeSubmitting,
                   onTap: onToggleLike,
+                ),
+              if (experience != null)
+                IconButton(
+                  tooltip: experience.favoritedByCurrentUser ? '取消收藏' : '收藏',
+                  onPressed: favoriteSubmitting ? null : onToggleFavorite,
+                  icon: Icon(
+                    experience.favoritedByCurrentUser
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border_rounded,
+                    color: experience.favoritedByCurrentUser
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
             ],
           ),

@@ -5,39 +5,84 @@
   "country": "usa",
   "type": "employer",
   "status": "active",
-  "summary": "美国雇主为你申请绿卡的传统路径：先拿 PERM 劳工证再走 I-140；对学历要求灵活，但排期长。",
+  "summary": "美国雇主长期雇佣你的技术或专业岗位，雇主走劳工证程序（PERM）为你申请绿卡。学历要求不高，但中国大陆出生的申请人要排队数年。",
   "suitableFor": "能找到美国雇主长期任职的专业人士与技术工人；已在美工作（H-1B/L1）的人群最常见。",
-  "difficulty": "high",
   "highlights": [
     "学历要求灵活：专业人员（本科+）与技术工人（2 年经验/培训）均可",
     "雇主通常承担 PERM 阶段费用",
     "与雇主绑定，身份稳定后可换同行雇主（I-140 过渡规则）"
   ],
   "requirements": [
-    { "title": "雇主 PERM 劳工证", "detail": "雇主需先完成招聘测试，证明无合格美国工人愿意且能够胜任该岗位，周期约 1-1.5 年。" },
-    { "title": "EB-3 三类细分", "detail": "专业人员（本科以上）、技术工人（2 年以上经验或培训）、其他工人（非临时性岗位）；EB-2 要求硕士以上或本科+5 年经验。" },
-    { "title": "雇主支付能力", "detail": "雇主需证明有能力支付承诺工资（Ability to Pay）。" },
-    { "title": "排期", "detail": "中国大陆出生申请人 EB-2/EB-3 均有排期，等待数年是常态。" }
+    {
+      "title": "雇主 PERM 劳工证",
+      "detail": "雇主需先完成招聘测试，证明无合格美国工人愿意且能够胜任该岗位，周期约 1-1.5 年。"
+    },
+    {
+      "title": "EB-3 三类细分",
+      "detail": "专业人员（本科以上）、技术工人（2 年以上经验或培训）、其他工人（非临时性岗位）；EB-2 要求硕士以上或本科+5 年经验。"
+    },
+    {
+      "title": "雇主支付能力",
+      "detail": "雇主需证明有能力支付承诺工资（Ability to Pay）。"
+    },
+    {
+      "title": "排期",
+      "detail": "中国大陆出生申请人 EB-2/EB-3 均有排期，等待数年是常态。"
+    }
   ],
   "cost": {
-    "totalEstimate": { "min": 60000, "max": 150000, "currency": "CNY" },
     "note": "PERM 与 I-140 阶段的广告费与规费依法必须由雇主承担；申请人主要承担律师咨询、家属费用与生活过渡成本。",
     "breakdown": [
-      { "item": "PERM 阶段费用", "amount": "约 5,000-10,000 美元（雇主承担）" },
-      { "item": "I-140 申请费", "amount": "约 715 美元" },
-      { "item": "绿卡阶段（I-485/DS-260）", "amount": "约 1,200-1,500 美元/人" },
-      { "item": "若自聘律师协助", "amount": "约 5,000-15,000 美元" }
+      {
+        "item": "PERM 阶段费用",
+        "amount": "约 5,000-10,000 美元（雇主承担）"
+      },
+      {
+        "item": "I-140 申请费",
+        "amount": "约 715 美元"
+      },
+      {
+        "item": "绿卡阶段（I-485/DS-260）",
+        "amount": "约 1,200-1,500 美元/人"
+      },
+      {
+        "item": "若自聘律师协助",
+        "amount": "约 5,000-15,000 美元"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 1-2 万美元（过渡期）"
+      }
     ]
   },
   "duration": {
-    "totalMonths": { "min": 36, "max": 84 },
     "note": "PERM 12-18 个月 + I-140 数月 + 排期等待（中国大陆出生申请人为主要变量）。",
     "steps": [
-      { "title": "找到愿意担保的雇主", "detail": "确认职位、工资与担保意愿。", "durationHint": "视个人情况" },
-      { "title": "PERM 劳工证程序", "detail": "招聘测试与 ETA-9089 审批。", "durationHint": "12-18 个月" },
-      { "title": "递交 I-140", "detail": "可加急；获批后锁定优先日期（Priority Date）。", "durationHint": "1-6 个月" },
-      { "title": "排期等待", "detail": "优先日期排到后才能进入绿卡阶段。", "durationHint": "视排期而定" },
-      { "title": "I-485 或领事程序获批", "detail": "全家获得绿卡。", "durationHint": "6-14 个月" }
+      {
+        "title": "找到愿意担保的雇主",
+        "detail": "确认职位、工资与担保意愿。",
+        "durationHint": "视个人情况"
+      },
+      {
+        "title": "PERM 劳工证程序",
+        "detail": "招聘测试与 ETA-9089 审批。",
+        "durationHint": "12-18 个月"
+      },
+      {
+        "title": "递交 I-140",
+        "detail": "可加急；获批后锁定优先日期（Priority Date）。",
+        "durationHint": "1-6 个月"
+      },
+      {
+        "title": "排期等待",
+        "detail": "优先日期排到后才能进入绿卡阶段。",
+        "durationHint": "视排期而定"
+      },
+      {
+        "title": "I-485 或领事程序获批",
+        "detail": "全家获得绿卡。",
+        "durationHint": "6-14 个月"
+      }
     ]
   },
   "materials": [
@@ -48,27 +93,36 @@
     "护照、无犯罪、体检"
   ],
   "officialSources": [
-    { "label": "USCIS - PERM 劳工证（相关页面）", "url": "https://www.dol.gov/agencies/eta/foreign-labor/programs/permanent" },
-    { "label": "USCIS - 就业类移民总览", "url": "https://www.uscis.gov/working-in-the-united-states/permanent-workers" },
-    { "label": "国务院签证公告（排期）", "url": "https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin.html" }
+    {
+      "label": "USCIS - PERM 劳工证（相关页面）",
+      "url": "https://www.dol.gov/agencies/eta/foreign-labor/programs/permanent"
+    },
+    {
+      "label": "USCIS - 就业类移民总览",
+      "url": "https://www.uscis.gov/working-in-the-united-states/permanent-workers"
+    },
+    {
+      "label": "国务院签证公告（排期）",
+      "url": "https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin.html"
+    }
   ],
-  "commonRejections": [
-    "PERM 招聘程序瑕疵（工资标准、招聘渠道不符规范）",
-    "雇主支付能力证明不足",
-    "岗位职责与申请人资历错位"
-  ],
-  "risks": [
-    "全程依赖单一雇主，裁员或公司变动可能中断进程",
-    "中国大陆出生申请人排期长，期间需维持合法身份",
-    "岗位真实性被抽查（supervised recruitment）会延长周期"
-  ],
-  "eligibility": {
-    "minEducation": 2,
-    "minLanguage": 1,
-    "minBudgetTier": "low",
-    "needsJobOffer": true,
-    "ageRange": { "min": 22, "max": 50 },
-    "note": "无年龄上限要求，但排期决定了宜尽早启动。"
+  "infoVerifiedAt": "2026-09-22",
+  "case": {
+    "profile": "老黄，36 岁，软件工程师，H-1B 在美工作 3 年，雇主同意担保绿卡。",
+    "steps": [
+      "雇主启动 PERM：登广告招聘测试，9 个月获批劳工证。",
+      "递交 I-140，加急 15 天获批，优先日期锁定。",
+      "排期等待 3 年（期间保持 H-1B 身份）。",
+      "排期到后递交 I-485，半年拿到绿卡。"
+    ],
+    "outcome": "全程约 7 年；身份和雇主深度绑定，是「稳定但慢」的路线。"
   },
-  "infoVerifiedAt": "2026-09-22"
+  "pros": [
+    "学历要求灵活，技术工人也可",
+    "PERM 与 I-140 费用依法由雇主承担"
+  ],
+  "cons": [
+    "中国大陆出生排期数年",
+    "身份与雇主深度绑定"
+  ]
 }

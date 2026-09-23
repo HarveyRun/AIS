@@ -92,6 +92,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       onTap: () => context.push('/curated'),
                     ),
                     _MenuItem(
+                      icon: Icons.bookmark_border_rounded,
+                      title: '我的收藏',
+                      onTap: () => context.push('/profile/favorites'),
+                    ),
+                    _MenuItem(
+                      icon: Icons.history_rounded,
+                      title: '最近浏览',
+                      onTap: () => context.push('/profile/recent'),
+                    ),
+                    _MenuItem(
                       icon: Icons.help_outline_rounded,
                       title: '常见问题',
                       onTap: () => context.push('/profile/faq'),

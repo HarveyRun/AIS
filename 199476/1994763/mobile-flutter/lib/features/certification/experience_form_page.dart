@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,9 +18,10 @@ import 'experience_additional_info_page.dart';
 import 'experience_category_picker.dart';
 
 class ExperienceFormPage extends ConsumerStatefulWidget {
-  const ExperienceFormPage({super.key, this.id});
+  const ExperienceFormPage({super.key, this.id, this.resumeDraft = false});
 
   final int? id;
+  final bool resumeDraft;
 
   @override
   ConsumerState<ExperienceFormPage> createState() => _ExperienceFormPageState();
@@ -38,6 +41,9 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
   bool _loading = false;
   bool _submitting = false;
   bool _savingPublicMedia = false;
+  Timer? _draftTimer;
+  bool _draftReady = false;
+  late final AppRepository _repository;
   ExperiencePublicMediaView? _publicMedia;
   Set<int> _selectedPublicMediaIds = <int>{};
   int _titleMaxLength = 18;
@@ -66,8 +72,13 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
   @override
   void initState() {
     super.initState();
+    _repository = ref.read(repositoryProvider);
+    _title.addListener(_scheduleDraftSave);
+    _description.addListener(_scheduleDraftSave);
     _initialize();
   }
+
+  String get _draftKey => widget.id == null ? 'CREATE' : 'EDIT_${widget.id}';
 
   Future<void> _initialize() async {
     try {
@@ -78,13 +89,124 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
       _descriptionMaxLength = settings.experienceDescriptionMaxLength;
       _maxProofArchiveBytes = settings.proofArchiveMaxBytes;
     } catch (_) {}
-    try { await _fetchCategories(); } catch (_) {}
-    if (widget.id != null) await _load();
+    try {
+      await _fetchCategories();
+    } catch (_) {}
+    if (widget.id != null) {
+      await _load();
+      if (widget.resumeDraft) {
+        await _restoreDraftIfNeeded(prompt: false);
+      } else {
+        _draftReady = true;
+      }
+    } else {
+      await _restoreDraftIfNeeded(prompt: !widget.resumeDraft);
+    }
+  }
+
+  Future<void> _restoreDraftIfNeeded({bool prompt = true}) async {
+    Map<String, dynamic>? draft;
+    try {
+      draft = await _repository.experienceDraft(key: _draftKey);
+    } catch (_) {}
+    if (!mounted) return;
+    final additional = draft?['additionalInfo'];
+    final additionalHasContent =
+        additional is Map &&
+        additional.values.any(
+          (value) => value != null && value.toString().trim().isNotEmpty,
+        );
+    if (draft == null ||
+        ((draft['title']?.toString().trim().isEmpty ?? true) &&
+            (draft['description']?.toString().trim().isEmpty ?? true) &&
+            !additionalHasContent)) {
+      _draftReady = true;
+      return;
+    }
+    final restore = prompt
+        ? await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('继续上次编辑？'),
+              content: const Text('发现一份未提交的经历草稿，可以继续填写。'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('重新填写'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('继续填写'),
+                ),
+              ],
+            ),
+          )
+        : true;
+    if (!mounted) return;
+    if (restore == true) {
+      setState(() {
+        _title.text = draft?['title']?.toString() ?? '';
+        _description.text = draft?['description']?.toString() ?? '';
+        if (additional is Map) {
+          _additionalInfo = ExperienceAdditionalInfo.fromJson(
+            Map<String, dynamic>.from(additional),
+          );
+        }
+      });
+    } else {
+      await _repository.deleteExperienceDraft(key: _draftKey);
+    }
+    _draftReady = true;
+  }
+
+  void _scheduleDraftSave() {
+    if (!_draftReady || _submitting) return;
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 700), _saveDraftNow);
+  }
+
+  bool get _hasDraftContent =>
+      _title.text.trim().isNotEmpty ||
+      _description.text.trim().isNotEmpty ||
+      _additionalInfo.categoryId != null ||
+      !_additionalInfo.isEmpty;
+
+  Future<bool> _saveDraftNow({bool reportError = false}) async {
+    if (!_draftReady || _submitting) return false;
+    try {
+      if (!_hasDraftContent) {
+        await _repository.deleteExperienceDraft(key: _draftKey);
+        return true;
+      }
+      await _repository.saveExperienceDraft({
+        'title': _title.text,
+        'description': _description.text,
+        'additionalInfo': _additionalInfo.toJson(),
+      }, key: _draftKey);
+      return true;
+    } catch (error) {
+      // 草稿保存失败不打断用户当前编辑。
+      if (reportError && mounted) AppMessage.show(context, '$error');
+      return false;
+    }
+  }
+
+  Future<void> _manualSaveDraft() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _draftTimer?.cancel();
+    if (!_hasDraftContent) {
+      AppMessage.show(context, '请先填写部分内容');
+      return;
+    }
+    final saved = await _saveDraftNow(reportError: true);
+    if (saved && mounted) AppMessage.show(context, '草稿已保存');
   }
 
   Future<List<ExperienceCategoryOption>> _fetchCategories() async {
-    final request = _categoryRequest ??=
-        ref.read(repositoryProvider).experienceCategories();
+    final request = _categoryRequest ??= ref
+        .read(repositoryProvider)
+        .experienceCategories();
     try {
       final items = await request;
       if (mounted) setState(() => _categories = items);
@@ -116,15 +238,22 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
       selectedChildId: _additionalInfo.categoryId,
     );
     if (selected != null && mounted) {
-      setState(() => _additionalInfo = _additionalInfo.withCategory(
-        parent: selected.parent,
-        child: selected.child,
-      ));
+      setState(
+        () => _additionalInfo = _additionalInfo.withCategory(
+          parent: selected.parent,
+          child: selected.child,
+        ),
+      );
+      _scheduleDraftSave();
     }
   }
 
   @override
   void dispose() {
+    _draftTimer?.cancel();
+    if (_draftReady && !_submitting) {
+      unawaited(_saveDraftNow().then<void>((_) {}));
+    }
     _title.dispose();
     _description.dispose();
     super.dispose();
@@ -240,6 +369,7 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
     );
     if (result != null && mounted) {
       setState(() => _additionalInfo = result);
+      _scheduleDraftSave();
     }
   }
 
@@ -289,6 +419,7 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
         proofUploadId: _completedProofUploadId,
         removeProofArchive: _removeExistingProofArchive,
       );
+      await repository.deleteExperienceDraft(key: _draftKey);
       if (!mounted) return;
       AppMessage.show(context, '经历已提交审核');
       Navigator.pop(context);
@@ -332,7 +463,24 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
   Widget build(BuildContext context) => PopScope(
     canPop: !_submitting,
     child: Scaffold(
-      appBar: AppBar(title: Text(widget.id == null ? '发布经历' : '经历详情')),
+      appBar: AppBar(
+        centerTitle: false,
+        leadingWidth: 44,
+        titleSpacing: 0,
+        title: Text(widget.id == null ? '发布经历' : '经历详情'),
+        actions: [
+          if (_editable)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: TextButton(
+                onPressed: _submitting || !_draftReady
+                    ? null
+                    : _manualSaveDraft,
+                child: const Text('保存草稿'),
+              ),
+            ),
+        ],
+      ),
       body: AbsorbPointer(
         absorbing: _submitting,
         child: _loading
@@ -388,20 +536,37 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
                           ),
                         ),
                         const SizedBox(height: 14),
-                        Row(children: [
-                          Text('经历分类', style: Theme.of(context).textTheme.titleMedium),
-                          if (_editable) Text(' *', style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                          )),
-                        ]),
+                        Row(
+                          children: [
+                            Text(
+                              '经历分类',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            if (_editable)
+                              Text(
+                                ' *',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                              ),
+                          ],
+                        ),
                         const SizedBox(height: 7),
                         InkWell(
                           borderRadius: BorderRadius.circular(12),
                           onTap: _editable ? _openCategoryPicker : null,
                           child: InputDecorator(
                             decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                              suffixIcon: _editable ? const Icon(Icons.chevron_right_rounded) : null,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 14,
+                              ),
+                              suffixIcon: _editable
+                                  ? const Icon(Icons.chevron_right_rounded)
+                                  : null,
                             ),
                             child: Text(
                               _additionalInfo.categoryName.isEmpty
@@ -409,10 +574,12 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
                                   : '${_additionalInfo.categoryParentName} / ${_additionalInfo.categoryName}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: _additionalInfo.categoryName.isEmpty
-                                    ? Theme.of(context).hintColor : null,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: _additionalInfo.categoryName.isEmpty
+                                        ? Theme.of(context).hintColor
+                                        : null,
+                                  ),
                             ),
                           ),
                         ),
@@ -456,7 +623,10 @@ class _ExperienceFormPageState extends ConsumerState<ExperienceFormPage> {
                   ),
                   if (!_editable && !_additionalInfo.isEmpty) ...[
                     const SizedBox(height: 12),
-                    ExperienceAdditionalInfoCard(value: _additionalInfo, showCategory: false),
+                    ExperienceAdditionalInfoCard(
+                      value: _additionalInfo,
+                      showCategory: false,
+                    ),
                   ],
                   const SizedBox(height: 12),
                   if (_editable || _existingProofArchive != null)

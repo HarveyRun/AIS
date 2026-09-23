@@ -3,11 +3,13 @@ import path from "node:path";
 import type { ZodTypeAny, z } from "zod";
 import {
   countrySchema,
+  faqSchema,
   glossaryItemSchema,
   programSchema,
   regionSchema,
   siteMetaSchema,
   type Country,
+  type FaqItem,
   type GlossaryItem,
   type Program,
   type Region,
@@ -80,6 +82,7 @@ function listJsonFiles(dir: string): string[] {
 export interface ContentBundle {
   site: SiteMeta;
   glossary: GlossaryItem[];
+  faqs: FaqItem[];
   countries: Country[];
   regions: Region[];
   programs: Program[];
@@ -120,6 +123,29 @@ export function loadContent(): ContentBundle {
     }
   }
 
+  /* 常见问题 */
+  const faqs: FaqItem[] = [];
+  const faqsPath = path.join(CONTENT_DIR, "faqs.json");
+  if (!fs.existsSync(faqsPath)) {
+    issues.push("缺少常见问题文件: content/faqs.json");
+  } else {
+    const rawFaqs = readJson(faqsPath) as unknown;
+    if (!Array.isArray(rawFaqs)) {
+      issues.push("content/faqs.json\n      (根字段): 必须是对象数组");
+    } else {
+      rawFaqs.forEach((item, idx) => {
+        const r = faqSchema.safeParse(item);
+        if (!r.success) {
+          const details = r.error.issues
+            .map((i) => `${i.path.join(".") || "(根字段)"}: ${i.message}`)
+            .join("; ");
+          issues.push(`content/faqs.json 第 ${idx + 1} 条\n      ${details}`);
+        } else {
+          faqs.push(r.data);
+        }
+      });
+    }
+  }
   /* 国家：content/countries/<id>/country.json */
   const countries: Country[] = [];
   const countryBase = path.join(CONTENT_DIR, "countries");
@@ -155,6 +181,38 @@ export function loadContent(): ContentBundle {
   /* 交叉引用校验 */
   const countryIds = new Set(countries.map((c) => c.id));
   const regionIds = new Set(regions.map((r) => `${r.country}/${r.id}`));
+
+  for (const f of faqs) {
+    if (!countryIds.has(f.country)) {
+      issues.push(`常见问题「${f.question}」标注了不存在的国家 id "${f.country}"`);
+    }
+  }
+
+  for (const g of glossary) {
+    for (const cid of g.countries) {
+      if (!countryIds.has(cid)) {
+        issues.push(
+          `术语「${g.term}」标注了不存在的国家 id "${cid}"（content/glossary.json）`
+        );
+      }
+    }
+    for (const rid of g.regions ?? []) {
+      const owners = regions.filter((r) => r.id === rid);
+      if (owners.length === 0) {
+        issues.push(`术语「${g.term}」标注了不存在的省/州 id "${rid}"`);
+      } else if (owners.length > 1) {
+        issues.push(
+          `术语「${g.term}」标注的省/州 id "${rid}" 在多个国家下存在（${owners
+            .map((o) => o.country)
+            .join("、")}），请改用全局唯一的 region id`
+        );
+      } else if (!g.countries.includes(owners[0].country)) {
+        issues.push(
+          `术语「${g.term}」标注的省/州 "${rid}" 属于 ${owners[0].country}，但 countries 未包含该国`
+        );
+      }
+    }
+  }
 
   for (const c of countries) {
     // 国家 id 与目录名一致性
@@ -217,6 +275,7 @@ export function loadContent(): ContentBundle {
   return {
     site: site!,
     glossary,
+    faqs,
     countries,
     regions,
     programs,
@@ -238,6 +297,10 @@ export function getSiteMeta(): SiteMeta {
 
 export function getGlossary(): GlossaryItem[] {
   return getContent().glossary;
+}
+
+export function getFaqs(): FaqItem[] {
+  return getContent().faqs;
 }
 
 export function listCountries(): Country[] {
@@ -290,11 +353,6 @@ export function federalPrograms(countryId: string): Program[] {
 }
 
 /** 近期核实的内容（首页“最新更新”用） */
-export function recentlyVerified(limit = 6): Program[] {
-  return [...getContent().programs]
-    .sort((a, b) => b.infoVerifiedAt.localeCompare(a.infoVerifiedAt))
-    .slice(0, limit);
-}
 
 /** 同国家/同省州的相关项目（详情页底部用） */
 export function relatedPrograms(program: Program, limit = 3): Program[] {

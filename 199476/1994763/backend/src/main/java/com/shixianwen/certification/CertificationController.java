@@ -8,19 +8,23 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/certifications")
 public class CertificationController {
     private final CertificationService certificationService;
     private final CertificationPublicMediaService publicMediaService;
+    private final ExperienceDraftService experienceDraftService;
 
     public CertificationController(
         CertificationService certificationService,
-        CertificationPublicMediaService publicMediaService
+        CertificationPublicMediaService publicMediaService,
+        ExperienceDraftService experienceDraftService
     ) {
         this.certificationService = certificationService;
         this.publicMediaService = publicMediaService;
+        this.experienceDraftService = experienceDraftService;
     }
 
     @GetMapping("/me")
@@ -128,6 +132,39 @@ public class CertificationController {
         @PathVariable Long id
     ) {
         certificationService.deleteExperience(user, id);
+        return ApiResponse.ok();
+    }
+
+    @GetMapping("/experiences/draft")
+    public ApiResponse<ExperienceDraftService.DraftView> experienceDraft(
+        @CurrentUser User user,
+        @RequestParam(defaultValue = "CREATE") String key
+    ) {
+        return ApiResponse.ok(experienceDraftService.get(user.getId(), key));
+    }
+
+    @GetMapping("/experiences/drafts")
+    public ApiResponse<List<ExperienceDraftService.DraftItem>> experienceDrafts(
+        @CurrentUser User user
+    ) {
+        return ApiResponse.ok(experienceDraftService.list(user.getId()));
+    }
+
+    @PutMapping("/experiences/draft")
+    public ApiResponse<ExperienceDraftService.DraftView> saveExperienceDraft(
+        @CurrentUser User user,
+        @RequestParam(defaultValue = "CREATE") String key,
+        @RequestBody Map<String, Object> content
+    ) {
+        return ApiResponse.ok(experienceDraftService.save(user.getId(), key, content));
+    }
+
+    @DeleteMapping("/experiences/draft")
+    public ApiResponse<Void> deleteExperienceDraft(
+        @CurrentUser User user,
+        @RequestParam(defaultValue = "CREATE") String key
+    ) {
+        experienceDraftService.delete(user.getId(), key);
         return ApiResponse.ok();
     }
 

@@ -6,13 +6,16 @@ import { CountryFlag } from "@/components/country-flag";
 import { NoticeBox, SectionHeading } from "@/components/notice";
 import { ProgramCard } from "@/components/program-card";
 import {
-  federalPrograms,
   getCountry,
+  getGlossary,
   listCountries,
   listPrograms,
   listRegions,
 } from "@/lib/content";
+import { buildTermIndex } from "@/lib/term-link";
+import { TermsText } from "@/components/terms-text";
 import { toCardData } from "@/lib/display";
+import { immigrationTypeLabels } from "@/lib/schema";
 
 export function generateStaticParams() {
   return listCountries().map((c) => ({ country: c.id }));
@@ -42,8 +45,8 @@ export default async function CountryPage({
   if (!country) notFound();
 
   const regions = listRegions(country.id);
-  const federal = federalPrograms(country.id);
   const all = listPrograms().filter((p) => p.country === country.id);
+  const termIndex = buildTermIndex(getGlossary());
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -80,75 +83,60 @@ export default async function CountryPage({
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="font-bold text-slate-900">移民体系概览</h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            {country.systemOverview}
+            <TermsText text={country.systemOverview} index={termIndex} />
           </p>
         </div>
         <NoticeBox tone="warn">
           <strong>联邦 vs 省/州：</strong>
-          {country.regionalPolicyNote}
+          <TermsText text={country.regionalPolicyNote} index={termIndex} />
         </NoticeBox>
       </section>
 
-      {/* 省/州列表 */}
-      {regions.length > 0 && (
-        <section className="mt-12">
-          <SectionHeading
-            title={`省/州政策（${regions.length}）`}
-            description="点击查看该省/州的政策概述与本地项目。"
-          />
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {regions.map((region) => {
-              const count = all.filter((p) => p.region === region.id).length;
-              return (
-                <Link
-                  key={region.id}
-                  href={`/countries/${country.id}/${region.id}/`}
-                  className="group rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-lg hover:shadow-teal-600/5"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-slate-900 group-hover:text-teal-700">
-                      {region.name}
-                    </h3>
-                    <span className="text-xs text-slate-400">{count} 个项目</span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-slate-400">{region.nameEn}</p>
-                  <p className="mt-2 line-clamp-2 text-sm text-slate-500">
-                    {region.summary}
-                  </p>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* 省/州特有项目（第一位；同时保留在下方移民方式归类中） */}
+      {(() => {
+        const ownPrograms = all.filter((p) => p.region);
+        if (ownPrograms.length === 0) return null;
+        return (
+          <section className="mt-12">
+            <SectionHeading
+              title={`特有项目（${ownPrograms.length}）`}
+              description="由各省/州自己运作的提名/通道"
+            />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {ownPrograms.map((p) => (
+                <ProgramCard key={p.slug} data={toCardData(p)} />
+              ))}
+            </div>
+          </section>
+        );
+      })()}
 
-      {/* 联邦级项目 */}
-      {federal.length > 0 && (
-        <section className="mt-12">
-          <SectionHeading
-            title="联邦级项目"
-            description="由中央移民机构统一管理、全国适用的路径。"
-          />
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {federal.map((p) => (
-              <ProgramCard key={p.slug} data={toCardData(p)} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 全部项目 */}
-      <section className="mt-12 pb-16">
-        <SectionHeading
-          title={`全部 ${all.length} 个项目`}
-          description="含联邦与省/州级，可进入详情页对比流程与费用。"
-        />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {all.map((p) => (
-            <ProgramCard key={p.slug} data={toCardData(p)} />
-          ))}
+      {/* 按移民方式归类 */}
+      <section className="mt-12 border-t border-slate-200 pt-12 pb-5">
+        <div className="space-y-10">
+          {Object.entries(immigrationTypeLabels).map(([type, label]) => {
+            const group = all.filter((p) => p.type === type);
+            if (group.length === 0) return null;
+            const federalCount = group.filter((p) => !p.region).length;
+            return (
+              <div key={type}>
+                <h3 className="text-lg font-bold text-slate-900">
+                  {label}
+                  <span className="ml-2 text-sm font-normal text-slate-400">
+                    {group.length} 个项目（联邦 {federalCount} · 省/州 {group.length - federalCount}）
+                  </span>
+                </h3>
+                <div className="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {group.map((p) => (
+                    <ProgramCard key={p.slug} data={toCardData(p)} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
+
     </div>
   );
 }

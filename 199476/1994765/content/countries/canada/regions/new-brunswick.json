@@ -1,0 +1,17 @@
+{
+  "id": "new-brunswick",
+  "country": "canada",
+  "name": "新不伦瑞克省",
+  "nameEn": "New Brunswick",
+  "summary": "省提名 NBPNP：EE 定向抽取 + 本省雇主 offer；法语申请人有专门通道；同时适用大西洋计划。",
+  "policyOverview": "省提名 NBPNP：从 EE 池定向抽取，另有本省雇主 offer 通道。同时适用联邦大西洋移民计划（AIP）。法语背景申请人有专门的省提名通道。",
+  "officialSite": "https://www2.gnb.ca/content/gnb/en/departments/petl-epft/immigration.html",
+  "pros": [
+    "法语申请人有专门通道",
+    "同时适用大西洋计划"
+  ],
+  "cons": [
+    "不会法语的申请人通道有限",
+    "就业市场体量小"
+  ]
+}

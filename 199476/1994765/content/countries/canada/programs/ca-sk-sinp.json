@@ -1,0 +1,118 @@
+{
+  "slug": "ca-sk-sinp",
+  "name": "萨省省提名 · 受雇技术工人类",
+  "nameEn": "SINP International Skilled Worker: Employment Offer",
+  "country": "canada",
+  "region": "saskatchewan",
+  "type": "employer",
+  "status": "active",
+  "summary": "萨省雇主给你 offer（或你的职业在紧缺清单上不用 offer），打分达标就拿省提名转永居。分数要求是各省里较低的一档。",
+  "suitableFor": "能对接萨省雇主（里贾纳/萨斯卡通）的申请人；职业属紧缺清单且学历经验达标者也可尝试无 offer 的 Occupations In-Demand 类。",
+  "highlights": [
+    "打分门槛在各省中相对温和",
+    "紧缺职业可无 offer 入池（Occupations In-Demand）",
+    "与联邦 EE 联动，提名后加 600 分"
+  ],
+  "requirements": [
+    {
+      "title": "萨省雇主的全职长期 offer（受雇类）",
+      "detail": "职业为 TEER 0-3（部分技工类适用）；雇主需通过省内审批资质。"
+    },
+    {
+      "title": "SINP 打分达标",
+      "detail": "按学历、经验、语言、年龄打分（满分 110），受雇类达标线历来温和；无 offer 类按轮次择优。"
+    },
+    {
+      "title": "语言达标",
+      "detail": "通常 CLB 4 起，岗位不同要求不同；建议 CLB 5+。"
+    },
+    {
+      "title": "省内认证（部分职业）",
+      "detail": "护士、教师、部分技工类职业需先取得省内执业认证。"
+    }
+  ],
+  "cost": {
+    "note": "SINP 提名不收申请费；费用集中在联邦阶段与材料杂费。",
+    "breakdown": [
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "语言考试",
+        "amount": "约 2,000-3,000 元人民币"
+      },
+      {
+        "item": "学历认证、体检、无犯罪、公证",
+        "amount": "约 5,000-10,000 元人民币"
+      },
+      {
+        "item": "（部分职业）省内认证费用",
+        "amount": "数百至数千加元",
+        "note": "按监管机构定价"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 1-1.5 万加元（3 个月安家）"
+      }
+    ]
+  },
+  "duration": {
+    "note": "SINP 审理约数月；获提名后走 EE 联动（6 个月档）或普通联邦通道。",
+    "steps": [
+      {
+        "title": "确认通道与职业清单",
+        "detail": "核对当年受雇类/紧缺职业清单与认证要求。",
+        "durationHint": "-"
+      },
+      {
+        "title": "入池 EOI 等待邀请",
+        "detail": "受雇类与无 offer 类均通过 EOI 择优。",
+        "durationHint": "1-6 个月"
+      },
+      {
+        "title": "递交省提名申请",
+        "detail": "获邀后提交完整材料，审核约数月。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "联邦 PR 阶段",
+        "detail": "EE 联动约 6 个月；普通通道 12 个月左右。",
+        "durationHint": "6-12 个月"
+      }
+    ]
+  },
+  "materials": [
+    "萨省雇主 offer（受雇类）",
+    "学历与职业认证文件",
+    "语言成绩单",
+    "工作经验证明（推荐信 + 社保记录）",
+    "EOI 打分佐证材料",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    {
+      "label": "萨斯喀彻温省 SINP 官方页面",
+      "url": "https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/by-immigrating/saskatchewan-immigrant-nominee-program"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "小何，30 岁，焊工 7 年经验，有红印章 Equivalent 技能证书，雅思折算 CLB 5。",
+    "steps": [
+      "职业在萨省紧缺清单内，先走免 offer 的 EOI 入池。",
+      "同时拿到里贾纳制造厂的 offer，双保险提高分数。",
+      "2 个月后获邀递交省提名，4 个月获批。",
+      "联邦阶段 1 年，全家枫叶卡。"
+    ],
+    "outcome": "全程约 2 年；技工类职业在萨省长期紧缺。"
+  },
+  "pros": [
+    "紧缺职业可免 offer 申请",
+    "打分要求在各省中较低"
+  ],
+  "cons": [
+    "部分职业需省内执业认证",
+    "就业市场体量有限"
+  ]
+}

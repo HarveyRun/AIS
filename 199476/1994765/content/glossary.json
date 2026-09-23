@@ -1,20 +1,648 @@
 [
-  { "term": "PR（永久居民）", "en": "Permanent Resident", "explanation": "获得一国永久居留权的人，可长期居住、工作、享受大部分福利，但国籍不变。俗称加拿大/澳洲的“绿卡”或“枫叶卡”。" },
-  { "term": "EOI（意向表达）", "en": "Expression of Interest", "explanation": "先在线提交个人情况打分进入候选池，政府择优邀请的申请机制。加拿大 EE、澳洲 SkillSelect、部分省提名都采用。" },
-  { "term": "ITA（邀请函）", "en": "Invitation to Apply", "explanation": "在 EOI/候选池中被选中后收到的正式申请邀请，收到后需在限定时间内递交完整材料。" },
-  { "term": "打分制", "en": "Points Test / CRS", "explanation": "用年龄、学历、语言、工作经验等维度给申请人打分并排序的制度。加拿大联邦用 CRS（满分1200），澳洲用 65 分制（实际获邀通常远高于65）。" },
-  { "term": "省提名 / 州担保", "en": "PNP / State Nomination", "explanation": "省/州政府根据本地劳动力需求自行制定标准、提名申请人移民的制度。加拿大除魁北克外各省有 PNP，澳洲 190/491 签证需州担保。" },
-  { "term": "CLB（加拿大语言等级）", "en": "Canadian Language Benchmark", "explanation": "加拿大官方语言等级标准（0-10级）。雅思、思培等成绩会换算成 CLB 使用，如 CLB 7 约等于雅思四个 6 分。" },
-  { "term": "职业清单", "en": "Occupation List (NOC / MLTSSL / CSOL)", "explanation": "各国对可申请移民的职业进行的分类列表。加拿大的职业编码体系为 TEER 类别（旧称 NOC），澳洲为 ANZSCO 下的 MLTSSL/CSOL 清单。" },
-  { "term": "职业评估", "en": "Skill Assessment", "explanation": "澳洲等国的技术移民要求由指定机构（如 ACS 评估 IT、EA 评估工程）认定你的学历与工作经验等同于当地标准。" },
-  { "term": "ECA（学历认证）", "en": "Educational Credential Assessment", "explanation": "加拿大 EE 要求由 WES 等指定机构把海外学历换算为等效的加拿大教育水平。" },
-  { "term": "雇主担保", "en": "Employer Sponsor", "explanation": "由当地雇主出面为你申请工作签证或移民的路径，通常要求雇主证明招不到本地人（如美国的 PERM 劳工证、加拿大的 LMIA）。" },
-  { "term": "LMIA", "en": "Labour Market Impact Assessment", "explanation": "加拿大劳工市场影响评估：雇主需向政府证明雇佣外国人不会损害本地就业。持有 LMIA 工作签证可为 EE 加 50-200 分。" },
-  { "term": "无犯罪证明", "en": "Police Certificate", "explanation": "证明申请人无犯罪记录的官方文件。几乎所有移民申请都要求提供居住满 6 个月以上的每个国家/地区出具的无犯罪证明。" },
-  { "term": "移民体检", "en": "Immigration Medical Exam", "explanation": "由指定医生（Panel Physician）进行的体检，排查重大传染病等。多数国家要求主申和随行家属都完成。" },
-  { "term": "落地登陆", "en": "Landing", "explanation": "获批后首次入境、正式激活永居身份的环节。加拿大部分项目可在入境口岸（COPR 核验）完成登陆。" },
-  { "term": "移民监", "en": "Residency Obligation", "explanation": "维持永居身份所需的最低居住要求。如加拿大 5 年内住满 2 年、澳洲 5 年内住满 2 年、美国需保持永久居留意图。" },
-  { "term": "入籍", "en": "Citizenship", "explanation": "在持有永居并满足居住年限（通常 3-5 年）、语言等条件后申请成为公民、更换国籍。永居≠公民。" },
-  { "term": "排期", "en": "Visa Bulletin / Priority Date", "explanation": "美国对部分国家的移民签证设有年度配额，中国大陆出生的申请人多数类别需排队等待，等待时间以国务院每月签证公告为准。" },
-  { "term": "CSQ", "en": "Certificat de sélection du Québec", "explanation": "魁北克甄选证书。魁北克拥有独立的移民挑选权，先取得 CSQ 再向联邦申请永久居民，是加拿大唯一的“两级审批”省份。" }
+  {
+    "term": "PR（永久居民）",
+    "en": "Permanent Resident",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "must",
+    "explanation": "获得一国永久居留权的人，可长期居住、工作、享受大部分福利，但国籍不变。移民的直接目标通常就是拿到 PR。"
+  },
+  {
+    "term": "Residency Obligation（移民监）",
+    "en": "Residency Obligation",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "must",
+    "explanation": "维持永居身份所需的最低居住要求。如加拿大 5 年内住满 2 年、澳洲 5 年内住满 2 年；美国需保持永久居留意图。"
+  },
+  {
+    "term": "Work Permit（工签）",
+    "en": "Work Permit / Work Visa",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "must",
+    "explanation": "工作许可。分封闭式（限定雇主）与开放式（不限雇主，如毕业工签、配偶开放工签）。"
+  },
+  {
+    "term": "Principal Applicant（主申请人 / 随行家属）",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "must",
+    "explanation": "主申请人（Principal Applicant）是递交移民申请的核心人；配偶和未独立子女通常可作为随行家属一并获得身份，部分申请中配偶条件也能为主申加分。"
+  },
+  {
+    "term": "Police Certificate（无犯罪证明）",
+    "en": "Police Certificate",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "must",
+    "explanation": "证明申请人无犯罪记录的官方文件。几乎所有移民申请都要求提供居住满 6 个月以上的每个国家/地区出具的无犯罪证明。"
+  },
+  {
+    "term": "Proof of Funds（资金证明）",
+    "en": "Proof of Funds",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "must",
+    "explanation": "证明有足够安家/生活资金的银行材料。各国金额标准不同，以官方页面为准。"
+  },
+  {
+    "term": "Immigration Medical Exam（移民体检）",
+    "en": "Immigration Medical Exam",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "must",
+    "explanation": "由指定医生（Panel Physician）进行的体检，排查重大传染病等。多数国家要求主申和随行家属都完成。"
+  },
+  {
+    "term": "Citizenship（入籍）",
+    "en": "Citizenship",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "important",
+    "explanation": "在持有永居并满足居住年限（通常 3-5 年）、语言等条件后申请成为公民、更换国籍。永居≠公民。"
+  },
+  {
+    "term": "Study Permit（学签）",
+    "en": "Study Permit / Student Visa",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "important",
+    "explanation": "留学许可。加拿大为 Study Permit，澳洲为学生签证（Subclass 500）。在目的地国全日制就读通常需先持学签。"
+  },
+  {
+    "term": "Sponsor（担保人）",
+    "en": "Sponsor",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "important",
+    "explanation": "为申请人出面承担法律与经济责任的主体，分两类：家庭担保中的亲属、雇主担保中的企业。担保人须满足资质条件。"
+  },
+  {
+    "term": "Biometrics（生物识别）",
+    "en": "Biometrics",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "important",
+    "explanation": "指纹与照片采集。加拿大、澳洲、美国等在申请阶段普遍要求，费用另计、有有效期。"
+  },
+  {
+    "term": "Security Screening（背景调查）",
+    "en": "Security Screening",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "important",
+    "explanation": "核实申请人是否构成安全风险的审查，与体检、无犯罪证明并行，通常出现在审理尾段。"
+  },
+  {
+    "term": "Landing（落地登陆）",
+    "en": "Landing",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "important",
+    "explanation": "获批后首次入境、正式激活永居身份的环节。加拿大部分项目可在入境口岸（COPR 核验）完成登陆。"
+  },
+  {
+    "term": "Dual Intent（双重意图）",
+    "en": "Dual Intent",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "optional",
+    "explanation": "部分国家的签证允许申请人同时持有短期居留意图与移民意图（如加拿大工签/学签）：申请移民不影响持这类签证。"
+  },
+  {
+    "term": "Certified Translation（翻译公证）",
+    "en": "Certified Translation & Notarization",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "general",
+    "importance": "optional",
+    "explanation": "非官方语言的文件需经认证翻译并公证。各国对翻译资质要求不同（如加拿大要求认证翻译出具）。"
+  },
+  {
+    "term": "Green Card（绿卡）",
+    "en": "Green Card",
+    "countries": [
+      "usa"
+    ],
+    "category": "general",
+    "importance": "must",
+    "explanation": "美国永久居民卡的俗称，持卡人是永久居民，国籍不变。美国的移民体系即围绕「拿绿卡」展开。"
+  },
+  {
+    "term": "PR Card（枫叶卡）",
+    "en": "PR Card",
+    "countries": [
+      "canada"
+    ],
+    "category": "general",
+    "importance": "optional",
+    "explanation": "加拿大永久居民身份证件的俗称（正式名 PR Card），有效期通常 5 年，用作旅行证件与身份证明。"
+  },
+  {
+    "term": "COPR（永居确认函）",
+    "en": "Confirmation of Permanent Residence",
+    "countries": [
+      "canada"
+    ],
+    "category": "general",
+    "importance": "important",
+    "explanation": "加拿大永久居民确认函：PR 获批后登陆激活身份的核心文件。"
+  },
+  {
+    "term": "Expression of Interest（EOI，意向表达）",
+    "en": "Expression of Interest",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "先在线提交个人情况打分进入候选池，政府择优邀请的申请机制。加拿大 EE、澳洲 SkillSelect、部分省提名都采用。"
+  },
+  {
+    "term": "Points Test / CRS（打分制）",
+    "en": "Points Test / CRS",
+    "aliases": [
+      "CRS"
+    ],
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "用年龄、学历、语言、工作经验等维度打分并排序的制度。加拿大联邦用 CRS（满分 1200），澳洲用 65 分制（实际获邀通常远高于 65）。"
+  },
+  {
+    "term": "PNP / State Nomination（省提名 / 州担保）",
+    "en": "PNP / State Nomination",
+    "aliases": [
+      "省提名",
+      "州担保",
+      "PNP"
+    ],
+    "countries": [
+      "canada",
+      "australia"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "省/州政府根据本地劳动力需求自行制定标准、提名申请人移民的制度。加拿大除魁北克外各省有 PNP，澳洲 190/491 签证需州担保。"
+  },
+  {
+    "term": "Express Entry",
+    "en": "快速通道",
+    "aliases": [
+      "快速通道",
+      "EE"
+    ],
+    "countries": [
+      "canada"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "加拿大联邦技术移民的在线系统：管理联邦技术工人（FSW）、经验类（CEC）、技工类（FST）三个候选池，按 CRS 打分定期择优邀请。省提名获邀可为 EE 加 600 分。"
+  },
+  {
+    "term": "Employer Sponsor（雇主担保）",
+    "en": "Employer Sponsor",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "由当地雇主出面为你申请工作签证或移民的路径，通常要求雇主证明招不到本地人（如美国的 PERM、加拿大的 LMIA）。"
+  },
+  {
+    "term": "Occupation List（职业清单）",
+    "en": "Occupation List",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "可申请移民/提名的职业列表。加拿大按 TEER 类别划定，澳洲为 ANZSCO 下的 MLTSSL/CSOL 等清单，逐年调整。"
+  },
+  {
+    "term": "Invitation to Apply（ITA，邀请函）",
+    "en": "Invitation to Apply",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "在 EOI/候选池中被选中后收到的正式申请邀请，收到后需在限定时间内递交完整材料。"
+  },
+  {
+    "term": "Skill Assessment（职业评估）",
+    "en": "Skill Assessment",
+    "countries": [
+      "canada",
+      "australia"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "由指定机构（如澳洲 ACS 评估 IT、EA 评估工程）认定你的学历与工作经验等同于当地标准的程序。"
+  },
+  {
+    "term": "Annual Quota（配额）",
+    "en": "Annual Quota",
+    "countries": [
+      "canada",
+      "australia",
+      "usa"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "政府每年公布的移民名额上限，分配到各项目或各省/州。配额多少直接影响邀请频率与分数线，逐财年/逐年度公布。"
+  },
+  {
+    "term": "CLB（加拿大语言等级）",
+    "en": "Canadian Language Benchmark",
+    "countries": [
+      "canada"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "加拿大官方语言等级标准（0-10 级）。雅思、思培等成绩会换算成 CLB 使用，如 CLB 7 约等于雅思四个 6 分。"
+  },
+  {
+    "term": "NOC / TEER（加拿大职业分类）",
+    "en": "National Occupational Classification / TEER",
+    "countries": [
+      "canada"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "加拿大职业分类体系：2022 年起以 TEER 0-5 六级取代旧的 NOC A/B/C/D 分层。项目要求中的「职业类别」即以此为准。"
+  },
+  {
+    "term": "LMIA（劳工市场影响评估）",
+    "en": "Labour Market Impact Assessment",
+    "countries": [
+      "canada"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "加拿大劳工市场影响评估：雇主需向政府证明雇佣外国人不会损害本地就业。持 LMIA 工作签证可为 EE 加 50-200 分。"
+  },
+  {
+    "term": "ECA（学历认证）",
+    "en": "Educational Credential Assessment",
+    "countries": [
+      "canada"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "加拿大 EE 要求由 WES 等指定机构把海外学历换算为等效的加拿大教育水平。"
+  },
+  {
+    "term": "PGWP（毕业工签）",
+    "en": "Post-Graduation Work Permit",
+    "aliases": [
+      "毕业工签"
+    ],
+    "countries": [
+      "canada"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "加拿大毕业工签：指定院校毕业生可申请的开放式工签，时长与学制挂钩，是留学转移民的关键衔接。"
+  },
+  {
+    "term": "Category-based Selection（类别定向抽取）",
+    "en": "Category-based Selection",
+    "countries": [
+      "canada"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "Express Entry 的定向邀请机制：按医疗、STEM、法语、技工等类别设轮次单独邀请，分数线与常规轮次不同。"
+  },
+  {
+    "term": "CSQ（魁北克甄选证书）",
+    "en": "Certificat de sélection du Québec",
+    "countries": [
+      "canada"
+    ],
+    "category": "business",
+    "importance": "must",
+    "regions": [
+      "quebec"
+    ],
+    "explanation": "魁北克甄选证书。魁北克拥有独立的移民挑选权，先取得 CSQ 再向联邦申请永久居民，是加拿大唯一的「两级审批」省份。"
+  },
+  {
+    "term": "PEQ",
+    "en": "Programme de l'expérience québécoise",
+    "countries": [
+      "canada"
+    ],
+    "category": "business",
+    "importance": "must",
+    "regions": [
+      "quebec"
+    ],
+    "explanation": "魁北克经验类移民：面向魁省毕业生和持工签在魁省工作的申请人，法语口语达到中级偏上是核心条件。"
+  },
+  {
+    "term": "Arrima（魁省意向系统）",
+    "countries": [
+      "canada"
+    ],
+    "category": "business",
+    "importance": "important",
+    "regions": [
+      "quebec"
+    ],
+    "explanation": "魁北克的意向表达（EOI）系统：常规技术工人计划经 Arrima 入池打分、择优发邀请。"
+  },
+  {
+    "term": "SkillSelect（澳洲候选池）",
+    "countries": [
+      "australia"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "澳洲技术移民的在线意向系统：递交 EOI 打分入池，获邀后才能递签。189/190/491 均经此系统。"
+  },
+  {
+    "term": "Subclass（签证编号）",
+    "countries": [
+      "australia"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "澳洲签证以数字编号命名（如 189、190、491、482、500、485）。查官方页面时认准编号即可定位签证类型。"
+  },
+  {
+    "term": "Designated Regional Area（偏远地区）",
+    "en": "Designated Regional Area",
+    "countries": [
+      "australia"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "澳洲的「偏远」并非荒野：除悉尼、墨尔本、布里斯班外的广大区域都算，含珀斯、阿德莱德、黄金海岸等大城市。走 491 可获 15 分加分。"
+  },
+  {
+    "term": "ANZSCO（澳新职业分类）",
+    "en": "Australian and New Zealand Standard Classification of Occupations",
+    "countries": [
+      "australia"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "澳新职业分类标准。澳洲的职业清单与职业评估以它为基准，每个职业有 6 位编码。"
+  },
+  {
+    "term": "Subclass 485（毕业生签证）",
+    "en": "Temporary Graduate Visa (Subclass 485)",
+    "aliases": [
+      "485"
+    ],
+    "countries": [
+      "australia"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "澳洲毕业生临时签证：在澳完成学历的国际毕业生可申请，用于积累本地时间或工作经验，衔接 190/491 提名。"
+  },
+  {
+    "term": "Bridging Visa（过桥签证）",
+    "en": "Bridging Visa",
+    "countries": [
+      "australia"
+    ],
+    "category": "business",
+    "importance": "optional",
+    "explanation": "现有签证到期而新签证仍在审理时，自动获得的过渡性签证，让申请人在境内保持合法身份。"
+  },
+  {
+    "term": "ROI（维州登记意向）",
+    "en": "Registration of Interest",
+    "countries": [
+      "australia"
+    ],
+    "category": "business",
+    "importance": "must",
+    "regions": [
+      "victoria"
+    ],
+    "explanation": "维多利亚州的登记意向机制：先在州政府系统登记个人情况，州政府按维度择优邀请申请 190/491 提名。"
+  },
+  {
+    "term": "Canberra Matrix（堪培拉打分矩阵）",
+    "countries": [
+      "australia"
+    ],
+    "category": "business",
+    "importance": "must",
+    "regions": [
+      "australian-capital-territory"
+    ],
+    "explanation": "澳大利亚首都领地（ACT）的打分邀请系统：按本地居住、就业、经营企业等打分，定期择优邀请 190/491 提名。"
+  },
+  {
+    "term": "DAMA（指定区域移民协议）",
+    "en": "Designated Area Migration Agreement",
+    "countries": [
+      "australia"
+    ],
+    "category": "business",
+    "importance": "important",
+    "regions": [
+      "northern-territory"
+    ],
+    "explanation": "指定区域移民协议：地方与联邦签订的协议，使雇主担保的职业范围更宽、部分条件（年龄/英语/薪资）有让步。北领地等为代表。"
+  },
+  {
+    "term": "Visa Bulletin（排期）",
+    "en": "Visa Bulletin",
+    "aliases": [
+      "签证公告"
+    ],
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "美国对部分国家的移民签证设年度配额，中国大陆出生的申请人多数类别需排队等待，以国务院每月签证公告为准。"
+  },
+  {
+    "term": "I-140 / I-485（美国移民局表格）",
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "美国移民局表格：I-140 为职业移民资格申请（EB-1/2/3 等），I-485 为在美国境内调整身份为绿卡。"
+  },
+  {
+    "term": "PERM（美国劳工证）",
+    "en": "Program Electronic Review Management",
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "美国劳工证程序：雇主担保绿卡（EB-2/EB-3）前需先完成招聘测试，证明无合格美国工人愿意且能够胜任该岗位。"
+  },
+  {
+    "term": "Priority Date（优先日期）",
+    "en": "Priority Date",
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "美国移民中锁定排队位置的日期（通常为递交 PERM/I-140 之日）。排期是否轮到你，以它与签证公告对比为准。"
+  },
+  {
+    "term": "表A / 表B",
+    "en": "Final Action Date / Dates for Filing",
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "签证公告的两栏排期：表A（Final Action Date）是批准绿卡的截止日期，表B（Dates for Filing）是可先递交调整身份申请的日期。"
+  },
+  {
+    "term": "RFE（补件通知）",
+    "en": "Request for Evidence",
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "美国审理中要求补充证据的通知，须在限期内回应；回应的质量直接决定批准与否。"
+  },
+  {
+    "term": "Adjustment of Status（调整身份）",
+    "en": "Adjustment of Status",
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "已在美国境内的申请人经 I-485 在境内转绿卡；境外的申请人走领事程序（DS-260 面签）。"
+  },
+  {
+    "term": "H-1B（美国工作签证）",
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "美国最常见的专业工作签证：年度抽签制，首次 3 年、最长 6 年，是在美积累经验后转 EB 类绿卡的常见路径。"
+  },
+  {
+    "term": "Regional Center（区域中心）",
+    "en": "Regional Center",
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "EB-5 下的投资载体：经批准的经济单元，可把直接与间接就业合并计算，是 EB-5 投资人的主流选择。"
+  },
+  {
+    "term": "TEA（目标就业区）",
+    "en": "Targeted Employment Area",
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "乡村或高失业率地区。投资在 TEA 内的项目可适用较低的 EB-5 投资额档（80 万美元）。"
+  },
+  {
+    "term": "Conditional Green Card（条件绿卡）",
+    "en": "Conditional Green Card / I-829",
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "EB-5 投资人先获 2 年期条件绿卡；期满递交 I-829 证明就业创造与投资维持，解除条件后转 10 年期绿卡。"
+  },
+  {
+    "term": "Premium Processing（加急处理）",
+    "en": "Premium Processing",
+    "countries": [
+      "usa"
+    ],
+    "category": "business",
+    "importance": "optional",
+    "explanation": "美国的付费加急服务：对部分表格（如 I-140）承诺数周内出审理结果，不影响通过率，只加快审理。"
+  }
 ]

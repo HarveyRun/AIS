@@ -5,38 +5,79 @@
   "country": "australia",
   "type": "business",
   "status": "active",
-  "summary": "面向企业主与高净值人群的商业创新/投资类签证：先持 188 临时签证赴澳经营或投资，满足条件后转 888 永居。",
+  "summary": "企业主的通道：先拿 4-5 年临时签证去澳洲开公司或投资，真实经营/持有满 2 年后转永居（888）。核心门槛是国内经商记录和资金规模。",
   "suitableFor": "有真实经营记录的企业主、专业投资者；资金体量 300 万人民币以上且能接受赴澳实际经营要求。",
-  "difficulty": "mid",
   "highlights": [
     "对年龄学历语言要求宽松，资金与经商背景是核心",
     "188A 门槛相对亲民，适合中小企业主",
     "全家随行，配偶可工作"
   ],
   "requirements": [
-    { "title": "通过 SkillSelect EOI + 州提名", "detail": "188 系列均需先获州/领地提名；各州对行业偏好有额外要求。" },
-    { "title": "188A 商业创新类", "detail": "四个财年中两个财年：企业年营业额 75 万澳元以上、家庭净资产 125 万澳元以上；65 分打分线（年龄 55 以下）。" },
-    { "title": "188C 重大投资类", "detail": "合规投资 500 万澳元，居住要求宽松；配额紧张需关注。" },
-    { "title": "转 888", "detail": "在澳实际经营 2 年以上（188A）或维持合规投资（188C），满足居住要求后转永居。" }
+    {
+      "title": "通过 SkillSelect EOI + 州提名",
+      "detail": "188 系列均需先获州/领地提名；各州对行业偏好有额外要求。"
+    },
+    {
+      "title": "188A 商业创新类",
+      "detail": "四个财年中两个财年：企业年营业额 75 万澳元以上、家庭净资产 125 万澳元以上；65 分打分线（年龄 55 以下）。"
+    },
+    {
+      "title": "188C 重大投资类",
+      "detail": "合规投资 500 万澳元，居住要求宽松；配额紧张需关注。"
+    },
+    {
+      "title": "转 888",
+      "detail": "在澳实际经营 2 年以上（188A）或维持合规投资（188C），满足居住要求后转永居。"
+    }
   ],
   "cost": {
-    "totalEstimate": { "min": 3000000, "max": 15000000, "currency": "CNY" },
     "note": "188A 总投入约 300-500 万人民币（经营+生活）；188C 仅投资额即约 2,300 万人民币。",
     "breakdown": [
-      { "item": "签证申请费", "amount": "约 9,000+ 澳元/主申" },
-      { "item": "188A 在澳经营资金", "amount": "约 60-100 万澳元规模" },
-      { "item": "188C 合规投资", "amount": "500 万澳元" },
-      { "item": "州提名、审计评估、律师费", "amount": "约 3-15 万澳元" }
+      {
+        "item": "签证申请费",
+        "amount": "约 9,000+ 澳元/主申"
+      },
+      {
+        "item": "188A 在澳经营资金",
+        "amount": "约 60-100 万澳元规模"
+      },
+      {
+        "item": "188C 合规投资",
+        "amount": "500 万澳元"
+      },
+      {
+        "item": "州提名、审计评估、律师费",
+        "amount": "约 3-15 万澳元"
+      },
+      {
+        "item": "全家在澳生活费（经营期 2 年）",
+        "amount": "约 5-10 万澳元"
+      }
     ]
   },
   "duration": {
-    "totalMonths": { "min": 42, "max": 66 },
     "note": "188 审理 12-24 个月 + 在澳经营/持有投资 2-3 年 + 888 审理。",
     "steps": [
-      { "title": "经营背景梳理与 EOI", "detail": "整理企业股权、财务审计材料，打分入池。", "durationHint": "3-6 个月" },
-      { "title": "获州提名并递交 188", "detail": "各州实地考察或视频面试。", "durationHint": "12-24 个月" },
-      { "title": "登陆澳洲并实际经营", "detail": "按 188A 要求创办/入股企业并经营。", "durationHint": "24 个月+" },
-      { "title": "递交 888 转永居", "detail": "审计经营成果，获州背书后递交。", "durationHint": "12-18 个月" }
+      {
+        "title": "经营背景梳理与 EOI",
+        "detail": "整理企业股权、财务审计材料，打分入池。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "获州提名并递交 188",
+        "detail": "各州实地考察或视频面试。",
+        "durationHint": "12-24 个月"
+      },
+      {
+        "title": "登陆澳洲并实际经营",
+        "detail": "按 188A 要求创办/入股企业并经营。",
+        "durationHint": "24 个月+"
+      },
+      {
+        "title": "递交 888 转永居",
+        "detail": "审计经营成果，获州背书后递交。",
+        "durationHint": "12-18 个月"
+      }
     ]
   },
   "materials": [
@@ -47,23 +88,28 @@
     "无犯罪证明与体检"
   ],
   "officialSources": [
-    { "label": "内政部 - Business Innovation and Investment (188) 官方页面", "url": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/business-innovation-and-investment-188" }
+    {
+      "label": "内政部 - Business Innovation and Investment (188) 官方页面",
+      "url": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/business-innovation-and-investment-188"
+    }
   ],
-  "commonRejections": [
-    "经营记录与营业额不达标或财务材料无法佐证",
-    "资金来源解释不清（审计链条断裂）",
-    "选择州与经营计划不符"
-  ],
-  "risks": [
-    "近年商业移民配额大幅缩减、政策处于收紧周期，申请前务必确认最新开放状态",
-    "188A 要求真实赴澳经营，需投入时间精力",
-    "汇率与投资市场波动影响总成本"
-  ],
-  "eligibility": {
-    "minBudgetTier": "high",
-    "ageRange": { "min": 25, "max": 55 },
-    "needsJobOffer": false,
-    "note": "经商背景与资产规模是核心门槛；188C 无年龄限制。"
+  "infoVerifiedAt": "2026-09-22",
+  "case": {
+    "profile": "王总，45 岁，国内贸易公司股东，年营业额 2,000 万人民币，家庭净资产 1,500 万。",
+    "steps": [
+      "整理 2 个财年审计报告，EOI 打分 70 分，获新州 188A 提名。",
+      "递交 188A 签证，14 个月获批，登陆悉尼。",
+      "成立贸易公司真实经营 2 年，雇 2 名本地员工。",
+      "经营审计达标后获州背书，递交 888 永居，1 年获批。"
+    ],
+    "outcome": "从申请到永居约 5-6 年；投入为经营资金+生活成本，生意真实是全部核心。"
   },
-  "infoVerifiedAt": "2026-09-22"
+  "pros": [
+    "不看学历语言年龄，经商背景即可",
+    "全家随行"
+  ],
+  "cons": [
+    "资金与经商记录门槛高",
+    "需真实赴澳经营 2 年以上"
+  ]
 }

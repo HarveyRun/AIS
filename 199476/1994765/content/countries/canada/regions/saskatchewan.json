@@ -1,0 +1,17 @@
+{
+  "id": "saskatchewan",
+  "country": "canada",
+  "name": "萨斯喀彻温省",
+  "nameEn": "Saskatchewan",
+  "summary": "省提名 SINP：雇主 offer 受雇类为主，紧缺职业另有免 offer 通道；打分要求较低。",
+  "policyOverview": "省提名叫 SINP。受雇类要求本省雇主 offer；紧缺职业还有免 offer 通道。打分要求在各省里属于较低的一档。护士、教师、部分技工职业需要先拿省内执业认证。",
+  "officialSite": "https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/by-immigrating/saskatchewan-immigrant-nominee-program",
+  "pros": [
+    "紧缺职业有免 offer 通道",
+    "打分要求在各省中较低"
+  ],
+  "cons": [
+    "部分职业需要省内执业认证",
+    "就业市场体量有限"
+  ]
+}

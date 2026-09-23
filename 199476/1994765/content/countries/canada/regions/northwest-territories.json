@@ -1,0 +1,16 @@
+{
+  "id": "northwest-territories",
+  "country": "canada",
+  "name": "西北地区",
+  "nameEn": "Northwest Territories",
+  "summary": "提名计划 NTNP 由雇主驱动、名额极少；先拿到本地雇主 offer 才有通道。",
+  "policyOverview": "提名计划 NTNP 同样由雇主驱动，名额极少。岗位集中在公共服务、矿业、旅游。",
+  "officialSite": "https://www.ece.gov.nt.ca/en/services/northwest-territories-nominee-program-ntnp",
+  "pros": [
+    "有 NTNP 雇主驱动通道"
+  ],
+  "cons": [
+    "名额极少",
+    "生活成本高、多数社区不通公路"
+  ]
+}

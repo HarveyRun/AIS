@@ -4,23 +4,24 @@ import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CountryFlag } from "@/components/country-flag";
 import { Badge } from "@/components/program-card";
-import { NoticeBox, SectionHeading } from "@/components/notice";
+import { SectionHeading } from "@/components/notice";
 import { Timeline } from "@/components/timeline";
+import { TermsText } from "@/components/terms-text";
 import { ProgramCard } from "@/components/program-card";
 import {
   getCountry,
+  getGlossary,
   getProgram,
   getRegion,
   listPrograms,
-  relatedPrograms,
 } from "@/lib/content";
+import { buildTermIndex } from "@/lib/term-link";
 import {
-  difficultyLabels,
   immigrationTypeLabels,
   statusLabels,
 } from "@/lib/schema";
-import { moneyText, monthsText, toCardData } from "@/lib/display";
-import { difficultyStyles, statusStyles, typeStyles } from "@/lib/ui";
+import { toCardData } from "@/lib/display";
+import { statusStyles, typeStyles } from "@/lib/ui";
 
 export function generateStaticParams() {
   return listPrograms().map((p) => ({ slug: p.slug }));
@@ -35,6 +36,16 @@ export async function generateMetadata({
   const p = getProgram(slug);
   if (!p) return { title: "未找到项目" };
   return { title: `${p.name}：条件、费用、流程全解`, description: p.summary };
+}
+
+/** 区块标题：teal 竖条 + 加粗标题，视觉上把每个大区分开 */
+function BlockHeading({ title }: { title: string }) {
+  return (
+    <h2 className="flex items-center gap-3 text-xl font-bold text-slate-900 md:text-2xl">
+      <span aria-hidden className="h-7 w-1.5 rounded bg-teal-600" />
+      {title}
+    </h2>
+  );
 }
 
 export default async function ProgramPage({
@@ -52,7 +63,7 @@ export default async function ProgramPage({
     : undefined;
   if (!country) notFound();
 
-  const related = relatedPrograms(program, 3);
+  const termIndex = buildTermIndex(getGlossary());
   const cost = program.cost;
 
   return (
@@ -82,11 +93,18 @@ export default async function ProgramPage({
             {country.name}
             {region ? ` · ${region.name}` : ""}
           </Link>
+          {/* 标签顺序：项目类型（联邦/本省）→ 移民方式 */}
+          <Badge
+            className={
+              region
+                ? "bg-orange-50 text-orange-700 ring-orange-600/20"
+                : "bg-blue-50 text-blue-700 ring-blue-600/20"
+            }
+          >
+            {region ? region.name + "项目" : "联邦项目"}
+          </Badge>
           <Badge className={typeStyles[program.type]}>
             {immigrationTypeLabels[program.type]}
-          </Badge>
-          <Badge className={difficultyStyles[program.difficulty]}>
-            {difficultyLabels[program.difficulty]}
           </Badge>
           {program.status !== "active" && (
             <Badge className={statusStyles[program.status]}>
@@ -99,27 +117,41 @@ export default async function ProgramPage({
         </h1>
         <p className="mt-1 text-sm text-slate-400">{program.nameEn}</p>
         <p className="mt-3 max-w-3xl leading-relaxed text-slate-600">
-          {program.summary}
+          <TermsText text={program.summary} index={termIndex} />
         </p>
-        <p className="mt-3 max-w-3xl rounded-xl bg-teal-50 p-3 text-sm leading-relaxed text-teal-900">
+
+        {/* 优缺点：放在「适合谁」上面 */}
+        <div className="mt-4 grid max-w-3xl gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+            <p className="text-sm font-bold text-emerald-900">优点</p>
+            <ul className="mt-1.5 space-y-1 text-sm leading-relaxed text-emerald-800">
+              {program.pros.map((pro) => (
+                <li key={pro}>· <TermsText text={pro} index={termIndex} /></li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-4">
+            <p className="text-sm font-bold text-amber-900">缺点 / 注意点</p>
+            <ul className="mt-1.5 space-y-1 text-sm leading-relaxed text-amber-800">
+              {program.cons.map((con) => (
+                <li key={con}>· <TermsText text={con} index={termIndex} /></li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <p className="mt-4 max-w-3xl rounded-xl bg-teal-50 p-3 text-sm leading-relaxed text-teal-900">
           <strong>适合谁：</strong>
-          {program.suitableFor}
+          <TermsText text={program.suitableFor} index={termIndex} />
         </p>
       </header>
 
-      {/* 关键数字 */}
-      <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+      {/* 项目属性 */}
+      <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
         {[
-          {
-            label: "总费用估算",
-            value: moneyText(cost.totalEstimate),
-          },
-          {
-            label: "整体周期",
-            value: monthsText(program.duration.totalMonths),
-          },
-          { label: "申请难度", value: difficultyLabels[program.difficulty] },
-          { label: "信息核实日期", value: program.infoVerifiedAt },
+          { label: "所属层级", value: region ? `${country.name} · ${region.name}` : `${country.name} 联邦级` },
+          { label: "移民方式", value: immigrationTypeLabels[program.type] },
+          { label: "更新时间", value: program.infoVerifiedAt },
         ].map((item) => (
           <div
             key={item.label}
@@ -134,37 +166,32 @@ export default async function ProgramPage({
       <div className="mt-12 grid gap-12 lg:grid-cols-[1fr_320px]">
         {/* 左主栏 */}
         <div className="min-w-0">
-          {/* 流程时间线 */}
-          <section>
-            <SectionHeading
-              title="分步流程"
-              description={
-                program.duration.note
-                  ? undefined
-                  : "各阶段时长为典型估算，以官方与个案为准。"
-              }
-            />
+          {/* 分步流程 */}
+          <section className="border-t border-slate-200 pt-10">
+            <BlockHeading title="分步流程" />
             {program.duration.note && (
-              <p className="mb-4 text-sm text-slate-500">
-                {program.duration.note}
+              <p className="mb-4 mt-3 text-sm text-slate-500">
+                <TermsText text={program.duration.note} index={termIndex} />
               </p>
             )}
-            <Timeline steps={program.duration.steps} />
+            <Timeline steps={program.duration.steps} termIndex={termIndex} />
           </section>
 
           {/* 申请条件 */}
-          <section className="mt-12">
-            <SectionHeading title="申请条件" />
-            <ul className="space-y-3">
+          <section className="mt-12 border-t border-slate-200 pt-10">
+            <BlockHeading title="申请条件" />
+            <ul className="mt-4 space-y-3">
               {program.requirements.map((req) => (
                 <li
                   key={req.title}
                   className="rounded-xl border border-slate-200 bg-white p-4"
                 >
-                  <p className="font-semibold text-slate-900">✓ {req.title}</p>
+                  <p className="font-semibold text-slate-900">
+                    ✓ <TermsText text={req.title} index={termIndex} />
+                  </p>
                   {req.detail && (
                     <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                      {req.detail}
+                      <TermsText text={req.detail} index={termIndex} />
                     </p>
                   )}
                 </li>
@@ -173,12 +200,12 @@ export default async function ProgramPage({
           </section>
 
           {/* 费用明细 */}
-          <section className="mt-12">
-            <SectionHeading
-              title="费用明细"
-              description={cost.note}
-            />
-            <div className="overflow-hidden rounded-2xl border border-slate-200">
+          <section className="mt-12 border-t border-slate-200 pt-10">
+            <BlockHeading title="费用明细" />
+            <p className="mt-3 text-sm text-slate-500">
+              {cost.note ?? "以下为官方规费与真实生活开销，以官方最新金额为准。"}
+            </p>
+            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
               <table className="w-full text-sm">
                 <tbody>
                   {cost.breakdown.map((row, i) => (
@@ -201,12 +228,9 @@ export default async function ProgramPage({
           </section>
 
           {/* 材料清单 */}
-          <section className="mt-12">
-            <SectionHeading
-              title="材料清单"
-              description="按此逐项准备；带 * 项通常有有效期要求，临近递交再办理。"
-            />
-            <ul className="grid gap-2 md:grid-cols-2">
+          <section className="mt-12 border-t border-slate-200 pt-10">
+            <BlockHeading title="材料清单" />
+            <ul className="mt-4 grid gap-2 md:grid-cols-2">
               {program.materials.map((m) => (
                 <li
                   key={m}
@@ -215,34 +239,38 @@ export default async function ProgramPage({
                   <span aria-hidden className="mt-0.5 text-teal-600">
                     ☐
                   </span>
-                  {m}
+                  <TermsText text={m} index={termIndex} />
                 </li>
               ))}
             </ul>
           </section>
 
-          {/* 风险与拒签 */}
-          <section className="mt-12 grid gap-4 md:grid-cols-2">
-            {program.commonRejections && (
-              <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-5">
-                <h3 className="font-bold text-rose-900">常见拒签原因</h3>
-                <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-rose-800">
-                  {program.commonRejections.map((r) => (
-                    <li key={r}>· {r}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {program.risks && (
-              <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-5">
-                <h3 className="font-bold text-amber-900">风险提示</h3>
-                <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-amber-800">
-                  {program.risks.map((r) => (
-                    <li key={r}>· {r}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          {/* 虚构示例案例：放在材料清单下面 */}
+          <section className="mt-12 border-t border-slate-200 pt-10">
+            <BlockHeading title="走一遍：虚构案例" />
+            <p className="mt-3 text-sm text-slate-500">
+              按当前政策虚构的示例人物，用来说明流程长什么样，不是真实个案。
+            </p>
+            <div className="mt-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+              <p className="text-sm font-semibold text-slate-900">申请人条件</p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                <TermsText text={program.case.profile} index={termIndex} />
+              </p>
+            </div>
+            <ol className="mt-4 space-y-2">
+              {program.case.steps.map((step, i) => (
+                <li key={step} className="flex gap-3 text-sm leading-relaxed text-slate-600">
+                  <span aria-hidden className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-teal-600 text-[11px] font-bold text-white">
+                    {i + 1}
+                  </span>
+                  <TermsText text={step} index={termIndex} />
+                </li>
+              ))}
+            </ol>
+            <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm font-medium text-emerald-900">
+              <strong>结果：</strong>
+              <TermsText text={program.case.outcome} index={termIndex} />
+            </p>
           </section>
         </div>
 
@@ -256,7 +284,7 @@ export default async function ProgramPage({
                   <span aria-hidden className="mt-0.5 text-teal-600">
                     ✦
                   </span>
-                  {h}
+                  <TermsText text={h} index={termIndex} />
                 </li>
               ))}
             </ul>
@@ -283,24 +311,15 @@ export default async function ProgramPage({
             </ul>
           </div>
 
-          <NoticeBox tone="warn">
-            本文最后人工核实于 <strong>{program.infoVerifiedAt}</strong>
-            。移民政策变动频繁，递交申请前请务必核对官方最新要求。
-          </NoticeBox>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h3 className="font-bold text-slate-900">更新时间</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              本页更新于 <strong>{program.infoVerifiedAt}</strong>
+              。移民政策变动频繁，递交申请前请务必核对官方最新要求。
+            </p>
+          </div>
         </aside>
       </div>
-
-      {/* 相关项目 */}
-      {related.length > 0 && (
-        <section className="mt-16 pb-16">
-          <SectionHeading title="相关项目" />
-          <div className="grid gap-4 md:grid-cols-3">
-            {related.map((p) => (
-              <ProgramCard key={p.slug} data={toCardData(p)} />
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

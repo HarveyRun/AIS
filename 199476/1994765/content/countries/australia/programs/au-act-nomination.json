@@ -1,0 +1,103 @@
+{
+  "slug": "au-act-nomination",
+  "name": "首都领地 190/491 提名（Canberra Matrix）",
+  "nameEn": "ACT Nomination via Canberra Matrix",
+  "country": "australia",
+  "region": "australian-capital-territory",
+  "type": "skilled",
+  "status": "active",
+  "summary": "堪培拉用自己的 Matrix 打分排队：住得越久、工作越稳定、开小店都加分，分够了定期邀请。适合打持久战的人。",
+  "suitableFor": "愿意在堪培拉长期居住工作的申请人；小企业主有明确加分路径。",
+  "highlights": [
+    "规则透明的打分邀请制",
+    "小生意经营有明确加分",
+    "公务员体系就业稳定"
+  ],
+  "requirements": [
+    {
+      "title": "Canberra Matrix 登记",
+      "detail": "居住时长、本地雇佣/自雇、英语、学历等按表打分，定期择优邀请。"
+    },
+    {
+      "title": "本地居住与雇佣（核心）",
+      "detail": "190 主申通常需在 ACT 居住并全职工作一定时长；491 门槛相对低。"
+    },
+    {
+      "title": "职业评估 + EOI 打分",
+      "detail": "联邦底线要求；职业需在 ACT 当年开放列表。"
+    }
+  ],
+  "cost": {
+    "note": "Matrix 登记与提名阶段需缴纳 ACT 费用。",
+    "breakdown": [
+      {
+        "item": "签证申请费",
+        "amount": "约 4,765 澳元/主申"
+      },
+      {
+        "item": "ACT 服务费（Matrix/提名）",
+        "amount": "数百澳元分阶段"
+      },
+      {
+        "item": "职业评估 + 语言考试",
+        "amount": "约 8,000-20,000 元人民币"
+      },
+      {
+        "item": "体检、无犯罪、公证翻译",
+        "amount": "约 5,000-10,000 元人民币"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 1.2-1.8 万澳元"
+      }
+    ]
+  },
+  "duration": {
+    "note": "Matrix 按轮次邀请，等待时长与分数强相关。",
+    "steps": [
+      {
+        "title": "建立 ACT 居住/就业",
+        "durationHint": "12 个月以上常见"
+      },
+      {
+        "title": "登记 Matrix 等待邀请",
+        "durationHint": "视分数轮次"
+      },
+      {
+        "title": "获邀递交提名与联邦签证",
+        "durationHint": "6-12 个月"
+      }
+    ]
+  },
+  "materials": [
+    "ACT 居住证明与雇佣/经营证明",
+    "Matrix 打分佐证材料",
+    "职业评估与 EOI",
+    "无犯罪证明与体检"
+  ],
+  "officialSources": [
+    {
+      "label": "ACT Government Migration 官方页面",
+      "url": "https://www.act.gov.au/migration"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "小蒋，30 岁，IT 支持工程师，在堪培拉全职工作 2 年，租房居住。",
+    "steps": [
+      "递交 Canberra Matrix：本地居住、全职就业、稳定纳税累计计分。",
+      "3 轮后分数排到邀请线内，获 190 提名邀请。",
+      "递交州提名材料，6 周获批。",
+      "递交 190 签证，10 个月后拿永居。"
+    ],
+    "outcome": "在堪培拉稳住 2 年工作和居住，换来永居；不适合想速成的人。"
+  },
+  "pros": [
+    "Matrix 规则透明，居住工作经营都计分",
+    "公共部门岗位稳定"
+  ],
+  "cons": [
+    "名额少，邀请线波动",
+    "通常需 2 年以上本地积累"
+  ]
+}
