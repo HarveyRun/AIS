@@ -116,12 +116,26 @@ export default async function ProgramPage({
           {program.name}
         </h1>
         <p className="mt-1 text-sm text-slate-400">{program.nameEn}</p>
-        <p className="mt-3 max-w-3xl leading-relaxed text-slate-600">
-          <TermsText text={program.summary} index={termIndex} />
-        </p>
+
+        {/* 项目属性 */}
+        <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
+          {[
+            { label: "所属层级", value: region ? `${country.name} · ${region.name}` : `${country.name} 联邦级` },
+            { label: "移民方式", value: immigrationTypeLabels[program.type] },
+            { label: "更新时间", value: program.infoVerifiedAt },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-2xl border border-slate-200 bg-white p-4"
+            >
+              <p className="text-xs text-slate-400">{item.label}</p>
+              <p className="mt-1 font-bold text-slate-900">{item.value}</p>
+            </div>
+          ))}
+        </section>
 
         {/* 优缺点：放在「适合谁」上面 */}
-        <div className="mt-4 grid max-w-3xl gap-3 md:grid-cols-2">
+        <div className="mt-10 grid max-w-3xl gap-3 md:grid-cols-2">
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
             <p className="text-sm font-bold text-emerald-900">优点</p>
             <ul className="mt-1.5 space-y-1 text-sm leading-relaxed text-emerald-800">
@@ -139,29 +153,9 @@ export default async function ProgramPage({
             </ul>
           </div>
         </div>
-
-        <p className="mt-4 max-w-3xl rounded-xl bg-teal-50 p-3 text-sm leading-relaxed text-teal-900">
-          <strong>适合谁：</strong>
-          <TermsText text={program.suitableFor} index={termIndex} />
-        </p>
       </header>
 
-      {/* 项目属性 */}
-      <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
-        {[
-          { label: "所属层级", value: region ? `${country.name} · ${region.name}` : `${country.name} 联邦级` },
-          { label: "移民方式", value: immigrationTypeLabels[program.type] },
-          { label: "更新时间", value: program.infoVerifiedAt },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className="rounded-2xl border border-slate-200 bg-white p-4"
-          >
-            <p className="text-xs text-slate-400">{item.label}</p>
-            <p className="mt-1 font-bold text-slate-900">{item.value}</p>
-          </div>
-        ))}
-      </section>
+    
 
       <div className="mt-12 grid gap-12 lg:grid-cols-[1fr_320px]">
         {/* 左主栏 */}
@@ -249,7 +243,7 @@ export default async function ProgramPage({
           <section className="mt-12 border-t border-slate-200 pt-10">
             <BlockHeading title="走一遍：虚构案例" />
             <p className="mt-3 text-sm text-slate-500">
-              按当前政策虚构的示例人物，用来说明流程长什么样，不是真实个案。
+              示例说明，非真实案件
             </p>
             <div className="mt-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
               <p className="text-sm font-semibold text-slate-900">申请人条件</p>
