@@ -253,7 +253,7 @@ class _ExperienceCertificationPageState
           children: [
             Expanded(
               child: Text(
-                '参考指数评分',
+                '内容综合分评分',
                 style: Theme.of(
                   dialogContext,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),

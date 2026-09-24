@@ -203,20 +203,20 @@ class _IntroductionPanel extends StatelessWidget {
               const Flexible(
                 child: SingleChildScrollView(child: _IntroductionContent()),
               ),
-              const SizedBox(height: 14),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
-                child: seconds > 0
-                    ? Text(
-                        '$seconds 秒后可关闭',
-                        key: ValueKey(seconds),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      )
-                    : const SizedBox(height: 17),
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 18),
+              if (seconds > 0) ...[
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  child: Text(
+                    '$seconds 秒后可关闭',
+                    key: ValueKey(seconds),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -257,9 +257,6 @@ class _IntroductionContent extends StatelessWidget {
           TextSpan(text: '让这些能力、经验或经历', style: strong),
           const TextSpan(text: '，在他人迷茫无助、身边又无人可问时，'),
           TextSpan(text: '能帮上一把', style: strong),
-          const TextSpan(
-            text: '。\n\n当然，如果您有更合适的人、更好的办法，或者能够自己解决，我们真心建议您选择更适合自己的方式。',
-          ),
         ],
       ),
     );

@@ -166,13 +166,6 @@ class _ExperienceTipSheetState extends ConsumerState<_ExperienceTipSheet> {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            '打赏收入按${feePercent.toStringAsFixed(feePercent % 1 == 0 ? 0 : 2)}%劳动报酬服务费率结算，扣费后的金额计入对方可提现收入。',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
           const SizedBox(height: 18),
           Wrap(
             spacing: 10,

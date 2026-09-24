@@ -834,7 +834,7 @@ class _ReferenceIndexIndicator extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                '参考指数说明',
+                '内容综合分说明',
                 style: Theme.of(
                   dialogContext,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -854,7 +854,7 @@ class _ReferenceIndexIndicator extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '参考指数系平台在审核经历时，基于多维度综合评估计算得出。\n\n'
+                '内容综合分由平台在审核经历时，基于多维度综合评估计算得出。\n\n'
                 '分值越高，表示这段经历当前可参考的信息越充分。',
                 style: TextStyle(height: 1.65),
               ),
@@ -886,7 +886,7 @@ class _ReferenceIndexIndicator extends StatelessWidget {
     final theme = Theme.of(context);
     final normalized = value?.clamp(0, 100);
     return Semantics(
-      label: normalized == null ? '暂未评分' : '参考指数 $normalized',
+      label: normalized == null ? '暂未评分' : '内容综合分 $normalized',
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -901,7 +901,7 @@ class _ReferenceIndexIndicator extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '参考指数',
+                    '内容综合分',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       height: 1,

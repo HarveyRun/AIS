@@ -62,8 +62,8 @@ class _ExperienceFilterOverlayState extends State<_ExperienceFilterOverlay> {
 
   static const _sorts = <(String, String?, String?)>[
     ('默认排序', null, null),
-    ('参考指数高到低', 'REFERENCE_INDEX', 'DESC'),
-    ('参考指数低到高', 'REFERENCE_INDEX', 'ASC'),
+    ('内容综合分高到低', 'REFERENCE_INDEX', 'DESC'),
+    ('内容综合分低到高', 'REFERENCE_INDEX', 'ASC'),
     ('点赞高到低', 'LIKE_COUNT', 'DESC'),
     ('点赞低到高', 'LIKE_COUNT', 'ASC'),
   ];

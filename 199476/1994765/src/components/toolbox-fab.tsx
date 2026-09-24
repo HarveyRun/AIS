@@ -4,10 +4,17 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ScoreCalculatorModal } from "./score-calculators";
 
-type Modal = "none" | "consultant" | "calculator" | "app";
+type Modal = "none" | "consultant" | "calculator" | "app" | "mother";
 
 /* 光忆 App 下载链接（配置后自动显示下载按钮） */
 const GUANGYI_URL = "";
+
+/* 母站地址（各类辅助工具网站的集合入口） */
+const MOTHER_URL = "https://a.inlightus.com";
+
+const isMobileDevice = () =>
+  /Android|iPhone|iPad|iPod|Mobile|HarmonyOS/i.test(navigator.userAgent) ||
+  (window.matchMedia("(max-width: 768px)").matches && "ontouchstart" in window);
 
 function Icon({ name, className = "h-5 w-5" }: { name: string; className?: string }) {
   const paths: Record<string, React.ReactNode> = {
@@ -44,6 +51,7 @@ const menuItems = [
   { key: "consultant", icon: "🛡️", title: "持牌顾问名录", desc: "各国官方持牌查询入口", modal: "consultant" as Modal },
   { key: "calculator", icon: "🧮", title: "打分计算器", desc: "加 / 澳 / 新 / 德 简化估算", modal: "calculator" as Modal },
   { key: "app", icon: "📖", title: "真实案例库", desc: "光忆 App · 移民经历", modal: "app" as Modal },
+  { key: "mother", icon: "🌐", title: "回母站", desc: "Inlightus 旗下工具导航", modal: "mother" as Modal },
 ];
 
 /* ---------- 持牌顾问名录 + 移民官方网站 弹窗 ---------- */
@@ -229,6 +237,50 @@ function AppModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+/* ---------- 母站（手机端）弹窗 ---------- */
+function MotherModal({ onClose }: { onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const copyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(MOTHER_URL);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = MOTHER_URL;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    setCopied(true);
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="no-scrollbar max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 text-center shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-teal-700 text-3xl">
+          🌐
+        </div>
+        <h2 className="mt-4 text-xl font-bold text-slate-900">回母站</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          母站汇集了各类辅助信息网站
+        </p>
+        <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3">
+          <p className="text-xs text-slate-400">在浏览器打开</p>
+          <p className="mt-1 select-all break-all font-mono text-sm text-slate-800">{MOTHER_URL}</p>
+        </div>
+        <button
+          onClick={copyUrl}
+          className="mt-4 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-teal-700"
+        >
+          {copied ? "已复制 ✓ 去浏览器粘贴打开" : "复制网址"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- 悬浮工具箱 ---------- */
 export function ToolboxFab() {
   const [open, setOpen] = useState(false);
@@ -272,8 +324,14 @@ export function ToolboxFab() {
                 <button
                   key={item.key}
                   onClick={() => {
-                    setModal(item.modal ?? "none");
                     setOpen(false);
+                    if (item.key === "mother") {
+                      // PC：新开页签直达母站；手机：弹窗复制网址
+                      if (isMobileDevice()) setModal("mother");
+                      else window.open(MOTHER_URL, "_blank", "noopener");
+                      return;
+                    }
+                    setModal(item.modal ?? "none");
                   }}
                   className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-50"
                 >
@@ -304,6 +362,7 @@ export function ToolboxFab() {
       {modal === "consultant" && <ConsultantModal onClose={() => setModal("none")} />}
       {modal === "calculator" && <ScoreCalculatorModal onClose={() => setModal("none")} />}
       {modal === "app" && <AppModal onClose={() => setModal("none")} />}
+      {modal === "mother" && <MotherModal onClose={() => setModal("none")} />}
     </>
   );
 }

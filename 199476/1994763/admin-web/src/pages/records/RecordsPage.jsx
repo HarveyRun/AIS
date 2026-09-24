@@ -886,7 +886,7 @@ function ReviewScoreEditor({ values, onChange }) {
     <section className="review-score-editor">
       <div className="review-score-heading">
         <div>
-          <strong>经历参考评分</strong>
+          <strong>内容综合分</strong>
           <p>五项分别按 0—10 分评价，公开指数按五项简单平均计算。</p>
         </div>
         <b>{referenceIndex == null ? '待完成' : `${referenceIndex}/100`}</b>
@@ -968,8 +968,8 @@ function ReviewScoreSummary({ record }) {
     <section className="review-score-summary">
       <div className="review-score-heading">
         <div>
-          <strong>经历参考评分</strong>
-          <p>公开页面仅展示综合参考指数，不展示各维度明细。</p>
+          <strong>内容综合分</strong>
+          <p>公开页面仅展示内容综合分，不展示各维度明细。</p>
         </div>
         <b>{record.referenceIndex}/100</b>
       </div>
