@@ -1,0 +1,15 @@
+{
+  "id": "canarias",
+  "country": "spain",
+  "name": "加那利群岛",
+  "nameEn": "Canary Islands",
+  "summary": "大加那利、特内里费：全年 22 度的数字游民新宠，旅游与税收优惠区。",
+  "policyOverview": "移民法规全国统一（群岛另有税收优惠区政策）。",
+  "pros": [
+    "全年温和气候",
+    "数字游民社区快速成长"
+  ],
+  "cons": [
+    "远离本土，交通成本高"
+  ]
+}

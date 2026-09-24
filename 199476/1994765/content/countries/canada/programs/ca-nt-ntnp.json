@@ -1,0 +1,112 @@
+{
+  "slug": "ca-nt-ntnp",
+  "name": "雇主担保移民",
+  "nameEn": "NTNP Employer-Driven Stream",
+  "country": "canada",
+  "region": "northwest-territories",
+  "type": "employer",
+  "status": "active",
+  "summary": "西北地区提名计划（NTNP）由雇主驱动、名额极少：拿到耶洛奈夫等本地雇主的全职 offer 是唯一起点；另有面向长期在岗者的社区推荐通道。",
+  "suitableFor": "有西北地区雇主 offer（公共服务、矿业、旅游）的申请人；已持工签在本地工作较长时间者可走社区推荐。",
+  "highlights": [
+    "无打分竞争，达标即走",
+    "矿业岗位薪资高于南方同职级",
+    "长期在岗者另有社区推荐通道"
+  ],
+  "requirements": [
+    {
+      "title": "NT 雇主的全职长期 offer",
+      "detail": "雇主须先通过 NTNP 资质审核；职业为 TEER 0-3 为主，部分紧缺半技术岗位放宽。"
+    },
+    {
+      "title": "相关工作经验",
+      "detail": "通常要求与岗位相关的经验；已持工签在 NT 工作者优先。"
+    },
+    {
+      "title": "语言达标",
+      "detail": "通常 CLB 4 起；岗位不同要求不同。"
+    },
+    {
+      "title": "定居资金与意愿",
+      "detail": "北方物价与房租高，资金证明需留足余量。"
+    }
+  ],
+  "cost": {
+    "note": "NTNP 收取少量提名申请费；西北地区生活成本高，尤其是偏远社区。",
+    "breakdown": [
+      {
+        "item": "省提名申请费",
+        "amount": "数百加元"
+      },
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "语言考试",
+        "amount": "约 2,000-3,000 元人民币"
+      },
+      {
+        "item": "学历认证、体检、无犯罪、公证",
+        "amount": "约 5,000-10,000 元人民币"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 1.5-2 万加元（3 个月安家，物价偏高）"
+      }
+    ]
+  },
+  "duration": {
+    "note": "节奏由找雇主与雇主资质审核决定；社区推荐通道需先在本地积累工作居住时间。",
+    "steps": [
+      {
+        "title": "对接 NT 雇主",
+        "detail": "耶洛奈夫的公共服务与矿业公司是主要雇主来源。",
+        "durationHint": "3-12 个月"
+      },
+      {
+        "title": "递交省提名申请",
+        "detail": "雇主资质与申请人材料一并审核。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "联邦 PR 阶段",
+        "detail": "普通通道为主，约 12 个月。",
+        "durationHint": "约 12 个月"
+      }
+    ]
+  },
+  "materials": [
+    "NT 雇主 offer",
+    "雇主 NTNP 资质证明",
+    "语言成绩单",
+    "工作经验证明",
+    "无犯罪证明与体检",
+    "安家资金证明"
+  ],
+  "officialSources": [
+    {
+      "label": "西北地区政府 - NTNP 官方页面",
+      "url": "https://www.ece.gov.nt.ca/en/services/northwest-territories-nominee-program-ntnp"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "小韩，33 岁，地质勘探技术员 6 年经验，拿到耶洛奈夫矿业公司 offer。",
+    "steps": [
+      "雇主已有 NTNP 资质，直接递交提名。",
+      "5 个月获批提名，同步申请雇主工签。",
+      "联邦普通通道约 12 个月。",
+      "定居耶洛奈夫，全家枫叶卡。"
+    ],
+    "outcome": "全程约 2 年；矿业相关职业在北方长期紧缺。"
+  },
+  "pros": [
+    "申请人极少，竞争压力小",
+    "矿业与公共服务岗位稳定"
+  ],
+  "cons": [
+    "名额极少、岗位总量小",
+    "生活成本高，多数社区不通公路"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "extremadura",
+  "country": "spain",
+  "name": "埃斯特雷马杜拉自治区",
+  "nameEn": "Extremadura",
+  "summary": "西葡边境农业区：全国经济最弱，生活成本也最低。",
+  "policyOverview": "移民法规全国统一；本区以农业食品岗位为主。",
+  "pros": [
+    "生活成本全国最低"
+  ],
+  "cons": [
+    "就业机会最少"
+  ]
+}

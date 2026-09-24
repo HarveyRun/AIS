@@ -6,34 +6,58 @@ import {
   type ProgramCardData,
 } from "@/lib/ui";
 
-export function ProgramCard({ data }: { data: ProgramCardData }) {
+export function ProgramCard({
+  data,
+  showLocation = true,
+  showScope = "all",
+  showType = true,
+  scopeText,
+}: {
+  data: ProgramCardData;
+  /** “国家 · 省/州/区”位置标签；在省/州/区详情页内冗余，可关 */
+  showLocation?: boolean;
+  /** 范围标签：all 全部显示 / federalOnly 仅联邦卡片显示 / none 不显示 */
+  showScope?: "all" | "federalOnly" | "none";
+  /** 移民方式标签；已按方式分组的列表中冗余，可关 */
+  showType?: boolean;
+  /** 范围标签文案覆盖，如省页内把“安大略省项目”显示为“本省项目” */
+  scopeText?: string;
+}) {
+  const showScopeBadge =
+    showScope === "all" ||
+    (showScope === "federalOnly" && data.scope === "federal");
   return (
     <Link
       href={`/programs/${data.slug}/`}
       className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-lg hover:shadow-teal-600/5"
     >
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-          <CountryFlag
-            countryId={data.countryId}
-            flag={data.countryFlag}
-            className="h-2.5 w-3.5"
-          />
-          {data.countryName}
-          {data.regionName ? ` · ${data.regionName}` : ""}
-        </span>
-        {/* 标签顺序：项目类型（联邦/本省）→ 移民方式 */}
-        <Badge
-          className={
-            data.scope === "federal"
-              ? "bg-blue-50 text-blue-700 ring-blue-600/20"
-              : "bg-orange-50 text-orange-700 ring-orange-600/20"
-          }
-        >
-          {data.scopeLabel}
-        </Badge>
-        <Badge className={typeStyles[data.type]}>{data.typeLabel}</Badge>
-      </div>
+      {(showLocation || showScopeBadge || showType) && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {showLocation && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+              <CountryFlag
+                countryId={data.countryId}
+                flag={data.countryFlag}
+                className="h-2.5 w-3.5"
+              />
+              {data.countryName}
+              {data.regionName ? ` · ${data.regionName}` : ""}
+            </span>
+          )}
+          {showScopeBadge && (
+            <Badge
+              className={
+                data.scope === "federal"
+                  ? "bg-blue-50 text-blue-700 ring-blue-600/20"
+                  : "bg-orange-50 text-orange-700 ring-orange-600/20"
+              }
+            >
+              {scopeText ?? data.scopeLabel}
+            </Badge>
+          )}
+          {showType && <Badge className={typeStyles[data.type]}>{data.typeLabel}</Badge>}
+        </div>
+      )}
 
       <h3 className="mt-3 font-bold text-slate-900 group-hover:text-teal-700">
         {data.name}

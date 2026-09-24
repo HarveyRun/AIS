@@ -1,0 +1,113 @@
+{
+  "slug": "ca-on-oinp-intl-student",
+  "name": "普通留学生移民",
+  "nameEn": "OINP Employer Job Offer: International Student Stream",
+  "country": "canada",
+  "region": "ontario",
+  "type": "study",
+  "status": "active",
+  "summary": "在加拿大（最好在安省）读完大专/本科/研究生文凭，拿到安省雇主的合格全职 offer，走 OINP 国际留学生类拿提名——这是本科和大专毕业生在安省移民的主通道。",
+  "suitableFor": "在安省college/大学毕业、拿到本地雇主 offer 的留学生；本科和大专毕业生没有免 offer 通道，走的就是这一条。",
+  "highlights": [
+    "大专、本科毕业生都适用",
+    "college 学制短，总投入低",
+    "提名阶段不设硬性语言分数线"
+  ],
+  "requirements": [
+    {
+      "title": "加拿大合格院校毕业",
+      "detail": "全职完成至少 2 学年的文凭/学位且一半以上学业在安省完成；或 1 学年制研究生文凭（需前置学位）。毕业后 2 年内申请。"
+    },
+    {
+      "title": "安省雇主的全职长期 offer",
+      "detail": "雇主经营 3 年以上；职位 TEER 0-3、全职长期，薪资不低于省内工资中位数。"
+    },
+    {
+      "title": "合法身份",
+      "detail": "递交时持有合法身份（通常为毕业工签 PGWP）。"
+    },
+    {
+      "title": "EOI 打分入池",
+      "detail": "按职位、薪资、工作地点、与安省的联系等打分，择优发邀请。"
+    }
+  ],
+  "cost": {
+    "note": "以 2 年 college 学费 + 生活费估算；安省国际生学费高于曼省/阿省。",
+    "breakdown": [
+      {
+        "item": "college 学费（2 年）",
+        "amount": "约 1.6-2.2 万加元/年"
+      },
+      {
+        "item": "生活费（2 年）",
+        "amount": "约 1.8-2.5 万加元/年",
+        "note": "多伦多偏高"
+      },
+      {
+        "item": "安省提名费",
+        "amount": "约 1,500-3,500 加元（按雇主所在地区）"
+      },
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      }
+    ]
+  },
+  "duration": {
+    "note": "含读书时间；主要变量是毕业后的找雇主速度与 EOI 获邀轮次。",
+    "steps": [
+      {
+        "title": "就读安省院校",
+        "detail": "选就业导向专业（幼教、护理、计算机、会计、供应链等），带实习的项目优先。",
+        "durationHint": "12-24 个月"
+      },
+      {
+        "title": "毕业拿 PGWP 并找到合格 offer",
+        "detail": "核对雇主资质与薪资中位数要求。",
+        "durationHint": "1-6 个月"
+      },
+      {
+        "title": "EOI 注册与获邀 → 递交提名",
+        "detail": "获邀后提交完整材料，审核数月。",
+        "durationHint": "3-9 个月"
+      },
+      {
+        "title": "联邦 PR 阶段",
+        "detail": "获提名后递交联邦申请。",
+        "durationHint": "12-18 个月"
+      }
+    ]
+  },
+  "materials": [
+    "加拿大院校毕业证与成绩单",
+    "安省雇主 offer 与雇佣证明",
+    "毕业工签（PGWP）",
+    "安省居住证明",
+    "资金证明"
+  ],
+  "officialSources": [
+    {
+      "label": "安省政府 - OINP 雇主担保：国际留学生类",
+      "url": "https://www.ontario.ca/page/oinp-employer-job-offer-stream"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-24",
+  "case": {
+    "profile": "小林，23 岁，Seneca 学院 2 年制会计大专，多伦多中小企业 bookkeeper offer。",
+    "steps": [
+      "2 年大专期间完成 co-op 实习，毕业前拿到长期全职 offer。",
+      "申 PGWP 后注册 EOI，凭借安省学历 + 合格 offer 入池。",
+      "6 个月后获邀，3 个月拿到提名。",
+      "联邦阶段约 1 年，拿到枫叶卡。"
+    ],
+    "outcome": "从入学到 PR 约 4 年；总投入约 35-45 万人民币，是本科/大专留学生在安省的标配路径。"
+  },
+  "pros": [
+    "大专与本科毕业都走这条，覆盖面广",
+    "学院项目学费低于大学，性价比高"
+  ],
+  "cons": [
+    "必须有合格雇主 offer 才能走",
+    "EOI 获邀时间与轮次不可控"
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "slug": "ca-ab-aaip-intl-grad",
+  "name": "留学生移民",
+  "nameEn": "AAIP International Graduate Stream",
+  "country": "canada",
+  "region": "alberta",
+  "type": "study",
+  "status": "active",
+  "summary": "在阿省认可院校毕业 + 本省雇主的全职 offer，即可走 AAIP 国际毕业生类拿提名；大专学历也能走，是留学转移民里学历门槛较低的通道。",
+  "suitableFor": "在阿省（卡尔加里、埃德蒙顿等）留学并打算留下的毕业生；能找到本省全职工作、且岗位与所学相关的申请人。",
+  "highlights": [
+    "认可院校大专/本科/硕士毕业均可",
+    "学历门槛低于多数省的毕业生通道",
+    "卡尔加里就业市场大、生活成本低于多温"
+  ],
+  "requirements": [
+    {
+      "title": "阿省认可院校毕业",
+      "detail": "阿省认可院校的全日制项目毕业，学制与院校范围按当年指南核对。"
+    },
+    {
+      "title": "阿省雇主的全职 offer",
+      "detail": "职业为 TEER 0-3，且与所学专业相关；雇主需通过 AAIP 资质审核。"
+    },
+    {
+      "title": "语言达标",
+      "detail": "通常 CLB 5 起；岗位不同要求不同。"
+    },
+    {
+      "title": "定居阿省的意愿",
+      "detail": "通过居住与工作计划证明有意长期定居阿省。"
+    }
+  ],
+  "cost": {
+    "note": "以 1-2 年学费 + 生活费估算；阿省无省销售税，生活成本相对温和。",
+    "breakdown": [
+      {
+        "item": "学费（1-2 年）",
+        "amount": "约 1.5-4 万加元/年",
+        "note": "college 与大学差异大"
+      },
+      {
+        "item": "生活费（1-2 年）",
+        "amount": "约 1.2-2 万加元/年"
+      },
+      {
+        "item": "阿省提名费",
+        "amount": "数百加元"
+      },
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      }
+    ]
+  },
+  "duration": {
+    "note": "含读书时间；主要变量是毕业后的找雇主速度。",
+    "steps": [
+      {
+        "title": "就读阿省认可院校",
+        "detail": "优先选就业导向专业（能源、IT、护理、技工），提高毕业后对接效率。",
+        "durationHint": "12-24 个月"
+      },
+      {
+        "title": "毕业 + 拿到本省相关 offer",
+        "detail": "申 PGWP 后在卡尔加里/埃德蒙顿找工作，岗位须与专业相关。",
+        "durationHint": "2-8 个月"
+      },
+      {
+        "title": "递交省提名",
+        "detail": "AAIP 审核雇主资质与申请人材料。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "联邦 PR 阶段",
+        "detail": "走 EE 联动更快；普通通道约 12 个月。",
+        "durationHint": "6-12 个月"
+      }
+    ]
+  },
+  "materials": [
+    "阿省院校毕业证与成绩单",
+    "阿省雇主 offer",
+    "语言成绩单",
+    "工作经验/实习证明",
+    "护照与毕业工签",
+    "资金证明"
+  ],
+  "officialSources": [
+    {
+      "label": "阿省政府 - AAIP 官方页面",
+      "url": "https://www.alberta.ca/alberta-advantage-immigrant-program.aspx"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "小石，25 岁，SAIT（南阿尔伯塔理工）石油工程技术大专，雅思折算 CLB 6。",
+    "steps": [
+      "2 年大专期间做带薪实习，毕业前拿到卡尔加里能源服务公司的全职 offer。",
+      "申 PGWP 后以国际毕业生类递交 AAIP。",
+      "4 个月获批提名。",
+      "联邦 EE 联动 6 个月，拿到枫叶卡。"
+    ],
+    "outcome": "从入学到 PR 约 3 年半；总投入约 30-45 万人民币，是投入较低的留学转移民路径。"
+  },
+  "pros": [
+    "大专学历即可走，门槛低",
+    "阿省就业市场对技工、能源类需求稳定"
+  ],
+  "cons": [
+    "必须有本省相关专业的 offer",
+    "油价低迷期能源类岗位波动大"
+  ]
+}

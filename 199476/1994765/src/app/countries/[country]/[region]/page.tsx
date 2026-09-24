@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CountryFlag } from "@/components/country-flag";
-import { SectionHeading } from "@/components/notice";
 import { ProgramCard } from "@/components/program-card";
 import {
   getCountry,
@@ -31,7 +30,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { country, region } = await params;
   const r = getRegion(country, region);
-  if (!r) return { title: "未找到省/州" };
+  if (!r) return { title: "未找到省/州/区" };
   return {
     title: `${r.name}移民政策与项目`,
     description: r.summary,
@@ -108,21 +107,6 @@ export default async function RegionPage({
         </div>
       </section>
 
-      {/* 本省特有项目（第一位；同时保留在下方移民方式归类中） */}
-      {own.length > 0 && (
-        <section className="mt-10">
-          <SectionHeading
-            title={`特有项目（${own.length}）`}
-            description="由该省自己运作的提名/通道"
-          />
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {own.map((p) => (
-              <ProgramCard key={p.slug} data={toCardData(p)} />
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* 按移民方式归类：本省 + 联邦一起列出 */}
       <section className="mt-12 pb-10">
         <div className="space-y-10">
@@ -139,7 +123,14 @@ export default async function RegionPage({
                 </h3>
                 <div className="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {items.map((p) => (
-                    <ProgramCard key={p.slug} data={toCardData(p)} />
+                    <ProgramCard
+                      key={p.slug}
+                      data={toCardData(p)}
+                      showLocation={false}
+                      showScope="all"
+                      scopeText={p.region ? "本省项目" : undefined}
+                      showType={false}
+                    />
                   ))}
                 </div>
               </div>
@@ -147,7 +138,7 @@ export default async function RegionPage({
           })}
           {groups.length === 0 && (
             <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
-              该省/州暂无可申请的项目。
+              该省/州/区暂无可申请的项目。
             </div>
           )}
         </div>

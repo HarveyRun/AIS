@@ -1,0 +1,105 @@
+{
+  "slug": "ca-bc-pnp-ipg",
+  "name": "硕博毕业直接移民",
+  "nameEn": "BC PNP International Post-Graduate",
+  "country": "canada",
+  "region": "british-columbia",
+  "type": "study",
+  "status": "active",
+  "summary": "在 BC 省读完指定领域（自然科学/应用科学/健康科学）的硕士或博士，毕业后可直接申省提名，不需要雇主 offer。是全加稀缺的“毕业即提名”通道。",
+  "suitableFor": "计划在 BC 读 STEM 或健康科学方向硕博、毕业后想留在大温/维多利亚的申请人。",
+  "highlights": [
+    "无需雇主 offer，毕业即可申请",
+    "不与雇主类抢打分排位",
+    "学历与身份双收"
+  ],
+  "requirements": [
+    {
+      "title": "BC 合格院校指定领域毕业",
+      "detail": "自然科学、应用科学、健康科学方向的硕士或博士，毕业后规定年限内申请。"
+    },
+    {
+      "title": "证明定居 BC 的意愿",
+      "detail": "通过居住史、工作/求学计划等证明有意长期定居 BC。"
+    },
+    {
+      "title": "语言与资金",
+      "detail": "满足当年指南的语言门槛（近年门槛上调趋势明显）；证明安家资金。"
+    }
+  ],
+  "cost": {
+    "note": "以 1.5-2 年硕士学费 + 生活费估算；BC PNP 近年配额收紧、通道细则调整较多，递交前以官网为准。",
+    "breakdown": [
+      {
+        "item": "硕士学费（1.5-2 年）",
+        "amount": "约 2-5 万加元/年",
+        "note": "国际生学费因专业差异大"
+      },
+      {
+        "item": "生活费（1.5-2 年）",
+        "amount": "约 2-3 万加元/年",
+        "note": "温哥华物价全加最高档"
+      },
+      {
+        "item": "BC 省提名费",
+        "amount": "约 500-800 加元"
+      },
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      }
+    ]
+  },
+  "duration": {
+    "note": "含读书时间；BC PNP 近年改为邀请制后等待时间波动大。",
+    "steps": [
+      {
+        "title": "申请并就读 BC 指定领域硕博",
+        "detail": "优先选择合格院校的自然科学/应用科学/健康科学项目。",
+        "durationHint": "18-24 个月"
+      },
+      {
+        "title": "毕业并递交省提名",
+        "detail": "毕业后规定年限内注册并等待邀请，可同步申请毕业工签（PGWP）。",
+        "durationHint": "3-12 个月"
+      },
+      {
+        "title": "省提名 → 联邦 PR",
+        "detail": "获提名后递交联邦申请。",
+        "durationHint": "12-18 个月"
+      }
+    ]
+  },
+  "materials": [
+    "BC 院校硕士/博士毕业证与成绩单",
+    "语言成绩单",
+    "BC 居住证明（地址、账单等）",
+    "护照与学习许可/毕业工签",
+    "资金证明"
+  ],
+  "officialSources": [
+    {
+      "label": "BC 省提名计划（BC PNP）官方页面",
+      "url": "https://www2.gov.bc.ca/gov/content/immigration-services-skills-training/immigration/bc-pnp"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "小沈，26 岁，本科食品科学，申请到 UBC 食品科学硕士（2 年）。",
+    "steps": [
+      "读书期间把雅思刷到 CLB 8 档，预留温哥华生活成本。",
+      "毕业后注册 BC PNP，按国际研究生类递交。",
+      "5 个月获邀并拿到提名。",
+      "联邦阶段约 1 年，拿到枫叶卡。"
+    ],
+    "outcome": "从入学到 PR 约 4-5 年；总投入约 45-70 万人民币，换来 STEM 学历 + 身份。"
+  },
+  "pros": [
+    "毕业不需要 offer 即可申请提名",
+    "STEM/健康科学就业面宽"
+  ],
+  "cons": [
+    "学费加生活费投入约 45-70 万人民币",
+    "限定专业领域；近年配额收紧、等待波动大"
+  ]
+}

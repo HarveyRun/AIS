@@ -1,0 +1,15 @@
+{
+  "id": "chatham-islands",
+  "country": "new-zealand",
+  "name": "查塔姆群岛",
+  "nameEn": "Chatham Islands",
+  "summary": "人口约 600 的偏远群岛：渔业为主，几乎没有常规就业市场。",
+  "policyOverview": "移民政策全国统一；群岛岗位极少，基本只有渔业与公共服务。",
+  "pros": [
+    "极致与世隔绝的海岛生活"
+  ],
+  "cons": [
+    "几乎无常规就业市场",
+    "交通极不便利"
+  ]
+}

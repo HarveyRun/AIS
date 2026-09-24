@@ -27,7 +27,7 @@ export default function HomePage() {
       <section className="py-14">
         <div className="max-w-3xl">
           <p className="text-sm font-medium text-teal-700">
-            国家 → 省/州 → 项目，三级看懂移民
+            国家 → 省/州/区 → 项目，三级看懂移民
           </p>
           <h1 className="mt-3 text-3xl font-bold leading-tight text-slate-900 md:text-5xl">
             移民流程指南
@@ -52,7 +52,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 国家 → 省/州 */}
+      {/* 国家 → 省/州/区 */}
       <section className="pb-14">
         <SectionHeading
           title="按国家浏览"
@@ -87,7 +87,9 @@ export default function HomePage() {
                   {country.summary}
                 </p>
                 <p className="mt-3 text-xs text-slate-400">
-                  收录 {countryRegions.length} 个省/州 →
+                  {countryRegions.length > 0
+                    ? `收录 ${countryRegions.length} 个省/州/区 →`
+                    : "全国统一政策，无省/州/区划分 →"}
                 </p>
               </Link>
             );
@@ -95,18 +97,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 按省/州浏览 */}
+      {/* 按省/州/区浏览 */}
       <section id="provinces" className="scroll-mt-20 pb-14">
         <SectionHeading
-          title="按省/州浏览"
-          description="相同国家，不同的省/州的可行性可能完全不同。"
+          title="按省/州/区浏览"
+          description="相同国家，不同的省/州/区的可行性可能完全不同。"
         />
         <div className="space-y-4">
           {countries.map((country) => {
             const countryRegions = regions.filter(
               (r) => r.country === country.id
             );
-            if (countryRegions.length === 0) return null;
             return (
               <div
                 key={country.id}
@@ -125,42 +126,46 @@ export default function HomePage() {
                     {country.name}
                   </Link>
                   <span className="text-xs text-slate-400">
-                    {countryRegions.length} 个省/州
+                    {countryRegions.length > 0
+                      ? `${countryRegions.length} 个省/州/区`
+                      : "全国统一政策"}
                   </span>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(() => {
-                    const fc = programs.filter((x) => x.country === country.id && !x.region).length;
-                    if (fc === 0) return null;
-                    return (
-                      <Link
-                        href={`/countries/${country.id}/`}
-                        className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
-                      >
-                        联邦项目 {fc}
-                      </Link>
-                    );
-                  })()}
-                  {countryRegions.map((r) => {
-                    const count = programs.filter(
-                      (p) => p.country === country.id && p.region === r.id
-                    ).length;
-                    return (
-                      <Link
-                        key={r.id}
-                        href={`/countries/${country.id}/${r.id}/`}
-                        className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-600 transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700"
-                      >
-                        {r.name}
-                        {count > 0 && (
-                          <span className="ml-1 text-xs text-slate-400">
-                            {count}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
+                {countryRegions.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(() => {
+                      const fc = programs.filter((x) => x.country === country.id && !x.region).length;
+                      if (fc === 0) return null;
+                      return (
+                        <Link
+                          href={`/countries/${country.id}/`}
+                          className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                        >
+                          联邦项目 {fc}
+                        </Link>
+                      );
+                    })()}
+                    {countryRegions.map((r) => {
+                      const count = programs.filter(
+                        (p) => p.country === country.id && p.region === r.id
+                      ).length;
+                      return (
+                        <Link
+                          key={r.id}
+                          href={`/countries/${country.id}/${r.id}/`}
+                          className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-600 transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700"
+                        >
+                          {r.name}
+                          {count > 0 && (
+                            <span className="ml-1 text-xs text-slate-400">
+                              {count}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -178,12 +183,12 @@ export default function HomePage() {
             {
               step: "1",
               title: "选择国家",
-              desc: "从国家页了解移民体系：联邦管什么、省/州管什么，联邦与地方的关系决定了你的可选范围。",
+              desc: "从国家页了解移民体系：联邦管什么、省/州/区管什么，联邦与地方的关系决定了你的可选范围。",
             },
             {
               step: "2",
-              title: "选择省/州",
-              desc: "同一类项目在不同省/州的门槛可能天差地别。逐省查看政策概述，判断自己的条件更匹配哪里。",
+              title: "选择省/州/区",
+              desc: "同一类项目在不同省/州/区的门槛可能天差地别。逐省查看政策概述，判断自己的条件更匹配哪里。",
             },
             {
               step: "3",

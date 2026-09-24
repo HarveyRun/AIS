@@ -22,9 +22,9 @@ for (const c of countries) {
   const regionCount = regions.filter((r) => r.country === c.id).length;
   const programCount = programs.filter((p) => p.country === c.id).length;
   console.log(
-    `    ${c.flag} ${c.name} (${c.id}) — ${regionCount} 个省/州, ${programCount} 个项目`
+    `    ${c.flag} ${c.name} (${c.id}) — ${regionCount} 个省/州/区, ${programCount} 个项目`
   );
 }
-console.log(`  省/州总计: ${regions.length}`);
+console.log(`  省/州/区总计: ${regions.length}`);
 console.log(`  项目总计:  ${programs.length}`);
 console.log(`  术语条目:  ${glossary.length}`);

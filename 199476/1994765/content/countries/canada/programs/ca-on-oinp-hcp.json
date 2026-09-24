@@ -1,0 +1,113 @@
+{
+  "slug": "ca-on-oinp-hcp",
+  "name": "优才定向邀请",
+  "nameEn": "OINP Human Capital Priorities Stream",
+  "country": "canada",
+  "region": "ontario",
+  "type": "skilled",
+  "status": "active",
+  "summary": "先入联邦 Express Entry 池，安省按职业、语言、 CRS 分数段定向发邀请（NOI），无需雇主 offer；获提名后 EE 加 600 分，联邦稳过。",
+  "suitableFor": "年轻、学历高、语言好（雅思高分）、职业在定向清单内的海外申请人；不想花钱找雇主的人。",
+  "highlights": [
+    "不需要雇主 offer",
+    "定向邀请常覆盖 IT、医疗、法语等方向",
+    "提名后 EE 加 600 分，联邦稳过"
+  ],
+  "requirements": [
+    {
+      "title": "入联邦 EE 池",
+      "detail": "满足联邦技术移民（FSW）或经验类（CEC）入池条件；职业为 TEER 0-3。"
+    },
+    {
+      "title": "工作经验",
+      "detail": "近 5 年内至少 1 年连续相关全职（或等量兼职）经验。"
+    },
+    {
+      "title": "语言达标",
+      "detail": "建议 CLB 7+；定向轮次常按语言区间抽取，法语 CLB 7+ 机会明显更多。"
+    },
+    {
+      "title": "安省定居意向",
+      "detail": "收到意向通知（NOI）后需表明定居安省的意愿并在规定时间内递交申请。"
+    }
+  ],
+  "cost": {
+    "note": "无需雇主，费用集中在考试、认证与联邦阶段。",
+    "breakdown": [
+      {
+        "item": "安省提名费",
+        "amount": "约 1,500-3,500 加元"
+      },
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "语言考试（两科刷分）",
+        "amount": "约 4,000-8,000 元人民币"
+      },
+      {
+        "item": "学历认证（ECA）、体检、无犯罪、公证",
+        "amount": "约 5,000-10,000 元人民币"
+      }
+    ]
+  },
+  "duration": {
+    "note": "被定向抽取的轮次与区间不可控，是最大的时间变量。",
+    "steps": [
+      {
+        "title": "语言刷分 + 学历认证 + EE 入池",
+        "detail": "语言决定 CRS 与被定向概率，优先投入。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "等待安省定向邀请（NOI）",
+        "detail": "按 CRS 区间/职业/语言轮次发放，收到后 45 天内递交 OINP。",
+        "durationHint": "1-12 个月"
+      },
+      {
+        "title": "省提名审批",
+        "detail": "获批后 EE 加 600 分。",
+        "durationHint": "2-4 个月"
+      },
+      {
+        "title": "联邦 PR 阶段",
+        "detail": "EE 加分后稳获邀，约半年。",
+        "durationHint": "6 个月"
+      }
+    ]
+  },
+  "materials": [
+    "语言成绩单",
+    "学历认证（ECA）与学位证",
+    "工作经验证明（推荐信 + 社保记录）",
+    "EE Profile 编号",
+    "无犯罪证明与体检",
+    "资金证明"
+  ],
+  "officialSources": [
+    {
+      "label": "安省政府 - OINP 人力优才类",
+      "url": "https://www.ontario.ca/page/oinp-human-capital-priorities-stream"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-24",
+  "case": {
+    "profile": "小陈，29 岁，本科，IT 测试工程师 6 年经验，雅思 8777（CLB 9），CRS 470。",
+    "steps": [
+      "EE 入池后不找雇主，坐等定向。",
+      "被安省 IT 职业定向轮次捞中，收到 NOI。",
+      "45 天内递交 OINP，3 个月获批提名，CRS 变 1070。",
+      "联邦 EE 一轮即获邀，半年拿到枫叶卡。"
+    ],
+    "outcome": "从入池到 PR 约 1 年半；总花费不到 5 万人民币，是高分数申请人最省钱的路。"
+  },
+  "pros": [
+    "零雇主成本，纯拼条件",
+    "定向轮次多（职业/语言/分数段），命中面广"
+  ],
+  "cons": [
+    "轮次与区间不可控，可能长期等不到",
+    "对语言和 CRS 分数要求实际很高"
+  ]
+}

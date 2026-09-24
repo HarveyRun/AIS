@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * 内容数据模型（国家 → 省/州 → 项目 三级结构）
+ * 内容数据模型（国家 → 省/州/区 → 项目 三级结构）
  *
  * 设计原则：
  * - 全部 .strict()：内容文件里出现拼写错误的字段名会直接校验失败，而不是被静默忽略
@@ -22,14 +22,14 @@ const slugString = z
 
 /* ---------------- 枚举 ---------------- */
 
-/** 移民类型 */
+/** 移民类型（顺序即展示顺序：按普通人的可行性从高到低排序） */
 export const immigrationTypes = [
-  "skilled", // 技术移民
-  "employer", // 雇主担保
-  "business", // 投资 / 创业
-  "talent", // 杰出人才
-  "family", // 家庭团聚
-  "study", // 留学转移民
+  "study", // 留学转移民：门槛是学费和时间，普通年轻人最可行的主路
+  "employer", // 雇主担保：不限学历年龄，瓶颈在拿到合格 offer
+  "skilled", // 技术移民：不花钱，但拼语言/学历/年龄，达标率低
+  "family", // 家庭团聚：有合格亲属几乎稳过，但适用面窄
+  "business", // 投资 / 创业：需要大额资金
+  "talent", // 杰出人才：仅适合极少数顶尖文体人士
 ] as const;
 export const immigrationTypeSchema = z.enum(immigrationTypes);
 
@@ -37,12 +37,12 @@ export const immigrationTypeLabels: Record<
   (typeof immigrationTypes)[number],
   string
 > = {
-  skilled: "技术移民",
+  study: "留学转移民",
   employer: "雇主担保",
+  skilled: "技术移民",
+  family: "家庭团聚",
   business: "投资创业",
   talent: "杰出人才",
-  family: "家庭团聚",
-  study: "留学转移民",
 };
 
 /** 项目状态 */
@@ -75,7 +75,7 @@ export const countrySchema = z
     summary: z.string().min(1),
     /** 移民体系概述（联邦 vs 地方） */
     systemOverview: z.string().min(1),
-    /** 联邦与省/州政策关系的重点说明 */
+    /** 联邦与省/州/区政策关系的重点说明 */
     regionalPolicyNote: z.string().min(1),
     officialSite: urlString,
   })
@@ -85,10 +85,10 @@ export const regionSchema = z
   .object({
     id: slugString,
     country: slugString,
-    name: z.string().min(1, "省/州需要中文名"),
+    name: z.string().min(1, "省/州/区需要中文名"),
     nameEn: z.string().min(1),
     summary: z.string().min(1),
-    /** 该省/州移民政策概述（一段话） */
+    /** 该省/州/区移民政策概述（一段话） */
     policyOverview: z.string().min(1),
     /** 总体优点（移民相关） */
     pros: z.array(z.string().min(1)).min(1, "至少一条优点"),
@@ -217,15 +217,28 @@ export const glossaryItemSchema = z
     category: glossaryCategorySchema,
     /** 重要度，组内按此排序 */
     importance: glossaryImportanceSchema,
-    /** 仅地区特有术语需要时标注：该术语专属的省/州 id（如 quebec） */
+    /** 仅地区特有术语需要时标注：该术语专属的省/州/区 id（如 quebec） */
     regions: z.array(slugString).optional(),
     explanation: z.string().min(1),
   })
   .strict();
 
+/** FAQ 分类（展示顺序即小白进阶顺序：先扫盲 → 再选路 → 后钻研） */
+export const faqCategories = ["basics", "path", "project"] as const;
+export const faqCategorySchema = z.enum(faqCategories);
+export const faqCategoryLabels: Record<
+  z.infer<typeof faqCategorySchema>,
+  string
+> = {
+  basics: "常识扫盲",
+  path: "路径选择",
+  project: "项目细节",
+};
+
 export const faqSchema = z
   .object({
     country: slugString,
+    category: faqCategorySchema,
     question: z.string().min(1),
     answer: z.string().min(1),
   })

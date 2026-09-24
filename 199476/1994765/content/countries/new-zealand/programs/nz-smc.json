@@ -1,0 +1,102 @@
+{
+  "slug": "nz-smc",
+  "name": "六分制技术移民",
+  "nameEn": "Skilled Migrant Category (6-Point System)",
+  "country": "new-zealand",
+  "type": "skilled",
+  "status": "active",
+  "summary": "新西兰技术移民主打六分制：拿到认证雇主的工作 offer 是前提，分数靠职业注册、学历或收入三选一凑满 6 分即可申请居留，不抽签、规则透明。",
+  "suitableFor": "职业在绿名单或紧缺方向、能拿到新西兰认证雇主全职 offer 的技术人才；学历或职业注册含金量越高的申请人凑分越容易。",
+  "highlights": [
+    "不抽签，达标即递交",
+    "学历、注册、收入三条凑分路线任选",
+    "永居后期可拿无限期回头签（PRV）"
+  ],
+  "requirements": [
+    {
+      "title": "认证雇主的全职 offer",
+      "detail": "雇主须为移民局认证雇主（AEWV 体系），岗位全职、12 个月以上合同，薪资达到市场中位数标准。"
+    },
+    {
+      "title": "凑满 6 分",
+      "detail": "三条路线任选：学历（本科 3 分、硕士 5 分、博士 6 分）、职业注册（2-6 分，如医护、电工）、收入达标（按中位数倍数 2-6 分）；不足部分用新西兰本地技术工作经验每年 1 分补足。"
+    },
+    {
+      "title": "年龄与语言",
+      "detail": "55 岁以下；英语达到雅思总分 6.5 档（或同等认可成绩）。"
+    }
+  ],
+  "cost": {
+    "note": "规费与认证成本集中在前期；拿到居民签证并满足居住后可申请永久回头签。",
+    "breakdown": [
+      {
+        "item": "居留申请费",
+        "amount": "约 6,000-6,500 新西兰元"
+      },
+      {
+        "item": "学历认证（NZQA，如需要）",
+        "amount": "约 750 新西兰元"
+      },
+      {
+        "item": "语言考试",
+        "amount": "约 2,000-3,000 元人民币"
+      },
+      {
+        "item": "体检与无犯罪公证",
+        "amount": "约 3,000-6,000 元人民币"
+      }
+    ]
+  },
+  "duration": {
+    "note": "最大变量是找到认证雇主的工作；材料齐全的居留审理节奏较快。",
+    "steps": [
+      {
+        "title": "职业评估准备 + 找认证雇主",
+        "detail": "先核对学历是否需要 NZQA 认证，再对接认证雇主拿 offer。",
+        "durationHint": "6-12 个月"
+      },
+      {
+        "title": "递交居留申请",
+        "detail": "六分凑齐后随 offer 递交居留申请。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "居民签证 → 永久回头签",
+        "detail": "居民身份满 2 年且满足居住要求后，可申请无限期回头签（PRV）。",
+        "durationHint": "24 个月后"
+      }
+    ]
+  },
+  "materials": [
+    "认证雇主 offer 与劳动合同",
+    "学历证书与 NZQA 认证（如需要）",
+    "职业注册证明（如适用）",
+    "语言成绩单",
+    "体检与无犯罪公证"
+  ],
+  "officialSources": [
+    {
+      "label": "新西兰移民局 - Skilled Migrant Category",
+      "url": "https://www.immigration.govt.nz/new-zealand-visas/preparing-a-visa-application/working-in-nz/skilled-migrant-category-resident-visa"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-24",
+  "case": {
+    "profile": "小钱，29 岁，本科软件工程师 6 年经验，拿到奥克兰科技公司 offer。",
+    "steps": [
+      "核对六分：硕士 5 分，落地后工作 1 年补 1 分。",
+      "先拿认证雇主工签入境上岗。",
+      "工作满 1 年凑满 6 分，递交居留申请，5 个月获批。",
+      "两年后申请永久回头签（PRV），身份终身有效。"
+    ],
+    "outcome": "全程约 3 年；规则透明、不抽签，条件对口的人确定性很高。"
+  },
+  "pros": [
+    "达标即走，无抽签和排期",
+    "永久回头签是主流国家中最宽松的之一"
+  ],
+  "cons": [
+    "必须先有认证雇主的全职 offer",
+    "经济体量小，岗位总量有限"
+  ]
+}

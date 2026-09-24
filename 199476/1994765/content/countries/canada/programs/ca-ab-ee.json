@@ -1,0 +1,109 @@
+{
+  "slug": "ca-ab-ee",
+  "name": "EE 定向邀请",
+  "nameEn": "AAIP Alberta Express Entry Stream",
+  "country": "canada",
+  "region": "alberta",
+  "type": "skilled",
+  "status": "active",
+  "summary": "已在联邦 Express Entry 池里的候选人，可能被阿省直接定向邀请：不用主动申请、不强制雇主 offer，获邀后加 600 分基本锁定永居。阿省按本省劳动力需要主动挑人。",
+  "suitableFor": "已在 EE 池且分数有竞争力的候选人；与阿省有联结（学历、工作经历、亲属）的申请人被邀请概率更高。",
+  "highlights": [
+    "不需要雇主 offer",
+    "不需要单独排队，池子里等着被选",
+    "提名后加 600 分，联邦稳过"
+  ],
+  "requirements": [
+    {
+      "title": "联邦 EE 入池",
+      "detail": "满足联邦技术移民（FSW）或经验类（CEC）入池条件，职业为 TEER 0-3。"
+    },
+    {
+      "title": "与阿省的联结或本省需求匹配",
+      "detail": "阿省按劳动力市场需要定向：在阿省工作/毕业、有阿省亲属、或职业属于本省紧缺方向的概率更高。"
+    },
+    {
+      "title": "经济能力",
+      "detail": "证明有足够资金在阿省定居。"
+    }
+  ],
+  "cost": {
+    "note": "不获邀不花钱；全程费用集中在联邦阶段与语言考试。",
+    "breakdown": [
+      {
+        "item": "阿省提名费",
+        "amount": "数百加元（获邀递交时缴纳）"
+      },
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "语言考试",
+        "amount": "约 2,000-3,000 元人民币"
+      },
+      {
+        "item": "学历认证、体检、无犯罪、公证",
+        "amount": "约 5,000-10,000 元人民币"
+      }
+    ]
+  },
+  "duration": {
+    "note": "被动等待定向是主要变量；分数和联结决定被选概率。",
+    "steps": [
+      {
+        "title": "EE 入池",
+        "detail": "刷语言、做学历认证，把 CRS 提到有竞争力的档位。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "等待阿省定向邀请",
+        "detail": "被选中会收到省里通知（NOI）。",
+        "durationHint": "不可控，1-18 个月"
+      },
+      {
+        "title": "省提名审批",
+        "detail": "获邀后按通知递交材料。",
+        "durationHint": "2-4 个月"
+      },
+      {
+        "title": "联邦 PR 阶段",
+        "detail": "加 600 分后 EE 下一轮即获邀，约半年。",
+        "durationHint": "6 个月"
+      }
+    ]
+  },
+  "materials": [
+    "语言成绩单",
+    "学历认证（ECA）与学位证",
+    "工作经验证明",
+    "EE Profile 编号",
+    "与阿省的联系证明（如适用）",
+    "资金证明"
+  ],
+  "officialSources": [
+    {
+      "label": "阿省政府 - AAIP 官方页面",
+      "url": "https://www.alberta.ca/alberta-advantage-immigrant-program.aspx"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-24",
+  "case": {
+    "profile": "小谢，28 岁，本科毕业 IT 运维 5 年，雅思 CLB 9，CRS 480，姐姐在卡尔加里。",
+    "steps": [
+      "EE 入池后把姐姐的亲属关系证明补进材料。",
+      "3 个月后被阿省定向邀请。",
+      "递交提名，2 个半月获批，CRS 加 600 分。",
+      "联邦一轮获邀，半年后枫叶卡。"
+    ],
+    "outcome": "全程约 1 年；亲属联结让被定向概率显著提高。"
+  },
+  "pros": [
+    "零成本等待，不获邀无损失",
+    "有阿省联结的候选人命中率高"
+  ],
+  "cons": [
+    "完全被动，等待时间不可控",
+    "无阿省联结的候选人被选概率低"
+  ]
+}

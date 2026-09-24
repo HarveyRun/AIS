@@ -29,7 +29,7 @@ export function toCardData(p: Program): ProgramCardData {
     typeLabel: immigrationTypeLabels[p.type],
     statusLabel: p.status !== "active" ? statusLabels[p.status] : undefined,
     scope: p.region ? ("regional" as const) : ("federal" as const),
-    scopeLabel: p.region ? (region ? region.name + "项目" : "省/州项目") : "联邦项目",
+    scopeLabel: p.region ? (region ? region.name + "项目" : "省/州/区项目") : "联邦项目",
     infoVerifiedAt: p.infoVerifiedAt,
   };
 }

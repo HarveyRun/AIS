@@ -1,0 +1,107 @@
+{
+  "slug": "ca-bc-pnp-els",
+  "name": "普通工种雇主担保移民",
+  "nameEn": "BC PNP Entry Level and Semi-Skilled Worker",
+  "country": "canada",
+  "region": "british-columbia",
+  "type": "employer",
+  "status": "active",
+  "summary": "BC 省面向入门级和半技术工种（旅游餐饮、长途运输、护理助理等）的雇主担保通道：先持工签在 BC 同类岗位工作满 9 个月，再由雇主担保拿提名。学历要求低。",
+  "suitableFor": "学历或英语条件一般、能接受服务类岗位的申请人；已在 BC 旅游、餐饮、货运、护理行业工作的人优势最大。",
+  "highlights": [
+    "TEER 4/5 普通工种也能拿省提名",
+    "9 个月本地经验即可入池",
+    "聚焦旅游餐饮与护理助理等长期缺人行业"
+  ],
+  "requirements": [
+    {
+      "title": "BC 雇主的全职长期 offer",
+      "detail": "职业为清单内入门级/半技术岗位（旅游餐饮、长途卡车、护理助理等），薪资符合省内标准。"
+    },
+    {
+      "title": "9 个月相关工作经验",
+      "detail": "递交前为该雇主在同类岗位全职工作满 9 个月（通常先持雇主工签上岗）。"
+    },
+    {
+      "title": "语言 CLB 4",
+      "detail": "英语达到 CLB 4 即可。"
+    },
+    {
+      "title": "定居 BC 的意愿与资金",
+      "detail": "证明安家资金，并有长期定居 BC 的计划。"
+    }
+  ],
+  "cost": {
+    "note": "前期通常持雇主工签上岗；工签办理费用视雇主分担情况而定。",
+    "breakdown": [
+      {
+        "item": "BC 省提名费",
+        "amount": "约 500-800 加元"
+      },
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "语言考试",
+        "amount": "约 2,000-3,000 元人民币"
+      },
+      {
+        "item": "温哥华地区登陆初期生活费",
+        "amount": "约 1.5-2 万加元（3 个月安家）"
+      }
+    ]
+  },
+  "duration": {
+    "note": "9 个月工作经验是硬性前提，总周期以此为基础。",
+    "steps": [
+      {
+        "title": "拿 BC 雇主工签上岗",
+        "detail": "清单内岗位全职工作，积累同类岗位经验。",
+        "durationHint": "3-9 个月"
+      },
+      {
+        "title": "满 9 个月递交省提名",
+        "detail": "BC PNP 审核雇主资质与申请材料。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "联邦 PR 阶段",
+        "detail": "普通通道为主，约 12 个月。",
+        "durationHint": "约 12 个月"
+      }
+    ]
+  },
+  "materials": [
+    "BC 雇主 offer 与雇佣记录（工资单、T4）",
+    "语言成绩单（CLB 4+）",
+    "合法身份文件（工签）",
+    "无犯罪证明与体检",
+    "安家资金证明"
+  ],
+  "officialSources": [
+    {
+      "label": "BC 省提名计划（BC PNP）官方页面",
+      "url": "https://www2.gov.bc.ca/gov/content/immigration-services-skills-training/immigration/bc-pnp"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-24",
+  "case": {
+    "profile": "小冯，36 岁，通过温哥华岛度假村招聘拿到餐饮主管岗位的雇主工签。",
+    "steps": [
+      "持工签上岗，全职工作满 9 个月。",
+      "递交省提名，5 个月获批。",
+      "联邦普通通道约 12 个月。",
+      "全家定居温哥华岛，拿到枫叶卡。"
+    ],
+    "outcome": "从登陆到 PR 约 2 年半；旅游餐饮类在 BC 长期缺人，普通学历也能走通。"
+  },
+  "pros": [
+    "普通工种可走，学历门槛低",
+    "旅游餐饮岗位在 BC 需求长期稳定"
+  ],
+  "cons": [
+    "必须先在 BC 同类岗位干满 9 个月",
+    "岗位薪资不高，温哥华生活成本压力大"
+  ]
+}

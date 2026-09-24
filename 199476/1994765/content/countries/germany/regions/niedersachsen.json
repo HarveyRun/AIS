@@ -1,0 +1,15 @@
+{
+  "id": "niedersachsen",
+  "country": "germany",
+  "name": "下萨克森州",
+  "nameEn": "Lower Saxony",
+  "summary": "大众汽车总部沃尔夫斯堡所在：汽车产业链完整，汉诺威展会经济。",
+  "policyOverview": "移民政策全国统一；下萨克森汽车产业链岗位稳定。",
+  "pros": [
+    "汽车产业岗位稳定",
+    "生活成本适中"
+  ],
+  "cons": [
+    "经济依赖汽车业周期"
+  ]
+}

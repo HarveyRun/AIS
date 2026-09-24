@@ -1,0 +1,15 @@
+{
+  "id": "saarland",
+  "country": "germany",
+  "name": "萨尔州",
+  "nameEn": "Saarland",
+  "summary": "法德边境小州：汽车零部件与软件，小而安静。",
+  "policyOverview": "移民政策全国统一；萨尔州以汽车配件与 IT 服务为主。",
+  "pros": [
+    "生活成本低",
+    "法德双语环境"
+  ],
+  "cons": [
+    "经济体量小"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "nordrhein-westfalen",
+  "country": "germany",
+  "name": "北莱茵-威斯特法伦州",
+  "nameEn": "North Rhine-Westphalia",
+  "summary": "人口最多的州：科隆、杜塞尔多夫、鲁尔区城市群，工业与贸易底蕴深厚，岗位基数最大。",
+  "policyOverview": "移民政策全国统一；北威州岗位基数最大，产业结构从重工业到传媒多元。",
+  "pros": [
+    "城市群密集，机会基数大",
+    "华人社区规模大"
+  ],
+  "cons": [
+    "老工业城市面貌普通",
+    "转型地区岗位质量参差"
+  ]
+}

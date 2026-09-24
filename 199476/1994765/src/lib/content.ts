@@ -199,16 +199,16 @@ export function loadContent(): ContentBundle {
     for (const rid of g.regions ?? []) {
       const owners = regions.filter((r) => r.id === rid);
       if (owners.length === 0) {
-        issues.push(`术语「${g.term}」标注了不存在的省/州 id "${rid}"`);
+        issues.push(`术语「${g.term}」标注了不存在的省/州/区 id "${rid}"`);
       } else if (owners.length > 1) {
         issues.push(
-          `术语「${g.term}」标注的省/州 id "${rid}" 在多个国家下存在（${owners
+          `术语「${g.term}」标注的省/州/区 id "${rid}" 在多个国家下存在（${owners
             .map((o) => o.country)
             .join("、")}），请改用全局唯一的 region id`
         );
       } else if (!g.countries.includes(owners[0].country)) {
         issues.push(
-          `术语「${g.term}」标注的省/州 "${rid}" 属于 ${owners[0].country}，但 countries 未包含该国`
+          `术语「${g.term}」标注的省/州/区 "${rid}" 属于 ${owners[0].country}，但 countries 未包含该国`
         );
       }
     }
@@ -226,7 +226,7 @@ export function loadContent(): ContentBundle {
   for (const r of regions) {
     if (!countryIds.has(r.country)) {
       issues.push(
-        `省/州 ${r.id} (content/countries/${r.country}/regions/) 引用了不存在的国家 id "${r.country}"`
+        `省/州/区 ${r.id} (content/countries/${r.country}/regions/) 引用了不存在的国家 id "${r.country}"`
       );
     }
   }
@@ -241,7 +241,7 @@ export function loadContent(): ContentBundle {
       const key = `${p.country}/${p.region}`;
       if (!regionIds.has(key)) {
         issues.push(
-          `项目 ${p.slug} 引用了不存在的省/州 "${p.region}"（国家 ${p.country} 下未找到）`
+          `项目 ${p.slug} 引用了不存在的省/州/区 "${p.region}"（国家 ${p.country} 下未找到）`
         );
       }
     }
@@ -287,7 +287,11 @@ export function loadContent(): ContentBundle {
 let cache: ContentBundle | null = null;
 
 export function getContent(): ContentBundle {
-  if (!cache) cache = loadContent();
+  // 开发模式下每次调用都重读内容文件，改 content/ 立即生效（无 HMR 事件可依赖）；
+  // 生产构建保持单例缓存，内容在构建期固化。
+  if (!cache || process.env.NODE_ENV === "development") {
+    cache = loadContent();
+  }
   return cache;
 }
 

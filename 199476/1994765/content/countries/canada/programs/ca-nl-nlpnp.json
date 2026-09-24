@@ -1,0 +1,108 @@
+{
+  "slug": "ca-nl-nlpnp",
+  "name": "雇主担保移民",
+  "nameEn": "NLPNP Skilled Worker",
+  "country": "canada",
+  "region": "newfoundland-and-labrador",
+  "type": "employer",
+  "status": "active",
+  "summary": "NL 省提名主通道是本省雇主的全职长期 offer，国际毕业生有专门类；作为大西洋计划核心省，NLPNP 与 AIP 常可双轨尝试。",
+  "suitableFor": "能拿到 NL 雇主（医疗、教育、海运、水产、矿业方向）offer 的申请人；以及在 NL 本地院校毕业的留学生。",
+  "highlights": [
+    "雇主 offer 通道结构简单、达标即走",
+    "国际毕业生有专门通道",
+    "NLPNP 与 AIP 双轨可选"
+  ],
+  "requirements": [
+    {
+      "title": "NL 雇主的全职长期 offer",
+      "detail": "职业为 TEER 0-3 为主；医疗、海运、水产加工等紧缺行业部分 TEER 4/5 岗位也接受。"
+    },
+    {
+      "title": "相关工作经验",
+      "detail": "通常要求与岗位相关的 1 年以上经验；NL 毕业生要求可放宽。"
+    },
+    {
+      "title": "语言达标",
+      "detail": "通常 CLB 4-5 起，岗位不同要求不同。"
+    },
+    {
+      "title": "定居资金与意愿",
+      "detail": "证明安家资金，并有在 NL 长期生活的计划。"
+    }
+  ],
+  "cost": {
+    "note": "NLPNP 不收省提名申请费；费用集中在联邦阶段与材料杂费。",
+    "breakdown": [
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "语言考试",
+        "amount": "约 2,000-3,000 元人民币"
+      },
+      {
+        "item": "学历认证、体检、无犯罪、公证",
+        "amount": "约 5,000-10,000 元人民币"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 1-1.5 万加元（3 个月安家）"
+      }
+    ]
+  },
+  "duration": {
+    "note": "主要时间花在找雇主；省提名与联邦审理节奏与其他大西洋省接近。",
+    "steps": [
+      {
+        "title": "对接 NL 雇主拿到 offer",
+        "detail": "医疗、海运、水产、矿业方向机会最多；本地毕业生可先申 PGWP 再找工作。",
+        "durationHint": "2-12 个月"
+      },
+      {
+        "title": "递交省提名申请",
+        "detail": "NLPNP 审核雇主资质与申请人材料。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "联邦 PR 阶段",
+        "detail": "走 EE 联动更快；普通通道约 12 个月。",
+        "durationHint": "6-12 个月"
+      }
+    ]
+  },
+  "materials": [
+    "NL 雇主 offer",
+    "语言成绩单",
+    "学历认证文件",
+    "工作经验证明（推荐信 + 社保记录）",
+    "无犯罪证明与体检",
+    "安家资金证明"
+  ],
+  "officialSources": [
+    {
+      "label": "纽芬兰与拉布拉多省政府 - 移民办公室",
+      "url": "https://www.gov.nl.ca/immigration/"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "小蒋，27 岁，Memorial 大学海洋工程硕士毕业，拿到圣约翰斯海事服务公司 offer。",
+    "steps": [
+      "毕业后申 PGWP，2 个月内拿到本地全职 offer。",
+      "以国际毕业生类递交 NLPNP，4 个月获批提名。",
+      "联邦阶段约 1 年。",
+      "定居圣约翰斯，全家枫叶卡。"
+    ],
+    "outcome": "从毕业到 PR 约 2 年；本地学历 + 本地 offer 是 NLPNP 最顺的路径。"
+  },
+  "pros": [
+    "竞争比大城市省份小",
+    "Memorial 大学国际生学费全加最低档"
+  ],
+  "cons": [
+    "地理位置偏远，航班转机多",
+    "岗位集中在少数行业"
+  ]
+}

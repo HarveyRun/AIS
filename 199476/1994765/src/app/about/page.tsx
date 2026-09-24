@@ -29,7 +29,7 @@ export default function AboutPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm leading-7 text-slate-600">
           <p>{site.description}</p>
           <p className="mt-3">
-            我们把内容按「<strong>国家 → 省/州 → 项目</strong>」三级组织，因为大量移民国家的政策在地方层面与联邦并不一致：
+            我们把内容按「<strong>国家 → 省/州/区 → 项目</strong>」三级组织，因为大量移民国家的政策在地方层面与联邦并不一致：
             加拿大除魁北克外各省有独立的省提名标准，澳大利亚的 190/491 由各州自行筛选，美国虽无州级移民审批、但登陆后的生活成本与资源差异显著。
             选对省份，和技术移民选对国家同样重要。
           </p>
@@ -43,7 +43,7 @@ export default function AboutPage() {
             <li>每个项目页都标注「更新时间」，政策类内容定期复核。</li>
             <li>所有关键信息附官方来源链接，请以官方最新发布为准。</li>
             <li>
-              当前收录：{countries.length} 个国家/地区、{regions.length} 个省/州、
+              当前收录：{countries.length} 个国家/地区、{regions.length} 个省/州/区、
               {programs.length} 个项目、{site.maintainer} 持续维护中。
             </li>
             <li>内容以结构化数据存储，新增或修订项目只需编辑对应 JSON 文件并通过校验。</li>

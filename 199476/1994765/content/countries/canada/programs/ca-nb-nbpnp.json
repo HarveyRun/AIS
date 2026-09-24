@@ -1,0 +1,108 @@
+{
+  "slug": "ca-nb-nbpnp",
+  "name": "雇主担保移民",
+  "nameEn": "NBPNP Skilled Worker / Express Entry",
+  "country": "canada",
+  "region": "new-brunswick",
+  "type": "employer",
+  "status": "active",
+  "summary": "NB 省提名两条主线：本省雇主 offer 的技术工人类，和从联邦 EE 池定向抽取的 Express Entry 类；法语申请人另有专门通道，竞争明显更小。",
+  "suitableFor": "能对接 NB 本地雇主（蒙克顿、圣约翰、弗雷德里克顿）的申请人；法语好的申请人机会显著更多。",
+  "highlights": [
+    "法语申请人有定向抽取，竞争小",
+    "EE 定向抽取不要求本地雇主",
+    "可与大西洋移民计划（AIP）叠加尝试"
+  ],
+  "requirements": [
+    {
+      "title": "NB 雇主的全职长期 offer（受雇类）",
+      "detail": "职业为 TEER 0-3 为主；雇主需在省内运营良好、通过省审核。"
+    },
+    {
+      "title": "EE 定向抽取（EE 类）",
+      "detail": "先入联邦 EE 池，NB 按职业/语言定向发邀请，无法主动申请；法语 CLB 7+ 被抽取概率明显更高。"
+    },
+    {
+      "title": "语言达标",
+      "detail": "受雇类通常 CLB 4 起，岗位不同要求不同；建议 CLB 5+。"
+    },
+    {
+      "title": "定居资金与意愿",
+      "detail": "证明有足够安家资金，并有在 NB 长期定居的计划。"
+    }
+  ],
+  "cost": {
+    "note": "NBPNP 多数通道不收省提名申请费；费用集中在联邦阶段与材料杂费。",
+    "breakdown": [
+      {
+        "item": "联邦 PR 申请费 + 落地费",
+        "amount": "约 1,525 加元/成人"
+      },
+      {
+        "item": "语言考试",
+        "amount": "约 2,000-3,000 元人民币"
+      },
+      {
+        "item": "学历认证、体检、无犯罪、公证",
+        "amount": "约 5,000-10,000 元人民币"
+      },
+      {
+        "item": "登陆初期生活费",
+        "amount": "约 1-1.5 万加元（3 个月安家）"
+      }
+    ]
+  },
+  "duration": {
+    "note": "受雇类取决于找雇主速度；EE 定向抽取轮次不可控。",
+    "steps": [
+      {
+        "title": "对接雇主或入 EE 池等待定向抽取",
+        "detail": "受雇类先拿 offer；EE 类同步刷语言（法语是关键加分）。",
+        "durationHint": "2-12 个月"
+      },
+      {
+        "title": "递交省提名申请",
+        "detail": "NBPNP 审核雇主资质与申请人材料。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "联邦 PR 阶段",
+        "detail": "EE 联动约 6 个月；普通通道约 12 个月。",
+        "durationHint": "6-12 个月"
+      }
+    ]
+  },
+  "materials": [
+    "NB 雇主 offer（受雇类）",
+    "语言成绩单（英语/法语）",
+    "学历认证文件",
+    "工作经验证明（推荐信 + 社保记录）",
+    "无犯罪证明与体检",
+    "安家资金证明"
+  ],
+  "officialSources": [
+    {
+      "label": "新不伦瑞克省政府 - 移民页面",
+      "url": "https://www2.gnb.ca/content/gnb/en/departments/petl-epft/immigration.html"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-23",
+  "case": {
+    "profile": "小宋，32 岁，会计本科，英语 CLB 7、法语 CLB 7，入联邦 EE 池。",
+    "steps": [
+      "EE 入池后同时投递蒙克顿的岗位，作为双保险。",
+      "被 NB 法语定向抽取，获省提名邀请。",
+      "递交省提名材料，4 个月获批提名，EE 加 600 分。",
+      "联邦阶段 6 个月，全家枫叶卡。"
+    ],
+    "outcome": "全程约 1 年半；法语能力直接决定了抽取速度。"
+  },
+  "pros": [
+    "法语申请人的红利省份",
+    "省提名多数通道不收申请费"
+  ],
+  "cons": [
+    "不会法语的申请人主要依赖本地雇主 offer",
+    "经济体量小，岗位数量有限"
+  ]
+}

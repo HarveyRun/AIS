@@ -1,0 +1,15 @@
+{
+  "id": "west-coast",
+  "country": "new-zealand",
+  "name": "西海岸大区",
+  "nameEn": "West Coast",
+  "summary": "格雷茅斯：煤矿、白水漂流与冰川旅游，人口约 3 万的狭长地带。",
+  "policyOverview": "移民政策全国统一；西海岸岗位以采矿、旅游为主。",
+  "pros": [
+    "原始自然风光独一无二"
+  ],
+  "cons": [
+    "岗位少且多雨",
+    "医疗教育资源有限"
+  ]
+}

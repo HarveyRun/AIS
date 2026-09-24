@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/breadcrumbs";
@@ -10,12 +9,10 @@ import {
   getGlossary,
   listCountries,
   listPrograms,
-  listRegions,
 } from "@/lib/content";
 import { buildTermIndex } from "@/lib/term-link";
 import { TermsText } from "@/components/terms-text";
 import { toCardData } from "@/lib/display";
-import { immigrationTypeLabels } from "@/lib/schema";
 
 export function generateStaticParams() {
   return listCountries().map((c) => ({ country: c.id }));
@@ -44,8 +41,9 @@ export default async function CountryPage({
   const country = getCountry(countryId);
   if (!country) notFound();
 
-  const regions = listRegions(country.id);
   const all = listPrograms().filter((p) => p.country === country.id);
+  const federal = all.filter((p) => !p.region);
+  const ownPrograms = all.filter((p) => p.region);
   const termIndex = buildTermIndex(getGlossary());
 
   return (
@@ -87,56 +85,47 @@ export default async function CountryPage({
           </p>
         </div>
         <NoticeBox tone="warn">
-          <strong>联邦 vs 省/州：</strong>
+          <strong>联邦 vs 省/州/区：</strong>
           <TermsText text={country.regionalPolicyNote} index={termIndex} />
         </NoticeBox>
       </section>
 
-      {/* 省/州特有项目（第一位；同时保留在下方移民方式归类中） */}
-      {(() => {
-        const ownPrograms = all.filter((p) => p.region);
-        if (ownPrograms.length === 0) return null;
-        return (
-          <section className="mt-12">
-            <SectionHeading
-              title={`特有项目（${ownPrograms.length}）`}
-              description="由各省/州自己运作的提名/通道"
-            />
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {ownPrograms.map((p) => (
-                <ProgramCard key={p.slug} data={toCardData(p)} />
-              ))}
-            </div>
-          </section>
-        );
-      })()}
+      {/* 联邦项目（全国通用） */}
+      {federal.length > 0 && (
+        <section className="mt-12 border-t border-slate-200 pt-12 pb-5">
+          <SectionHeading
+            title={`联邦项目（${federal.length}）`}
+            description="由联邦政府统一运作，全国通用，不限省/州/区"
+          />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {federal.map((p) => (
+              <ProgramCard
+                key={p.slug}
+                data={toCardData(p)}
+                showLocation={false}
+                showScope="none"
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* 按移民方式归类 */}
-      <section className="mt-12 border-t border-slate-200 pt-12 pb-5">
-        <div className="space-y-10">
-          {Object.entries(immigrationTypeLabels).map(([type, label]) => {
-            const group = all.filter((p) => p.type === type);
-            if (group.length === 0) return null;
-            const federalCount = group.filter((p) => !p.region).length;
-            return (
-              <div key={type}>
-                <h3 className="text-lg font-bold text-slate-900">
-                  {label}
-                  <span className="ml-2 text-sm font-normal text-slate-400">
-                    {group.length} 个项目（联邦 {federalCount} · 省/州 {group.length - federalCount}）
-                  </span>
-                </h3>
-                <div className="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {group.map((p) => (
-                    <ProgramCard key={p.slug} data={toCardData(p)} />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      {/* 省/州/区项目（第一位） */}
+      {ownPrograms.length > 0 && (
+        <section className="mt-12">
+          <SectionHeading
+            title={`省/州/区项目（${ownPrograms.length}）`}
+            description="由各省/州/区自己运作的提名/通道"
+          />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {ownPrograms.map((p) => (
+              <ProgramCard key={p.slug} data={toCardData(p)} />
+            ))}
+          </div>
+        </section>
+      )}
 
+      
     </div>
   );
 }

@@ -49,7 +49,7 @@ export function GlossaryClient({ terms, countries, regions }: GlossaryClientProp
     let list = terms.filter(
       (t) =>
         (!country || t.countries.includes(country)) &&
-        // 省/州筛选：未标注省州的术语全国适用；标注了省州的只保留命中的
+        // 省/州/区筛选：未标注省州的术语全国适用；标注了省州的只保留命中的
         (!region || !t.regions || t.regions.includes(region)) &&
         cats[t.category]
     );
@@ -97,7 +97,7 @@ export function GlossaryClient({ terms, countries, regions }: GlossaryClientProp
         ))}
       </div>
 
-      {/* 省/州筛选 + 分类筛选 */}
+      {/* 省/州/区筛选 + 分类筛选 */}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <span className="text-sm text-slate-400">术语分类：</span>
         {glossaryCategories.map((cat) => (

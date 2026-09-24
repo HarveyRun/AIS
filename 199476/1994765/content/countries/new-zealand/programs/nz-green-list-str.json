@@ -1,0 +1,101 @@
+{
+  "slug": "nz-green-list-str",
+  "name": "绿名单直通居留",
+  "nameEn": "Green List - Straight to Residence",
+  "country": "new-zealand",
+  "type": "skilled",
+  "status": "active",
+  "summary": "绿名单一级职业（工程师、医生、护士、电工、建筑项目经理等长期紧缺岗位）拿到认证雇主 offer 后可以直接申请居留：不打分、不用先工作，是新西兰最快的通道。",
+  "suitableFor": "职业恰好在绿名单一级清单内的申请人：医护、工程、IT、建筑、技工类是主力；有新西兰认可的职业注册者优先。",
+  "highlights": [
+    "不打分、不用先工作，offer 到手直接申居留",
+    "清单职业全部是长期紧缺方向",
+    "配偶可拿开放工签，子女免费读公立学校"
+  ],
+  "requirements": [
+    {
+      "title": "职业在绿名单一级",
+      "detail": "清单覆盖医护、工程、IT、建筑、技工、司法等方向；部分职业要求新西兰的职业注册或对应学历。"
+    },
+    {
+      "title": "认证雇主的全职 offer",
+      "detail": "全职、长期合同，薪资达到清单对应标准。"
+    },
+    {
+      "title": "年龄与语言",
+      "detail": "55 岁以下；英语达到雅思总分 6.5 档或同等水平。"
+    }
+  ],
+  "cost": {
+    "note": "成本结构与六分制类似；职业注册费用因工种差异较大（医护类最高）。",
+    "breakdown": [
+      {
+        "item": "居留申请费",
+        "amount": "约 6,000-6,500 新西兰元"
+      },
+      {
+        "item": "职业注册（如适用）",
+        "amount": "数百至数千新西兰元"
+      },
+      {
+        "item": "语言考试",
+        "amount": "约 2,000-3,000 元人民币"
+      },
+      {
+        "item": "体检与无犯罪公证",
+        "amount": "约 3,000-6,000 元人民币"
+      }
+    ]
+  },
+  "duration": {
+    "note": "清单内职业+现成 offer 是最快组合，整体周期全加主流通道中最短之一。",
+    "steps": [
+      {
+        "title": "取得职业资格或注册",
+        "detail": "医护、电工等职业先完成新西兰认可的注册。",
+        "durationHint": "因职业而异"
+      },
+      {
+        "title": "拿到认证雇主 offer → 直接申居留",
+        "detail": "无需先工作，递交居留申请。",
+        "durationHint": "3-6 个月"
+      },
+      {
+        "title": "居民签证 → 永久回头签",
+        "detail": "满足居住要求后申请 PRV。",
+        "durationHint": "24 个月后"
+      }
+    ]
+  },
+  "materials": [
+    "认证雇主 offer 与劳动合同",
+    "职业注册证明或学历认证",
+    "语言成绩单",
+    "体检与无犯罪公证"
+  ],
+  "officialSources": [
+    {
+      "label": "新西兰移民局 - Green List 官方页面",
+      "url": "https://www.immigration.govt.nz/new-zealand-visas/preparing-a-visa-application/working-in-nz/green-list-occupations"
+    }
+  ],
+  "infoVerifiedAt": "2026-09-24",
+  "case": {
+    "profile": "小郭，31 岁，国内注册护士，完成新西兰护理注册后拿到基督城医院 offer。",
+    "steps": [
+      "通过新西兰护理委员会注册评估并补齐课程。",
+      "拿到认证雇主的长期 offer，直接递交居留。",
+      "4 个月获批居民签证，全家登陆。",
+      "两年后拿永久回头签。"
+    ],
+    "outcome": "从拿 offer 到居留不到半年；医护、技工类走绿名单是新西兰最快的正门。"
+  },
+  "pros": [
+    "新西兰速度最快的居留通道",
+    "职业清单围绕真实紧缺设计，岗位好找"
+  ],
+  "cons": [
+    "职业范围严格限定在清单内",
+    "部分职业要先完成新西兰本地注册"
+  ]
+}

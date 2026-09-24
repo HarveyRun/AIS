@@ -5,7 +5,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "must",
@@ -17,11 +20,14 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "must",
-    "explanation": "维持永居身份所需的最低居住要求。如加拿大 5 年内住满 2 年、澳洲 5 年内住满 2 年；美国需保持永久居留意图。"
+    "explanation": "维持永居身份所需的最低居住要求。如加拿大 5 年内住满 2 年、澳洲 5 年内住满 2 年；美国需保持永久居留意图。新西兰居民满 2 年可升级无限期回头签（之后无居住要求）；德国定居许可要求以德国为生活重心；西班牙永居要求 5 年内离境不超过规定时长。"
   },
   {
     "term": "Work Permit（工签）",
@@ -29,7 +35,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "must",
@@ -40,7 +49,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "must",
@@ -52,7 +64,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "must",
@@ -64,7 +79,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "must",
@@ -76,7 +94,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "must",
@@ -88,7 +109,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "important",
@@ -100,11 +124,14 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "important",
-    "explanation": "留学许可。加拿大为 Study Permit，澳洲为学生签证（Subclass 500）。在目的地国全日制就读通常需先持学签。"
+    "explanation": "留学许可。加拿大为 Study Permit，澳洲为学生签证（Subclass 500）。在目的地国全日制就读通常需先持学签。新西兰、德国、西班牙的学生签逻辑相同：凭录取与资金证明申请。"
   },
   {
     "term": "Sponsor（担保人）",
@@ -112,7 +139,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "important",
@@ -124,7 +154,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "important",
@@ -136,7 +169,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "important",
@@ -172,7 +208,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "general",
     "importance": "optional",
@@ -229,7 +268,9 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany"
     ],
     "category": "business",
     "importance": "must",
@@ -249,7 +290,7 @@
     ],
     "category": "business",
     "importance": "must",
-    "explanation": "省/州政府根据本地劳动力需求自行制定标准、提名申请人移民的制度。加拿大除魁北克外各省有 PNP，澳洲 190/491 签证需州担保。"
+    "explanation": "省/州/区政府根据本地劳动力需求自行制定标准、提名申请人移民的制度。加拿大除魁北克外各省有 PNP，澳洲 190/491 签证需州担保。"
   },
   {
     "term": "Express Entry",
@@ -271,7 +312,10 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "business",
     "importance": "must",
@@ -283,11 +327,14 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "germany",
+      "spain"
     ],
     "category": "business",
     "importance": "must",
-    "explanation": "可申请移民/提名的职业列表。加拿大按 TEER 类别划定，澳洲为 ANZSCO 下的 MLTSSL/CSOL 等清单，逐年调整。"
+    "explanation": "可申请移民/提名的职业列表。加拿大按 TEER 类别划定，澳洲为 ANZSCO 下的 MLTSSL/CSOL 等清单，逐年调整。新西兰为绿名单，德国按需求与认可资格划定，西班牙为紧缺职业清单（每年更新）。"
   },
   {
     "term": "Invitation to Apply（ITA，邀请函）",
@@ -306,11 +353,13 @@
     "en": "Skill Assessment",
     "countries": [
       "canada",
-      "australia"
+      "australia",
+      "new-zealand",
+      "germany"
     ],
     "category": "business",
     "importance": "important",
-    "explanation": "由指定机构（如澳洲 ACS 评估 IT、EA 评估工程）认定你的学历与工作经验等同于当地标准的程序。"
+    "explanation": "由指定机构（如澳洲 ACS 评估 IT、EA 评估工程）认定你的学历与工作经验等同于当地标准的程序。新西兰为 NZQA 学历认证与职业注册，德国为职业资格对比认证（Anerkennung）。"
   },
   {
     "term": "Annual Quota（配额）",
@@ -318,11 +367,13 @@
     "countries": [
       "canada",
       "australia",
-      "usa"
+      "usa",
+      "new-zealand",
+      "spain"
     ],
     "category": "business",
     "importance": "important",
-    "explanation": "政府每年公布的移民名额上限，分配到各项目或各省/州。配额多少直接影响邀请频率与分数线，逐财年/逐年度公布。"
+    "explanation": "政府每年公布的移民名额上限，分配到各项目或各省/州/区。配额多少直接影响邀请频率与分数线，逐财年/逐年度公布。"
   },
   {
     "term": "CLB（加拿大语言等级）",
@@ -457,7 +508,8 @@
     "term": "ANZSCO（澳新职业分类）",
     "en": "Australian and New Zealand Standard Classification of Occupations",
     "countries": [
-      "australia"
+      "australia",
+      "new-zealand"
     ],
     "category": "business",
     "importance": "important",
@@ -644,5 +696,210 @@
     "category": "business",
     "importance": "optional",
     "explanation": "美国的付费加急服务：对部分表格（如 I-140）承诺数周内出审理结果，不影响通过率，只加快审理。"
+  },
+  {
+    "term": "绿名单（Green List）",
+    "en": "Green List",
+    "aliases": [
+      "Green List"
+    ],
+    "countries": [
+      "new-zealand"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "新西兰长期紧缺职业清单，分两级：一级职业拿到认证雇主 offer 可直接申请居留；二级职业工作满 2 年转居留。覆盖医护、工程、IT、建筑、技工等方向。"
+  },
+  {
+    "term": "认证雇主工签（AEWV）",
+    "en": "Accredited Employer Work Visa",
+    "aliases": [
+      "AEWV",
+      "认证雇主"
+    ],
+    "countries": [
+      "new-zealand"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "新西兰的主打工签：雇主先取得移民局认证资格，岗位通过劳动市场测试后为申请人担保工签，最长 5 年。绿名单、六分制、工作转居留都以持有 AEWV 为前提。"
+  },
+  {
+    "term": "永久回头签（PRV）",
+    "en": "Permanent Resident Visa",
+    "aliases": [
+      "PRV",
+      "永久回头"
+    ],
+    "countries": [
+      "new-zealand"
+    ],
+    "category": "general",
+    "importance": "must",
+    "explanation": "新西兰独有：居民签证持有头 2 年满足居住要求后可申请，之后无论离境多少年，返回新西兰的身份永久有效——是主流移民国中最宽松的「移民监解法」。"
+  },
+  {
+    "term": "六分制",
+    "en": "6-Point System",
+    "aliases": [
+      "6 分制"
+    ],
+    "countries": [
+      "new-zealand"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "新西兰技术移民（SMC）的打分规则：学历（本科 3、硕士 5、博士 6）、职业注册（2-6）、收入达标（2-6）三条路线任选其一，新西兰本地技术工作经验每年补 1 分，凑满 6 分且持认证雇主 offer 即可申居留。"
+  },
+  {
+    "term": "欧盟蓝卡（EU Blue Card）",
+    "en": "EU Blue Card",
+    "aliases": [
+      "蓝卡",
+      "Blaue Karte"
+    ],
+    "countries": [
+      "germany"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "面向有认可大学学位、拿到德国高薪岗位的专业人才：2025 年薪资门槛约 4.83 万欧元（紧缺职业约 4.4 万），IT 凭经验可豁免学历。持蓝卡 21 个月（B1 德语）或 27 个月（A1）可转德国永居，配偶团聚免语言。"
+  },
+  {
+    "term": "机会卡（Chancenkarte）",
+    "en": "Opportunity Card",
+    "aliases": [
+      "Chancenkarte"
+    ],
+    "countries": [
+      "germany"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "德国 2024 年推出的积分制求职签证：认可资格+语言+经验+年龄积满 6 分即可拿一年找工作签（每周可兼职 20 小时），找到合格工作后转蓝卡或技术工人工签。不需要先有雇主 offer。"
+  },
+  {
+    "term": "职业资格认证（Anerkennung）",
+    "en": "Recognition of Qualifications",
+    "aliases": [
+      "Anerkennung",
+      "资格认证"
+    ],
+    "countries": [
+      "germany"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "把国内学历或职业资格与德国标准逐项比对的程序：完全认可可直接就业；部分认可需补适应性培训或知识考试。技工类由各行业协会（如 IHK、HWK）负责，是德国技术工人工签的前置条件。"
+  },
+  {
+    "term": "双元制职业教育（Ausbildung）",
+    "en": "Vocational Training",
+    "aliases": [
+      "Ausbildung",
+      "学徒制"
+    ],
+    "countries": [
+      "germany"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "德国特色的职业教育：3 年理论与实践在企业与学校交替进行，学徒津贴约 800-1,300 欧/月。外国人可持学徒签证参加，毕业即获德国认可职业资格，是低学历年轻人走德国的长线路线。"
+  },
+  {
+    "term": "定居许可（Niederlassungserlaubnis）",
+    "en": "Settlement Permit",
+    "aliases": [
+      "定居许可",
+      "德国永居"
+    ],
+    "countries": [
+      "germany"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "德国的永久居留：蓝卡 21 个月（B1 德语）/27 个月（A1）、技术工人 3 年、自雇 3 年等各通道年限不同，通用要求是缴满养老保险、生计有保障、德语达标。"
+  },
+  {
+    "term": "外管局（Ausländerbehörde）",
+    "en": "Foreigners' Office",
+    "aliases": [
+      "Ausländerbehörde",
+      "外国人管理局"
+    ],
+    "countries": [
+      "germany"
+    ],
+    "category": "general",
+    "importance": "important",
+    "explanation": "德国各城市负责外国人居留事务的机构：签证转换、延期、永居申请都在这里办理。柏林等大城市需提前数周预约，是德国移民流程中最常打交道的部门。"
+  },
+  {
+    "term": "非营利居留（NLV）",
+    "en": "Non-Lucrative Visa",
+    "aliases": [
+      "NLV",
+      "非营利签证"
+    ],
+    "countries": [
+      "spain"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "西班牙的生活型居留：证明每月约 2,400 欧元（IPREM 400% 档）的被动收入或大额存款、购买私立医保即可，居留期间禁止在西班牙工作。适合退休与财务自由家庭，住满 5 年转永居。"
+  },
+  {
+    "term": "数字游民签证",
+    "en": "Digital Nomad Visa",
+    "aliases": [
+      "远程工作签证",
+      "Teletrabajo"
+    ],
+    "countries": [
+      "spain"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "西班牙 Startup 法案下的国际远程办公居留：为境外公司远程工作或服务境外客户，收入约 2,300-2,600 欧/月起，可享 24% 固定税率（贝克汉姆税制）。首次 1 年，续签后住满 5 年转永居。"
+  },
+  {
+    "term": "贝克汉姆税制",
+    "en": "Beckham Law",
+    "aliases": [
+      "贝克汉姆法则"
+    ],
+    "countries": [
+      "spain"
+    ],
+    "category": "business",
+    "importance": "important",
+    "explanation": "西班牙对数字游民等新居留者的特殊税制：前 6 年全球收入按 24% 固定税率缴纳（60 万欧以内），不按普通累进税（最高 47%）计算。以第一个使用的球星贝克汉姆得名。"
+  },
+  {
+    "term": "ENISA 认证",
+    "en": "ENISA Certification",
+    "aliases": [
+      "ENISA"
+    ],
+    "countries": [
+      "spain"
+    ],
+    "category": "business",
+    "importance": "optional",
+    "explanation": "西班牙国家创新公司（ENISA）对创业项目创新性的官方评估：获认证即可走创业签证快速通道并享 15% 企业税。科技类项目通过率高，传统生意基本不过审。"
+  },
+  {
+    "term": "长期居留",
+    "en": "Larga Duración",
+    "aliases": [
+      "西班牙永居",
+      "长期居留卡"
+    ],
+    "countries": [
+      "spain"
+    ],
+    "category": "business",
+    "importance": "must",
+    "explanation": "西班牙连续合法居住满 5 年（每年离境不超过规定时长）后可申请：10 年期可续居留卡，工作、生活不再受签证类别限制。再进一步还可申请欧盟长期居民身份。"
   }
 ]
